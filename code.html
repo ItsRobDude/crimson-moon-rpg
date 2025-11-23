@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Text-Based RPG Interface</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400;1,700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings:
+            'FILL' 0,
+            'wght' 400,
+            'GRAD' 0,
+            'opsz' 24
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f4d125",
+                        "background-light": "#f8f8f5",
+                        "background-dark": "#221f10",
+                    },
+                    fontFamily: {
+                        "display": ["Noto Serif", "serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="font-display">
+<div class="relative flex h-screen w-full flex-col bg-[#4A0404] text-[#F5F5F5] overflow-hidden">
+<header class="sticky top-0 left-0 w-full p-3 sm:p-4 bg-[rgba(10,10,10,0.8)] z-20 shadow-lg">
+<div class="flex flex-col sm:flex-row items-center gap-3 sm:gap-6 max-w-7xl mx-auto">
+<div class="flex items-center gap-4 text-sm sm:text-base">
+<span class="font-bold text-white">Alistair</span>
+<span class="text-gray-300">Level 1</span>
+<span class="text-xs text-gray-400 italic">250/1000 XP</span>
+</div>
+<div class="w-full sm:flex-1 h-4 bg-black/50 border border-gray-600 rounded-full overflow-hidden">
+<div class="h-full bg-red-600" style="width: 100%;"></div>
+</div>
+</div>
+</header>
+<main class="flex-1 flex items-center justify-center p-4 sm:p-6 md:p-8">
+<div class="relative w-full max-w-4xl md:w-4/5 h-full md:h-auto md:max-h-[85vh] bg-[rgba(10,10,10,0.8)] border border-[#C9A445] rounded-xl shadow-2xl flex flex-col">
+<div class="absolute top-0 right-0 -mt-8 -mr-4 sm:-mt-10 sm:-mr-5 z-10">
+<div class="h-20 w-20 sm:h-24 sm:w-24 md:h-28 md:w-28 bg-black border-2 border-[#C9A445] rounded-full p-1.5">
+<div class="w-full h-full bg-center bg-no-repeat aspect-square bg-cover rounded-full" data-alt="Portrait of a cloaked figure in shadows." style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCBRRXc4HY3K09fQmlCjIs0BqgEyvPqQEJ3pF2JY6QmybakTF4oKBARHRXdkxp3RLeOEtHERyEQB5klNcMDzkINC2M63A5Q6p9oIQJ1j63nMAX5PDA56DUDMpUaykdIMZFAfdPeswx31JQWBFId9wYaBJpezW3TAf9If_YmYtsRs6svEOD1Z7lRU2Sg6wAUbVI7BZI5ED03O8FMsc22QR1cfw7YdE2Qm4VSnZyXdNDPeScl8ukNhIf22R_DxysxPe7JErmu6DHi00N8");'></div>
+</div>
+</div>
+<div class="flex-1 p-6 md:p-8 overflow-y-auto">
+<p class="text-[#F5F5F5] text-lg sm:text-xl font-normal leading-relaxed">
+                        The air in the tavern is thick with the smell of stale ale and sawdust. A cloaked figure sits in the corner, their face obscured by shadows. As you approach, they look up, and you catch the glint of a golden amulet under their robe. 'You're the one they sent, then?' the figure rasps, their voice like stones grinding together. 'The Dragon's Tooth amulet... it's not just a legend. But getting to it will cost you. What do you say?'
+                    </p>
+<p class="text-[#F5F5F5] text-lg sm:text-xl font-normal leading-relaxed mt-4">
+                        A low growl rumbles from under their table, and you spot the hulking form of a hound with glowing red eyes. The tavern keeper polishes a glass, deliberately not looking in your direction. The choice is yours, traveler. Every path has its own shadow.
+                    </p>
+</div>
+</div>
+</main>
+<div class="absolute bottom-24 right-4 sm:right-6 md:right-8 w-80 max-w-[80vw] h-40 bg-black/60 backdrop-blur-sm border border-gray-700 rounded-lg p-3 text-sm text-gray-300 flex flex-col z-20">
+<h4 class="font-bold text-gray-100 border-b border-gray-600 pb-2 mb-2">Game Log</h4>
+<div class="flex-1 overflow-y-auto text-xs">
+<p class="font-mono text-green-400">Rolled Perception: 15 (Success)</p>
+<p class="font-mono text-gray-400 mt-1">Noticed the amulet's strange glow.</p>
+</div>
+</div>
+<footer class="sticky bottom-0 left-0 w-full p-3 sm:p-4 bg-gradient-to-t from-[rgba(10,10,10,0.8)] to-transparent z-30">
+<div class="flex flex-col md:flex-row gap-3 w-full max-w-5xl mx-auto">
+<div class="flex flex-1 flex-col sm:flex-row gap-3 flex-wrap">
+<button class="flex-1 flex min-w-[150px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-14 px-5 bg-[#222222] border border-[#C9A445] text-[#C9A445] text-base font-bold leading-normal tracking-[0.015em] hover:bg-[#333333] transition-colors">
+<span class="truncate">Ask about the amulet</span>
+</button>
+<button class="flex-1 flex min-w-[150px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-14 px-5 bg-[#222222] border border-[#C9A445] text-[#C9A445] text-base font-bold leading-normal tracking-[0.015em] hover:bg-[#333333] transition-colors">
+<span class="truncate">Threaten the figure</span>
+</button>
+<button class="flex-1 flex min-w-[150px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-14 px-5 bg-[#222222]/50 border border-gray-600 text-gray-500 text-base font-bold leading-normal tracking-[0.015em] cursor-not-allowed">
+<span class="truncate">Offer a drink (requires coin)</span>
+</button>
+</div>
+<div class="flex justify-center items-center gap-2">
+<button aria-label="Open Inventory" class="flex cursor-pointer items-center justify-center overflow-hidden rounded-full h-14 w-14 bg-[#222222] border border-[#C9A445] text-[#C9A445] hover:bg-[#333333] transition-colors">
+<span class="material-symbols-outlined text-3xl">inventory_2</span>
+</button>
+<button aria-label="View Map" class="flex cursor-pointer items-center justify-center overflow-hidden rounded-full h-14 w-14 bg-[#222222] border border-[#C9A445] text-[#C9A445] hover:bg-[#333333] transition-colors">
+<span class="material-symbols-outlined text-3xl">map</span>
+</button>
+<button aria-label="Save Game" class="flex cursor-pointer items-center justify-center overflow-hidden rounded-full h-14 w-14 bg-[#222222] border border-[#C9A445] text-[#C9A445] hover:bg-[#333333] transition-colors">
+<span class="material-symbols-outlined text-3xl">save</span>
+</button>
+</div>
+</div>
+</footer>
+</div>
+</body></html>
