@@ -1,0 +1,330 @@
+:root {
+    --bg-color: #121212;
+    --text-color: #e0e0e0;
+    --accent-color: #c9a445; /* Gold */
+    --accent-hover: #e0b855;
+    --panel-bg: rgba(20, 20, 20, 0.9);
+    --border-color: #444;
+    --log-bg: #1a1a1a;
+    --success-color: #4caf50;
+    --fail-color: #f44336;
+    --font-main: 'Lato', sans-serif;
+    --font-header: 'Cinzel', serif;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: var(--font-main);
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* Layout */
+#game-container {
+    display: grid;
+    grid-template-areas:
+        "header header"
+        "viewport log";
+    grid-template-rows: 60px 1fr;
+    grid-template-columns: 1fr 300px;
+    height: 100vh;
+    width: 100vw;
+}
+
+/* Header */
+#stats-bar {
+    grid-area: header;
+    background-color: #1f1f1f;
+    border-bottom: 2px solid var(--accent-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+}
+
+.stat-group {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+#char-name {
+    font-family: var(--font-header);
+    font-weight: bold;
+    font-size: 1.2rem;
+    color: var(--accent-color);
+}
+
+.bars {
+    flex-grow: 1;
+    justify-content: center;
+}
+
+.bar-container {
+    position: relative;
+    width: 200px;
+    height: 20px;
+    background-color: #333;
+    border: 1px solid #555;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.bar-fill {
+    height: 100%;
+    width: 100%; /* JS will adjust */
+    transition: width 0.3s ease;
+}
+
+#hp-bar-fill { background-color: #d32f2f; }
+#xp-bar-fill { background-color: #1976d2; }
+
+.bar-container span {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    font-size: 0.8rem;
+    line-height: 20px;
+    text-shadow: 1px 1px 2px black;
+}
+
+button {
+    background-color: #333;
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    padding: 5px 10px;
+    cursor: pointer;
+    font-family: var(--font-header);
+    transition: background 0.2s;
+}
+
+button:hover {
+    background-color: #444;
+    border-color: var(--accent-color);
+}
+
+/* Main Viewport */
+#viewport {
+    grid-area: viewport;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end; /* Dialogue at bottom */
+    overflow: hidden;
+}
+
+#scene-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    z-index: -1;
+    transition: background-image 0.5s ease-in-out;
+    filter: brightness(0.6);
+}
+
+#scene-content {
+    flex-grow: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    pointer-events: none; /* Let clicks pass through */
+}
+
+#portrait-container {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    border: 3px solid var(--accent-color);
+    overflow: hidden;
+    background-color: black;
+    box-shadow: 0 0 15px rgba(0,0,0,0.8);
+    pointer-events: auto;
+}
+
+#portrait-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+#portrait-container.hidden {
+    display: none;
+}
+
+/* Narrative Section */
+#narrative-section {
+    background: linear-gradient(to top, rgba(0,0,0,0.95), rgba(0,0,0,0.8));
+    border-top: 1px solid var(--accent-color);
+    padding: 20px;
+    min-height: 250px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+#narrative-box {
+    font-size: 1.1rem;
+    line-height: 1.6;
+}
+
+#choice-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+#choice-container button {
+    flex: 1 1 40%; /* 2 per row roughly */
+    padding: 15px;
+    background: rgba(40, 40, 40, 0.8);
+    border: 1px solid var(--accent-color);
+    font-size: 1rem;
+    text-align: left;
+}
+
+#choice-container button:hover {
+    background: rgba(60, 60, 60, 0.9);
+    box-shadow: 0 0 10px var(--accent-color);
+}
+
+/* Game Log */
+#game-log-panel {
+    grid-area: log;
+    background-color: var(--log-bg);
+    border-left: 2px solid #333;
+    display: flex;
+    flex-direction: column;
+    font-family: monospace;
+}
+
+#game-log-panel h3 {
+    padding: 10px;
+    background-color: #222;
+    border-bottom: 1px solid #444;
+    text-align: center;
+    font-family: var(--font-header);
+}
+
+#log-content {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.log-entry {
+    font-size: 0.9rem;
+    padding: 4px;
+    border-bottom: 1px solid #2a2a2a;
+}
+
+.log-entry.system { color: #888; }
+.log-entry.combat { color: #ff6b6b; }
+.log-entry.check-success { color: var(--success-color); }
+.log-entry.check-fail { color: var(--fail-color); }
+.log-entry.gain { color: var(--accent-color); }
+
+/* Modals */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-content {
+    background-color: #222;
+    border: 2px solid var(--accent-color);
+    padding: 30px;
+    width: 500px;
+    max-width: 90%;
+    border-radius: 8px;
+    box-shadow: 0 0 20px black;
+}
+
+.modal-content h2 {
+    font-family: var(--font-header);
+    color: var(--accent-color);
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.form-group input, .form-group select {
+    width: 100%;
+    padding: 8px;
+    background: #333;
+    border: 1px solid #555;
+    color: white;
+}
+
+.desc-text {
+    font-size: 0.85rem;
+    color: #aaa;
+    margin-top: 5px;
+    font-style: italic;
+}
+
+#btn-start-game {
+    width: 100%;
+    padding: 15px;
+    font-size: 1.2rem;
+    background-color: var(--accent-color);
+    color: black;
+    font-weight: bold;
+    margin-top: 20px;
+}
+
+#btn-start-game:hover {
+    background-color: var(--accent-hover);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    #game-container {
+        grid-template-areas:
+            "header"
+            "viewport";
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+    }
+
+    #game-log-panel {
+        display: none; /* Hide log on mobile for now, or make it a toggle */
+    }
+}
