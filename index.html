@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prophecies: Crimson Moon Part I</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lato:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- Main Game Container -->
+    <div id="game-container">
+
+        <!-- Header: Character Info -->
+        <header id="stats-bar">
+            <div class="stat-group">
+                <span id="char-name">Name</span>
+                <span id="char-level">Lvl 1</span>
+                <span id="char-class">Class</span>
+            </div>
+            <div class="stat-group bars">
+                <div class="bar-container hp-container">
+                    <div id="hp-bar-fill" class="bar-fill"></div>
+                    <span id="hp-text">HP: 10/10</span>
+                </div>
+                <div class="bar-container xp-container">
+                    <div id="xp-bar-fill" class="bar-fill"></div>
+                    <span id="xp-text">XP: 0/300</span>
+                </div>
+            </div>
+            <div class="stat-group buttons">
+                <button id="btn-inventory">Inventory</button>
+                <button id="btn-quests">Quests</button>
+                <button id="btn-menu">Menu</button>
+            </div>
+        </header>
+
+        <!-- Main Viewport -->
+        <main id="viewport">
+            <!-- Background Layer -->
+            <div id="scene-background"></div>
+
+            <!-- Content Layer -->
+            <div id="scene-content">
+
+                <!-- Character Portrait (Left or Right) -->
+                <div id="portrait-container" class="hidden">
+                    <img id="npc-portrait" src="" alt="NPC Portrait">
+                </div>
+
+                <!-- Center/Interaction Area (for Combat or Special Visuals) -->
+                <div id="center-stage"></div>
+            </div>
+
+            <!-- Dialogue & Interaction Section (Bottom) -->
+            <div id="narrative-section">
+                <div id="narrative-box">
+                    <p id="narrative-text">Welcome to Prophecies: Crimson Moon.</p>
+                </div>
+                <div id="choice-container">
+                    <!-- Buttons injected by JS -->
+                </div>
+            </div>
+        </main>
+
+        <!-- Side Panel: Game Log -->
+        <aside id="game-log-panel">
+            <h3>Game Log</h3>
+            <div id="log-content">
+                <div class="log-entry system">Initializing game engine...</div>
+            </div>
+        </aside>
+
+    </div>
+
+    <!-- Overlays / Modals -->
+
+    <!-- Character Creation Modal -->
+    <div id="char-creation-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>Create Your Character</h2>
+            <div class="form-group">
+                <label>Name:</label>
+                <input type="text" id="cc-name" value="Traveler">
+            </div>
+            <div class="form-group">
+                <label>Race:</label>
+                <select id="cc-race"></select> <!-- Populated by JS -->
+                <p id="cc-race-desc" class="desc-text"></p>
+            </div>
+            <div class="form-group">
+                <label>Class:</label>
+                <select id="cc-class"></select> <!-- Populated by JS -->
+                <p id="cc-class-desc" class="desc-text"></p>
+            </div>
+            <div id="cc-stats-preview">
+                <!-- Stats preview -->
+            </div>
+            <button id="btn-start-game">Begin Journey</button>
+        </div>
+    </div>
+
+    <!-- Inventory Modal -->
+    <div id="inventory-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>Inventory</h2>
+            <div id="inventory-list"></div>
+            <button class="close-modal">Close</button>
+        </div>
+    </div>
+
+    <!-- Quest Log Modal -->
+    <div id="quest-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>Quest Log</h2>
+            <div id="quest-list"></div>
+            <button class="close-modal">Close</button>
+        </div>
+    </div>
+
+    <!-- Menu Modal -->
+    <div id="menu-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>Game Menu</h2>
+            <button id="btn-save">Save Game</button>
+            <button id="btn-load">Load Game</button>
+            <button id="btn-tutorial">Help / Tutorial</button>
+            <button id="btn-debug-toggle">Toggle Debug</button>
+            <button class="close-modal">Close</button>
+        </div>
+    </div>
+
+    <!-- Tutorial Overlay -->
+    <div id="tutorial-overlay" class="modal hidden">
+        <div class="modal-content">
+            <h2>How to Play</h2>
+            <ul>
+                <li><strong>Checks:</strong> d20 + Ability Mod + Proficiency.</li>
+                <li><strong>Combat:</strong> Turn-based. Choose actions wisely.</li>
+                <li><strong>Saving:</strong> Auto-saves on scene change. Manual save in menu.</li>
+            </ul>
+            <button class="close-modal">Got it</button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <!-- Load Data Modules first -->
+    <script type="module" src="game.js"></script>
+</body>
+</html>
