@@ -58,7 +58,7 @@ export const scenes = {
         background: "landscapes/heart_of_silverthorn.png",
         text: "'Traitors! Seize them!' The guards attack. You have no choice but to defend yourself.",
         type: "combat",
-        enemyId: "fungal_beast", // Placeholder for Guard Enemy
+        enemies: ["fungal_beast", "fungal_beast"], // Placeholder for Guard Enemy
         winScene: "SCENE_HUSHBRIAR_TOWN",
         loseScene: "SCENE_PRISON_CAPTURE"
     },
@@ -300,7 +300,7 @@ export const scenes = {
         background: "landscapes/heart_of_silverthorn.png",
         text: "The guild members attack with deadly precision!",
         type: "combat",
-        enemyId: "fungal_beast", // Placeholder for Rogue Enemy
+        enemies: ["fungal_beast", "fungal_beast"], // Placeholder for Rogue Enemy
         winScene: "SCENE_TRACKING_CHOLDRITHS",
         loseScene: "SCENE_DEFEAT"
     },
@@ -351,7 +351,7 @@ export const scenes = {
         background: "landscapes/forest_walk_alt.png",
         text: "Aodhan unleashes dark magic!",
         type: "combat",
-        enemyId: "spore_zombie", // Placeholder for Aodhan
+        enemies: ["spore_zombie"], // Placeholder for Aodhan
         winScene: "SCENE_AODHAN_DEFEAT",
         loseScene: "SCENE_DEFEAT"
     },
@@ -628,7 +628,7 @@ export const scenes = {
         background: "landscapes/sporefall_outskirt_encounter.png",
         text: "The Fungal Beast erupts from the haze, spores streaming from its matted hide as it barrels toward you!",
         type: "combat",
-        enemyId: "fungal_beast",
+        enemies: ["fungal_beast"],
         winScene: "SCENE_VICTORY",
         loseScene: "SCENE_DEFEAT"
     },
@@ -729,7 +729,7 @@ export const scenes = {
         background: "landscapes/sporefall_whisperwood_reveal.png",
         text: "You find the ruins Eoin spoke of. A hulking silhouette stands guard—a corpse bloated with fungus. It turns to you with a hollow groan.",
         type: "combat",
-        enemyId: "spore_zombie",
+        enemies: ["spore_zombie"],
         winScene: "SCENE_RUINS_CLEARED",
         loseScene: "SCENE_DEFEAT"
     },

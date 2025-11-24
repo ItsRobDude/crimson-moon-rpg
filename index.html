@@ -48,6 +48,49 @@
 
         <!-- Main Viewport -->
         <main id="viewport">
+            <!-- BATTLE SCREEN -->
+            <div id="battle-screen" class="hidden">
+                <div class="battle-layout">
+                    <div class="battle-main-column">
+                        <div id="battle-party-section" class="battle-section">
+                            <h2>Party</h2>
+                            <div id="party-container" class="party-grid">
+                                <!-- Party members will be injected here -->
+                            </div>
+                        </div>
+                        <div id="battle-scene-section" class="battle-section">
+                            <h2>Battle Scene</h2>
+                            <div id="battle-scene-image">
+                                <div id="battle-scene-text-overlay">
+                                    <p id="battle-scene-main-text"></p>
+                                    <p id="battle-scene-sub-text"></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="battle-log-section" class="battle-section">
+                            <h2>Battle Log</h2>
+                            <div id="battle-log-content">
+                                <!-- Battle log messages go here -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="battle-side-column">
+                        <div id="battle-turn-section" class="battle-section">
+                            <h3 id="turn-indicator">Player's Turn</h3>
+                            <div id="battle-actions-container" class="battle-actions-grid">
+                                <!-- Action buttons go here -->
+                            </div>
+                        </div>
+                        <div id="battle-enemies-section" class="battle-section">
+                            <h3>Enemies</h3>
+                            <div id="enemies-container">
+                                <!-- Enemy info goes here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Background Layer -->
             <div id="scene-background"></div>
 
@@ -233,7 +276,6 @@
     </div>
 
     <!-- Scripts -->
-    <!-- Load Data Modules first -->
-    <script type="module" src="game.js"></script>
+    <script src="init.js" type="module"></script>
 </body>
 </html>

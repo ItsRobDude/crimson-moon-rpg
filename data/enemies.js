@@ -6,6 +6,7 @@ export const enemies = {
         attackBonus: 3,
         damage: "1d6+1",
         xp: 50,
+        portrait: "portraits/fungal_beast_portrait.png",
         description: "A shambling mass of mushrooms and rotting wood.",
         resistances: ["bludgeoning"],
         vulnerabilities: ["fire"]
@@ -17,6 +18,7 @@ export const enemies = {
         attackBonus: 4,
         damage: "1d8+2",
         xp: 75,
+        portrait: "portraits/spore_zombie_portrait.png",
         description: "A humanoid corpse reanimated by the fungal network.",
         resistances: ["poison"],
         vulnerabilities: ["radiant", "fire"]
@@ -28,6 +30,7 @@ export const enemies = {
         attackBonus: 5,
         damage: "2d4+2",
         xp: 100,
+        portrait: "portraits/choldrith_portrait.png",
         description: "A horrifying hybrid of drow and spider, serving the dark.",
         resistances: ["poison"],
         vulnerabilities: ["fire"]

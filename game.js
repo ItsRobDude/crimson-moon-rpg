@@ -14,15 +14,9 @@ import { factions } from './data/factions.js';
 import { gameState, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus } from './data/gameState.js';
 import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod } from './rules.js';
 
-// --- Initialization ---
-document.addEventListener('DOMContentLoaded', () => {
-    initUI();
-    showCharacterCreation();
-});
-
-function initUI() {
-    window.logMessage = logMessage;
-
+export function initUI() {
+    window.goToScene = goToScene;
+    window.showCharacterCreation = showCharacterCreation;
     document.getElementById('btn-inventory').onclick = () => toggleInventory(false);
     document.getElementById('btn-quests').onclick = toggleQuestLog;
     document.getElementById('btn-menu').onclick = toggleMenu;
@@ -57,7 +51,7 @@ let ccState = {
     chosenSpells: []
 };
 
-function showCharacterCreation() {
+export function showCharacterCreation() {
     const raceSelect = document.getElementById('cc-race');
     const classSelect = document.getElementById('cc-class');
     raceSelect.innerHTML = "";
@@ -274,6 +268,11 @@ function goToScene(sceneId) {
     const scene = scenes[sceneId];
     if (!scene) { console.error("Scene not found:", sceneId); return; }
 
+    // Hide combat, show main scene
+    document.getElementById('battle-screen').classList.add('hidden');
+    document.getElementById('scene-container').classList.remove('hidden');
+    window.logMessage = logToMain; // Redirect logging to main panel
+
     // Determine if first visit
     const firstVisit = !gameState.visitedScenes.includes(sceneId);
     if (firstVisit) {
@@ -287,8 +286,7 @@ function goToScene(sceneId) {
     if (scene.type !== 'combat' && scene.location === 'silverthorn') {
         if (getReputation('silverthorn') <= -50) {
             logMessage("The guards recognize you as an enemy of the state!", "combat");
-            // Override scene to combat
-            startCombat('fungal_beast', 'SCENE_DEFEAT', 'SCENE_DEFEAT'); // Placeholder enemy/scenes
+            startCombat(['fungal_beast'], 'SCENE_DEFEAT', 'SCENE_DEFEAT');
             return;
         }
     }
@@ -317,7 +315,6 @@ function goToScene(sceneId) {
             }
             if (scene.onEnter.setFlag) {
                 gameState.flags[scene.onEnter.setFlag] = true;
-                // Specialized handling for NPC flags if needed
                 if (scene.onEnter.setFlag === 'aodhan_dead') {
                     setNpcStatus('aodhan', 'dead');
                 }
@@ -329,7 +326,7 @@ function goToScene(sceneId) {
 
     if (scene.type === 'combat') {
         document.getElementById('shop-panel').classList.add('hidden');
-        startCombat(scene.enemyId, scene.winScene, scene.loseScene);
+        startCombat(scene.enemies, scene.winScene, scene.loseScene);
     } else if (scene.type === 'shop') {
         renderShop(scene.shopId);
         gameState.combat.active = false;
@@ -768,338 +765,310 @@ function renderCodexFactions(container) {
 
 // --- Combat System ---
 
-function startCombat(enemyId, winScene, loseScene) {
-    const enemyDef = enemies[enemyId];
-    if (!enemyDef) return;
+function startCombat(enemyIds, winScene, loseScene) {
+    // Show combat screen, hide main scene
+    document.getElementById('scene-container').classList.add('hidden');
+    document.getElementById('battle-screen').classList.remove('hidden');
+    window.logMessage = logToBattle; // Redirect logging to battle log
+
+    const combatEnemies = enemyIds.map((id, index) => {
+        const enemyData = enemies[id];
+        return {
+            id: id,
+            name: enemyData.name,
+            hp: enemyData.hp,
+            maxHp: enemyData.hp,
+            ac: enemyData.ac,
+            attackBonus: enemyData.attackBonus,
+            damage: enemyData.damage,
+            portrait: enemyData.portrait || 'portraits/placeholder.png',
+            initiative: 0,
+            statusEffects: [],
+            uniqueId: `${id}_${index}` // To target specific enemies
+        };
+    });
 
     gameState.combat = {
         active: true,
-        enemyId: enemyId,
-        enemyCurrentHp: enemyDef.hp,
-        enemyMaxHp: enemyDef.hp,
-        enemyAc: enemyDef.ac,
-        enemyName: enemyDef.name,
+        enemies: combatEnemies,
+        turnOrder: [],
+        turnIndex: 0,
         round: 1,
         winSceneId: winScene,
         loseSceneId: loseScene,
-        defending: false
+        playerDefending: false
     };
 
-    logMessage(`Combat started against ${enemyDef.name}!`, "combat");
+    logMessage(`Combat started!`, "combat");
 
+    // Roll initiative for everyone
+    const initiatives = [];
     const playerInit = rollInitiative(gameState, 'player');
-    const enemyInit = rollInitiative(gameState, 'enemy', enemyDef.attackBonus);
-    gameState.combat.playerInitiative = playerInit.total;
-    gameState.combat.enemyInitiative = enemyInit.total;
+    initiatives.push({ type: 'player', id: 'player', initiative: playerInit.total });
+    logMessage(`You rolled ${playerInit.total} for initiative.`, "system");
 
-    logMessage(`Initiative: You ${playerInit.total} vs Enemy ${enemyInit.total}`, "system");
-    gameState.combat.turn = (playerInit.total >= enemyInit.total) ? 'player' : 'enemy';
+    gameState.combat.enemies.forEach(enemy => {
+        const init = rollInitiative(gameState, 'enemy', enemy.attackBonus);
+        enemy.initiative = init.total;
+        initiatives.push({ type: 'enemy', id: enemy.uniqueId, initiative: init.total });
+        logMessage(`${enemy.name} rolled ${init.total} for initiative.`, "system");
+    });
+
+    // Sort by initiative descending
+    initiatives.sort((a, b) => b.initiative - a.initiative);
+    gameState.combat.turnOrder = initiatives.map(i => i.id);
+
     combatTurnLoop();
 }
 
 function combatTurnLoop() {
     if (!gameState.combat.active) return;
-    updateCombatUI();
-    if (gameState.combat.turn === 'player') {
+
+    const currentTurnId = gameState.combat.turnOrder[gameState.combat.turnIndex];
+
+    if (currentTurnId === 'player') {
         logMessage(`Round ${gameState.combat.round} - Your Turn`, "system");
+        updateCombatUI();
     } else {
-        logMessage(`Round ${gameState.combat.round} - Enemy Turn`, "system");
-        setTimeout(enemyTurn, 1000);
+        const enemy = gameState.combat.enemies.find(e => e.uniqueId === currentTurnId);
+        logMessage(`Round ${gameState.combat.round} - ${enemy.name}'s Turn`, "system");
+        updateCombatUI();
+        setTimeout(() => enemyTurn(enemy), 1000);
     }
 }
 
 function updateCombatUI() {
-    const c = gameState.combat;
-    const txt = `Combat Mode - Round ${c.round}\n\nEnemy: ${c.enemyName} (HP: ${c.enemyCurrentHp})\nPlayer HP: ${gameState.player.hp}/${gameState.player.maxHp}`;
-    document.getElementById('narrative-text').innerText = txt;
-    const choiceContainer = document.getElementById('choice-container');
-    choiceContainer.innerHTML = '';
+    if (!gameState.combat.active) return;
 
-    if (c.turn === 'player') {
-        renderPlayerActions(choiceContainer);
-    } else {
-        const btn = document.createElement('button');
-        btn.innerText = "Enemy Acting...";
-        btn.disabled = true;
-        choiceContainer.appendChild(btn);
-    }
-}
+    // -- Render Party --
+    const partyContainer = document.getElementById('party-container');
+    partyContainer.innerHTML = '';
 
-function renderPlayerActions(container) {
-    const actions = [
-        { text: "Attack", action: "attack" },
-        { text: "Cast Spell", action: "spell_menu" },
-        { text: "Use Item", action: "item_menu" },
-        { text: "Feature", action: "feature_menu" }, // New
-        { text: "Defend", action: "defend" },
-        { text: "Flee", action: "flee" }
-    ];
+    const p = gameState.player;
+    const playerCard = document.createElement('div');
+    const isPlayerTurn = gameState.combat.turnOrder[gameState.combat.turnIndex] === 'player';
+    playerCard.className = `party-card ${isPlayerTurn ? 'active-turn' : ''} ${p.hp <= 0 ? 'down' : ''}`;
 
-    actions.forEach(act => {
-        const btn = document.createElement('button');
-        btn.innerText = act.text;
-        btn.onclick = () => handleCombatAction(act.action);
+    const hpPct = Math.max(0, (p.hp / p.maxHp) * 100);
+    const totalSlots = p.spellSlots ? Object.values(p.spellSlots).reduce((a, b) => a + b, 0) : 0;
+    const currentSlots = p.currentSlots ? Object.values(p.currentSlots).reduce((a, b) => a + b, 0) : 0;
+    const manaPct = totalSlots > 0 ? Math.max(0, (currentSlots / totalSlots) * 100) : 0;
 
-        if (act.action === 'spell_menu') {
-            const hasSpells = gameState.player.knownSpells && gameState.player.knownSpells.length > 0;
-            if (!hasSpells) btn.disabled = true;
-        }
-        // Disable features if none
-        if (act.action === 'feature_menu') {
-            const hasFeats = Object.keys(gameState.player.resources || {}).length > 0;
-            if (!hasFeats) btn.disabled = true;
-        }
+    playerCard.innerHTML = `
+        <div class="party-header">
+            <div class="party-portrait" style='background-image: url("portraits/player_placeholder.png");'></div>
+            <div>
+                <p class="party-name">${p.name}</p>
+                <p class="party-class">Lv. ${p.level} ${classes[p.classId].name}</p>
+            </div>
+        </div>
+        <div>
+            <div class="party-bar-label"><span>Health</span><span>${p.hp}/${p.maxHp}</span></div>
+            <div class="party-bar-background"><div class="party-bar-fill hp-fill" style="width: ${hpPct}%;"></div></div>
+        </div>
+        ${totalSlots > 0 ? `
+        <div>
+            <div class="party-bar-label"><span>Spell Slots</span><span>${currentSlots}/${totalSlots}</span></div>
+            <div class="party-bar-background"><div class="party-bar-fill mana-fill" style="width: ${manaPct}%;"></div></div>
+        </div>` : ''}
+        <div class="party-status">
+            ${isPlayerTurn ? `<span class="turn-indicator-text">Your Turn</span>` : ''}
+            ${p.hp <= 0 ? `<span class="status-down">Down</span>` : ''}
+        </div>
+    `;
+    partyContainer.appendChild(playerCard);
 
-        container.appendChild(btn);
+    // -- Render Enemies --
+    const enemiesContainer = document.getElementById('enemies-container');
+    enemiesContainer.innerHTML = '';
+    gameState.combat.enemies.forEach(enemy => {
+        if (enemy.hp <= 0) return;
+        const enemyCard = document.createElement('div');
+        enemyCard.className = 'enemy-card';
+        const enemyHpPct = Math.max(0, (enemy.hp / enemy.maxHp) * 100);
+
+        enemyCard.innerHTML = `
+            <div class="enemy-portrait" style='background-image: url("${enemy.portrait}");'></div>
+            <div class="enemy-info">
+                <p class="enemy-name">${enemy.name}</p>
+                <div class="enemy-bar-background">
+                    <div class="enemy-bar-fill" style="width: ${enemyHpPct}%;"></div>
+                </div>
+                <div class="enemy-status"></div>
+            </div>
+        `;
+        enemiesContainer.appendChild(enemyCard);
     });
+
+    // -- Render Actions --
+    const turnIndicator = document.getElementById('turn-indicator');
+    const actionsContainer = document.getElementById('battle-actions-container');
+    actionsContainer.innerHTML = '';
+    if (isPlayerTurn) {
+        turnIndicator.textContent = `${p.name}'s Turn`;
+        renderPlayerActions(actionsContainer);
+    } else {
+        const enemy = gameState.combat.enemies.find(e => e.uniqueId === gameState.combat.turnOrder[gameState.combat.turnIndex]);
+        turnIndicator.textContent = enemy ? `${enemy.name}'s Turn` : "Enemy's Turn";
+    }
+
+    // -- Set Battle Scene Background --
+    document.getElementById('battle-scene-image').style.backgroundImage = "url('landscapes/battle_placeholder.webp')";
 }
 
-function handleCombatAction(action) {
-    if (action === 'attack') performAttack();
-    else if (action === 'spell_menu') renderSpellMenu();
-    else if (action === 'item_menu') toggleInventory(true);
-    else if (action === 'feature_menu') renderFeatureMenu();
-    else if (action === 'defend') performDefend();
-    else if (action === 'flee') performFlee();
+function renderPlayerActions(container, subMenu = null) {
+    container.innerHTML = ''; // Clear previous state
+    const grid = document.createElement('div');
+    grid.className = 'battle-actions-grid';
+
+    if (subMenu === 'attack') {
+        gameState.combat.enemies.forEach(enemy => {
+            if (enemy.hp <= 0) return;
+            grid.appendChild(createActionButton(enemy.name, 'swords', () => performAttack(enemy.uniqueId), 'primary'));
+        });
+        grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, null), 'flee')); // Using flee style for back
+    } else if (subMenu === 'spells') {
+        const spellList = gameState.player.knownSpells || [];
+        spellList.forEach(spellId => {
+            const spell = spells[spellId];
+            if (!spell) return;
+
+            const hasSlots = spell.level === 0 || (gameState.player.currentSlots[spell.level] && gameState.player.currentSlots[spell.level] > 0);
+            grid.appendChild(createActionButton(spell.name, 'auto_stories', () => {
+                 renderPlayerActions(container, { type: 'spell_target', spellId: spellId });
+            }, '', !hasSlots));
+        });
+        grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, null), 'flee'));
+    } else if (subMenu && subMenu.type === 'spell_target') {
+         gameState.combat.enemies.forEach(enemy => {
+            if (enemy.hp <= 0) return;
+            grid.appendChild(createActionButton(`Cast on ${enemy.name}`, 'auto_stories', () => performCastSpell(subMenu.spellId, enemy.uniqueId), 'primary'));
+        });
+        grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, 'spells'), 'flee'));
+    } else { // Main menu
+        grid.appendChild(createActionButton('Attack', 'swords', () => renderPlayerActions(container, 'attack'), 'primary'));
+        grid.appendChild(createActionButton('Spells', 'auto_stories', () => renderPlayerActions(container, 'spells')));
+        grid.appendChild(createActionButton('Abilities', 'star', () => {}, '', true));
+        grid.appendChild(createActionButton('Defend', 'shield', performDefend));
+        grid.appendChild(createActionButton('Items', 'local_drink', () => toggleInventory(true)));
+        grid.appendChild(createActionButton('Flee', 'directions_run', performFlee, 'flee'));
+    }
+
+    container.appendChild(grid);
 }
 
-function performAttack() {
+function createActionButton(text, icon, onClick, type = '', disabled = false) {
+    const button = document.createElement('button');
+    button.className = `battle-action-button ${type}`;
+    // The icon is not directly supported by the CSS, so we'll just add text.
+    // A more advanced implementation might use ::before pseudo-elements or inline SVGs.
+    button.innerHTML = `<span class="truncate">${text}</span>`; // Icon omitted for simplicity
+    button.onclick = onClick;
+    if (disabled) {
+        button.disabled = true;
+    }
+    return button;
+}
+
+function performAttack(targetId) {
+    const target = gameState.combat.enemies.find(e => e.uniqueId === targetId);
+    if (!target) return;
+
     const weaponId = gameState.player.equippedWeaponId;
     const weapon = items[weaponId] || { name: "Unarmed", damage: "1d2", modifier: "STR", damageType: "bludgeoning", subtype: "simple" };
     const stat = weapon.modifier || "STR";
 
-    // Check Proficiency
     const cls = classes[gameState.player.classId];
-    let isProficient = false;
-    if (weapon.subtype && cls.weaponProficiencies && cls.weaponProficiencies.includes(weapon.subtype)) {
-        isProficient = true;
-    }
-    // Specific weapon check (if we had specific proficiencies) could go here.
-    // Default to simple/martial logic.
-
+    const isProficient = weapon.subtype && cls.weaponProficiencies && cls.weaponProficiencies.includes(weapon.subtype);
     const prof = isProficient ? gameState.player.proficiencyBonus : 0;
-
     const result = rollAttack(gameState, stat, prof);
-    const c = gameState.combat;
-    const enemyDef = enemies[c.enemyId];
 
-    let msg = `You attack with ${weapon.name}: ${result.roll} + ${result.modifier} = ${result.total} (vs AC ${c.enemyAc})${result.note}`;
+    let msg = `You attack ${target.name} with ${weapon.name}: ${result.total} (vs AC ${target.ac}).`;
     if (result.isCritical) msg += " CRITICAL HIT!";
     logMessage(msg, "system");
 
-    if (result.total >= c.enemyAc || result.isCritical) {
+    if (result.total >= target.ac || result.isCritical) {
         let dmgExpr = weapon.damage;
         if (result.isCritical) {
-            // Assuming getCritDamageExpression logic here or simplified
-            // Re-implementing simple crit logic for this patch
-            const regex = /(\d+)d(\d+)([+-]\d+)?/;
-            const match = dmgExpr.match(regex);
-            if (match) dmgExpr = `${parseInt(match[1])*2}d${match[2]}${match[3]||''}`;
+            const match = dmgExpr.match(/(\d+)d(\d+)/);
+            if (match) dmgExpr = `${parseInt(match[1])*2}d${match[2]}`;
         }
-
         let dmg = rollDiceExpression(dmgExpr).total + gameState.player.modifiers[stat];
 
-        // Resistance/Vulnerability
-        if (enemyDef.resistances && enemyDef.resistances.includes(weapon.damageType)) {
-            dmg = Math.floor(dmg / 2);
-            logMessage("Resisted!", "combat");
-        }
-        if (enemyDef.vulnerabilities && enemyDef.vulnerabilities.includes(weapon.damageType)) {
-            dmg = dmg * 2;
-            logMessage("Vulnerable!", "combat");
-        }
-
-        c.enemyCurrentHp -= Math.max(1, dmg);
-        logMessage(`Hit! Dealt ${dmg} ${weapon.damageType} damage.`, "combat");
+        target.hp -= Math.max(1, dmg);
+        logMessage(`Hit! Dealt ${dmg} ${weapon.damageType} damage to ${target.name}.`, "combat");
     } else {
         logMessage("Miss!", "system");
     }
 
-    checkWinCondition();
-    if (gameState.combat.active) endPlayerTurn();
-}
-
-// Spellcasting Logic Updated
-function renderSpellMenu() {
-    const container = document.getElementById('choice-container');
-    container.innerHTML = '';
-
-    // Show Slots
-    if (gameState.player.currentSlots && gameState.player.currentSlots[1] !== undefined) {
-        const div = document.createElement('div');
-        div.style.width = "100%"; div.style.textAlign = "center";
-        div.innerText = `Level 1 Slots: ${gameState.player.currentSlots[1]}/${gameState.player.spellSlots[1]}`;
-        container.appendChild(div);
+    if (!checkWinCondition()) {
+        endPlayerTurn();
     }
-
-    const spellList = gameState.player.knownSpells || [];
-    spellList.forEach(spellId => {
-        if (spells[spellId]) {
-            const spell = spells[spellId];
-            const btn = document.createElement('button');
-            btn.innerText = spell.name;
-
-            // Check slot
-            if (spell.level > 0) {
-                if (!gameState.player.currentSlots || !gameState.player.currentSlots[spell.level] || gameState.player.currentSlots[spell.level] <= 0) {
-                    btn.disabled = true;
-                    btn.innerText += " (No Slots)";
-                }
-            }
-
-            btn.onclick = () => performCastSpell(spellId);
-            container.appendChild(btn);
-        }
-    });
-
-    const backBtn = document.createElement('button');
-    backBtn.innerText = "Back";
-    backBtn.onclick = () => updateCombatUI();
-    container.appendChild(backBtn);
 }
 
-function performCastSpell(spellId) {
+function performCastSpell(spellId, targetId) {
     const spell = spells[spellId];
-    const c = gameState.combat;
-    const enemyDef = enemies[c.enemyId];
+    const target = gameState.combat.enemies.find(e => e.uniqueId === targetId);
+    if (!spell || !target) return;
 
-    // Deduct Slot
     if (spell.level > 0) {
         if (gameState.player.currentSlots[spell.level] > 0) {
             gameState.player.currentSlots[spell.level]--;
-            logMessage(`Consumed Level ${spell.level} Spell Slot.`, "system");
         } else {
             logMessage("Not enough spell slots!", "check-fail");
             return;
         }
     }
 
-    logMessage(`Casting ${spell.name}...`, "combat");
-
-    if (spell.id === 'magic_missile') {
-        // Auto Hit
-        let dmg = rollDiceExpression(spell.damage).total;
-        c.enemyCurrentHp -= Math.max(1, dmg);
-        logMessage(`Magic Missile hits! Dealt ${dmg} force damage.`, "combat");
-        checkWinCondition();
-        if (gameState.combat.active) endPlayerTurn();
-        return;
-    }
+    logMessage(`Casting ${spell.name} on ${target.name}...`, "combat");
 
     if (spell.type === 'attack') {
         const stat = (gameState.player.classId === 'wizard') ? 'INT' : 'WIS';
         const prof = gameState.player.proficiencyBonus;
         const result = rollAttack(gameState, stat, prof);
 
-        let msg = `Spell Attack: ${result.roll} + ${result.modifier} = ${result.total} (vs AC ${c.enemyAc})${result.note}`;
-        if (result.isCritical) msg += " CRITICAL HIT!";
-        logMessage(msg, "system");
-
-        if (result.total >= c.enemyAc || result.isCritical) {
-            let dmgExpr = spell.damage;
-            if (result.isCritical) {
-               const regex = /(\d+)d(\d+)([+-]\d+)?/;
-               const match = dmgExpr.match(regex);
-               if (match) dmgExpr = `${parseInt(match[1])*2}d${match[2]}${match[3]||''}`;
-            }
-
-            let dmg = rollDiceExpression(dmgExpr).total;
-
-            if (enemyDef.resistances?.includes(spell.damageType)) { dmg = Math.floor(dmg / 2); logMessage("Resisted!", "combat"); }
-            if (enemyDef.vulnerabilities?.includes(spell.damageType)) { dmg *= 2; logMessage("Vulnerable!", "combat"); }
-
-            c.enemyCurrentHp -= Math.max(1, dmg);
-            logMessage(`Hit! Dealt ${dmg} ${spell.damageType} damage.`, "combat");
+        if (result.total >= target.ac || result.isCritical) {
+            let dmg = rollDiceExpression(spell.damage).total;
+            target.hp -= Math.max(1, dmg);
+            logMessage(`Hit! ${target.name} takes ${dmg} ${spell.damageType} damage.`, "combat");
         } else {
-            logMessage("Miss!", "system");
+            logMessage("The spell misses!", "system");
         }
     } else if (spell.type === 'save') {
-        // Simple Save Logic
-        // Enemy Save: d20 + (assume +0 or basic stat?) - Enemy doesn't have stats in this patch
-        // Using 10 + 0 for now
-        const enemySaveRoll = rollDie(20);
         const saveDC = 8 + gameState.player.proficiencyBonus + gameState.player.modifiers[(gameState.player.classId === 'wizard') ? 'INT' : 'WIS'];
-
-        logMessage(`Enemy ${spell.saveAbility} Save: ${enemySaveRoll} vs DC ${saveDC}`, "system");
+        const enemySaveRoll = rollDie(20); // Enemies don't have proper stats yet
 
         let dmg = rollDiceExpression(spell.damage).total;
         if (enemySaveRoll >= saveDC) {
             dmg = Math.floor(dmg / 2);
-            logMessage("Enemy saved! Half damage.", "combat");
+            logMessage(`${target.name} saved! Takes half damage.`, "combat");
         } else {
-            logMessage("Enemy failed save!", "combat");
+            logMessage(`${target.name} failed save!`, "combat");
         }
-
-        if (enemyDef.resistances?.includes(spell.damageType)) { dmg = Math.floor(dmg / 2); logMessage("Resisted!", "combat"); }
-        if (enemyDef.vulnerabilities?.includes(spell.damageType)) { dmg *= 2; logMessage("Vulnerable!", "combat"); }
-
-        c.enemyCurrentHp -= Math.max(1, dmg);
+        target.hp -= Math.max(1, dmg);
         logMessage(`Dealt ${dmg} ${spell.damageType} damage.`, "combat");
 
     } else if (spell.type === 'heal') {
-        const roll = rollDiceExpression(spell.amount);
-        gameState.player.hp = Math.min(gameState.player.hp + roll.total, gameState.player.maxHp);
-        logMessage(`Healed for ${roll.total} HP.`, "gain");
-        updateStatsUI();
+        // This should target the player, but the logic isn't set up for that yet
     }
 
-    checkWinCondition();
-    if (gameState.combat.active) endPlayerTurn();
-}
-
-// Feature Logic
-function renderFeatureMenu() {
-    const container = document.getElementById('choice-container');
-    container.innerHTML = '';
-
-    for (const [feat, data] of Object.entries(gameState.player.resources)) {
-        const btn = document.createElement('button');
-        // Assuming friendly names mapping or raw
-        const name = feat.replace('_', ' ').toUpperCase();
-        btn.innerText = `${name} (${data.current}/${data.max})`;
-        if (data.current <= 0) btn.disabled = true;
-
-        btn.onclick = () => performClassFeature(feat);
-        container.appendChild(btn);
-    }
-
-    const backBtn = document.createElement('button');
-    backBtn.innerText = "Back";
-    backBtn.onclick = () => updateCombatUI();
-    container.appendChild(backBtn);
-}
-
-function performClassFeature(featId) {
-    if (featId === 'second_wind') {
-        gameState.player.resources[featId].current--;
-        const heal = rollDie(10) + gameState.player.level;
-        gameState.player.hp = Math.min(gameState.player.maxHp, gameState.player.hp + heal);
-        logMessage(`Second Wind: Healed ${heal} HP.`, "gain");
-        updateStatsUI();
-        // Second Wind is a Bonus Action technically, but treating as Action for simplicity or Free?
-        // Let's treat as free for now or action? "Lite" usually means action.
-        // But 5e it's bonus. I'll keep player turn active!
-        logMessage("Second Wind used (Bonus Action).", "system");
-        renderFeatureMenu(); // Refresh UI
+    if (!checkWinCondition()) {
+        endPlayerTurn();
     }
 }
 
 function performDefend() {
-    gameState.combat.defending = true;
+    gameState.combat.playerDefending = true;
     logMessage("You brace yourself for the next attack.", "system");
     endPlayerTurn();
 }
 
 function performFlee() {
-    const roll = rollDie(20);
-    const dexMod = gameState.player.modifiers.DEX;
-    const total = roll + dexMod;
-    const dc = 12;
-    logMessage(`Attempting to flee: Rolled ${total} (DC ${dc})`, "system");
-    if (total >= dc) {
+    const roll = rollDie(20) + gameState.player.modifiers.DEX;
+    if (roll >= 12) {
         logMessage("You escaped!", "gain");
         gameState.combat.active = false;
-        goToScene(gameState.combat.loseSceneId);
+        goToScene(gameState.combat.loseSceneId); // 'lose' scene is often the retreat point
     } else {
         logMessage("Failed to escape!", "combat");
         endPlayerTurn();
@@ -1107,68 +1076,97 @@ function performFlee() {
 }
 
 function endPlayerTurn() {
-    gameState.combat.turn = 'enemy';
+    gameState.combat.playerDefending = false; // Reset defend status
+    gameState.combat.turnIndex = (gameState.combat.turnIndex + 1) % gameState.combat.turnOrder.length;
+    if (gameState.combat.turnIndex === 0) {
+        gameState.combat.round++;
+    }
     combatTurnLoop();
 }
 
-function enemyTurn() {
-    if (!gameState.combat.active) return;
-    const c = gameState.combat;
-    const enemyDef = enemies[c.enemyId];
-    logMessage(`${c.enemyName} attacks!`, "combat");
+function enemyTurn(enemy) {
+    if (!gameState.combat.active || enemy.hp <= 0) {
+        endEnemyTurn(enemy);
+        return;
+    }
+    logMessage(`${enemy.name} attacks!`, "combat");
 
-    const roll = rollDie(20);
-    const totalHit = roll + enemyDef.attackBonus;
-
+    const totalHit = rollDie(20) + enemy.attackBonus;
     const ac = getPlayerAC();
 
-    logMessage(`Enemy rolls ${totalHit} vs AC ${ac}`, "system");
-
     if (totalHit >= ac) {
-        let dmg = rollDiceExpression(enemyDef.damage).total;
-        if (c.defending) {
+        let dmg = rollDiceExpression(enemy.damage).total;
+        if (gameState.combat.playerDefending) {
             dmg = Math.floor(dmg / 2);
             logMessage("Defended! Damage halved.", "gain");
-            c.defending = false;
         }
         gameState.player.hp -= dmg;
         logMessage(`You took ${dmg} damage.`, "combat");
-        if (c.enemyId === 'fungal_beast' && rollDie(100) <= 25) {
-            applyStatusEffect('poisoned', 3);
-        }
-        updateStatsUI();
+
         if (gameState.player.hp <= 0) {
             gameState.combat.active = false;
-            goToScene(c.loseSceneId);
+            goToScene(gameState.combat.loseSceneId);
             return;
         }
     } else {
-        logMessage("Enemy missed!", "system");
-        c.defending = false;
+        logMessage(`${enemy.name} missed!`, "system");
     }
-    endEnemyTurn();
+
+    endEnemyTurn(enemy);
 }
 
-function endEnemyTurn() {
-    gameState.combat.turn = 'player';
-    gameState.combat.round++;
-    tickStatusEffects();
+function endEnemyTurn(enemy) {
+    // Before ending turn, remove any dead enemies from turn order
+    const deadEnemies = gameState.combat.enemies.filter(e => e.hp <= 0).map(e => e.uniqueId);
+    if (deadEnemies.length > 0) {
+        gameState.combat.turnOrder = gameState.combat.turnOrder.filter(id => !deadEnemies.includes(id));
+    }
+
+    // Find the current index again in case the array was modified
+    const currentIndex = gameState.combat.turnOrder.indexOf(enemy.uniqueId);
+    gameState.combat.turnIndex = (currentIndex + 1) % gameState.combat.turnOrder.length;
+
+    if (gameState.combat.turnIndex === 0 && gameState.combat.turnOrder.includes('player')) {
+        gameState.combat.round++;
+    } else if (!gameState.combat.turnOrder.includes('player')) {
+        // This case shouldn't happen if player death is handled, but as a fallback.
+        checkWinCondition();
+        return;
+    }
+
     combatTurnLoop();
 }
 
+
 function checkWinCondition() {
-    const c = gameState.combat;
-    if (c.enemyCurrentHp <= 0) {
-        c.active = false;
-        const enemyDef = enemies[c.enemyId];
-        logMessage(`Victory! Gained ${enemyDef.xp} XP.`, "gain");
-        if (gainXp(enemyDef.xp)) {
-            logMessage("Level Up! Stats increased.", "gain");
+    const allEnemiesDefeated = gameState.combat.enemies.every(e => e.hp <= 0);
+    if (allEnemiesDefeated) {
+        gameState.combat.active = false;
+        logMessage(`Victory!`, "gain");
+
+        // Grant XP from all enemies
+        const totalXp = gameState.combat.enemies.reduce((sum, e) => sum + (enemies[e.id].xp || 0), 0);
+        if (gainXp(totalXp)) {
+            logMessage(`Leveled up to ${gameState.player.level}!`, "gain");
+        } else {
+             logMessage(`Gained ${totalXp} XP.`, "gain");
         }
+
         updateStatsUI();
         saveGame();
-        goToScene(c.winSceneId);
+
+        // Need to switch back to main log before going to next scene
+        window.logMessage = logToMain;
+
+        // Show a "Continue" button
+        const actionsContainer = document.getElementById('battle-actions-container');
+        actionsContainer.innerHTML = '';
+        actionsContainer.appendChild(
+            createActionButton('Victory!', 'celebration', () => goToScene(gameState.combat.winSceneId), 'col-span-2')
+        );
+        return true; // Combat ended
     }
+    return false; // Combat continues
 }
 
 // --- UI Updates ---
@@ -1342,13 +1340,37 @@ function toggleMenu() {
     modal.classList.toggle('hidden');
 }
 
-// Global Logging
-function logMessage(msg, type) {
+// --- Global Logging ---
+// We'll have two separate log functions and swap them based on game state.
+
+function logToMain(msg, type) {
     const logContent = document.getElementById('log-content');
     const entry = document.createElement('div');
     entry.className = `log-entry ${type}`;
     entry.innerText = msg;
     logContent.appendChild(entry);
     logContent.scrollTop = logContent.scrollHeight;
-    console.log(`[${type}] ${msg}`);
+    console.log(`[Main Log - ${type}] ${msg}`);
 }
+
+function logToBattle(msg, type) {
+    const logContent = document.getElementById('battle-log-content');
+    // Simplified markup for battle log
+    const entry = document.createElement('p');
+    const typeToColor = {
+        'combat': 'text-red-400',
+        'gain': 'text-green-400',
+        'system': 'text-primary',
+        'default': 'text-[#cbc190]'
+    };
+    // Basic span replacement for bolding
+    msg = msg.replace(/(\w+'s turn)/g, '<span class="font-bold text-primary">$1</span>');
+    entry.innerHTML = `<span class="${typeToColor[type] || typeToColor['default']}">${msg}</span>`;
+
+    logContent.appendChild(entry);
+    logContent.scrollTop = logContent.scrollHeight;
+     console.log(`[Battle Log - ${type}] ${msg}`);
+}
+
+// Default log is main
+window.logMessage = logToMain;
