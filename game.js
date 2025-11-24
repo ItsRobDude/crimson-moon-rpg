@@ -6,8 +6,13 @@ import { scenes } from './data/scenes.js';
 import { enemies } from './data/enemies.js';
 import { spells } from './data/spells.js';
 import { statusEffects } from './data/statusEffects.js';
-import { gameState, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, unequipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, getPlayerAC } from './data/gameState.js';
-import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack } from './rules.js';
+import { locations } from './data/locations.js';
+import { travelEvents } from './data/travelEvents.js';
+import { shops } from './data/shops.js';
+import { npcs } from './data/npcs.js';
+import { factions } from './data/factions.js';
+import { gameState, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation } from './data/gameState.js';
+import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod } from './rules.js';
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -16,12 +21,19 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initUI() {
-    attachTouchZoomGuards();
+    // Attach Global Log for GameState access
+    window.logMessage = logMessage;
 
     // Buttons
-    document.getElementById('btn-inventory').onclick = toggleInventory;
+    document.getElementById('btn-inventory').onclick = () => toggleInventory(false);
     document.getElementById('btn-quests').onclick = toggleQuestLog;
     document.getElementById('btn-menu').onclick = toggleMenu;
+    document.getElementById('btn-map').onclick = toggleMap;
+    document.getElementById('btn-codex').onclick = () => toggleCodex('people');
+
+    // Codex Tabs
+    document.getElementById('btn-codex-people').onclick = () => toggleCodex('people');
+    document.getElementById('btn-codex-factions').onclick = () => toggleCodex('factions');
 
     document.querySelectorAll('.close-modal').forEach(btn => {
         btn.onclick = (e) => {
@@ -43,34 +55,19 @@ function initUI() {
     };
 }
 
-function attachTouchZoomGuards() {
-    // Prevent double-tap zoom on mobile during rapid combat taps
-    let lastTouchEnd = 0;
-    document.addEventListener('touchend', (event) => {
-        const now = Date.now();
-        if (now - lastTouchEnd <= 300) {
-            event.preventDefault();
-        }
-        lastTouchEnd = now;
-    }, { passive: false });
+// --- Character Creation State ---
+let ccState = {
+    baseStats: { STR: 12, DEX: 12, CON: 12, INT: 12, WIS: 12, CHA: 12 },
+    chosenSkills: [],
+    chosenSpells: []
+};
 
-    // Block pinch-zoom gestures at touch start to keep the viewport stable
-    document.addEventListener('touchstart', (event) => {
-        if (event.touches.length > 1) {
-            event.preventDefault();
-        }
-    }, { passive: false });
-
-    // Guard against pinch-zoom gestures overriding the fixed viewport
-    document.addEventListener('gesturestart', (event) => {
-        event.preventDefault();
-    });
-}
-
-// --- Character Creation ---
 function showCharacterCreation() {
     const raceSelect = document.getElementById('cc-race');
     const classSelect = document.getElementById('cc-class');
+
+    raceSelect.innerHTML = "";
+    classSelect.innerHTML = "";
 
     for (const [key, race] of Object.entries(races)) {
         const opt = document.createElement('option');
@@ -86,23 +83,206 @@ function showCharacterCreation() {
         classSelect.appendChild(opt);
     }
 
+    // Ability Score UI
+    renderAbilityScoreUI();
+
     raceSelect.onchange = updateCCPreview;
-    classSelect.onchange = updateCCPreview;
+    classSelect.onchange = () => {
+        ccState.chosenSkills = [];
+        ccState.chosenSpells = [];
+        updateCCPreview();
+    };
 
     updateCCPreview();
 
     document.getElementById('char-creation-modal').classList.remove('hidden');
 }
 
+function renderAbilityScoreUI() {
+    const container = document.getElementById('cc-abilities-container');
+    container.innerHTML = '';
+
+    const standardArray = [15, 14, 13, 12, 10, 8];
+    const stats = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
+
+    // Default assignment
+    ccState.baseStats = {
+        STR: 15, DEX: 14, CON: 13, INT: 12, WIS: 10, CHA: 8
+    };
+
+    stats.forEach((stat, index) => {
+        const row = document.createElement('div');
+        row.className = 'stat-row';
+
+        const label = document.createElement('label');
+        label.innerText = stat;
+
+        const select = document.createElement('select');
+        standardArray.forEach(val => {
+            const opt = document.createElement('option');
+            opt.value = val;
+            opt.innerText = val;
+            if (val === standardArray[index]) opt.selected = true; // Default distribution
+            select.appendChild(opt);
+        });
+
+        select.onchange = (e) => {
+            ccState.baseStats[stat] = parseInt(e.target.value);
+            updateCCPreview();
+        };
+
+        row.appendChild(label);
+        row.appendChild(select);
+        container.appendChild(row);
+    });
+}
+
 function updateCCPreview() {
     const raceKey = document.getElementById('cc-race').value;
     const classKey = document.getElementById('cc-class').value;
-
     const race = races[raceKey];
     const cls = classes[classKey];
 
     document.getElementById('cc-race-desc').innerText = race.description;
     document.getElementById('cc-class-desc').innerText = cls.description;
+
+    const finalStats = { ...ccState.baseStats };
+    if (race.abilityBonuses) {
+        for (const [stat, bonus] of Object.entries(race.abilityBonuses)) {
+            if (finalStats[stat]) finalStats[stat] += bonus;
+        }
+    }
+
+    renderSkillChoices(cls);
+    renderSpellChoices(cls);
+
+    const preview = document.getElementById('cc-preview-content');
+    preview.innerHTML = '';
+
+    Object.entries(finalStats).forEach(([stat, val]) => {
+        const mod = getAbilityMod(val);
+        const div = document.createElement('div');
+        div.className = 'preview-stat';
+        div.innerHTML = `<span>${stat}</span> <span>${val} (${mod >= 0 ? '+' : ''}${mod})</span>`;
+        preview.appendChild(div);
+    });
+
+    const hp = cls.hitDie + getAbilityMod(finalStats.CON);
+    let ac = 10 + getAbilityMod(finalStats.DEX);
+    if (classKey === 'fighter') ac = 16;
+    if (classKey === 'rogue') ac = 11 + getAbilityMod(finalStats.DEX);
+
+    preview.innerHTML += `<div class="preview-stat highlight"><span>HP</span> <span>${hp}</span></div>`;
+    preview.innerHTML += `<div class="preview-stat"><span>AC</span> <span>${ac}</span></div>`;
+
+    if (ccState.chosenSkills.length > 0) {
+        preview.innerHTML += `<div class="preview-stat highlight"><span>Skills</span></div>`;
+        ccState.chosenSkills.forEach(s => {
+             preview.innerHTML += `<div class="preview-stat" style="padding-left:10px; font-size:0.8em;">${s}</div>`;
+        });
+    }
+
+    if (ccState.chosenSpells.length > 0) {
+        preview.innerHTML += `<div class="preview-stat highlight"><span>Spells</span></div>`;
+        ccState.chosenSpells.forEach(s => {
+             const spellName = spells[s] ? spells[s].name : s;
+             preview.innerHTML += `<div class="preview-stat" style="padding-left:10px; font-size:0.8em;">${spellName}</div>`;
+        });
+    }
+}
+
+function renderSkillChoices(cls) {
+    const container = document.getElementById('cc-skills-container');
+    const currentSkills = ccState.chosenSkills;
+    container.innerHTML = '';
+
+    const max = 2;
+    document.getElementById('cc-skill-count').innerText = max;
+
+    cls.proficiencies.forEach(skill => {
+        const div = document.createElement('div');
+        div.className = 'checkbox-item';
+
+        const label = document.createElement('label');
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.value = skill;
+
+        if (currentSkills.includes(skill)) input.checked = true;
+
+        input.onchange = (e) => {
+            if (e.target.checked) {
+                if (ccState.chosenSkills.length < max) {
+                    ccState.chosenSkills.push(skill);
+                } else {
+                    e.target.checked = false;
+                }
+            } else {
+                ccState.chosenSkills = ccState.chosenSkills.filter(s => s !== skill);
+            }
+            updateCCPreview();
+        };
+
+        label.appendChild(input);
+        label.appendChild(document.createTextNode(" " + skill.charAt(0).toUpperCase() + skill.slice(1)));
+        div.appendChild(label);
+        container.appendChild(div);
+    });
+}
+
+function renderSpellChoices(cls) {
+    const section = document.getElementById('cc-spells-section');
+    const container = document.getElementById('cc-spells-container');
+    container.innerHTML = '';
+
+    let availableSpells = [];
+    if (document.getElementById('cc-class').value === 'wizard') {
+        availableSpells = ['firebolt', 'magic_missile', 'cure_wounds'];
+    } else if (document.getElementById('cc-class').value === 'cleric') {
+        availableSpells = ['cure_wounds'];
+    }
+
+    if (availableSpells.length === 0) {
+        section.classList.add('hidden');
+        ccState.chosenSpells = [];
+        return;
+    }
+
+    section.classList.remove('hidden');
+    const max = 2;
+
+    availableSpells.forEach(spellId => {
+        const spell = spells[spellId];
+        if (!spell) return;
+
+        const div = document.createElement('div');
+        div.className = 'checkbox-item';
+
+        const label = document.createElement('label');
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.value = spellId;
+
+        if (ccState.chosenSpells.includes(spellId)) input.checked = true;
+
+        input.onchange = (e) => {
+            if (e.target.checked) {
+                if (ccState.chosenSpells.length < max) {
+                    ccState.chosenSpells.push(spellId);
+                } else {
+                    e.target.checked = false;
+                }
+            } else {
+                ccState.chosenSpells = ccState.chosenSpells.filter(s => s !== spellId);
+            }
+            updateCCPreview();
+        };
+
+        label.appendChild(input);
+        label.appendChild(document.createTextNode(` ${spell.name}`));
+        div.appendChild(label);
+        container.appendChild(div);
+    });
 }
 
 function finishCharacterCreation() {
@@ -110,7 +290,18 @@ function finishCharacterCreation() {
     const raceKey = document.getElementById('cc-race').value;
     const classKey = document.getElementById('cc-class').value;
 
-    initializeNewGame(name, raceKey, classKey);
+    if (ccState.chosenSkills.length === 0) {
+        alert("Please choose your skills.");
+        return;
+    }
+
+    const isCaster = (classKey === 'wizard' || classKey === 'cleric');
+    if (isCaster && ccState.chosenSpells.length === 0) {
+        alert("Please choose your starting spells.");
+        return;
+    }
+
+    initializeNewGame(name, raceKey, classKey, ccState.baseStats, ccState.chosenSkills, ccState.chosenSpells);
 
     document.getElementById('char-creation-modal').classList.add('hidden');
 
@@ -131,8 +322,9 @@ function goToScene(sceneId) {
 
     gameState.currentSceneId = sceneId;
 
-    const firstVisit = !gameState.visitedScenes[sceneId];
-    gameState.visitedScenes[sceneId] = true;
+    if (scene.location) {
+        discoverLocation(scene.location);
+    }
 
     const bgEl = document.getElementById('scene-background');
     if (scene.background) {
@@ -169,23 +361,47 @@ function goToScene(sceneId) {
         }
     }
 
+    if (scene.type === 'combat') {
+        document.getElementById('shop-panel').classList.add('hidden');
+        startCombat(scene.enemyId, scene.winScene, scene.loseScene);
+    } else if (scene.type === 'shop') {
+        renderShop(scene.shopId);
+        gameState.combat.active = false;
+        renderChoices(scene.choices);
+        saveGame();
+    } else {
+        document.getElementById('shop-panel').classList.add('hidden');
+        gameState.combat.active = false;
+        renderChoices(scene.choices);
+        saveGame();
+    }
+}
+
+function renderChoices(choices) {
     const choiceContainer = document.getElementById('choice-container');
     choiceContainer.innerHTML = '';
 
-    if (scene.choices) {
-        scene.choices.forEach((choice) => {
+    if (choices) {
+        choices.forEach((choice) => {
+            // Check Requirements (Gates)
+            if (choice.requires) {
+                if (choice.requires.relationship) {
+                    const req = choice.requires.relationship;
+                    const current = getRelationship(req.npcId);
+                    if (current < (req.min || -999) || current > (req.max || 999)) return;
+                }
+                if (choice.requires.reputation) {
+                    const req = choice.requires.reputation;
+                    const current = getReputation(req.factionId);
+                    if (current < (req.min || -999) || current > (req.max || 999)) return;
+                }
+            }
+
             const btn = document.createElement('button');
-            btn.innerText = choice.text;
+            btn.innerText = choice.text + (choice.cost ? ` (${choice.cost}g)` : "");
             btn.onclick = () => handleChoice(choice);
             choiceContainer.appendChild(btn);
         });
-    }
-
-    if (scene.type === 'combat') {
-        startCombat(scene.enemyId, scene.winScene, scene.loseScene);
-    } else {
-        // Auto-save on non-combat scene transition
-        saveGame();
     }
 }
 
@@ -196,6 +412,44 @@ function handleChoice(choice) {
     } else if (choice.action === 'inventory') {
         toggleInventory();
         return;
+    }
+    if (choice.action === 'openMap') {
+        toggleMap();
+        return;
+    }
+    if (choice.action === 'shortRest') {
+        if (spendGold(choice.cost)) {
+            const heal = Math.ceil(gameState.player.maxHp / 2);
+            gameState.player.hp = Math.min(gameState.player.maxHp, gameState.player.hp + heal);
+            logMessage(`Short Rest: Healed ${heal} HP.`, "gain");
+            updateStatsUI();
+        } else {
+            logMessage("Not enough gold for a short rest.", "check-fail");
+        }
+        return;
+    }
+    if (choice.action === 'longRest') {
+        if (spendGold(choice.cost)) {
+            gameState.player.hp = gameState.player.maxHp;
+            gameState.player.statusEffects = [];
+            logMessage("Long Rest: Fully restored HP and status cleared.", "gain");
+            updateStatsUI();
+        } else {
+            logMessage("Not enough gold for a long rest.", "check-fail");
+        }
+        return;
+    }
+
+    // Apply Effects
+    if (choice.effects) {
+        choice.effects.forEach(effect => {
+            if (effect.type === 'relationship') {
+                changeRelationship(effect.npcId, effect.amount);
+            }
+            if (effect.type === 'reputation') {
+                changeReputation(effect.factionId, effect.amount);
+            }
+        });
     }
 
     if (!choice.type) {
@@ -212,6 +466,9 @@ function handleChoice(choice) {
         logMessage(`Skill Check (${choice.skill}): Rolled ${result.roll} + ${result.modifier} = ${result.total} (DC ${dc})${result.note || ''}`, result.total >= dc ? "check-success" : "check-fail");
 
         if (result.total >= dc) {
+            if (choice.onSuccess && choice.onSuccess.addGold) {
+                addGold(choice.onSuccess.addGold);
+            }
             document.getElementById('narrative-text').innerText = choice.successText;
             if (choice.nextSceneSuccess) renderContinueButton(choice.nextSceneSuccess);
         } else {
@@ -240,9 +497,6 @@ function handleChoice(choice) {
             }
         }
         if (choice.nextScene) renderContinueButton(choice.nextScene);
-
-    } else if (choice.type === 'combat') {
-        if (choice.nextScene) goToScene(choice.nextScene);
     }
 }
 
@@ -255,74 +509,329 @@ function renderContinueButton(nextSceneId) {
     choiceContainer.appendChild(btn);
 }
 
-// --- Combat System ---
-function startCombat(enemyId, winScene, loseScene) {
-    // 1. Setup Combat State
-    gameState.inCombat = true;
-    gameState.combat = {
-        enemyId: enemyId,
-        enemy: JSON.parse(JSON.stringify(enemies[enemyId])), // Clone
-        winScene: winScene,
-        loseScene: loseScene,
-        specialsUsed: {}
-    };
+// --- Shop System ---
+function getShopPrice(item, shopId) {
+    let price = item.price;
 
-    logMessage(`Combat started against ${gameState.combat.enemy.name}!`, "combat");
+    // Silverthorn Discount
+    if (shops[shopId] && shops[shopId].location === 'silverthorn') {
+        if (getReputation('silverthorn') >= 30) {
+            price = Math.floor(price * 0.9);
+        }
+    }
 
-    // 2. Switch UI to Combat Mode
-    // We can update the central text to show status
-    updateCombatStatusText();
-
-    // 3. Render Actions
-    renderCombatUI();
+    return price;
 }
 
-function updateCombatStatusText() {
-    const enemy = gameState.combat.enemy;
-    const txt = `Combat Mode\n\nEnemy: ${enemy.name} (HP: ${enemy.hp})\nPlayer HP: ${gameState.player.hp}/${gameState.player.maxHp}`;
-    document.getElementById('narrative-text').innerText = txt;
+function renderShop(shopId) {
+    const shopDef = shops[shopId];
+    if (!shopDef) return;
+
+    const panel = document.getElementById('shop-panel');
+    const container = document.getElementById('shop-items-container');
+    const goldDisplay = document.getElementById('shop-gold-display');
+
+    container.innerHTML = '';
+    goldDisplay.innerText = `Gold: ${gameState.player.gold}`;
+
+    shopDef.items.forEach(itemId => {
+        const item = items[itemId];
+        if (!item) return;
+
+        const price = getShopPrice(item, shopId);
+
+        const row = document.createElement('div');
+        row.style.display = "flex";
+        row.style.justifyContent = "space-between";
+        row.style.alignItems = "center";
+        row.style.padding = "8px";
+        row.style.borderBottom = "1px solid #444";
+
+        const info = document.createElement('div');
+        info.innerHTML = `<strong>${item.name}</strong> (${price}g)<br><small>${item.description}</small>`;
+
+        const btn = document.createElement('button');
+        btn.innerText = "Buy";
+        btn.onclick = () => {
+            if (spendGold(price)) {
+                addItem(itemId);
+                logMessage(`Bought ${item.name} for ${price}g.`, "gain");
+                goldDisplay.innerText = `Gold: ${gameState.player.gold}`;
+            } else {
+                logMessage("Not enough gold.", "check-fail");
+            }
+        };
+
+        row.appendChild(info);
+        row.appendChild(btn);
+        container.appendChild(row);
+    });
+
+    panel.classList.remove('hidden');
 }
 
-function renderCombatUI(showSpells = false) {
-    const choiceContainer = document.getElementById('choice-container');
-    choiceContainer.innerHTML = '';
+// --- Map System ---
+function toggleMap() {
+    const modal = document.getElementById('map-modal');
+    const list = document.getElementById('map-locations');
+    list.innerHTML = '';
 
-    if (showSpells) {
-        // Show available spells
-        let spellList = [];
-        // Simple Class Filtering as requested
-        if (gameState.player.classId === 'wizard') {
-            spellList = ['firebolt', 'magic_missile', 'cure_wounds'];
-        } else if (gameState.player.classId === 'cleric') {
-             spellList = ['cure_wounds'];
-        }
+    for (const [key, loc] of Object.entries(locations)) {
+        if (isLocationDiscovered(key)) {
+            const div = document.createElement('div');
+            div.style.padding = "10px";
+            div.style.borderBottom = "1px solid #444";
+            div.style.display = "flex";
+            div.style.justifyContent = "space-between";
+            div.style.alignItems = "center";
 
-        if (spellList.length === 0) {
-             const btn = document.createElement('button');
-             btn.innerText = "No Spells Available (Back)";
-             btn.onclick = () => renderCombatUI(false);
-             choiceContainer.appendChild(btn);
-        } else {
-            spellList.forEach(spellId => {
-                if (spells[spellId]) {
-                    const btn = document.createElement('button');
-                    btn.innerText = spells[spellId].name;
-                    btn.onclick = () => castSpell(spellId);
-                    choiceContainer.appendChild(btn);
-                }
-            });
-            const backBtn = document.createElement('button');
-            backBtn.innerText = "Back";
-            backBtn.onclick = () => renderCombatUI(false);
-            choiceContainer.appendChild(backBtn);
+            const info = document.createElement('div');
+            info.innerHTML = `<strong>${loc.name}</strong><br><small>${loc.description}</small>`;
+
+            const btn = document.createElement('button');
+            btn.innerText = "Travel";
+            btn.onclick = () => travelTo(key);
+
+            if (scenes[gameState.currentSceneId] && scenes[gameState.currentSceneId].location === key) {
+                btn.disabled = true;
+                btn.innerText = "You are here";
+            }
+
+            div.appendChild(info);
+            div.appendChild(btn);
+            list.appendChild(div);
         }
+    }
+
+    modal.classList.remove('hidden');
+}
+
+function travelTo(locationId) {
+    document.getElementById('map-modal').classList.add('hidden');
+    logMessage(`Traveling to ${locations[locationId].name}...`, "system");
+
+    if (rollDie(100) <= 20) {
+        const event = travelEvents[Math.floor(Math.random() * travelEvents.length)];
+        const eventSceneId = "SCENE_TRAVEL_EVENT_" + Date.now();
+        const destSceneId = getHubSceneForLocation(locationId);
+
+        if (event.type === 'combat') {
+            scenes[eventSceneId] = {
+                id: eventSceneId,
+                location: "travel",
+                background: "landscapes/forest_walk_alt.png",
+                text: event.text,
+                type: 'combat',
+                enemyId: event.enemyId,
+                winScene: destSceneId,
+                loseScene: "SCENE_DEFEAT"
+            };
+            goToScene(eventSceneId);
+            return;
+        } else if (event.type === 'skillCheck') {
+            scenes[eventSceneId] = {
+                id: eventSceneId,
+                location: "travel",
+                background: "landscapes/forest_walk_alt.png",
+                text: event.text,
+                choices: [
+                    {
+                        text: "Investigate",
+                        type: "skillCheck",
+                        skill: event.skill,
+                        dc: event.dc,
+                        successText: event.successText,
+                        failText: event.failText,
+                        onSuccess: event.onSuccess,
+                        nextSceneSuccess: destSceneId,
+                        nextSceneFail: destSceneId
+                    },
+                    {
+                        text: "Ignore and move on",
+                        nextScene: destSceneId
+                    }
+                ]
+            };
+            goToScene(eventSceneId);
+            return;
+        }
+    }
+
+    goToScene(getHubSceneForLocation(locationId));
+}
+
+function getHubSceneForLocation(locationId) {
+    if (locationId === 'silverthorn') return 'SCENE_HUB_SILVERTHORN';
+    if (locationId === 'shadowmire') return 'SCENE_TRAVEL_SHADOWMIRE';
+    if (locationId === 'whisperwood') return 'SCENE_ARRIVAL_WHISPERWOOD';
+    return 'SCENE_BRIEFING';
+}
+
+// --- Codex System ---
+function toggleCodex(tab = 'people') {
+    const modal = document.getElementById('codex-modal');
+    const list = document.getElementById('codex-list');
+    const btnPeople = document.getElementById('btn-codex-people');
+    const btnFactions = document.getElementById('btn-codex-factions');
+
+    modal.classList.remove('hidden');
+    list.innerHTML = '';
+
+    // Tab Styling
+    if (tab === 'people') {
+        btnPeople.classList.add('tab-active');
+        btnFactions.classList.remove('tab-active');
+        renderCodexPeople(list);
+    } else {
+        btnPeople.classList.remove('tab-active');
+        btnFactions.classList.add('tab-active');
+        renderCodexFactions(list);
+    }
+}
+
+function renderCodexPeople(container) {
+    const metNpcs = Object.keys(gameState.relationships);
+    if (metNpcs.length === 0) {
+        container.innerHTML = "<p style='padding:10px'>No known contacts.</p>";
         return;
     }
 
+    metNpcs.forEach(npcId => {
+        const npc = npcs[npcId];
+        const score = getRelationship(npcId);
+        if (!npc) return;
+
+        const div = document.createElement('div');
+        div.className = "codex-entry";
+
+        let label = "Neutral";
+        if (score >= 30) label = "Warm";
+        if (score >= 70) label = "Ally";
+        if (score <= -30) label = "Cold";
+        if (score <= -70) label = "Hostile";
+
+        // Normalize score for bar (-100 to 100 -> 0 to 100%)
+        const pct = ((score + 100) / 200) * 100;
+
+        div.innerHTML = `
+            <h4>${npc.name}</h4>
+            <p>${npc.description}</p>
+            <div class="codex-label">${label} (${score})</div>
+            <div class="codex-bar-container">
+                <div class="codex-bar-fill" style="width: ${pct}%"></div>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+function renderCodexFactions(container) {
+    Object.keys(gameState.reputation).forEach(factId => {
+        const fact = factions[factId];
+        const score = getReputation(factId);
+        if (!fact) return;
+
+        const div = document.createElement('div');
+        div.className = "codex-entry";
+
+        let label = "Neutral";
+        if (score >= 30) label = "Respected";
+        if (score >= 70) label = "Hero";
+        if (score <= -30) label = "Uneasy";
+        if (score <= -70) label = "Enemy";
+
+        const pct = ((score + 100) / 200) * 100;
+
+        div.innerHTML = `
+            <h4>${fact.name}</h4>
+            <p>${fact.description}</p>
+            <div class="codex-label">${label} (${score})</div>
+            <div class="codex-bar-container">
+                <div class="codex-bar-fill" style="width: ${pct}%"></div>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+// --- Combat System ---
+
+function startCombat(enemyId, winScene, loseScene) {
+    const enemyDef = enemies[enemyId];
+    if (!enemyDef) {
+        console.error("Enemy not found:", enemyId);
+        return;
+    }
+
+    gameState.combat = {
+        active: true,
+        enemyId: enemyId,
+        enemyCurrentHp: enemyDef.hp,
+        enemyMaxHp: enemyDef.hp,
+        enemyAc: enemyDef.ac,
+        enemyName: enemyDef.name,
+        round: 1,
+        winSceneId: winScene,
+        loseSceneId: loseScene,
+        defending: false
+    };
+
+    logMessage(`Combat started against ${enemyDef.name}!`, "combat");
+
+    const playerInit = rollInitiative(gameState, 'player');
+    const enemyInit = rollInitiative(gameState, 'enemy', enemyDef.attackBonus);
+
+    gameState.combat.playerInitiative = playerInit.total;
+    gameState.combat.enemyInitiative = enemyInit.total;
+
+    logMessage(`Initiative: You ${playerInit.total} vs Enemy ${enemyInit.total}`, "system");
+
+    if (playerInit.total >= enemyInit.total) {
+        gameState.combat.turn = 'player';
+    } else {
+        gameState.combat.turn = 'enemy';
+    }
+
+    combatTurnLoop();
+}
+
+function combatTurnLoop() {
+    if (!gameState.combat.active) return;
+
+    updateCombatUI();
+
+    if (gameState.combat.turn === 'player') {
+        logMessage(`Round ${gameState.combat.round} - Your Turn`, "system");
+    } else {
+        logMessage(`Round ${gameState.combat.round} - Enemy Turn`, "system");
+        setTimeout(enemyTurn, 1000);
+    }
+}
+
+function updateCombatUI() {
+    const c = gameState.combat;
+    const txt = `Combat Mode - Round ${c.round}\n\nEnemy: ${c.enemyName} (HP: ${c.enemyCurrentHp})\nPlayer HP: ${gameState.player.hp}/${gameState.player.maxHp}`;
+    document.getElementById('narrative-text').innerText = txt;
+
+    const choiceContainer = document.getElementById('choice-container');
+    choiceContainer.innerHTML = '';
+
+    if (c.turn === 'player') {
+        renderPlayerActions(choiceContainer);
+    } else {
+        const btn = document.createElement('button');
+        btn.innerText = "Enemy Acting...";
+        btn.disabled = true;
+        choiceContainer.appendChild(btn);
+    }
+}
+
+function renderPlayerActions(container) {
     const actions = [
         { text: "Attack", action: "attack" },
-        { text: "Cast Spell", action: "spell" },
-        { text: "Use Item", action: "item" },
+        { text: "Cast Spell", action: "spell_menu" },
+        { text: "Use Item", action: "item_menu" },
+        { text: "Defend", action: "defend" },
         { text: "Flee", action: "flee" }
     ];
 
@@ -330,187 +839,97 @@ function renderCombatUI(showSpells = false) {
         const btn = document.createElement('button');
         btn.innerText = act.text;
         btn.onclick = () => handleCombatAction(act.action);
-        choiceContainer.appendChild(btn);
+
+        if (act.action === 'spell_menu') {
+            const hasSpells = gameState.player.knownSpells && gameState.player.knownSpells.length > 0;
+            if (!hasSpells) btn.disabled = true;
+        }
+
+        container.appendChild(btn);
     });
 }
 
 function handleCombatAction(action) {
-    if (action === 'attack') {
-        renderAttackOptions();
-        return;
-
-    } else if (action === 'spell') {
-        renderCombatUI(true);
-    } else if (action === 'item') {
-        toggleInventory(true);
-
-    } else if (action === 'flee') {
-        const roll = rollDie(20);
-        // Simple flee DC 12
-        // Should check for poisoned here too? Rules says "ability checks". Fleeing is usually Athletics or Acrobatics.
-        // Let's use rollSkillCheck for fleeing? Or stick to simple D20 + DEX
-        if (roll + gameState.player.modifiers.DEX > 12) {
-            logMessage("You escaped!", "system");
-            gameState.inCombat = false;
-            goToScene(gameState.combat.loseScene);
-        } else {
-            logMessage("Failed to escape!", "combat");
-            enemyTurn();
-        }
-    }
+    if (action === 'attack') performAttack();
+    else if (action === 'spell_menu') renderSpellMenu();
+    else if (action === 'item_menu') toggleInventory(true);
+    else if (action === 'defend') performDefend();
+    else if (action === 'flee') performFlee();
 }
 
-function renderAttackOptions() {
-    const choiceContainer = document.getElementById('choice-container');
-    choiceContainer.innerHTML = '';
+function performAttack() {
+    const weaponId = gameState.player.equippedWeaponId;
+    const weapon = items[weaponId] || { name: "Unarmed", damage: "1d2", modifier: "STR" };
+    const stat = weapon.modifier || "STR";
+    const prof = gameState.player.proficiencyBonus;
 
-    const attacks = getAvailableAttacks();
+    const result = rollAttack(gameState, stat, prof);
+    const c = gameState.combat;
 
-    attacks.forEach(attack => {
-        const btn = document.createElement('button');
-        btn.innerHTML = `<strong>${attack.name}</strong><br><small>${attack.detail}</small>`;
-        btn.onclick = () => performAttack(attack);
-        choiceContainer.appendChild(btn);
+    logMessage(`You attack with ${weapon.name}: ${result.roll} + ${result.modifier} = ${result.total} (vs AC ${c.enemyAc})${result.note}`, "system");
+
+    if (result.total >= c.enemyAc) {
+        const dmgRoll = rollDiceExpression(weapon.damage);
+        const mod = gameState.player.modifiers[stat];
+        const totalDmg = Math.max(1, dmgRoll.total + mod);
+        c.enemyCurrentHp -= totalDmg;
+        logMessage(`Hit! Dealt ${totalDmg} damage.`, "combat");
+    } else {
+        logMessage("Miss!", "system");
+    }
+
+    checkWinCondition();
+    if (gameState.combat.active) endPlayerTurn();
+}
+
+function renderSpellMenu() {
+    const container = document.getElementById('choice-container');
+    container.innerHTML = '';
+
+    const spellList = gameState.player.knownSpells || [];
+
+    if (spellList.length === 0) {
+        const msg = document.createElement('button');
+        msg.innerText = "No spells memorized.";
+        msg.disabled = true;
+        container.appendChild(msg);
+    }
+
+    spellList.forEach(spellId => {
+        if (spells[spellId]) {
+            const btn = document.createElement('button');
+            btn.innerText = spells[spellId].name;
+            btn.onclick = () => performCastSpell(spellId);
+            container.appendChild(btn);
+        }
     });
 
     const backBtn = document.createElement('button');
     backBtn.innerText = "Back";
-    backBtn.onclick = () => renderCombatUI(false);
-    choiceContainer.appendChild(backBtn);
+    backBtn.onclick = () => updateCombatUI();
+    container.appendChild(backBtn);
 }
 
-function getAvailableAttacks() {
-    const attacks = [];
-    const weaponId = gameState.player.equippedWeaponId;
-    const weapon = items[weaponId] || { name: "Unarmed", damage: "1d2", modifier: "STR" };
-
-    attacks.push({
-        id: 'basic',
-        name: `Strike with ${weapon.name}`,
-        damage: weapon.damage,
-        stat: weapon.modifier || 'STR',
-        detail: `${weapon.damage} using ${weapon.modifier || 'STR'} modifier`,
-        proficiency: gameState.player.proficiencyBonus
-    });
-
-    const cls = gameState.player.classId;
-
-    if (cls === 'fighter') {
-        attacks.push({
-            id: 'power_strike',
-            name: 'Power Strike',
-            damage: weapon.damage,
-            stat: weapon.modifier || 'STR',
-            bonusDamage: '1d4',
-            detail: 'Once per combat, add 1d4 extra damage.',
-            once: true
-        });
-    }
-
-    if (cls === 'rogue' && !gameState.combat.specialsUsed['sneak_attack']) {
-        attacks.push({
-            id: 'sneak_attack',
-            name: 'Sneak Attack',
-            damage: weapon.damage,
-            stat: 'DEX',
-            bonusDamage: '1d6',
-            detail: 'Cunning strike with an extra 1d6 damage (once per combat).',
-            once: true
-        });
-    }
-
-    if (cls === 'wizard') {
-        attacks.push({
-            id: 'arcane_pulse',
-            name: 'Arcane Pulse',
-            damage: '1d8',
-            stat: 'INT',
-            detail: 'Hurl raw force using your INT modifier.',
-            proficiency: gameState.player.proficiencyBonus
-        });
-    }
-
-    if (cls === 'cleric' && !gameState.combat.specialsUsed['guided_strike']) {
-        attacks.push({
-            id: 'guided_strike',
-            name: 'Guided Strike',
-            damage: weapon.damage,
-            stat: weapon.modifier || 'STR',
-            hitBonus: 2,
-            detail: 'Call for guidance for +2 to hit (once per combat).',
-            once: true
-        });
-    }
-
-    return attacks;
-}
-
-function performAttack(attack) {
-    const stat = attack.stat || 'STR';
-    const prof = attack.proficiency !== undefined ? attack.proficiency : gameState.player.proficiencyBonus;
-    const enemy = gameState.combat.enemy;
-
-    const rollResult = rollAttack(gameState, stat, prof);
-    const totalToHit = rollResult.total + (attack.hitBonus || 0);
-    const hitBonusText = attack.hitBonus ? ` + ${attack.hitBonus}` : '';
-
-    logMessage(`${attack.name}: ${rollResult.roll} + ${rollResult.modifier}${hitBonusText} = ${totalToHit} (vs AC ${enemy.ac})${rollResult.note}`, "system");
-
-    if (totalToHit >= enemy.ac) {
-        const dmgRoll = rollDiceExpression(attack.damage);
-        let totalDmg = dmgRoll.total + gameState.player.modifiers[stat];
-
-        if (attack.bonusDamage) {
-            const extra = rollDiceExpression(attack.bonusDamage);
-            totalDmg += extra.total;
-            logMessage(`Extra damage roll: ${extra.total}`, "combat");
-        }
-
-        enemy.hp -= totalDmg;
-        logMessage(`Hit! Dealt ${totalDmg} damage.`, "combat");
-    } else {
-        logMessage(`Miss!`, "system");
-    }
-
-    if (attack.once) {
-        gameState.combat.specialsUsed[attack.id] = true;
-    }
-
-    updateCombatStatusText();
-    checkCombatState();
-
-    if (gameState.inCombat) {
-        renderCombatUI(false);
-        setTimeout(enemyTurn, 600);
-    }
-}
-
-function castSpell(spellId) {
+function performCastSpell(spellId) {
     const spell = spells[spellId];
-    if (!spell) return;
+    const c = gameState.combat;
 
-    logMessage(`Casting ${spell.name}...`, "system");
+    logMessage(`Casting ${spell.name}...`, "combat");
 
     if (spell.type === 'attack') {
-        // Roll Attack: d20 + INT mod + prof
-        // Simplified: Wizard uses INT. Cleric uses WIS.
-        // Hardcoded assumption based on class or just use INT for now as requested by prompt ("use INT modifier").
-
-        const stat = "INT";
+        const stat = (gameState.player.classId === 'wizard') ? 'INT' : 'WIS';
         const prof = gameState.player.proficiencyBonus;
         const result = rollAttack(gameState, stat, prof);
-        const enemy = gameState.combat.enemy;
 
-        logMessage(`Spell Attack: ${result.roll} + ${result.modifier} = ${result.total} (vs AC ${enemy.ac})${result.note}`, "system");
+        logMessage(`Spell Attack: ${result.roll} + ${result.modifier} = ${result.total} (vs AC ${c.enemyAc})${result.note}`, "system");
 
-        if (result.total >= enemy.ac) {
+        if (result.total >= c.enemyAc) {
             const dmgRoll = rollDiceExpression(spell.damage);
-            enemy.hp -= dmgRoll.total;
+            c.enemyCurrentHp -= dmgRoll.total;
             logMessage(`Hit! Dealt ${dmgRoll.total} damage.`, "combat");
         } else {
-            logMessage(`Miss!`, "system");
+            logMessage("Miss!", "system");
         }
-
     } else if (spell.type === 'heal') {
         const roll = rollDiceExpression(spell.amount);
         gameState.player.hp = Math.min(gameState.player.hp + roll.total, gameState.player.maxHp);
@@ -518,69 +937,106 @@ function castSpell(spellId) {
         updateStatsUI();
     }
 
-    updateCombatStatusText();
-    checkCombatState();
+    checkWinCondition();
+    if (gameState.combat.active) endPlayerTurn();
+}
 
-    if (gameState.inCombat) {
-        // Go back to main combat menu
-        renderCombatUI(false);
-        setTimeout(enemyTurn, 600);
+function performDefend() {
+    gameState.combat.defending = true;
+    logMessage("You brace yourself for the next attack.", "system");
+    endPlayerTurn();
+}
+
+function performFlee() {
+    const roll = rollDie(20);
+    const dexMod = gameState.player.modifiers.DEX;
+    const total = roll + dexMod;
+    const dc = 12;
+
+    logMessage(`Attempting to flee: Rolled ${total} (DC ${dc})`, "system");
+
+    if (total >= dc) {
+        logMessage("You escaped!", "gain");
+        gameState.combat.active = false;
+        goToScene(gameState.combat.loseSceneId);
+    } else {
+        logMessage("Failed to escape!", "combat");
+        endPlayerTurn();
     }
+}
+
+function endPlayerTurn() {
+    gameState.combat.turn = 'enemy';
+    combatTurnLoop();
 }
 
 function enemyTurn() {
-    if (!gameState.inCombat) return;
+    if (!gameState.combat.active) return;
 
-    const enemy = gameState.combat.enemy;
-    logMessage(`${enemy.name} attacks!`, "combat");
+    const c = gameState.combat;
+    const enemyDef = enemies[c.enemyId];
 
-    const attackRoll = rollDie(20);
-    const totalHit = attackRoll + enemy.attackBonus;
+    logMessage(`${c.enemyName} attacks!`, "combat");
+
+    const roll = rollDie(20);
+    const totalHit = roll + enemyDef.attackBonus;
 
     const ac = getPlayerAC();
 
-    logMessage(`Enemy rolls ${attackRoll} + ${enemy.attackBonus} = ${totalHit} vs AC ${ac}`, "system");
+    logMessage(`Enemy rolls ${totalHit} vs AC ${ac}`, "system");
 
     if (totalHit >= ac) {
-        const dmgRoll = rollDiceExpression(enemy.damage);
-        gameState.player.hp -= dmgRoll.total;
-        logMessage(`You took ${dmgRoll.total} damage!`, "combat");
+        let dmg = rollDiceExpression(enemyDef.damage).total;
 
-        // Fungal Beast Poison Chance
-        if (gameState.combat.enemyId === 'fungal_beast') {
-             if (rollDie(100) <= 25) {
-                 applyStatusEffect('poisoned', 3);
-             }
+        if (c.defending) {
+            dmg = Math.floor(dmg / 2);
+            logMessage("Defended! Damage halved.", "gain");
+            c.defending = false;
+        }
+
+        gameState.player.hp -= dmg;
+        logMessage(`You took ${dmg} damage.`, "combat");
+
+        if (c.enemyId === 'fungal_beast' && rollDie(100) <= 25) {
+            applyStatusEffect('poisoned', 3);
         }
 
         updateStatsUI();
-        updateCombatStatusText();
-
         if (gameState.player.hp <= 0) {
-            gameState.inCombat = false;
-            goToScene(gameState.combat.loseScene);
+            gameState.combat.active = false;
+            goToScene(c.loseSceneId);
+            return;
         }
     } else {
         logMessage("Enemy missed!", "system");
+        c.defending = false;
     }
 
-    tickStatusEffects();
+    endEnemyTurn();
 }
 
-function checkCombatState() {
-    if (gameState.combat.enemy.hp <= 0) {
-        gameState.inCombat = false;
-        const xp = gameState.combat.enemy.xp;
-        logMessage(`Victory! Gained ${xp} XP.`, "gain");
+function endEnemyTurn() {
+    gameState.combat.turn = 'player';
+    gameState.combat.round++;
 
-        if (gainXp(xp)) {
+    tickStatusEffects();
+
+    combatTurnLoop();
+}
+
+function checkWinCondition() {
+    const c = gameState.combat;
+    if (c.enemyCurrentHp <= 0) {
+        c.active = false;
+        const enemyDef = enemies[c.enemyId];
+        logMessage(`Victory! Gained ${enemyDef.xp} XP.`, "gain");
+
+        if (gainXp(enemyDef.xp)) {
             logMessage("Level Up! Stats increased.", "gain");
         }
         updateStatsUI();
-
-        saveGame(); // Save after victory
-
-        goToScene(gameState.combat.winScene);
+        saveGame();
+        goToScene(c.winSceneId);
     }
 }
 
@@ -615,163 +1071,4 @@ function logMessage(msg, type = "system") {
     entry.innerText = msg;
     log.appendChild(entry);
     log.scrollTop = log.scrollHeight;
-}
-
-// --- Menus ---
-function toggleInventory(isCombat = false) {
-    const modal = document.getElementById('inventory-modal');
-    const list = document.getElementById('inventory-list');
-    list.innerHTML = '';
-
-    if (gameState.player.inventory.length === 0) {
-        list.innerText = "Inventory is empty.";
-    }
-
-    gameState.player.inventory.forEach((itemId, index) => {
-        const item = items[itemId];
-        const row = document.createElement('div');
-        row.className = "flex justify-between p-2 border-b border-gray-700 items-center";
-
-        const nameWrap = document.createElement('div');
-        nameWrap.className = "flex flex-col";
-        const nameSpan = document.createElement('span');
-        const isEquipped = (gameState.player.equippedWeaponId === itemId || gameState.player.equippedArmorId === itemId);
-        nameSpan.innerText = item.name + (isEquipped ? " (E)" : "");
-        nameWrap.appendChild(nameSpan);
-
-        const detail = document.createElement('small');
-        detail.style.color = "#a0aec0";
-        if (item.type === 'weapon') {
-            detail.innerText = `${item.damage} ${item.modifier ? `(${item.modifier})` : ''}`.trim();
-        } else if (item.type === 'armor') {
-            detail.innerText = `${item.armorType || 'armor'} AC ${item.acBase}`;
-        } else if (item.type === 'consumable') {
-            detail.innerText = item.effect === 'heal' ? `Restores ${item.amount}` : item.effect;
-        } else {
-            detail.innerText = item.description || '';
-        }
-        nameWrap.appendChild(detail);
-        row.appendChild(nameWrap);
-
-        const btn = document.createElement('button');
-        btn.style.marginLeft = "10px";
-        btn.style.fontSize = "0.8rem";
-
-        if (item.type === 'weapon' || item.type === 'armor') {
-            btn.innerText = isEquipped ? "Unequip" : "Equip";
-            btn.onclick = () => {
-                if (isEquipped) {
-                    const res = unequipItem(item.type);
-                    if (res.success) {
-                        logMessage(`Removed ${item.name}.`, "system");
-                    }
-                } else {
-                    const res = equipItem(itemId);
-
-                    if (!res.success) {
-                        if (res.reason === 'missing') {
-                            logMessage("You don't have that item in your pack.", "check-fail");
-                        } else if (res.reason === 'reqStr') {
-                            logMessage(`You need STR ${res.value} to wear this armor.`, "check-fail");
-                        } else {
-                            logMessage("You can't equip that right now.", "check-fail");
-                        }
-                    } else {
-                        const slotLabel = res.slot === 'armor' ? 'armor' : 'weapon';
-                        logMessage(`Equipped ${item.name} (${slotLabel}).`, "gain");
-                    }
-                }
-
-                updateStatsUI();
-                toggleInventory(isCombat); // Refresh
-            };
-        } else if (item.type === 'consumable') {
-            btn.innerText = "Use";
-            btn.onclick = () => {
-                const res = useConsumable(itemId);
-                logMessage(res.msg, res.success ? "gain" : "system");
-                updateStatsUI();
-                toggleInventory(isCombat); // Refresh list
-
-                if (isCombat && res.success) {
-                    modal.classList.add('hidden');
-                    // End player turn
-                    updateCombatStatusText();
-                    setTimeout(enemyTurn, 600);
-                }
-            };
-        } else {
-            btn.innerText = "-";
-            btn.disabled = true;
-        }
-
-        // In combat, we might restrict equipping? For now allow all.
-        row.appendChild(btn);
-        list.appendChild(row);
-    });
-
-    modal.classList.remove('hidden');
-}
-
-function toggleQuestLog() {
-    const modal = document.getElementById('quest-modal');
-    const list = document.getElementById('quest-list');
-    list.innerHTML = '';
-
-    for (const [id, qState] of Object.entries(gameState.quests)) {
-        if (!qState) continue;
-        const div = document.createElement('div');
-        div.style.marginBottom = "10px";
-        div.innerHTML = `<strong>${qState.title}</strong><br><small>${quests[id].stages[qState.currentStage]}</small>`;
-        list.appendChild(div);
-    }
-
-    modal.classList.remove('hidden');
-}
-
-function toggleMenu() {
-    document.getElementById('menu-modal').classList.remove('hidden');
-}
-
-// --- Persistence ---
-function saveGame() {
-    // We only save the serializable parts
-    const data = {
-        player: gameState.player,
-        currentSceneId: gameState.currentSceneId,
-        quests: gameState.quests,
-        flags: gameState.flags,
-        reputation: gameState.reputation,
-        visitedScenes: gameState.visitedScenes
-    };
-    localStorage.setItem('crimsonMoonSave', JSON.stringify(data));
-    logMessage("Game Saved.", "system");
-}
-
-function loadGame() {
-    const dataStr = localStorage.getItem('crimsonMoonSave');
-    if (dataStr) {
-        const data = JSON.parse(dataStr);
-
-        // Restore state
-        gameState.player = data.player;
-        gameState.currentSceneId = data.currentSceneId;
-        gameState.quests = data.quests;
-        gameState.flags = data.flags;
-        gameState.reputation = data.reputation;
-        gameState.visitedScenes = data.visitedScenes || {};
-
-        // Reset transient state
-        gameState.inCombat = false;
-        gameState.combat = null;
-
-        logMessage("Game Loaded.", "system");
-        updateStatsUI();
-        goToScene(gameState.currentSceneId);
-
-        document.getElementById('menu-modal').classList.add('hidden');
-        document.getElementById('scene-content').classList.remove('hidden'); // Ensure visible if we loaded from death screen
-    } else {
-        logMessage("No save found.", "check-fail");
-    }
 }
