@@ -50,10 +50,17 @@ export const gameState = {
     },
     relationships: {},
     discoveredLocations: {
-        silverthorn: true,
+        hushbriar: true,
+        silverthorn: false,
         shadowmire: false,
-        whisperwood: false
+        whisperwood: false,
+        durnhelm: false,
+        lament_hill: false,
+        solasmor: false,
+        soul_mill: false,
+        thieves_hideout: false
     },
+    visitedScenes: [],
     mapPins: [],
     // Combat State
     combat: {
@@ -158,7 +165,7 @@ export function initializeNewGame(name, raceId, classId, baseAbilityScores, chos
         equipItem('longsword');
     }
 
-    gameState.currentSceneId = "SCENE_BRIEFING";
+    gameState.currentSceneId = "SCENE_ARRIVAL_HUSHBRIAR";
     gameState.combat.active = false;
     gameState.combat.enemyId = null;
 
@@ -170,10 +177,18 @@ export function initializeNewGame(name, raceId, classId, baseAbilityScores, chos
     };
 
     gameState.discoveredLocations = {
-        silverthorn: true,
+        hushbriar: true,
+        silverthorn: false,
         shadowmire: false,
-        whisperwood: false
+        whisperwood: false,
+        durnhelm: false,
+        lament_hill: false,
+        solasmor: false,
+        soul_mill: false,
+        thieves_hideout: false
     };
+
+    gameState.visitedScenes = [];
 
     initNpcRelationships();
     gameState.mapPins = [];
@@ -381,6 +396,45 @@ export function removeMapPin(index) {
         gameState.mapPins.splice(index, 1);
     }
 }
+
+// Helper to init relationships
+function initNpcRelationships() {
+    gameState.relationships = {};
+    for (const [key, npc] of Object.entries(npcs)) {
+        gameState.relationships[key] = npc.relationshipStart;
+    }
+
+    // Init reputations
+    gameState.reputation = {
+        silverthorn: 0,
+        durnhelm: 0,
+        whisperwood_survivors: 0
+    };
+}
+
+// Relationship helpers
+export function changeRelationship(npcId, amount) {
+    if (gameState.relationships[npcId] !== undefined) {
+        gameState.relationships[npcId] += amount;
+        logMessage(`Relationship with ${npcs[npcId]?.name || npcId}: ${amount > 0 ? '+' : ''}${amount}`, amount > 0 ? "gain" : "check-fail");
+    }
+}
+
+export function getRelationship(npcId) {
+    return gameState.relationships[npcId] || 0;
+}
+
+export function changeReputation(factionId, amount) {
+    if (gameState.reputation[factionId] !== undefined) {
+        gameState.reputation[factionId] += amount;
+        logMessage(`Reputation with ${factions[factionId]?.name || factionId}: ${amount > 0 ? '+' : ''}${amount}`, amount > 0 ? "gain" : "check-fail");
+    }
+}
+
+export function getReputation(factionId) {
+    return gameState.reputation[factionId] || 0;
+}
+
 
 function logMessage(msg, type) {
     if (window.logMessage) {

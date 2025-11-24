@@ -264,6 +264,13 @@ function finishCharacterCreation() {
 function goToScene(sceneId) {
     const scene = scenes[sceneId];
     if (!scene) { console.error("Scene not found:", sceneId); return; }
+
+    // Determine if first visit
+    const firstVisit = !gameState.visitedScenes.includes(sceneId);
+    if (firstVisit) {
+        gameState.visitedScenes.push(sceneId);
+    }
+
     gameState.currentSceneId = sceneId;
     if (scene.location) discoverLocation(scene.location);
 
@@ -616,6 +623,12 @@ function getHubSceneForLocation(locationId) {
     if (locationId === 'silverthorn') return 'SCENE_HUB_SILVERTHORN';
     if (locationId === 'shadowmire') return 'SCENE_TRAVEL_SHADOWMIRE';
     if (locationId === 'whisperwood') return 'SCENE_ARRIVAL_WHISPERWOOD';
+    if (locationId === 'hushbriar') return 'SCENE_HUSHBRIAR_TOWN'; // Fallback hub
+    if (locationId === 'durnhelm') return 'SCENE_DURNHELM_GATES';
+    if (locationId === 'lament_hill') return 'SCENE_LAMENT_HILL_APPROACH';
+    if (locationId === 'solasmor') return 'SCENE_SOLASMOR_APPROACH';
+    if (locationId === 'soul_mill') return 'SCENE_SOUL_MILL_APPROACH';
+    if (locationId === 'thieves_hideout') return 'SCENE_THIEVES_HIDEOUT';
     return 'SCENE_BRIEFING';
 }
 
@@ -1110,18 +1123,160 @@ function updateStatsUI() {
     document.getElementById('xp-text').innerText = `XP: ${p.xp}/${p.xpNext}`;
 }
 
-function travelTo(locationId) {
-    document.getElementById('map-modal').classList.add('hidden');
-    logMessage(`Traveling to ${locations[locationId].name}...`, "system");
-    if (rollDie(100) <= 20) {
-        const event = travelEvents[Math.floor(Math.random() * travelEvents.length)];
-        const eventSceneId = "SCENE_TRAVEL_EVENT_" + Date.now();
-        // Simplified logic for brevity in this patch, assumes helper fns exist or re-implementation
-        const destSceneId = (locationId === 'silverthorn') ? 'SCENE_HUB_SILVERTHORN' : 'SCENE_BRIEFING'; // simplified
-        // ... (Using full logic from previous step, abbreviated here) ...
-    }
-    goToScene((locationId === 'silverthorn') ? 'SCENE_HUB_SILVERTHORN' : 'SCENE_BRIEFING'); // Simplified return
+function getPlayerAC() {
+    const p = gameState.player;
+    const armor = p.equippedArmorId ? items[p.equippedArmorId] : null;
+    if (armor) return armor.acBase;
+    if (p.classId === 'fighter') return 10 + p.modifiers.DEX; // Fallback or Unarmored Defense logic?
+    // Simple default: 10 + DEX
+    return 10 + p.modifiers.DEX;
 }
 
-// (Re-including other helpers like renderShop, toggleCodex to ensure completeness)
-// ...
+function performLongRest() {
+    gameState.player.hp = gameState.player.maxHp;
+    // Reset slots
+    if (gameState.player.spellSlots) {
+        gameState.player.currentSlots = { ...gameState.player.spellSlots };
+    }
+    // Reset class resources
+    if (gameState.player.resources['second_wind']) {
+        gameState.player.resources['second_wind'].current = gameState.player.resources['second_wind'].max;
+    }
+    return true;
+}
+
+function performShortRest() {
+    // Simplified: Heal 1 HD
+    const cls = classes[gameState.player.classId];
+    const roll = rollDie(cls.hitDie) + gameState.player.modifiers.CON;
+    const healed = Math.max(1, roll);
+    gameState.player.hp = Math.min(gameState.player.maxHp, gameState.player.hp + healed);
+
+    if (gameState.player.resources['second_wind']) {
+        gameState.player.resources['second_wind'].current = gameState.player.resources['second_wind'].max;
+    }
+
+    return healed;
+}
+
+function saveGame() {
+    localStorage.setItem('crimson_moon_save', JSON.stringify(gameState));
+    logMessage("Game Saved.", "system");
+}
+
+function loadGame() {
+    const data = localStorage.getItem('crimson_moon_save');
+    if (data) {
+        Object.assign(gameState, JSON.parse(data));
+        logMessage("Game Loaded.", "system");
+        updateStatsUI();
+        goToScene(gameState.currentSceneId);
+    } else {
+        logMessage("No save found.", "check-fail");
+    }
+}
+
+function toggleInventory(forceOpen = null) {
+    const modal = document.getElementById('inventory-modal');
+    const list = document.getElementById('inventory-list');
+
+    if (forceOpen === false || (forceOpen === null && !modal.classList.contains('hidden'))) {
+        modal.classList.add('hidden');
+        return;
+    }
+
+    modal.classList.remove('hidden');
+    list.innerHTML = '';
+
+    if (gameState.player.inventory.length === 0) {
+        list.innerHTML = '<p>Empty.</p>';
+        return;
+    }
+
+    gameState.player.inventory.forEach(itemId => {
+        const item = items[itemId];
+        if (!item) return;
+
+        const row = document.createElement('div');
+        row.className = 'inventory-item';
+        row.innerHTML = `<strong>${item.name}</strong> <small>${item.type}</small>`;
+
+        const actions = document.createElement('div');
+
+        if (item.type === 'weapon' || item.type === 'armor') {
+            const equipBtn = document.createElement('button');
+            const isEquipped = (gameState.player.equippedWeaponId === itemId || gameState.player.equippedArmorId === itemId);
+            equipBtn.innerText = isEquipped ? "Equipped" : "Equip";
+            equipBtn.disabled = isEquipped;
+            equipBtn.onclick = () => {
+                const res = equipItem(itemId);
+                if (res.success) {
+                    logMessage(`Equipped ${item.name}.`, "system");
+                    toggleInventory(true); // Refresh
+                    updateStatsUI();
+                } else {
+                    logMessage(`Cannot equip: ${res.reason}`, "check-fail");
+                }
+            };
+            actions.appendChild(equipBtn);
+        } else if (item.type === 'consumable') {
+            const useBtn = document.createElement('button');
+            useBtn.innerText = "Use";
+            useBtn.onclick = () => {
+                const res = useConsumable(itemId);
+                if (res.success) {
+                    logMessage(res.msg, "gain");
+                    toggleInventory(true);
+                    updateStatsUI();
+                } else {
+                    logMessage(res.msg, "check-fail");
+                }
+            };
+            actions.appendChild(useBtn);
+        }
+
+        row.appendChild(actions);
+        list.appendChild(row);
+    });
+}
+
+function toggleQuestLog() {
+    const modal = document.getElementById('quest-modal');
+    const list = document.getElementById('quest-list');
+
+    if (!modal.classList.contains('hidden')) {
+        modal.classList.add('hidden');
+        return;
+    }
+
+    modal.classList.remove('hidden');
+    list.innerHTML = '';
+
+    for (const [qid, qData] of Object.entries(gameState.quests)) {
+        if (qData.currentStage > 0) {
+            const div = document.createElement('div');
+            div.className = 'quest-entry';
+            div.innerHTML = `<h4>${qData.title}</h4><p>${qData.stages[qData.currentStage]}</p>`;
+            if (qData.completed) div.innerHTML += ` <span style='color:gold'>(Completed)</span>`;
+            list.appendChild(div);
+        }
+    }
+
+    if (list.innerHTML === '') list.innerHTML = '<p>No active quests.</p>';
+}
+
+function toggleMenu() {
+    const modal = document.getElementById('menu-modal');
+    modal.classList.toggle('hidden');
+}
+
+// Global Logging
+function logMessage(msg, type) {
+    const logContent = document.getElementById('log-content');
+    const entry = document.createElement('div');
+    entry.className = `log-entry ${type}`;
+    entry.innerText = msg;
+    logContent.appendChild(entry);
+    logContent.scrollTop = logContent.scrollHeight;
+    console.log(`[${type}] ${msg}`);
+}
