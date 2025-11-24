@@ -58,7 +58,7 @@ export const scenes = {
         background: "landscapes/heart_of_silverthorn.png",
         text: "'Traitors! Seize them!' The guards attack. You have no choice but to defend yourself.",
         type: "combat",
-        enemies: ["fungal_beast", "fungal_beast"], // Placeholder for Guard Enemy
+        enemies: ["dwarven_captain", "neala"],
         winScene: "SCENE_HUSHBRIAR_TOWN",
         loseScene: "SCENE_PRISON_CAPTURE"
     },

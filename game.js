@@ -12,7 +12,7 @@ import { shops } from './data/shops.js';
 import { npcs } from './data/npcs.js';
 import { factions } from './data/factions.js';
 import { gameState, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus } from './data/gameState.js';
-import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod } from './rules.js';
+import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod, generateScaledStats } from './rules.js';
 
 export function initUI() {
     window.goToScene = goToScene;
@@ -765,7 +765,7 @@ function renderCodexFactions(container) {
 
 // --- Combat System ---
 
-function startCombat(enemyIds, winScene, loseScene) {
+function startCombat(combatantIds, winScene, loseScene) {
     // Show combat screen, hide main scene
     document.getElementById('scene-container').classList.add('hidden');
     document.getElementById('battle-screen').classList.remove('hidden');
@@ -773,23 +773,47 @@ function startCombat(enemyIds, winScene, loseScene) {
 
     const currentScene = scenes[gameState.currentSceneId];
 
-    const combatEnemies = enemyIds.map((id, index) => {
-        const enemyData = enemies[id];
+    const combatEnemies = combatantIds.map((id, index) => {
+        let combatantData;
+        let isNpc = false;
+
+        if (npcs[id] && npcs[id].combatStats) {
+            // It's a scalable NPC, level-matched to the player
+            combatantData = generateScaledStats(npcs[id].combatStats, gameState.player.level);
+            combatantData.name = npcs[id].name; // Ensure the base name is used
+            combatantData.portrait = npcs[id].portrait;
+            isNpc = true;
+        } else {
+            // It's a regular enemy from enemies.js
+            combatantData = enemies[id];
+        }
+
+        if (!combatantData) {
+            console.error(`Combatant data for ID "${id}" not found in enemies.js or npcs.js.`);
+            return null; // Skip if no data found
+        }
+
+        // Harmonize the data structure for the combat loop
+        const primaryAttack = combatantData.actions ? combatantData.actions.find(a => a.type === 'attack') : null;
+
         return {
             id: id,
-            name: enemyData.name,
-            hp: enemyData.hp,
-            maxHp: enemyData.hp,
-            ac: enemyData.ac,
-            attackBonus: enemyData.attackBonus,
-            damage: enemyData.damage,
-            portrait: enemyData.portrait || 'portraits/placeholder.png',
+            name: combatantData.name,
+            hp: combatantData.hp,
+            maxHp: combatantData.hp,
+            ac: combatantData.ac,
+            // For NPCs, derive from actions; for enemies, use direct properties
+            attackBonus: isNpc ? (primaryAttack ? primaryAttack.toHit : 0) : combatantData.attackBonus,
+            damage: isNpc ? (primaryAttack ? primaryAttack.damage : "1d4") : combatantData.damage,
+            portrait: combatantData.portrait || 'portraits/placeholder.png',
             initiative: 0,
             statusEffects: [],
-            uniqueId: `${id}_${index}`, // To target specific enemies
-            intent: ""
+            uniqueId: `${id}_${index}`,
+            intent: "",
+            // Store the full stat block for access to resistances, special abilities, etc.
+            fullStats: isNpc ? combatantData : null
         };
-    });
+    }).filter(c => c !== null); // Remove any null entries if a combatant wasn't found
 
     gameState.combat = {
         active: true,
@@ -978,16 +1002,21 @@ function renderPlayerActions(container, subMenu = null) {
 }
 
 function calculateDamage(baseDamage, damageType, target) {
-    const enemyData = enemies[target.id];
-    if (!enemyData) return baseDamage;
+    // Check for NPC-specific stats first, then fall back to enemy data
+    const combatantStats = target.fullStats || enemies[target.id];
+    if (!combatantStats) return baseDamage;
 
     let finalDamage = baseDamage;
     let message = "";
 
-    if (enemyData.vulnerabilities && enemyData.vulnerabilities.includes(damageType)) {
+    // Ensure properties exist and are strings before calling .includes()
+    const vulnerabilities = combatantStats.vulnerabilities || "";
+    const resistances = combatantStats.resistances || "";
+
+    if (vulnerabilities.includes(damageType)) {
         finalDamage *= 2;
         message = `${target.name} is vulnerable to ${damageType}! Damage doubled.`;
-    } else if (enemyData.resistances && enemyData.resistances.includes(damageType)) {
+    } else if (resistances.includes(damageType)) {
         finalDamage = Math.floor(finalDamage / 2);
         message = `${target.name} resists ${damageType}. Damage halved.`;
     }
@@ -1041,30 +1070,10 @@ function performAttack(targetId) {
         const finalDamage = calculateDamage(dmg, weapon.damageType, target);
         target.hp -= Math.max(1, finalDamage);
         logMessage(`Hit! Dealt ${finalDamage} ${weapon.damageType} damage to ${target.name}.`, "combat");
+        showBattleEventText(`${finalDamage}`);
     } else {
         logMessage("Miss!", "system");
         showBattleEventText("Miss!");
-    }
-
-    if (!checkWinCondition()) {
-        endPlayerTurn();
-    }
-}
-
-function performAbility(abilityId) {
-    const resource = gameState.player.resources[abilityId];
-    if (!resource || resource.current <= 0) {
-        logMessage("No uses left for that ability.", "check-fail");
-        return;
-    }
-
-    if (abilityId === 'second_wind') {
-        resource.current--;
-        const healed = rollDie(10) + gameState.player.level; // 1d10 + Fighter level
-        gameState.player.hp = Math.min(gameState.player.maxHp, gameState.player.hp + healed);
-        logMessage(`Used Second Wind and recovered ${healed} HP.`, "gain");
-    } else {
-        logMessage(`Ability '${abilityId}' is not implemented yet.`, "system");
     }
 
     if (!checkWinCondition()) {
@@ -1208,11 +1217,6 @@ function enemyTurn(enemy) {
         if (enemy.id === 'fungal_beast' && rollDie(100) <= 25) { // 25% chance
             applyStatusEffect('poisoned');
             showBattleEventText("Poisoned!");
-        }
-
-        // Special Effects: Fungal Beast Poison
-        if (enemy.id === 'fungal_beast' && rollDie(100) <= 25) { // 25% chance
-            applyStatusEffect('poisoned');
         }
 
         if (gameState.player.hp <= 0) {

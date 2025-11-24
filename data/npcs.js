@@ -30,7 +30,46 @@ export const npcs = {
         baseDisposition: "suspicious",
         relationshipStart: -10,
         relationshipMin: -100,
-        relationshipMax: 100
+        relationshipMax: 100,
+        combatStats: {
+            base: {
+                level: 8,
+                attributes: {
+                    strength: 18,
+                    dexterity: 13,
+                    constitution: 16,
+                    intelligence: 10,
+                    wisdom: 12,
+                    charisma: 11
+                },
+                hp: 85, // d10 hit die + con
+                ac: 18, // plate
+                speed: 25,
+                proficiencies: {
+                    savingThrows: ["strength", "constitution"],
+                    skills: ["athletics", "intimidation", "perception"],
+                    weapons: ["simple", "martial"],
+                    armor: ["all", "shields"]
+                },
+                resistances: "poison",
+                immunities: "",
+                vulnerabilities: "",
+                actions: [
+                    { name: "Battleaxe", type: "attack", toHit: 7, damage: "1d8+4", damageType: "slashing" },
+                    { name: "Heavy Crossbow", type: "attack", toHit: 4, damage: "1d10+1", damageType: "piercing", range: "100/400" },
+                    { name: "Second Wind", type: "ability", description: "Once per short rest, can use a bonus action to regain 1d10 + 8 hit points." },
+                    { name: "Action Surge", type: "ability", description: "Once per short rest, can take one additional action on his turn." }
+                ],
+                specialTraits: [
+                    { name: "Dwarven Resilience", description: "Has advantage on saving throws against poison." }
+                ],
+            },
+            perLevel: {
+                hp: "1d10+3",
+                toHit: 0.5,
+                damage: 0
+            }
+        }
     },
     "fionnlagh": {
         id: "fionnlagh",
@@ -52,7 +91,46 @@ export const npcs = {
         baseDisposition: "hostile",
         relationshipStart: -20,
         relationshipMin: -100,
-        relationshipMax: 100
+        relationshipMax: 100,
+        combatStats: {
+            base: {
+                level: 5,
+                attributes: {
+                    strength: 11,
+                    dexterity: 18,
+                    constitution: 14,
+                    intelligence: 13,
+                    wisdom: 12,
+                    charisma: 16
+                },
+                hp: 44, // d8 hit die + con
+                ac: 16, // studded leather + dex
+                speed: 35,
+                proficiencies: {
+                    savingThrows: ["dexterity", "intelligence"],
+                    skills: ["acrobatics", "deception", "perception", "stealth"],
+                    weapons: ["simple", "hand crossbows", "longswords", "rapiers", "shortswords"],
+                    armor: ["light"]
+                },
+                resistances: "",
+                immunities: "",
+                vulnerabilities: "",
+                actions: [
+                    { name: "Shortsword", type: "attack", toHit: 7, damage: "1d6+4", damageType: "piercing" },
+                    { name: "Dagger", type: "attack", toHit: 7, damage: "1d4+4", damageType: "piercing", range: "20/60" },
+                    { name: "Sneak Attack", type: "ability", description: "Once per turn, can deal an extra 3d6 damage to one creature she hits with an attack if she has advantage on the attack roll." },
+                    { name: "Cunning Action", type: "ability", description: "On each of her turns, can use a bonus action to take the Dash, Disengage, or Hide action." }
+                ],
+                specialTraits: [
+                    { name: "Fey Ancestry", description: "Has advantage on saving throws against being charmed, and magic can’t put her to sleep." }
+                ],
+            },
+            perLevel: {
+                hp: "1d8+2",
+                toHit: 0.5,
+                damage: 0.5 // for sneak attack
+            }
+        }
     },
     "liobhan": {
         id: "liobhan",
@@ -63,7 +141,46 @@ export const npcs = {
         baseDisposition: "hostile",
         relationshipStart: -20,
         relationshipMin: -100,
-        relationshipMax: 100
+        relationshipMax: 100,
+        combatStats: {
+            base: {
+                level: 5,
+                attributes: {
+                    strength: 11,
+                    dexterity: 18,
+                    constitution: 14,
+                    intelligence: 13,
+                    wisdom: 12,
+                    charisma: 16
+                },
+                hp: 44,
+                ac: 16,
+                speed: 35,
+                proficiencies: {
+                    savingThrows: ["dexterity", "intelligence"],
+                    skills: ["acrobatics", "deception", "perception", "stealth"],
+                    weapons: ["simple", "hand crossbows", "longswords", "rapiers", "shortswords"],
+                    armor: ["light"]
+                },
+                resistances: "",
+                immunities: "",
+                vulnerabilities: "",
+                actions: [
+                    { name: "Shortsword", type: "attack", toHit: 7, damage: "1d6+4", damageType: "piercing" },
+                    { name: "Dagger", type: "attack", toHit: 7, damage: "1d4+4", damageType: "piercing", range: "20/60" },
+                    { name: "Sneak Attack", type: "ability", description: "Once per turn, can deal an extra 3d6 damage to one creature she hits with an attack if she has advantage on the attack roll." },
+                    { name: "Cunning Action", type: "ability", description: "On each of her turns, can use a bonus action to take the Dash, Disengage, or Hide action." }
+                ],
+                specialTraits: [
+                    { name: "Fey Ancestry", description: "Has advantage on saving throws against being charmed, and magic can’t put her to sleep." }
+                ],
+            },
+            perLevel: {
+                hp: "1d8+2",
+                toHit: 0.5,
+                damage: 0.5 // for sneak attack
+            }
+        }
     },
     "aodhan": {
         id: "aodhan",

@@ -210,3 +210,65 @@ export function rollInitiative(gameState, entityType, bonus = 0) {
         modifier: modifier
     };
 }
+
+/**
+ * Generates a scaled stat block for an NPC based on a target level.
+ * @param {object} template - The combatStats object from an NPC.
+ * @param {number} targetLevel - The desired level for the stats.
+ * @returns {object} A complete, scaled stat block for combat.
+ */
+export function generateScaledStats(template, targetLevel) {
+    // Deep copy the base stats to avoid modifying the original template
+    const stats = JSON.parse(JSON.stringify(template.base));
+
+    const baseLevel = template.base.level;
+    if (targetLevel <= baseLevel) {
+        return stats; // No scaling needed, return base stats
+    }
+
+    const levelDifference = targetLevel - baseLevel;
+    stats.level = targetLevel;
+
+    // --- HP Scaling ---
+    // Roll HP for each level gained
+    for (let i = 0; i < levelDifference; i++) {
+        const hpRoll = rollDiceExpression(template.perLevel.hp);
+        stats.hp += hpRoll.total;
+    }
+
+    // --- To-Hit and Damage Scaling ---
+    const totalToHitBonus = Math.floor(levelDifference * (template.perLevel.toHit || 0));
+    const totalDamageBonus = Math.floor(levelDifference * (template.perLevel.damage || 0));
+
+    if (stats.actions && (totalToHitBonus > 0 || totalDamageBonus > 0)) {
+        stats.actions.forEach(action => {
+            if (action.type === 'attack') {
+                // Scale To-Hit
+                if (action.toHit) {
+                    action.toHit += totalToHitBonus;
+                }
+
+                // Scale Damage
+                if (action.damage) {
+                    const regex = /(\d+d\d+)([+-]\d+)?/;
+                    const match = action.damage.match(regex);
+                    if (match) {
+                        const baseDie = match[1];
+                        const modifier = match[2] ? parseInt(match[2]) : 0;
+                        const newModifier = modifier + totalDamageBonus;
+
+                        if (newModifier > 0) {
+                            action.damage = `${baseDie}+${newModifier}`;
+                        } else if (newModifier < 0) {
+                            action.damage = `${baseDie}${newModifier}`; // e.g., 1d6-1
+                        } else {
+                            action.damage = baseDie; // No modifier
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    return stats;
+}
