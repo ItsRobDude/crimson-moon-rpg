@@ -258,9 +258,41 @@ export function removeItem(itemId) {
 
 export function equipItem(itemId) {
     const item = items[itemId];
-    if (!item) return;
-    if (item.type === 'weapon') gameState.player.equippedWeaponId = itemId;
-    if (item.type === 'armor') gameState.player.equippedArmorId = itemId;
+    if (!item) return { success: false, reason: 'not_found' };
+
+    // Must own the item to equip it
+    if (!gameState.player.inventory.includes(itemId)) {
+        return { success: false, reason: 'missing' };
+    }
+
+    if (item.type === 'armor') {
+        // Enforce simple strength requirement for heavy armor
+        if (item.reqStr && gameState.player.abilities.STR < item.reqStr) {
+            return { success: false, reason: 'reqStr', value: item.reqStr };
+        }
+
+        gameState.player.equippedArmorId = itemId;
+        return { success: true, slot: 'armor' };
+    }
+
+    if (item.type === 'weapon') {
+        gameState.player.equippedWeaponId = itemId;
+        return { success: true, slot: 'weapon' };
+    }
+
+    return { success: false, reason: 'invalid_type' };
+}
+
+export function unequipItem(slot) {
+    if (slot === 'weapon') {
+        gameState.player.equippedWeaponId = null;
+        return { success: true, slot };
+    } else if (slot === 'armor') {
+        gameState.player.equippedArmorId = null;
+        return { success: true, slot };
+    }
+
+    return { success: false, reason: 'invalid_slot' };
 }
 
 export function useConsumable(itemId) {

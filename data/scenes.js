@@ -230,7 +230,7 @@ export const scenes = {
         id: "SCENE_VICTORY",
         location: "whisperwood",
         background: "landscapes/sporefall_outskirts.png",
-        text: "The beast collapses into a pile of sludge. You have survived your first encounter in the Whisperwood.",
+        text: "The beast collapses into a pile of sludge. Spores cling to your armor and weapons, and the forest goes silent. You wipe your gear clean and listen—a voice carries through the haze.",
         onEnter: {
              questUpdate: { id: "investigate_whisperwood", stage: 3 }
         },

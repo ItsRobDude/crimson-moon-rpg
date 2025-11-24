@@ -409,6 +409,9 @@ function handleChoice(choice) {
     if (choice.action === 'loadGame') {
         loadGame();
         return;
+    } else if (choice.action === 'inventory') {
+        toggleInventory();
+        return;
     }
     if (choice.action === 'openMap') {
         toggleMap();
@@ -978,11 +981,7 @@ function enemyTurn() {
     const roll = rollDie(20);
     const totalHit = roll + enemyDef.attackBonus;
 
-    let ac = 10 + gameState.player.modifiers.DEX;
-    if (gameState.player.equippedArmorId) {
-        const armor = items[gameState.player.equippedArmorId];
-        if (armor) ac = armor.acBase;
-    }
+    const ac = getPlayerAC();
 
     logMessage(`Enemy rolls ${totalHit} vs AC ${ac}`, "system");
 
@@ -1047,6 +1046,14 @@ function updateStatsUI() {
     document.getElementById('char-name').innerText = p.name;
     document.getElementById('char-class').innerText = p.classId ? classes[p.classId].name : "Class";
     document.getElementById('char-level').innerText = `Lvl ${p.level}`;
+    document.getElementById('char-ac').innerText = `AC ${getPlayerAC()}`;
+
+    const weapon = p.equippedWeaponId ? items[p.equippedWeaponId] : null;
+    const armor = p.equippedArmorId ? items[p.equippedArmorId] : null;
+    const weaponDetail = weapon ? `${weapon.damage} ${weapon.modifier ? `(${weapon.modifier})` : ''}`.trim() : '1d2 (STR)';
+    const armorDetail = armor ? `${armor.armorType || 'armor'} AC ${armor.acBase}` : 'base 10 + DEX';
+    document.getElementById('char-weapon').innerText = `Weapon: ${weapon ? weapon.name : 'Unarmed'} · ${weaponDetail}`;
+    document.getElementById('char-armor').innerText = `Armor: ${armor ? armor.name : 'None'} · ${armorDetail}`;
 
     const hpPct = Math.max(0, (p.hp / p.maxHp) * 100);
     document.getElementById('hp-bar-fill').style.width = `${hpPct}%`;
