@@ -11,7 +11,7 @@ import { travelEvents } from './data/travelEvents.js';
 import { shops } from './data/shops.js';
 import { npcs } from './data/npcs.js';
 import { factions } from './data/factions.js';
-import { gameState, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation } from './data/gameState.js';
+import { gameState, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin } from './data/gameState.js';
 import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod } from './rules.js';
 
 // --- Initialization ---
@@ -278,9 +278,24 @@ function goToScene(sceneId) {
     document.getElementById('narrative-text').innerText = scene.text;
 
     if (scene.onEnter) {
-        if (scene.onEnter.questUpdate) updateQuestStage(scene.onEnter.questUpdate.id, scene.onEnter.questUpdate.stage);
-        if (scene.onEnter.addGold) addGold(scene.onEnter.addGold);
+        const runOnEnter = !scene.onEnter.once || firstVisit;
+        if (runOnEnter) {
+            if (scene.onEnter.questUpdate) {
+                updateQuestStage(scene.onEnter.questUpdate.id, scene.onEnter.questUpdate.stage);
+                const q = quests[scene.onEnter.questUpdate.id];
+                logMessage(`Quest Updated: ${q.title}`, "gain");
+            }
+            if (scene.onEnter.addGold) {
+                addGold(scene.onEnter.addGold);
+                logMessage(`Gained ${scene.onEnter.addGold} gold.`, "gain");
+            }
+            if (scene.onEnter.setFlag) {
+                gameState.flags[scene.onEnter.setFlag] = true;
+            }
+        }
     }
+
+    triggerAmbientByThreat(scene.location);
 
     if (scene.type === 'combat') {
         document.getElementById('shop-panel').classList.add('hidden');
@@ -322,8 +337,17 @@ function renderChoices(choices) {
 }
 
 function handleChoice(choice) {
-    if (choice.action === 'loadGame') { loadGame(); return; }
-    if (choice.action === 'openMap') { toggleMap(); return; }
+    if (choice.action === 'loadGame') {
+        loadGame();
+        return;
+    } else if (choice.action === 'inventory') {
+        toggleInventory();
+        return;
+    }
+    if (choice.action === 'openMap') {
+        toggleMap();
+        return;
+    }
     if (choice.action === 'shortRest') {
         if (spendGold(choice.cost)) {
             const healed = performShortRest(); // Updated
@@ -351,13 +375,24 @@ function handleChoice(choice) {
     // Skill Checks etc...
     if (choice.type === 'skillCheck') {
         const result = rollSkillCheck(gameState, choice.skill);
-        const success = result.total >= choice.dc;
-        logMessage(`Skill Check (${choice.skill}): ${result.total} (DC ${choice.dc})`, success ? "check-success" : "check-fail");
-        if (success) {
-            if (choice.onSuccess?.addGold) addGold(choice.onSuccess.addGold);
+        const dc = choice.dc;
+
+        logMessage(`Skill Check (${choice.skill}): Rolled ${result.roll} + ${result.modifier} = ${result.total} (DC ${dc})${result.note || ''}`, result.total >= dc ? "check-success" : "check-fail");
+
+        if (result.total >= dc) {
+            if (choice.skill === 'stealth') {
+                adjustThreat(-5, 'moving quietly');
+                clearTransientThreat();
+            }
+            if (choice.onSuccess && choice.onSuccess.addGold) {
+                addGold(choice.onSuccess.addGold);
+            }
             document.getElementById('narrative-text').innerText = choice.successText;
             if (choice.nextSceneSuccess) renderContinueButton(choice.nextSceneSuccess);
         } else {
+            if (choice.skill === 'stealth' || choice.skill === 'acrobatics') {
+                adjustThreat(5, 'noise draws attention');
+            }
             document.getElementById('narrative-text').innerText = choice.failText;
             if (choice.nextSceneFail) renderContinueButton(choice.nextSceneFail);
         }
@@ -390,7 +425,288 @@ function renderContinueButton(nextSceneId) {
     choiceContainer.appendChild(btn);
 }
 
-// --- Combat System Updates ---
+function triggerAmbientByThreat(locationId) {
+    const roll = rollDie(20);
+    const threat = gameState.threat.level;
+    if (roll + threat / 10 > 20) {
+        const warning = locationId === 'whisperwood' ? 'Distant clicking echoes between the spores.' : 'You hear rustling—wildlife unsettled by your presence.';
+        recordAmbientEvent(warning, threat > 40 ? 'combat' : 'system');
+    } else if (roll === 1 && gameState.threat.recentStealth > 0) {
+        recordAmbientEvent('Your quiet steps muffle the forest. Predators pass you by.', 'gain');
+    }
+}
+
+// --- Shop System ---
+function getShopPrice(item, shopId) {
+    let price = item.price;
+
+    // Silverthorn Discount
+    if (shops[shopId] && shops[shopId].location === 'silverthorn') {
+        if (getReputation('silverthorn') >= 30) {
+            price = Math.floor(price * 0.9);
+        }
+    }
+
+    return price;
+}
+
+function renderShop(shopId) {
+    const shopDef = shops[shopId];
+    if (!shopDef) return;
+
+    const panel = document.getElementById('shop-panel');
+    const container = document.getElementById('shop-items-container');
+    const goldDisplay = document.getElementById('shop-gold-display');
+
+    container.innerHTML = '';
+    goldDisplay.innerText = `Gold: ${gameState.player.gold}`;
+
+    shopDef.items.forEach(itemId => {
+        const item = items[itemId];
+        if (!item) return;
+
+        const price = getShopPrice(item, shopId);
+
+        const row = document.createElement('div');
+        row.style.display = "flex";
+        row.style.justifyContent = "space-between";
+        row.style.alignItems = "center";
+        row.style.padding = "8px";
+        row.style.borderBottom = "1px solid #444";
+
+        const info = document.createElement('div');
+        info.innerHTML = `<strong>${item.name}</strong> (${price}g)<br><small>${item.description}</small>`;
+
+        const btn = document.createElement('button');
+        btn.innerText = "Buy";
+        btn.onclick = () => {
+            if (spendGold(price)) {
+                addItem(itemId);
+                logMessage(`Bought ${item.name} for ${price}g.`, "gain");
+                goldDisplay.innerText = `Gold: ${gameState.player.gold}`;
+            } else {
+                logMessage("Not enough gold.", "check-fail");
+            }
+        };
+
+        row.appendChild(info);
+        row.appendChild(btn);
+        container.appendChild(row);
+    });
+
+    panel.classList.remove('hidden');
+}
+
+// --- Map System ---
+function toggleMap() {
+    const modal = document.getElementById('map-modal');
+    const list = document.getElementById('map-locations');
+    const pinList = document.getElementById('pin-list');
+    const addBtn = document.getElementById('btn-add-pin');
+    const pinNote = document.getElementById('pin-note');
+    list.innerHTML = '';
+    pinList.innerHTML = '';
+
+    for (const [key, loc] of Object.entries(locations)) {
+        if (isLocationDiscovered(key)) {
+            const div = document.createElement('div');
+            div.style.padding = "10px";
+            div.style.borderBottom = "1px solid #444";
+            div.style.display = "flex";
+            div.style.justifyContent = "space-between";
+            div.style.alignItems = "center";
+
+            const info = document.createElement('div');
+            info.innerHTML = `<strong>${loc.name}</strong><br><small>${loc.description}</small>`;
+
+            const btn = document.createElement('button');
+            btn.innerText = "Travel";
+            btn.onclick = () => travelTo(key);
+
+            if (scenes[gameState.currentSceneId] && scenes[gameState.currentSceneId].location === key) {
+                btn.disabled = true;
+                btn.innerText = "You are here";
+            }
+
+            div.appendChild(info);
+            div.appendChild(btn);
+            list.appendChild(div);
+        }
+    }
+
+    gameState.mapPins.forEach((pin, idx) => {
+        const row = document.createElement('div');
+        row.className = 'pin-row';
+        row.innerHTML = `<strong>${locations[pin.locationId]?.name || pin.locationId}</strong>: ${pin.note || 'marked route'}`;
+        const rm = document.createElement('button');
+        rm.innerText = 'Remove';
+        rm.onclick = () => {
+            removeMapPin(idx);
+            toggleMap();
+        };
+        row.appendChild(rm);
+        pinList.appendChild(row);
+    });
+
+    addBtn.onclick = () => {
+        const currentLocation = scenes[gameState.currentSceneId]?.location || 'travel';
+        addMapPin(currentLocation, pinNote.value);
+        pinNote.value = '';
+        toggleMap();
+    };
+
+    modal.classList.remove('hidden');
+}
+
+function travelTo(locationId) {
+    document.getElementById('map-modal').classList.add('hidden');
+    logMessage(`Traveling to ${locations[locationId].name}...`, "system");
+
+    if (rollDie(100) <= 20) {
+        const event = travelEvents[Math.floor(Math.random() * travelEvents.length)];
+        const eventSceneId = "SCENE_TRAVEL_EVENT_" + Date.now();
+        const destSceneId = getHubSceneForLocation(locationId);
+
+        if (event.type === 'combat') {
+            scenes[eventSceneId] = {
+                id: eventSceneId,
+                location: "travel",
+                background: "landscapes/forest_walk_alt.png",
+                text: event.text,
+                type: 'combat',
+                enemyId: event.enemyId,
+                winScene: destSceneId,
+                loseScene: "SCENE_DEFEAT"
+            };
+            goToScene(eventSceneId);
+            return;
+        } else if (event.type === 'skillCheck') {
+            scenes[eventSceneId] = {
+                id: eventSceneId,
+                location: "travel",
+                background: "landscapes/forest_walk_alt.png",
+                text: event.text,
+                choices: [
+                    {
+                        text: "Investigate",
+                        type: "skillCheck",
+                        skill: event.skill,
+                        dc: event.dc,
+                        successText: event.successText,
+                        failText: event.failText,
+                        onSuccess: event.onSuccess,
+                        nextSceneSuccess: destSceneId,
+                        nextSceneFail: destSceneId
+                    },
+                    {
+                        text: "Ignore and move on",
+                        nextScene: destSceneId
+                    }
+                ]
+            };
+            goToScene(eventSceneId);
+            return;
+        }
+    }
+
+    goToScene(getHubSceneForLocation(locationId));
+}
+
+function getHubSceneForLocation(locationId) {
+    if (locationId === 'silverthorn') return 'SCENE_HUB_SILVERTHORN';
+    if (locationId === 'shadowmire') return 'SCENE_TRAVEL_SHADOWMIRE';
+    if (locationId === 'whisperwood') return 'SCENE_ARRIVAL_WHISPERWOOD';
+    return 'SCENE_BRIEFING';
+}
+
+// --- Codex System ---
+function toggleCodex(tab = 'people') {
+    const modal = document.getElementById('codex-modal');
+    const list = document.getElementById('codex-list');
+    const btnPeople = document.getElementById('btn-codex-people');
+    const btnFactions = document.getElementById('btn-codex-factions');
+
+    modal.classList.remove('hidden');
+    list.innerHTML = '';
+
+    // Tab Styling
+    if (tab === 'people') {
+        btnPeople.classList.add('tab-active');
+        btnFactions.classList.remove('tab-active');
+        renderCodexPeople(list);
+    } else {
+        btnPeople.classList.remove('tab-active');
+        btnFactions.classList.add('tab-active');
+        renderCodexFactions(list);
+    }
+}
+
+function renderCodexPeople(container) {
+    const metNpcs = Object.keys(gameState.relationships);
+    if (metNpcs.length === 0) {
+        container.innerHTML = "<p style='padding:10px'>No known contacts.</p>";
+        return;
+    }
+
+    metNpcs.forEach(npcId => {
+        const npc = npcs[npcId];
+        const score = getRelationship(npcId);
+        if (!npc) return;
+
+        const div = document.createElement('div');
+        div.className = "codex-entry";
+
+        let label = "Neutral";
+        if (score >= 30) label = "Warm";
+        if (score >= 70) label = "Ally";
+        if (score <= -30) label = "Cold";
+        if (score <= -70) label = "Hostile";
+
+        // Normalize score for bar (-100 to 100 -> 0 to 100%)
+        const pct = ((score + 100) / 200) * 100;
+
+        div.innerHTML = `
+            <h4>${npc.name}</h4>
+            <p>${npc.description}</p>
+            <div class="codex-label">${label} (${score})</div>
+            <div class="codex-bar-container">
+                <div class="codex-bar-fill" style="width: ${pct}%"></div>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+function renderCodexFactions(container) {
+    Object.keys(gameState.reputation).forEach(factId => {
+        const fact = factions[factId];
+        const score = getReputation(factId);
+        if (!fact) return;
+
+        const div = document.createElement('div');
+        div.className = "codex-entry";
+
+        let label = "Neutral";
+        if (score >= 30) label = "Respected";
+        if (score >= 70) label = "Hero";
+        if (score <= -30) label = "Uneasy";
+        if (score <= -70) label = "Enemy";
+
+        const pct = ((score + 100) / 200) * 100;
+
+        div.innerHTML = `
+            <h4>${fact.name}</h4>
+            <p>${fact.description}</p>
+            <div class="codex-label">${label} (${score})</div>
+            <div class="codex-bar-container">
+                <div class="codex-bar-fill" style="width: ${pct}%"></div>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+// --- Combat System ---
 
 function startCombat(enemyId, winScene, loseScene) {
     const enemyDef = enemies[enemyId];
@@ -718,11 +1034,8 @@ function enemyTurn() {
 
     const roll = rollDie(20);
     const totalHit = roll + enemyDef.attackBonus;
-    let ac = 10 + gameState.player.modifiers.DEX;
-    if (gameState.player.equippedArmorId) {
-        const armor = items[gameState.player.equippedArmorId];
-        if (armor) ac = armor.acBase;
-    }
+
+    const ac = getPlayerAC();
 
     logMessage(`Enemy rolls ${totalHit} vs AC ${ac}`, "system");
 
@@ -773,34 +1086,28 @@ function checkWinCondition() {
     }
 }
 
-// --- Map, Shop, Codex, Inventory helpers included in update ---
-function toggleMap() {
-    const modal = document.getElementById('map-modal');
-    const list = document.getElementById('map-locations');
-    list.innerHTML = '';
-    for (const [key, loc] of Object.entries(locations)) {
-        if (isLocationDiscovered(key)) {
-            const div = document.createElement('div');
-            div.style.padding = "10px";
-            div.style.borderBottom = "1px solid #444";
-            div.style.display = "flex";
-            div.style.justifyContent = "space-between";
-            div.style.alignItems = "center";
-            const info = document.createElement('div');
-            info.innerHTML = `<strong>${loc.name}</strong><br><small>${loc.description}</small>`;
-            const btn = document.createElement('button');
-            btn.innerText = "Travel";
-            btn.onclick = () => travelTo(key);
-            if (scenes[gameState.currentSceneId] && scenes[gameState.currentSceneId].location === key) {
-                btn.disabled = true;
-                btn.innerText = "You are here";
-            }
-            div.appendChild(info);
-            div.appendChild(btn);
-            list.appendChild(div);
-        }
-    }
-    modal.classList.remove('hidden');
+// --- UI Updates ---
+function updateStatsUI() {
+    const p = gameState.player;
+    document.getElementById('char-name').innerText = p.name;
+    document.getElementById('char-class').innerText = p.classId ? classes[p.classId].name : "Class";
+    document.getElementById('char-level').innerText = `Lvl ${p.level}`;
+    document.getElementById('char-ac').innerText = `AC ${getPlayerAC()}`;
+
+    const weapon = p.equippedWeaponId ? items[p.equippedWeaponId] : null;
+    const armor = p.equippedArmorId ? items[p.equippedArmorId] : null;
+    const weaponDetail = weapon ? `${weapon.damage} ${weapon.modifier ? `(${weapon.modifier})` : ''}`.trim() : '1d2 (STR)';
+    const armorDetail = armor ? `${armor.armorType || 'armor'} AC ${armor.acBase}` : 'base 10 + DEX';
+    document.getElementById('char-weapon').innerText = `Weapon: ${weapon ? weapon.name : 'Unarmed'} · ${weaponDetail}`;
+    document.getElementById('char-armor').innerText = `Armor: ${armor ? armor.name : 'None'} · ${armorDetail}`;
+
+    const hpPct = Math.max(0, (p.hp / p.maxHp) * 100);
+    document.getElementById('hp-bar-fill').style.width = `${hpPct}%`;
+    document.getElementById('hp-text').innerText = `HP: ${p.hp}/${p.maxHp}`;
+
+    const xpPct = Math.max(0, (p.xp / p.xpNext) * 100);
+    document.getElementById('xp-bar-fill').style.width = `${xpPct}%`;
+    document.getElementById('xp-text').innerText = `XP: ${p.xp}/${p.xpNext}`;
 }
 
 function travelTo(locationId) {

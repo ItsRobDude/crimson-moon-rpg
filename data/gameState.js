@@ -30,11 +30,19 @@ export const gameState = {
         equippedArmorId: null,
         inventory: [],
         gold: 0,
-        statusEffects: []
+        statusEffects: [],
+        classResources: {}
     },
     currentSceneId: "SCENE_BRIEFING",
     quests: JSON.parse(JSON.stringify(quests)),
     flags: {},
+    threat: {
+        level: 0,
+        recentNoise: 0,
+        recentStealth: 0,
+        ambient: []
+    },
+    // Reputation Trackers (Keyed by Faction ID)
     reputation: {
         silverthorn: 0,
         durnhelm: 0,
@@ -46,6 +54,8 @@ export const gameState = {
         shadowmire: false,
         whisperwood: false
     },
+    mapPins: [],
+    // Combat State
     combat: {
         active: false,
         enemyId: null,
@@ -99,6 +109,12 @@ export function initializeNewGame(name, raceId, classId, baseAbilityScores, chos
 
     gameState.player.skills = chosenSkills && chosenSkills.length > 0 ? chosenSkills : (cls.proficiencies || []);
     gameState.player.knownSpells = chosenSpells || [];
+    gameState.player.classResources = {
+        maneuvers: classId === 'fighter' ? 3 : 0,
+        grit: classId === 'rogue' ? 2 : 0,
+        spellSlots: classId === 'wizard' ? 2 : 1,
+        blessings: classId === 'cleric' ? 2 : 0
+    };
 
     // Spell Slots Init
     if (cls.spellSlots && cls.spellSlots[1]) {
@@ -146,6 +162,13 @@ export function initializeNewGame(name, raceId, classId, baseAbilityScores, chos
     gameState.combat.active = false;
     gameState.combat.enemyId = null;
 
+    gameState.threat = {
+        level: 0,
+        recentNoise: 0,
+        recentStealth: 0,
+        ambient: []
+    };
+
     gameState.discoveredLocations = {
         silverthorn: true,
         shadowmire: false,
@@ -153,6 +176,7 @@ export function initializeNewGame(name, raceId, classId, baseAbilityScores, chos
     };
 
     initNpcRelationships();
+    gameState.mapPins = [];
 }
 
 // ... (Existing helpers: updateQuestStage, addGold, spendGold, gainXp, inventory helpers) ...
@@ -221,9 +245,41 @@ export function removeItem(itemId) {
 
 export function equipItem(itemId) {
     const item = items[itemId];
-    if (!item) return;
-    if (item.type === 'weapon') gameState.player.equippedWeaponId = itemId;
-    if (item.type === 'armor') gameState.player.equippedArmorId = itemId;
+    if (!item) return { success: false, reason: 'not_found' };
+
+    // Must own the item to equip it
+    if (!gameState.player.inventory.includes(itemId)) {
+        return { success: false, reason: 'missing' };
+    }
+
+    if (item.type === 'armor') {
+        // Enforce simple strength requirement for heavy armor
+        if (item.reqStr && gameState.player.abilities.STR < item.reqStr) {
+            return { success: false, reason: 'reqStr', value: item.reqStr };
+        }
+
+        gameState.player.equippedArmorId = itemId;
+        return { success: true, slot: 'armor' };
+    }
+
+    if (item.type === 'weapon') {
+        gameState.player.equippedWeaponId = itemId;
+        return { success: true, slot: 'weapon' };
+    }
+
+    return { success: false, reason: 'invalid_type' };
+}
+
+export function unequipItem(slot) {
+    if (slot === 'weapon') {
+        gameState.player.equippedWeaponId = null;
+        return { success: true, slot };
+    } else if (slot === 'armor') {
+        gameState.player.equippedArmorId = null;
+        return { success: true, slot };
+    }
+
+    return { success: false, reason: 'invalid_slot' };
 }
 
 export function useConsumable(itemId) {
@@ -288,68 +344,43 @@ export function isLocationDiscovered(locId) {
     return gameState.discoveredLocations[locId] === true;
 }
 
-// Rest Overrides to include Resources
-export function performShortRest() {
-    const heal = Math.ceil(gameState.player.maxHp / 2);
-    gameState.player.hp = Math.min(gameState.player.maxHp, gameState.player.hp + heal);
-
-    // Restore Short Rest Resources (Fighter Second Wind)
-    if (gameState.player.resources['second_wind']) {
-        gameState.player.resources['second_wind'].current = gameState.player.resources['second_wind'].max;
-        logMessage("Class resources restored (Second Wind).", "system");
+export function adjustThreat(amount, reason = "") {
+    gameState.threat.level = Math.max(0, Math.min(100, gameState.threat.level + amount));
+    if (amount !== 0) {
+        const dir = amount > 0 ? "+" : "";
+        logMessage(`Threat ${dir}${amount} (${gameState.threat.level}) ${reason ? '- ' + reason : ''}`, amount > 0 ? "check-fail" : "gain");
     }
-
-    return heal;
-}
-
-export function performLongRest() {
-    gameState.player.hp = gameState.player.maxHp;
-    gameState.player.statusEffects = [];
-
-    // Restore All Slots
-    if (gameState.player.spellSlots) {
-        gameState.player.currentSlots = { ...gameState.player.spellSlots };
-    }
-
-    // Restore All Resources
-    for (const key in gameState.player.resources) {
-        gameState.player.resources[key].current = gameState.player.resources[key].max;
+    if (amount > 0) {
+        gameState.threat.recentNoise = Math.min(3, gameState.threat.recentNoise + 1);
+        gameState.threat.recentStealth = Math.max(0, gameState.threat.recentStealth - 1);
+    } else if (amount < 0) {
+        gameState.threat.recentStealth = Math.min(3, gameState.threat.recentStealth + 1);
+        gameState.threat.recentNoise = Math.max(0, gameState.threat.recentNoise - 1);
     }
 }
 
-// --- Relationship & Reputation ---
-export function initNpcRelationships() {
-    gameState.relationships = {};
-    for (const [id, npc] of Object.entries(npcs)) {
-        gameState.relationships[id] = npc.relationshipStart || 0;
+export function clearTransientThreat() {
+    gameState.threat.recentNoise = Math.max(0, gameState.threat.recentNoise - 1);
+    gameState.threat.recentStealth = Math.max(0, gameState.threat.recentStealth - 1);
+}
+
+export function recordAmbientEvent(text, tone = "system") {
+    const entry = { text, tone, ts: Date.now() };
+    gameState.threat.ambient.push(entry);
+    logMessage(text, tone);
+}
+
+export function addMapPin(locationId, note) {
+    if (!locationId) return;
+    gameState.mapPins.push({ locationId, note, ts: Date.now() });
+    logMessage(`Pinned ${locationId}: ${note || 'path marked'}`, "system");
+}
+
+export function removeMapPin(index) {
+    if (index >= 0 && index < gameState.mapPins.length) {
+        gameState.mapPins.splice(index, 1);
     }
 }
-
-export function changeRelationship(npcId, amount) {
-    if (gameState.relationships[npcId] === undefined) gameState.relationships[npcId] = 0;
-    const npc = npcs[npcId];
-    if (!npc) return;
-    let newVal = gameState.relationships[npcId] + amount;
-    newVal = Math.max(npc.relationshipMin || -100, Math.min(npc.relationshipMax || 100, newVal));
-    gameState.relationships[npcId] = newVal;
-    const sign = amount > 0 ? '+' : '';
-    logMessage(`${npc.name}: ${sign}${amount} (${newVal})`, amount > 0 ? "gain" : "check-fail");
-}
-
-export function getRelationship(npcId) { return gameState.relationships[npcId] || 0; }
-
-export function changeReputation(factionId, amount) {
-    if (gameState.reputation[factionId] === undefined) gameState.reputation[factionId] = 0;
-    const fact = factions[factionId];
-    if (!fact) return;
-    let newVal = gameState.reputation[factionId] + amount;
-    newVal = Math.max(fact.min || -100, Math.min(fact.max || 100, newVal));
-    gameState.reputation[factionId] = newVal;
-    const sign = amount > 0 ? '+' : '';
-    logMessage(`Reputation (${fact.name}): ${sign}${amount} (${newVal})`, amount > 0 ? "gain" : "check-fail");
-}
-
-export function getReputation(factionId) { return gameState.reputation[factionId] || 0; }
 
 function logMessage(msg, type) {
     if (window.logMessage) {
