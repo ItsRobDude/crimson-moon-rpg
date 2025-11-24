@@ -274,8 +274,7 @@ function goToScene(sceneId) {
     window.logMessage = logToMain; // Redirect logging to main panel
 
     // Determine if first visit
-    const isFirstVisit = !gameState.visitedScenes.includes(sceneId);
-    if (isFirstVisit) {
+    if (!gameState.visitedScenes.includes(sceneId)) {
         gameState.visitedScenes.push(sceneId);
     }
 
@@ -302,6 +301,7 @@ function goToScene(sceneId) {
     document.getElementById('narrative-text').innerText = scene.text;
 
     if (scene.onEnter) {
+        const isFirstVisit = !gameState.visitedScenes.includes(sceneId);
         const runOnEnter = !scene.onEnter.once || isFirstVisit;
         if (runOnEnter) {
             if (scene.onEnter.questUpdate) {
