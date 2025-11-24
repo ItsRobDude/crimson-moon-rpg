@@ -274,7 +274,8 @@ function goToScene(sceneId) {
     window.logMessage = logToMain; // Redirect logging to main panel
 
     // Determine if first visit
-    if (!gameState.visitedScenes.includes(sceneId)) {
+    const isFirstVisit = !gameState.visitedScenes.includes(sceneId);
+    if (isFirstVisit) {
         gameState.visitedScenes.push(sceneId);
     }
 
@@ -301,7 +302,6 @@ function goToScene(sceneId) {
     document.getElementById('narrative-text').innerText = scene.text;
 
     if (scene.onEnter) {
-        const isFirstVisit = !gameState.visitedScenes.includes(sceneId);
         const runOnEnter = !scene.onEnter.once || isFirstVisit;
         if (runOnEnter) {
             if (scene.onEnter.questUpdate) {
@@ -940,10 +940,15 @@ function renderPlayerActions(container, subMenu = null) {
         });
         grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, null), 'flee'));
     } else if (subMenu && subMenu.type === 'spell_target') {
-         gameState.combat.enemies.forEach(enemy => {
-            if (enemy.hp <= 0) return;
-            grid.appendChild(createActionButton(`Cast on ${enemy.name}`, 'auto_stories', () => performCastSpell(subMenu.spellId, enemy.uniqueId), 'primary'));
-        });
+        const spell = spells[subMenu.spellId];
+        if (spell.type === 'heal') {
+            grid.appendChild(createActionButton(`Cast on ${gameState.player.name}`, 'auto_stories', () => performCastSpell(subMenu.spellId, 'player'), 'primary'));
+        } else {
+            gameState.combat.enemies.forEach(enemy => {
+                if (enemy.hp <= 0) return;
+                grid.appendChild(createActionButton(`Cast on ${enemy.name}`, 'auto_stories', () => performCastSpell(subMenu.spellId, enemy.uniqueId), 'primary'));
+            });
+        }
         grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, 'spells'), 'flee'));
     } else { // Main menu
         const hasAbilities = Object.values(gameState.player.resources).some(r => r.current > 0);
@@ -1009,8 +1014,7 @@ function performAttack(targetId) {
 
 function performCastSpell(spellId, targetId) {
     const spell = spells[spellId];
-    const target = gameState.combat.enemies.find(e => e.uniqueId === targetId);
-    if (!spell || !target) return;
+    if (!spell) return;
 
     if (spell.level > 0) {
         if (gameState.player.currentSlots[spell.level] > 0) {
@@ -1021,36 +1025,43 @@ function performCastSpell(spellId, targetId) {
         }
     }
 
-    logMessage(`Casting ${spell.name} on ${target.name}...`, "combat");
+    if (spell.type === 'heal') {
+        const roll = rollDiceExpression(spell.amount).total;
+        gameState.player.hp = Math.min(gameState.player.hp + roll, gameState.player.maxHp);
+        logMessage(`Healed for ${roll} HP.`, "gain");
+        updateCombatUI(); // Refresh UI to show new health
+    } else {
+        const target = gameState.combat.enemies.find(e => e.uniqueId === targetId);
+        if (!target) return;
 
-    if (spell.type === 'attack') {
-        const stat = (gameState.player.classId === 'wizard') ? 'INT' : 'WIS';
-        const prof = gameState.player.proficiencyBonus;
-        const result = rollAttack(gameState, stat, prof);
+        logMessage(`Casting ${spell.name} on ${target.name}...`, "combat");
 
-        if (result.total >= target.ac || result.isCritical) {
+        if (spell.type === 'attack') {
+            const stat = (gameState.player.classId === 'wizard') ? 'INT' : 'WIS';
+            const prof = gameState.player.proficiencyBonus;
+            const result = rollAttack(gameState, stat, prof);
+
+            if (result.total >= target.ac || result.isCritical) {
+                let dmg = rollDiceExpression(spell.damage).total;
+                target.hp -= Math.max(1, dmg);
+                logMessage(`Hit! ${target.name} takes ${dmg} ${spell.damageType} damage.`, "combat");
+            } else {
+                logMessage("The spell misses!", "system");
+            }
+        } else if (spell.type === 'save') {
+            const saveDC = 8 + gameState.player.proficiencyBonus + gameState.player.modifiers[(gameState.player.classId === 'wizard') ? 'INT' : 'WIS'];
+            const enemySaveRoll = rollDie(20);
+
             let dmg = rollDiceExpression(spell.damage).total;
+            if (enemySaveRoll >= saveDC) {
+                dmg = Math.floor(dmg / 2);
+                logMessage(`${target.name} saved! Takes half damage.`, "combat");
+            } else {
+                logMessage(`${target.name} failed save!`, "combat");
+            }
             target.hp -= Math.max(1, dmg);
-            logMessage(`Hit! ${target.name} takes ${dmg} ${spell.damageType} damage.`, "combat");
-        } else {
-            logMessage("The spell misses!", "system");
+            logMessage(`Dealt ${dmg} ${spell.damageType} damage.`, "combat");
         }
-    } else if (spell.type === 'save') {
-        const saveDC = 8 + gameState.player.proficiencyBonus + gameState.player.modifiers[(gameState.player.classId === 'wizard') ? 'INT' : 'WIS'];
-        const enemySaveRoll = rollDie(20); // Enemies don't have proper stats yet
-
-        let dmg = rollDiceExpression(spell.damage).total;
-        if (enemySaveRoll >= saveDC) {
-            dmg = Math.floor(dmg / 2);
-            logMessage(`${target.name} saved! Takes half damage.`, "combat");
-        } else {
-            logMessage(`${target.name} failed save!`, "combat");
-        }
-        target.hp -= Math.max(1, dmg);
-        logMessage(`Dealt ${dmg} ${spell.damageType} damage.`, "combat");
-
-    } else if (spell.type === 'heal') {
-        // This should target the player, but the logic isn't set up for that yet
     }
 
     if (!checkWinCondition()) {
