@@ -1,10 +1,13 @@
 {
   "name": "crimson-moon-rpg",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "check": "node --check game.js",
-    "test": "npm run check"
+    "lint": "eslint .",
+    "test": "jest"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0"
   }
 }
