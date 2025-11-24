@@ -11,7 +11,7 @@ import { travelEvents } from './data/travelEvents.js';
 import { shops } from './data/shops.js';
 import { npcs } from './data/npcs.js';
 import { factions } from './data/factions.js';
-import { gameState, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin } from './data/gameState.js';
+import { gameState, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus } from './data/gameState.js';
 import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod } from './rules.js';
 
 // --- Initialization ---
@@ -360,6 +360,10 @@ function renderChoices(choices) {
                 if (choice.requires.flag) {
                     if (!gameState.flags[choice.requires.flag]) return;
                 }
+                if (choice.requires.npcState) {
+                    const { id, status } = choice.requires.npcState;
+                    if (getNpcStatus(id) !== status) return;
+                }
             }
             const btn = document.createElement('button');
             btn.innerText = choice.text + (choice.cost ? ` (${choice.cost}g)` : "");
@@ -649,15 +653,29 @@ function travelTo(locationId) {
 }
 
 function getHubSceneForLocation(locationId) {
-    if (locationId === 'silverthorn') return 'SCENE_HUB_SILVERTHORN';
-    if (locationId === 'shadowmire') return 'SCENE_TRAVEL_SHADOWMIRE';
+    // Dynamic Routing based on World Phase and State
+    const phase = gameState.worldPhase || 0;
+
+    if (locationId === 'hushbriar') {
+        if (phase >= 2 || gameState.flags['aodhan_dead']) {
+            return 'SCENE_HUSHBRIAR_CORRUPTED';
+        }
+        return 'SCENE_HUSHBRIAR_TOWN';
+    }
+
+    if (locationId === 'silverthorn') {
+        // Could add sieged version later
+        return 'SCENE_HUB_SILVERTHORN';
+    }
+
     if (locationId === 'whisperwood') return 'SCENE_ARRIVAL_WHISPERWOOD';
-    if (locationId === 'hushbriar') return 'SCENE_HUSHBRIAR_TOWN'; // Fallback hub
+    if (locationId === 'shadowmire') return 'SCENE_TRAVEL_SHADOWMIRE';
     if (locationId === 'durnhelm') return 'SCENE_DURNHELM_GATES';
     if (locationId === 'lament_hill') return 'SCENE_LAMENT_HILL_APPROACH';
     if (locationId === 'solasmor') return 'SCENE_SOLASMOR_APPROACH';
     if (locationId === 'soul_mill') return 'SCENE_SOUL_MILL_APPROACH';
     if (locationId === 'thieves_hideout') return 'SCENE_THIEVES_HIDEOUT';
+
     return 'SCENE_BRIEFING';
 }
 
@@ -847,9 +865,19 @@ function handleCombatAction(action) {
 
 function performAttack() {
     const weaponId = gameState.player.equippedWeaponId;
-    const weapon = items[weaponId] || { name: "Unarmed", damage: "1d2", modifier: "STR", damageType: "bludgeoning" };
+    const weapon = items[weaponId] || { name: "Unarmed", damage: "1d2", modifier: "STR", damageType: "bludgeoning", subtype: "simple" };
     const stat = weapon.modifier || "STR";
-    const prof = gameState.player.proficiencyBonus;
+
+    // Check Proficiency
+    const cls = classes[gameState.player.classId];
+    let isProficient = false;
+    if (weapon.subtype && cls.weaponProficiencies && cls.weaponProficiencies.includes(weapon.subtype)) {
+        isProficient = true;
+    }
+    // Specific weapon check (if we had specific proficiencies) could go here.
+    // Default to simple/martial logic.
+
+    const prof = isProficient ? gameState.player.proficiencyBonus : 0;
 
     const result = rollAttack(gameState, stat, prof);
     const c = gameState.combat;

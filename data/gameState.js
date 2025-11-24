@@ -42,6 +42,7 @@ export const gameState = {
         recentStealth: 0,
         ambient: []
     },
+    worldPhase: 0, // 0: Initial, 1: Post-Intro, 2: Rising Darkness, 3: Endgame
     // Reputation Trackers (Keyed by Faction ID)
     reputation: {
         silverthorn: 0,
@@ -232,15 +233,37 @@ export function gainXp(amount) {
     if (gameState.player.xp >= gameState.player.xpNext) {
         gameState.player.level++;
         gameState.player.xpNext = gameState.player.level * 300;
-        gameState.player.proficiencyBonus = Math.ceil(1 + (gameState.player.level / 4));
+
         const cls = classes[gameState.player.classId];
+        const levelData = cls.progression[gameState.player.level];
+
+        if (levelData) {
+            if (levelData.proficiencyBonus) {
+                gameState.player.proficiencyBonus = levelData.proficiencyBonus;
+            }
+            if (levelData.features) {
+                // Could add logic to display "New Feature Unlocked"
+                logMessage(`Level Up! Features: ${levelData.features.join(', ')}`, "gain");
+            }
+            if (levelData.spellSlots) {
+                // Merge slots
+                for (const [lvl, count] of Object.entries(levelData.spellSlots)) {
+                    gameState.player.spellSlots[lvl] = count;
+                    // Restore new slots immediately or wait for rest? 5e usually on rest, but CRPG often immediate max increase.
+                    // Let's just update max. Current stays same until rest.
+                }
+            }
+        } else {
+             // Fallback
+             gameState.player.proficiencyBonus = Math.ceil(1 + (gameState.player.level / 4));
+        }
+
         const conMod = gameState.player.modifiers.CON;
         const hpGain = Math.floor(cls.hitDie / 2) + 1 + conMod;
         gameState.player.maxHp += hpGain;
         gameState.player.hp += hpGain;
 
-        // Level up logic for slots? Simplified: we just init on new game.
-        // For full game, need levelUp function.
+        logMessage(`Level Up! You are now level ${gameState.player.level}. HP increased by ${hpGain}.`, "gain");
         return true;
     }
     return false;
