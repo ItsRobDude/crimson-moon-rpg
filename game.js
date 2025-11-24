@@ -11,7 +11,7 @@ import { travelEvents } from './data/travelEvents.js';
 import { shops } from './data/shops.js';
 import { npcs } from './data/npcs.js';
 import { factions } from './data/factions.js';
-import { gameState, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation } from './data/gameState.js';
+import { gameState, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin } from './data/gameState.js';
 import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod } from './rules.js';
 
 // --- Initialization ---
@@ -361,6 +361,8 @@ function goToScene(sceneId) {
         }
     }
 
+    triggerAmbientByThreat(scene.location);
+
     if (scene.type === 'combat') {
         document.getElementById('shop-panel').classList.add('hidden');
         startCombat(scene.enemyId, scene.winScene, scene.loseScene);
@@ -466,12 +468,19 @@ function handleChoice(choice) {
         logMessage(`Skill Check (${choice.skill}): Rolled ${result.roll} + ${result.modifier} = ${result.total} (DC ${dc})${result.note || ''}`, result.total >= dc ? "check-success" : "check-fail");
 
         if (result.total >= dc) {
+            if (choice.skill === 'stealth') {
+                adjustThreat(-5, 'moving quietly');
+                clearTransientThreat();
+            }
             if (choice.onSuccess && choice.onSuccess.addGold) {
                 addGold(choice.onSuccess.addGold);
             }
             document.getElementById('narrative-text').innerText = choice.successText;
             if (choice.nextSceneSuccess) renderContinueButton(choice.nextSceneSuccess);
         } else {
+            if (choice.skill === 'stealth' || choice.skill === 'acrobatics') {
+                adjustThreat(5, 'noise draws attention');
+            }
             document.getElementById('narrative-text').innerText = choice.failText;
             if (choice.nextSceneFail) renderContinueButton(choice.nextSceneFail);
         }
@@ -507,6 +516,17 @@ function renderContinueButton(nextSceneId) {
     btn.innerText = "Continue";
     btn.onclick = () => goToScene(nextSceneId);
     choiceContainer.appendChild(btn);
+}
+
+function triggerAmbientByThreat(locationId) {
+    const roll = rollDie(20);
+    const threat = gameState.threat.level;
+    if (roll + threat / 10 > 20) {
+        const warning = locationId === 'whisperwood' ? 'Distant clicking echoes between the spores.' : 'You hear rustling—wildlife unsettled by your presence.';
+        recordAmbientEvent(warning, threat > 40 ? 'combat' : 'system');
+    } else if (roll === 1 && gameState.threat.recentStealth > 0) {
+        recordAmbientEvent('Your quiet steps muffle the forest. Predators pass you by.', 'gain');
+    }
 }
 
 // --- Shop System ---
@@ -574,7 +594,11 @@ function renderShop(shopId) {
 function toggleMap() {
     const modal = document.getElementById('map-modal');
     const list = document.getElementById('map-locations');
+    const pinList = document.getElementById('pin-list');
+    const addBtn = document.getElementById('btn-add-pin');
+    const pinNote = document.getElementById('pin-note');
     list.innerHTML = '';
+    pinList.innerHTML = '';
 
     for (const [key, loc] of Object.entries(locations)) {
         if (isLocationDiscovered(key)) {
@@ -602,6 +626,27 @@ function toggleMap() {
             list.appendChild(div);
         }
     }
+
+    gameState.mapPins.forEach((pin, idx) => {
+        const row = document.createElement('div');
+        row.className = 'pin-row';
+        row.innerHTML = `<strong>${locations[pin.locationId]?.name || pin.locationId}</strong>: ${pin.note || 'marked route'}`;
+        const rm = document.createElement('button');
+        rm.innerText = 'Remove';
+        rm.onclick = () => {
+            removeMapPin(idx);
+            toggleMap();
+        };
+        row.appendChild(rm);
+        pinList.appendChild(row);
+    });
+
+    addBtn.onclick = () => {
+        const currentLocation = scenes[gameState.currentSceneId]?.location || 'travel';
+        addMapPin(currentLocation, pinNote.value);
+        pinNote.value = '';
+        toggleMap();
+    };
 
     modal.classList.remove('hidden');
 }

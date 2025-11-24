@@ -27,11 +27,18 @@ export const gameState = {
         equippedArmorId: null,
         inventory: [],
         gold: 0,
-        statusEffects: []
+        statusEffects: [],
+        classResources: {}
     },
     currentSceneId: "SCENE_BRIEFING",
     quests: JSON.parse(JSON.stringify(quests)),
     flags: {},
+    threat: {
+        level: 0,
+        recentNoise: 0,
+        recentStealth: 0,
+        ambient: []
+    },
     // Reputation Trackers (Keyed by Faction ID)
     reputation: {
         silverthorn: 0,
@@ -46,6 +53,7 @@ export const gameState = {
         shadowmire: false,
         whisperwood: false
     },
+    mapPins: [],
     // Combat State
     combat: {
         active: false,
@@ -102,6 +110,12 @@ export function initializeNewGame(name, raceId, classId, baseAbilityScores, chos
 
     gameState.player.skills = chosenSkills && chosenSkills.length > 0 ? chosenSkills : (cls.proficiencies || []);
     gameState.player.knownSpells = chosenSpells || [];
+    gameState.player.classResources = {
+        maneuvers: classId === 'fighter' ? 3 : 0,
+        grit: classId === 'rogue' ? 2 : 0,
+        spellSlots: classId === 'wizard' ? 2 : 1,
+        blessings: classId === 'cleric' ? 2 : 0
+    };
 
     gameState.player.inventory = [];
     addItem('potion_healing');
@@ -130,6 +144,13 @@ export function initializeNewGame(name, raceId, classId, baseAbilityScores, chos
     gameState.combat.active = false;
     gameState.combat.enemyId = null;
 
+    gameState.threat = {
+        level: 0,
+        recentNoise: 0,
+        recentStealth: 0,
+        ambient: []
+    };
+
     gameState.discoveredLocations = {
         silverthorn: true,
         shadowmire: false,
@@ -138,6 +159,7 @@ export function initializeNewGame(name, raceId, classId, baseAbilityScores, chos
 
     // Initialize Relationships
     initNpcRelationships();
+    gameState.mapPins = [];
 }
 
 // --- Relationship & Reputation Logic ---
@@ -355,6 +377,44 @@ export function discoverLocation(locId) {
 
 export function isLocationDiscovered(locId) {
     return gameState.discoveredLocations[locId] === true;
+}
+
+export function adjustThreat(amount, reason = "") {
+    gameState.threat.level = Math.max(0, Math.min(100, gameState.threat.level + amount));
+    if (amount !== 0) {
+        const dir = amount > 0 ? "+" : "";
+        logMessage(`Threat ${dir}${amount} (${gameState.threat.level}) ${reason ? '- ' + reason : ''}`, amount > 0 ? "check-fail" : "gain");
+    }
+    if (amount > 0) {
+        gameState.threat.recentNoise = Math.min(3, gameState.threat.recentNoise + 1);
+        gameState.threat.recentStealth = Math.max(0, gameState.threat.recentStealth - 1);
+    } else if (amount < 0) {
+        gameState.threat.recentStealth = Math.min(3, gameState.threat.recentStealth + 1);
+        gameState.threat.recentNoise = Math.max(0, gameState.threat.recentNoise - 1);
+    }
+}
+
+export function clearTransientThreat() {
+    gameState.threat.recentNoise = Math.max(0, gameState.threat.recentNoise - 1);
+    gameState.threat.recentStealth = Math.max(0, gameState.threat.recentStealth - 1);
+}
+
+export function recordAmbientEvent(text, tone = "system") {
+    const entry = { text, tone, ts: Date.now() };
+    gameState.threat.ambient.push(entry);
+    logMessage(text, tone);
+}
+
+export function addMapPin(locationId, note) {
+    if (!locationId) return;
+    gameState.mapPins.push({ locationId, note, ts: Date.now() });
+    logMessage(`Pinned ${locationId}: ${note || 'path marked'}`, "system");
+}
+
+export function removeMapPin(index) {
+    if (index >= 0 && index < gameState.mapPins.length) {
+        gameState.mapPins.splice(index, 1);
+    }
 }
 
 function logMessage(msg, type) {
