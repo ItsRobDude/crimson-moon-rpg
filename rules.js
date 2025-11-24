@@ -86,11 +86,12 @@ function hasStatus(gameState, effectId) {
     return gameState.player.statusEffects && gameState.player.statusEffects.some(e => e.id === effectId);
 }
 
-export function rollSkillCheck(gameState, skillName) {
+export function rollSkillCheck(gameState, skillName, advantage = false) {
     const { bonus } = getSkillBonus(gameState, skillName);
 
     const isPoisoned = hasStatus(gameState, 'poisoned');
     const isBlessed = hasStatus(gameState, 'blessed');
+    const hasSporeSickness = hasStatus(gameState, 'spore_sickness');
 
     let roll1 = rollDie(20);
     let roll2 = rollDie(20);
@@ -98,9 +99,17 @@ export function rollSkillCheck(gameState, skillName) {
     let finalRoll = roll1;
     let note = "";
 
-    if (isPoisoned) {
+    const hasDisadvantage = isPoisoned || (hasSporeSickness && skillName === 'constitution'); // Example logic
+
+    if (advantage && !hasDisadvantage) {
+        finalRoll = Math.max(roll1, roll2);
+        note += " (Advantage)";
+    } else if (hasDisadvantage && !advantage) {
         finalRoll = Math.min(roll1, roll2);
-        note += " (Disadvantage/Poisoned)";
+        note += " (Disadvantage)";
+    } else if (advantage && hasDisadvantage) {
+        // Cancel out
+        finalRoll = roll1;
     }
 
     let total = finalRoll + bonus;
@@ -143,7 +152,7 @@ export function rollSavingThrow(gameState, abilityName) {
     };
 }
 
-export function rollAttack(gameState, modStat, proficiency) {
+export function rollAttack(gameState, modStat, proficiency, advantage = false) {
     const score = gameState.player.abilities[modStat];
     const mod = getAbilityMod(score);
     const totalMod = mod + proficiency;
@@ -157,9 +166,16 @@ export function rollAttack(gameState, modStat, proficiency) {
     let finalRoll = roll1;
     let note = "";
 
-    if (isPoisoned) {
+    const hasDisadvantage = isPoisoned; // Add more conditions if needed
+
+    if (advantage && !hasDisadvantage) {
+        finalRoll = Math.max(roll1, roll2);
+        note += " (Advantage)";
+    } else if (hasDisadvantage && !advantage) {
         finalRoll = Math.min(roll1, roll2);
         note += " (Disadvantage)";
+    } else if (advantage && hasDisadvantage) {
+        finalRoll = roll1; // Cancel
     }
 
     let total = finalRoll + totalMod;

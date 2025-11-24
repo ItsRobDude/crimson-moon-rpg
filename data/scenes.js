@@ -60,7 +60,59 @@ export const scenes = {
         type: "combat",
         enemyId: "fungal_beast", // Placeholder for Guard Enemy
         winScene: "SCENE_HUSHBRIAR_TOWN",
-        loseScene: "SCENE_DEFEAT" // Should technically go to Prison, but not implemented yet.
+        loseScene: "SCENE_PRISON_CAPTURE"
+    },
+    "SCENE_PRISON_CAPTURE": {
+        id: "SCENE_PRISON_CAPTURE",
+        location: "hushbriar",
+        background: "landscapes/heart_of_silverthorn.png",
+        text: "You are overwhelmed by the guards. Blows rain down, and darkness takes you.",
+        choices: [
+            { text: "Wake up...", nextScene: "SCENE_PRISON_CELL" }
+        ]
+    },
+    "SCENE_PRISON_CELL": {
+        id: "SCENE_PRISON_CELL",
+        location: "hushbriar",
+        background: "landscapes/alderics_chamber.webp", // Placeholder for cell
+        text: "You wake in a cold, damp cell. A guard passes by. 'You have 24 hours before execution, traitor.' Your gear is piled on a table just out of reach.",
+        choices: [
+            {
+                text: "Attempt to pick the lock (DEX/Thieves' Tools)",
+                type: "skillCheck",
+                skill: "sleight_of_hand", // Mapping to DEX
+                dc: 14,
+                successText: "Click. The mechanism yields. You slip out quietly, retrieving your gear.",
+                failText: "The lock is rusted shut. You make too much noise. The guard returns!",
+                nextSceneSuccess: "SCENE_PRISON_ESCAPE",
+                nextSceneFail: "SCENE_DEFEAT" // Or combat with guard?
+            },
+            {
+                text: "Bribe the guard (50g)",
+                action: "shortRest", // Using as a placeholder action trigger or just custom choice?
+                // Standard handleChoice doesn't support custom logic easily without `type`?
+                // I'll implement a custom effect or check manually?
+                // Actually, let's use a cost check.
+                cost: 50,
+                nextScene: "SCENE_PRISON_ESCAPE" // Assuming success if you have gold.
+                // Note: Standard handleChoice checks cost but might default to nextScene if type is not specified.
+                // game.js: `if (spendGold(choice.cost)) ...` logic needed for generic choices?
+                // Currently handleChoice only checks cost for rest.
+            },
+            {
+                text: "Wait for an opportunity.",
+                nextScene: "SCENE_DEFEAT"
+            }
+        ]
+    },
+    "SCENE_PRISON_ESCAPE": {
+        id: "SCENE_PRISON_ESCAPE",
+        location: "hushbriar",
+        background: "landscapes/heart_of_silverthorn.png",
+        text: "You have escaped the cell. You must move quickly before the alarm is raised.",
+        choices: [
+            { text: "Sneak into the town shadows", nextScene: "SCENE_HUSHBRIAR_TOWN" }
+        ]
     },
     "SCENE_HUSHBRIAR_TOWN": {
         id: "SCENE_HUSHBRIAR_TOWN",
@@ -75,6 +127,17 @@ export const scenes = {
             {
                 text: "Visit the shops.",
                 nextScene: "SCENE_HUSHBRIAR_MARKET"
+            },
+            {
+                text: "Scout the area (Survival)",
+                type: "skillCheck",
+                skill: "survival",
+                dc: 10,
+                successText: "You find a hidden cache of supplies left by a fleeing family.",
+                failText: "You find nothing but refuse and despair.",
+                onSuccess: { addGold: 10 },
+                nextSceneSuccess: "SCENE_HUSHBRIAR_TOWN", // Loops back for now
+                nextSceneFail: "SCENE_HUSHBRIAR_TOWN"
             }
         ]
     },
@@ -239,7 +302,8 @@ export const scenes = {
         background: "landscapes/forest_walk_alt.png",
         text: "Aodhan falls. You retrieve the Stone of Oblivion from his body. As he dies, the ground shakes.",
         onEnter: {
-            addItem: "stone_of_oblivion"
+            addItem: "stone_of_oblivion",
+            setFlag: "aodhan_dead" // Using generic flag system, but ideally we want explicit status logic
         },
         choices: [
             {
@@ -273,12 +337,17 @@ export const scenes = {
         location: "silverthorn",
         background: "landscapes/alderics_chamber.webp",
         npcPortrait: "portraits/alderic_portrait.png",
-        text: "The chamber is dim, lit only by the flickering hearth. Prince Alderic stands by the window, his back to you. 'You have come,' he says, his voice low. 'The situation in Whisperwood grows dire. The Sporefall spreads.'",
+        text: "The chamber is dim. Prince Alderic stands by the window. 'You have come,' he says. 'The situation in Whisperwood grows dire.'",
         onEnter: {
             questUpdate: { id: "investigate_whisperwood", stage: 1 },
             addGold: 150
         },
         choices: [
+            {
+                text: "Report on Aodhan's death (if dead)",
+                requires: { flag: "aodhan_dead" }, // Needs logic update in game.js to check flags in requires?
+                nextScene: "SCENE_ALDERIC_REACTION"
+            },
             {
                 text: "Look around the room.",
                 type: "skillCheck",
@@ -298,6 +367,16 @@ export const scenes = {
                 text: "Ask about the mission.",
                 nextScene: "SCENE_BRIEFING_2"
             }
+        ]
+    },
+    "SCENE_ALDERIC_REACTION": {
+        id: "SCENE_ALDERIC_REACTION",
+        location: "silverthorn",
+        background: "landscapes/alderics_chamber.webp",
+        npcPortrait: "portraits/alderic_portrait.png",
+        text: "Alderic's face hardens. 'Aodhan is dead? A pity. He was a useful tool, but weak. We must move forward.'",
+        choices: [
+            { text: "Ask about the mission.", nextScene: "SCENE_BRIEFING_2" }
         ]
     },
     "SCENE_BRIEFING_2": {
@@ -378,10 +457,10 @@ export const scenes = {
                 text: "Press on through the fog (CON Save)",
                 type: "save",
                 ability: "CON",
-                dc: 10,
+                dc: 12,
                 successText: "You hold your breath and cover your face, resisting the sickening vapors.",
-                failText: "The spores fill your lungs. You cough violently and feel weakened.",
-                failEffect: { type: "damage", amount: "1d4" },
+                failText: "The spores fill your lungs. You cough violently and feel the sickness taking hold.",
+                failEffect: { type: "status", id: "spore_sickness" },
                 nextScene: "SCENE_SPOREFALL_WAKE"
             }
         ]
@@ -443,6 +522,16 @@ export const scenes = {
                 dc: 13,
                 successText: "You slip between roots and climb a fallen log, keeping the rustling to your left.",
                 failText: "A twig snaps underfoot. The rustling becomes a charge.",
+                nextSceneSuccess: "SCENE_SKIRT_BEAST",
+                nextSceneFail: "SCENE_COMBAT_ENCOUNTER"
+            },
+            {
+                text: "Scout the area (Perception)",
+                type: "skillCheck",
+                skill: "perception",
+                dc: 12,
+                successText: "You spot tracks leading away from the beast's path, suggesting a safer route.",
+                failText: "The haze plays tricks on your eyes. You see nothing.",
                 nextSceneSuccess: "SCENE_SKIRT_BEAST",
                 nextSceneFail: "SCENE_COMBAT_ENCOUNTER"
             }

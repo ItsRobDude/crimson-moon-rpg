@@ -60,6 +60,7 @@ export const gameState = {
         soul_mill: false,
         thieves_hideout: false
     },
+    npcStates: {}, // Track { npcId: { status: 'dead'|'alive'|'met', flags: {} } }
     visitedScenes: [],
     mapPins: [],
     // Combat State
@@ -309,6 +310,17 @@ export function useConsumable(itemId) {
         return { success: true, msg: `Used ${item.name} and healed ${healed} HP.` };
     }
 
+    if (item.effect === 'cure_poison') {
+        const idx = gameState.player.statusEffects.findIndex(e => e.id === 'poisoned');
+        if (idx > -1) {
+            gameState.player.statusEffects.splice(idx, 1);
+            removeItem(itemId);
+            return { success: true, msg: `Used ${item.name}. You are no longer poisoned.` };
+        } else {
+            return { success: false, msg: "You are not poisoned." };
+        }
+    }
+
     return { success: false, msg: "Effect not implemented." };
 }
 
@@ -410,6 +422,24 @@ function initNpcRelationships() {
         durnhelm: 0,
         whisperwood_survivors: 0
     };
+
+    // Init NPC States
+    gameState.npcStates = {};
+    Object.keys(npcs).forEach(id => {
+        gameState.npcStates[id] = { status: 'alive', flags: {} };
+    });
+}
+
+// NPC State Helpers
+export function setNpcStatus(npcId, status) {
+    if (!gameState.npcStates[npcId]) gameState.npcStates[npcId] = { status: 'alive', flags: {} };
+    gameState.npcStates[npcId].status = status;
+    logMessage(`${npcs[npcId]?.name || npcId} is now ${status}.`, "system");
+}
+
+export function getNpcStatus(npcId) {
+    if (!gameState.npcStates[npcId]) return 'unknown';
+    return gameState.npcStates[npcId].status;
 }
 
 // Relationship helpers

@@ -242,6 +242,15 @@ function finishCharacterCreation() {
     const name = document.getElementById('cc-name').value || "Traveler";
     const raceKey = document.getElementById('cc-race').value;
     const classKey = document.getElementById('cc-class').value;
+
+    // Validate Stats
+    const stats = Object.values(ccState.baseStats);
+    const uniqueStats = new Set(stats);
+    if (uniqueStats.size !== stats.length) {
+        alert("Please assign each Standard Array value (15, 14, 13, 12, 10, 8) exactly once.");
+        return;
+    }
+
     if (ccState.chosenSkills.length === 0) {
         alert("Please choose your skills.");
         return;
@@ -274,6 +283,16 @@ function goToScene(sceneId) {
     gameState.currentSceneId = sceneId;
     if (scene.location) discoverLocation(scene.location);
 
+    // Faction Hostility Check
+    if (scene.type !== 'combat' && scene.location === 'silverthorn') {
+        if (getReputation('silverthorn') <= -50) {
+            logMessage("The guards recognize you as an enemy of the state!", "combat");
+            // Override scene to combat
+            startCombat('fungal_beast', 'SCENE_DEFEAT', 'SCENE_DEFEAT'); // Placeholder enemy/scenes
+            return;
+        }
+    }
+
     document.getElementById('scene-background').style.backgroundImage = `url('${scene.background}')`;
     const portraitContainer = document.getElementById('portrait-container');
     if (scene.npcPortrait) {
@@ -298,6 +317,10 @@ function goToScene(sceneId) {
             }
             if (scene.onEnter.setFlag) {
                 gameState.flags[scene.onEnter.setFlag] = true;
+                // Specialized handling for NPC flags if needed
+                if (scene.onEnter.setFlag === 'aodhan_dead') {
+                    setNpcStatus('aodhan', 'dead');
+                }
             }
         }
     }
@@ -333,6 +356,9 @@ function renderChoices(choices) {
                 if (choice.requires.reputation) {
                     const current = getReputation(choice.requires.reputation.factionId);
                     if (current < (choice.requires.reputation.min || -999)) return;
+                }
+                if (choice.requires.flag) {
+                    if (!gameState.flags[choice.requires.flag]) return;
                 }
             }
             const btn = document.createElement('button');
@@ -417,6 +443,9 @@ function handleChoice(choice) {
                 logMessage(`Took ${dmg} damage.`, "combat");
                 updateStatsUI();
                 if (gameState.player.hp <= 0) { goToScene('SCENE_DEFEAT'); return; }
+            }
+            if (choice.failEffect?.type === 'status') {
+                applyStatusEffect(choice.failEffect.id);
             }
         }
         if (choice.nextScene) renderContinueButton(choice.nextScene);
@@ -908,11 +937,26 @@ function performCastSpell(spellId) {
 
     // Deduct Slot
     if (spell.level > 0) {
-        gameState.player.currentSlots[spell.level]--;
-        logMessage(`Consumed Level ${spell.level} Spell Slot.`, "system");
+        if (gameState.player.currentSlots[spell.level] > 0) {
+            gameState.player.currentSlots[spell.level]--;
+            logMessage(`Consumed Level ${spell.level} Spell Slot.`, "system");
+        } else {
+            logMessage("Not enough spell slots!", "check-fail");
+            return;
+        }
     }
 
     logMessage(`Casting ${spell.name}...`, "combat");
+
+    if (spell.id === 'magic_missile') {
+        // Auto Hit
+        let dmg = rollDiceExpression(spell.damage).total;
+        c.enemyCurrentHp -= Math.max(1, dmg);
+        logMessage(`Magic Missile hits! Dealt ${dmg} force damage.`, "combat");
+        checkWinCondition();
+        if (gameState.combat.active) endPlayerTurn();
+        return;
+    }
 
     if (spell.type === 'attack') {
         const stat = (gameState.player.classId === 'wizard') ? 'INT' : 'WIS';
