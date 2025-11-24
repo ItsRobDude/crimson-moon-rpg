@@ -3,7 +3,6 @@ export function rollDie(sides) {
 }
 
 export function rollDiceExpression(expr) {
-    // Parsing "1d20+3" or "2d6-1" or "1d8"
     const regex = /(\d+)d(\d+)([+-]\d+)?/;
     const match = expr.match(regex);
 
@@ -111,9 +110,6 @@ export function rollSavingThrow(gameState, abilityName) {
     let bonus = getAbilityMod(score);
 
     const isBlessed = hasStatus(gameState, 'blessed');
-    // Poisoned doesn't disadvantage saves by default in 5e usually (attacks/checks),
-    // but prompt says "attacks and skill checks". It doesn't explicitly say saves for Poisoned.
-    // So I will skip Disadvantage on Saves for Poisoned unless requested.
 
     let roll = rollDie(20);
     let total = roll + bonus;
@@ -165,5 +161,21 @@ export function rollAttack(gameState, modStat, proficiency) {
         roll: finalRoll,
         modifier: totalMod,
         note
+    };
+}
+
+export function rollInitiative(gameState, entityType, bonus = 0) {
+    let roll = rollDie(20);
+    let modifier = bonus;
+
+    if (entityType === 'player') {
+        // DEX check essentially
+        modifier = getAbilityMod(gameState.player.abilities.DEX);
+    }
+
+    return {
+        total: roll + modifier,
+        roll: roll,
+        modifier: modifier
     };
 }
