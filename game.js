@@ -1041,10 +1041,30 @@ function performAttack(targetId) {
         const finalDamage = calculateDamage(dmg, weapon.damageType, target);
         target.hp -= Math.max(1, finalDamage);
         logMessage(`Hit! Dealt ${finalDamage} ${weapon.damageType} damage to ${target.name}.`, "combat");
-        showBattleEventText(`${finalDamage}`);
     } else {
         logMessage("Miss!", "system");
         showBattleEventText("Miss!");
+    }
+
+    if (!checkWinCondition()) {
+        endPlayerTurn();
+    }
+}
+
+function performAbility(abilityId) {
+    const resource = gameState.player.resources[abilityId];
+    if (!resource || resource.current <= 0) {
+        logMessage("No uses left for that ability.", "check-fail");
+        return;
+    }
+
+    if (abilityId === 'second_wind') {
+        resource.current--;
+        const healed = rollDie(10) + gameState.player.level; // 1d10 + Fighter level
+        gameState.player.hp = Math.min(gameState.player.maxHp, gameState.player.hp + healed);
+        logMessage(`Used Second Wind and recovered ${healed} HP.`, "gain");
+    } else {
+        logMessage(`Ability '${abilityId}' is not implemented yet.`, "system");
     }
 
     if (!checkWinCondition()) {
@@ -1188,6 +1208,11 @@ function enemyTurn(enemy) {
         if (enemy.id === 'fungal_beast' && rollDie(100) <= 25) { // 25% chance
             applyStatusEffect('poisoned');
             showBattleEventText("Poisoned!");
+        }
+
+        // Special Effects: Fungal Beast Poison
+        if (enemy.id === 'fungal_beast' && rollDie(100) <= 25) { // 25% chance
+            applyStatusEffect('poisoned');
         }
 
         if (gameState.player.hp <= 0) {
