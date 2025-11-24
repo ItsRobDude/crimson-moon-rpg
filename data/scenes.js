@@ -501,8 +501,7 @@ export const scenes = {
         type: "shop",
         shopId: "silverthorn_market",
         choices: [
-            { text: "Take a short rest (10 gold).", action: "shortRest", cost: 10 },
-            { text: "Take a long rest (25 gold).", action: "longRest", cost: 25 },
+            { text: "Take a Rest", action: "longRest" },
             { text: "Leave the market.", nextScene: "SCENE_BRIEFING_2" }
         ]
     },

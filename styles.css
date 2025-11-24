@@ -163,6 +163,39 @@ button:hover {
     object-fit: cover;
 }
 
+#rest-options {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.rest-option {
+    background-color: #1a1a1a;
+    border: 1px solid #444;
+    padding: 15px;
+    border-radius: 6px;
+}
+
+.rest-option h3 {
+    color: var(--accent-color);
+    margin-bottom: 10px;
+}
+
+.rest-option p {
+    font-size: 0.9rem;
+    color: #aaa;
+    margin-bottom: 15px;
+}
+
+.rest-option button {
+    width: 100%;
+    padding: 10px;
+    background-color: #333;
+    border: 1px solid #555;
+    color: white;
+    cursor: pointer;
+}
+
 #portrait-container.hidden {
     display: none;
 }
@@ -476,6 +509,21 @@ button:hover {
     font-style: italic;
 }
 
+#map-container {
+    width: 100%;
+    height: 300px;
+    background-color: #111;
+    margin-bottom: 20px;
+    border: 1px solid #555;
+    position: relative;
+}
+
+#map-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
 /* --- BATTLE UI --- */
 #battle-screen {
     position: absolute;
@@ -659,6 +707,25 @@ button:hover {
 #battle-scene-sub-text {
     margin-top: 8px;
     color: var(--accent-color);
+}
+
+.battle-event-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: white;
+    text-shadow: 2px 2px 8px black;
+    z-index: 2;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.5s ease-out;
+}
+
+.battle-event-text.visible {
+    opacity: 1;
 }
 
 /* Battle Log */
