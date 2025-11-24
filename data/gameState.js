@@ -34,7 +34,8 @@ export const gameState = {
         durnhelm: 0
     },
     inCombat: false,
-    combatEnemy: null
+    combatEnemy: null,
+    visitedScenes: {}
 };
 
 // Helper to calc mod
@@ -104,6 +105,8 @@ export function initializeNewGame(name, raceId, classId) {
     }
 
     gameState.currentSceneId = "SCENE_BRIEFING";
+    gameState.visitedScenes = {};
+    gameState.flags = {};
 }
 
 export function updateQuestStage(questId, stageNumber) {
@@ -177,9 +180,41 @@ export function removeItem(itemId) {
 
 export function equipItem(itemId) {
     const item = items[itemId];
-    if (!item) return;
-    if (item.type === 'weapon') gameState.player.equippedWeaponId = itemId;
-    if (item.type === 'armor') gameState.player.equippedArmorId = itemId;
+    if (!item) return { success: false, reason: 'not_found' };
+
+    // Must own the item to equip it
+    if (!gameState.player.inventory.includes(itemId)) {
+        return { success: false, reason: 'missing' };
+    }
+
+    if (item.type === 'armor') {
+        // Enforce simple strength requirement for heavy armor
+        if (item.reqStr && gameState.player.abilities.STR < item.reqStr) {
+            return { success: false, reason: 'reqStr', value: item.reqStr };
+        }
+
+        gameState.player.equippedArmorId = itemId;
+        return { success: true, slot: 'armor' };
+    }
+
+    if (item.type === 'weapon') {
+        gameState.player.equippedWeaponId = itemId;
+        return { success: true, slot: 'weapon' };
+    }
+
+    return { success: false, reason: 'invalid_type' };
+}
+
+export function unequipItem(slot) {
+    if (slot === 'weapon') {
+        gameState.player.equippedWeaponId = null;
+        return { success: true, slot };
+    } else if (slot === 'armor') {
+        gameState.player.equippedArmorId = null;
+        return { success: true, slot };
+    }
+
+    return { success: false, reason: 'invalid_slot' };
 }
 
 export function useConsumable(itemId) {
@@ -238,6 +273,27 @@ export function tickStatusEffects() {
     });
 
     gameState.player.statusEffects = activeEffects;
+}
+
+export function getPlayerAC() {
+    const dexMod = gameState.player.modifiers.DEX;
+    let ac = 10 + dexMod;
+
+    if (gameState.player.equippedArmorId) {
+        const armor = items[gameState.player.equippedArmorId];
+        if (armor) {
+            if (armor.armorType === 'heavy') {
+                ac = armor.acBase;
+            } else if (armor.armorType === 'medium') {
+                const cappedDex = Math.min(dexMod, armor.dexCap ?? 2);
+                ac = armor.acBase + cappedDex;
+            } else {
+                ac = armor.acBase + dexMod;
+            }
+        }
+    }
+
+    return ac;
 }
 
 // Helper to log (needs to hook into UI or simple console for now, but game.js handles UI)

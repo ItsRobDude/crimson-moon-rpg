@@ -24,6 +24,7 @@ body {
     font-family: var(--font-main);
     height: 100vh;
     overflow: hidden;
+    touch-action: manipulation;
 }
 
 /* Layout */
@@ -105,6 +106,7 @@ button {
     cursor: pointer;
     font-family: var(--font-header);
     transition: background 0.2s;
+    touch-action: manipulation;
 }
 
 button:hover {

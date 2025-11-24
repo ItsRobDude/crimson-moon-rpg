@@ -23,12 +23,14 @@ export const items = {
     "leather_armor": {
         name: "Leather Armor",
         type: "armor",
+        armorType: "light",
         acBase: 11,
         description: "Sturdy leather armor."
     },
     "chainmail": {
         name: "Chain Mail",
         type: "armor",
+        armorType: "heavy",
         acBase: 16,
         reqStr: 13,
         description: "Made of interlocking metal rings."
