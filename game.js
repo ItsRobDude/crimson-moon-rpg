@@ -274,7 +274,8 @@ function goToScene(sceneId) {
     window.logMessage = logToMain; // Redirect logging to main panel
 
     // Determine if first visit
-    if (!gameState.visitedScenes.includes(sceneId)) {
+    const isFirstVisit = !gameState.visitedScenes.includes(sceneId);
+    if (isFirstVisit) {
         gameState.visitedScenes.push(sceneId);
     }
 
@@ -301,7 +302,6 @@ function goToScene(sceneId) {
     document.getElementById('narrative-text').innerText = scene.text;
 
     if (scene.onEnter) {
-        const isFirstVisit = !gameState.visitedScenes.includes(sceneId);
         const runOnEnter = !scene.onEnter.once || isFirstVisit;
         if (runOnEnter) {
             if (scene.onEnter.questUpdate) {
@@ -771,6 +771,8 @@ function startCombat(enemyIds, winScene, loseScene) {
     document.getElementById('battle-screen').classList.remove('hidden');
     window.logMessage = logToBattle; // Redirect logging to battle log
 
+    const currentScene = scenes[gameState.currentSceneId];
+
     const combatEnemies = enemyIds.map((id, index) => {
         const enemyData = enemies[id];
         return {
@@ -796,7 +798,8 @@ function startCombat(enemyIds, winScene, loseScene) {
         round: 1,
         winSceneId: winScene,
         loseSceneId: loseScene,
-        playerDefending: false
+        playerDefending: false,
+        sceneText: currentScene.text
     };
 
     logMessage(`Combat started!`, "combat");
@@ -912,8 +915,9 @@ function updateCombatUI() {
         turnIndicator.textContent = enemy ? `${enemy.name}'s Turn` : "Enemy's Turn";
     }
 
-    // -- Set Battle Scene Background --
+    // -- Set Battle Scene Background and Text --
     document.getElementById('battle-scene-image').style.backgroundImage = "url('landscapes/battle_placeholder.webp')";
+    document.getElementById('battle-scene-main-text').innerText = gameState.combat.sceneText || "The air crackles with tension.";
 }
 
 function renderPlayerActions(container, subMenu = null) {
@@ -950,11 +954,20 @@ function renderPlayerActions(container, subMenu = null) {
             });
         }
         grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, 'spells'), 'flee'));
+    } else if (subMenu === 'abilities') {
+        Object.entries(gameState.player.resources).forEach(([key, res]) => {
+            if (res.current > 0) {
+                const abilityName = key.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+                grid.appendChild(createActionButton(abilityName, 'star', () => performAbility(key)));
+            }
+        });
+        grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, null), 'flee'));
     } else { // Main menu
         const hasAbilities = Object.values(gameState.player.resources).some(r => r.current > 0);
+        const hasSpells = gameState.player.currentSlots && Object.values(gameState.player.currentSlots).some(s => s > 0);
         grid.appendChild(createActionButton('Attack', 'swords', () => renderPlayerActions(container, 'attack'), 'primary'));
-        grid.appendChild(createActionButton('Spells', 'auto_stories', () => renderPlayerActions(container, 'spells')));
-        grid.appendChild(createActionButton('Abilities', 'star', () => {}, '', !hasAbilities));
+        grid.appendChild(createActionButton('Spells', 'auto_stories', () => renderPlayerActions(container, 'spells'), '', !hasSpells));
+        grid.appendChild(createActionButton('Abilities', 'star', () => renderPlayerActions(container, 'abilities'), '', !hasAbilities));
         grid.appendChild(createActionButton('Defend', 'shield', performDefend));
         grid.appendChild(createActionButton('Items', 'local_drink', () => toggleInventory(true)));
         grid.appendChild(createActionButton('Flee', 'directions_run', performFlee, 'flee'));
@@ -963,12 +976,32 @@ function renderPlayerActions(container, subMenu = null) {
     container.appendChild(grid);
 }
 
+function calculateDamage(baseDamage, damageType, target) {
+    const enemyData = enemies[target.id];
+    if (!enemyData) return baseDamage;
+
+    let finalDamage = baseDamage;
+    let message = "";
+
+    if (enemyData.vulnerabilities && enemyData.vulnerabilities.includes(damageType)) {
+        finalDamage *= 2;
+        message = `${target.name} is vulnerable to ${damageType}! Damage doubled.`;
+    } else if (enemyData.resistances && enemyData.resistances.includes(damageType)) {
+        finalDamage = Math.floor(finalDamage / 2);
+        message = `${target.name} resists ${damageType}. Damage halved.`;
+    }
+
+    if (message) {
+        logMessage(message, "system");
+    }
+
+    return finalDamage;
+}
+
 function createActionButton(text, icon, onClick, type = '', disabled = false) {
     const button = document.createElement('button');
     button.className = `battle-action-button ${type}`;
-    // The icon is not directly supported by the CSS, so we'll just add text.
-    // A more advanced implementation might use ::before pseudo-elements or inline SVGs.
-    button.innerHTML = `<span class="truncate">${text}</span>`; // Icon omitted for simplicity
+    button.innerHTML = `<span class="material-symbols-outlined">${icon}</span><span class="truncate">${text}</span>`;
     button.onclick = onClick;
     if (disabled) {
         button.disabled = true;
@@ -994,17 +1027,39 @@ function performAttack(targetId) {
     logMessage(msg, "system");
 
     if (result.total >= target.ac || result.isCritical) {
-        let dmgExpr = weapon.damage;
+        let dmg = rollDiceExpression(weapon.damage).total + gameState.player.modifiers[stat];
         if (result.isCritical) {
-            const match = dmgExpr.match(/(\d+)d(\d+)/);
-            if (match) dmgExpr = `${parseInt(match[1])*2}d${match[2]}`;
+            // On a critical hit, roll the weapon's damage dice an additional time
+            const critBonus = rollDiceExpression(weapon.damage.split('+')[0]).total; // Assumes format like '1d8' or '1d6+2'
+            dmg += critBonus;
         }
-        let dmg = rollDiceExpression(dmgExpr).total + gameState.player.modifiers[stat];
 
-        target.hp -= Math.max(1, dmg);
-        logMessage(`Hit! Dealt ${dmg} ${weapon.damageType} damage to ${target.name}.`, "combat");
+        const finalDamage = calculateDamage(dmg, weapon.damageType, target);
+        target.hp -= Math.max(1, finalDamage);
+        logMessage(`Hit! Dealt ${finalDamage} ${weapon.damageType} damage to ${target.name}.`, "combat");
     } else {
         logMessage("Miss!", "system");
+    }
+
+    if (!checkWinCondition()) {
+        endPlayerTurn();
+    }
+}
+
+function performAbility(abilityId) {
+    const resource = gameState.player.resources[abilityId];
+    if (!resource || resource.current <= 0) {
+        logMessage("No uses left for that ability.", "check-fail");
+        return;
+    }
+
+    if (abilityId === 'second_wind') {
+        resource.current--;
+        const healed = rollDie(10) + gameState.player.level; // 1d10 + Fighter level
+        gameState.player.hp = Math.min(gameState.player.maxHp, gameState.player.hp + healed);
+        logMessage(`Used Second Wind and recovered ${healed} HP.`, "gain");
+    } else {
+        logMessage(`Ability '${abilityId}' is not implemented yet.`, "system");
     }
 
     if (!checkWinCondition()) {
@@ -1114,6 +1169,11 @@ function enemyTurn(enemy) {
         }
         gameState.player.hp -= dmg;
         logMessage(`You took ${dmg} damage.`, "combat");
+
+        // Special Effects: Fungal Beast Poison
+        if (enemy.id === 'fungal_beast' && rollDie(100) <= 25) { // 25% chance
+            applyStatusEffect('poisoned');
+        }
 
         if (gameState.player.hp <= 0) {
             gameState.combat.active = false;

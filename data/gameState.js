@@ -33,7 +33,7 @@ export const gameState = {
         statusEffects: [],
         classResources: {}
     },
-    currentSceneId: "SCENE_BRIEFING",
+    currentSceneId: "SCENE_ARRIVAL_HUSHBRIAR",
     quests: JSON.parse(JSON.stringify(quests)),
     flags: {},
     threat: {
