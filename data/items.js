@@ -4,6 +4,7 @@ export const items = {
         type: "weapon",
         damage: "1d8",
         modifier: "STR",
+        damageType: "slashing",
         description: "A versatile blade.",
         price: 20
     },
@@ -12,6 +13,7 @@ export const items = {
         type: "weapon",
         damage: "1d6",
         modifier: "DEX",
+        damageType: "piercing",
         description: "A small bow used for hunting and skirmishing.",
         price: 25
     },
@@ -20,6 +22,7 @@ export const items = {
         type: "weapon",
         damage: "1d4",
         modifier: "DEX",
+        damageType: "piercing",
         description: "A sharp knife, easily concealed.",
         price: 5
     },
@@ -51,7 +54,7 @@ export const items = {
     "torch": {
         name: "Torch",
         type: "consumable",
-        effect: "light", // Placeholder effect
+        effect: "light",
         description: "Provides light in dark places.",
         price: 1
     },

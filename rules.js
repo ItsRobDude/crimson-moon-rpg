@@ -31,6 +31,20 @@ export function rollDiceExpression(expr) {
     return { total, rolls, detail, modifier };
 }
 
+export function getCritDamageExpression(expr) {
+    const regex = /(\d+)d(\d+)([+-]\d+)?/;
+    const match = expr.match(regex);
+
+    if (!match) return expr; // Fallback
+
+    const count = parseInt(match[1]);
+    const sides = parseInt(match[2]);
+    const modifier = match[3] ? match[3] : ""; // Keep modifier string "+2"
+
+    // Double the dice count
+    return `${count * 2}d${sides}${modifier}`;
+}
+
 export function getAbilityMod(score) {
     return Math.floor((score - 10) / 2);
 }
@@ -160,7 +174,8 @@ export function rollAttack(gameState, modStat, proficiency) {
         total,
         roll: finalRoll,
         modifier: totalMod,
-        note
+        note,
+        isCritical: (finalRoll === 20)
     };
 }
 
