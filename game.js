@@ -1098,9 +1098,8 @@ function performCastSpell(spellId, targetId) {
 
             if (result.total >= target.ac || result.isCritical) {
                 let dmg = rollDiceExpression(spell.damage).total;
-                const finalDamage = calculateDamage(dmg, spell.damageType, target);
-                target.hp -= Math.max(1, finalDamage);
-                logMessage(`Hit! ${target.name} takes ${finalDamage} ${spell.damageType} damage.`, "combat");
+                target.hp -= Math.max(1, dmg);
+                logMessage(`Hit! ${target.name} takes ${dmg} ${spell.damageType} damage.`, "combat");
             } else {
                 logMessage("The spell misses!", "system");
             }
@@ -1115,9 +1114,8 @@ function performCastSpell(spellId, targetId) {
             } else {
                 logMessage(`${target.name} failed save!`, "combat");
             }
-            const finalDamage = calculateDamage(dmg, spell.damageType, target);
-            target.hp -= Math.max(1, finalDamage);
-            logMessage(`Dealt ${finalDamage} ${spell.damageType} damage.`, "combat");
+            target.hp -= Math.max(1, dmg);
+            logMessage(`Dealt ${dmg} ${spell.damageType} damage.`, "combat");
         }
     }
 
