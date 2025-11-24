@@ -167,6 +167,9 @@ function handleChoice(choice) {
     if (choice.action === 'loadGame') {
         loadGame();
         return;
+    } else if (choice.action === 'inventory') {
+        toggleInventory();
+        return;
     }
 
     if (!choice.type) {
@@ -565,8 +568,10 @@ function updateStatsUI() {
 
     const weapon = p.equippedWeaponId ? items[p.equippedWeaponId] : null;
     const armor = p.equippedArmorId ? items[p.equippedArmorId] : null;
-    document.getElementById('char-weapon').innerText = `Weapon: ${weapon ? weapon.name : 'Unarmed'}`;
-    document.getElementById('char-armor').innerText = `Armor: ${armor ? armor.name : 'None'}`;
+    const weaponDetail = weapon ? `${weapon.damage} ${weapon.modifier ? `(${weapon.modifier})` : ''}`.trim() : '1d2 (STR)';
+    const armorDetail = armor ? `${armor.armorType || 'armor'} AC ${armor.acBase}` : 'base 10 + DEX';
+    document.getElementById('char-weapon').innerText = `Weapon: ${weapon ? weapon.name : 'Unarmed'} · ${weaponDetail}`;
+    document.getElementById('char-armor').innerText = `Armor: ${armor ? armor.name : 'None'} · ${armorDetail}`;
 
     const hpPct = Math.max(0, (p.hp / p.maxHp) * 100);
     document.getElementById('hp-bar-fill').style.width = `${hpPct}%`;
@@ -601,10 +606,26 @@ function toggleInventory(isCombat = false) {
         const row = document.createElement('div');
         row.className = "flex justify-between p-2 border-b border-gray-700 items-center";
 
+        const nameWrap = document.createElement('div');
+        nameWrap.className = "flex flex-col";
         const nameSpan = document.createElement('span');
         const isEquipped = (gameState.player.equippedWeaponId === itemId || gameState.player.equippedArmorId === itemId);
         nameSpan.innerText = item.name + (isEquipped ? " (E)" : "");
-        row.appendChild(nameSpan);
+        nameWrap.appendChild(nameSpan);
+
+        const detail = document.createElement('small');
+        detail.style.color = "#a0aec0";
+        if (item.type === 'weapon') {
+            detail.innerText = `${item.damage} ${item.modifier ? `(${item.modifier})` : ''}`.trim();
+        } else if (item.type === 'armor') {
+            detail.innerText = `${item.armorType || 'armor'} AC ${item.acBase}`;
+        } else if (item.type === 'consumable') {
+            detail.innerText = item.effect === 'heal' ? `Restores ${item.amount}` : item.effect;
+        } else {
+            detail.innerText = item.description || '';
+        }
+        nameWrap.appendChild(detail);
+        row.appendChild(nameWrap);
 
         const btn = document.createElement('button');
         btn.style.marginLeft = "10px";
@@ -614,11 +635,25 @@ function toggleInventory(isCombat = false) {
             btn.innerText = isEquipped ? "Unequip" : "Equip";
             btn.onclick = () => {
                 if (isEquipped) {
-                    unequipItem(item.type);
-                    logMessage(`Removed ${item.name}.`, "system");
+                    const res = unequipItem(item.type);
+                    if (res.success) {
+                        logMessage(`Removed ${item.name}.`, "system");
+                    }
                 } else {
-                    equipItem(itemId);
-                    logMessage(`Equipped ${item.name}.`, "system");
+                    const res = equipItem(itemId);
+
+                    if (!res.success) {
+                        if (res.reason === 'missing') {
+                            logMessage("You don't have that item in your pack.", "check-fail");
+                        } else if (res.reason === 'reqStr') {
+                            logMessage(`You need STR ${res.value} to wear this armor.`, "check-fail");
+                        } else {
+                            logMessage("You can't equip that right now.", "check-fail");
+                        }
+                    } else {
+                        const slotLabel = res.slot === 'armor' ? 'armor' : 'weapon';
+                        logMessage(`Equipped ${item.name} (${slotLabel}).`, "gain");
+                    }
                 }
 
                 updateStatsUI();

@@ -96,7 +96,7 @@ export const scenes = {
                 nextSceneSuccess: "SCENE_ARRIVAL_WHISPERWOOD",
                 nextSceneFail: "SCENE_ARRIVAL_WHISPERWOOD"
             },
-            {
+            { 
                 text: "Lie still and listen (Perception)",
                 type: "skillCheck",
                 skill: "perception",
@@ -105,6 +105,10 @@ export const scenes = {
                 failText: "You hear only the wind and the whisper of spores, offering no guidance.",
                 nextSceneSuccess: "SCENE_ARRIVAL_WHISPERWOOD",
                 nextSceneFail: "SCENE_ARRIVAL_WHISPERWOOD"
+            },
+            {
+                text: "Check your gear for spores",
+                action: "inventory"
             }
         ]
     },
@@ -136,6 +140,10 @@ export const scenes = {
                 failText: "A twig snaps underfoot. The rustling becomes a charge.",
                 nextSceneSuccess: "SCENE_SKIRT_BEAST",
                 nextSceneFail: "SCENE_COMBAT_ENCOUNTER"
+            },
+            {
+                text: "Pause to adjust gear",
+                action: "inventory"
             }
         ]
     },
@@ -179,7 +187,7 @@ export const scenes = {
         id: "SCENE_SKIRT_BEAST",
         location: "whisperwood",
         background: "landscapes/sporefall_outskirts.png",
-        text: "You give the creature a wide berth, slipping between the trees while it snorts and paws at the moss. The spores glow faintly on your cloak, but the beast fades behind you.",
+        text: "You give the creature a wide berth, slipping between the trees while it snorts and paws at the moss. The spores glow faintly on your cloak; you brush them off and recheck your straps before moving on.",
         onEnter: {
             questUpdate: { id: "investigate_whisperwood", stage: 3 },
             once: true
@@ -195,7 +203,7 @@ export const scenes = {
         id: "SCENE_VICTORY",
         location: "whisperwood",
         background: "landscapes/sporefall_outskirts.png",
-        text: "The beast collapses into a pile of sludge. You have survived your first encounter in the Whisperwood.",
+        text: "The beast collapses into a pile of sludge. Spores cling to your armor and weapons, and the forest goes silent. You wipe your gear clean and listen—a voice carries through the haze.",
         onEnter: {
              questUpdate: { id: "investigate_whisperwood", stage: 3 }
         },
