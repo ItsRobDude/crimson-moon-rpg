@@ -34,7 +34,8 @@ export const gameState = {
         durnhelm: 0
     },
     inCombat: false,
-    combatEnemy: null
+    combatEnemy: null,
+    visitedScenes: {}
 };
 
 // Helper to calc mod
@@ -104,6 +105,8 @@ export function initializeNewGame(name, raceId, classId) {
     }
 
     gameState.currentSceneId = "SCENE_BRIEFING";
+    gameState.visitedScenes = {};
+    gameState.flags = {};
 }
 
 export function updateQuestStage(questId, stageNumber) {
@@ -182,6 +185,14 @@ export function equipItem(itemId) {
     if (item.type === 'armor') gameState.player.equippedArmorId = itemId;
 }
 
+export function unequipItem(slot) {
+    if (slot === 'weapon') {
+        gameState.player.equippedWeaponId = null;
+    } else if (slot === 'armor') {
+        gameState.player.equippedArmorId = null;
+    }
+}
+
 export function useConsumable(itemId) {
     const item = items[itemId];
     if (!item || item.type !== 'consumable') return { success: false, msg: "Not usable." };
@@ -238,6 +249,27 @@ export function tickStatusEffects() {
     });
 
     gameState.player.statusEffects = activeEffects;
+}
+
+export function getPlayerAC() {
+    const dexMod = gameState.player.modifiers.DEX;
+    let ac = 10 + dexMod;
+
+    if (gameState.player.equippedArmorId) {
+        const armor = items[gameState.player.equippedArmorId];
+        if (armor) {
+            if (armor.armorType === 'heavy') {
+                ac = armor.acBase;
+            } else if (armor.armorType === 'medium') {
+                const cappedDex = Math.min(dexMod, armor.dexCap ?? 2);
+                ac = armor.acBase + cappedDex;
+            } else {
+                ac = armor.acBase + dexMod;
+            }
+        }
+    }
+
+    return ac;
 }
 
 // Helper to log (needs to hook into UI or simple console for now, but game.js handles UI)
