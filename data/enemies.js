@@ -6,7 +6,9 @@ export const enemies = {
         attackBonus: 3,
         damage: "1d6+1",
         xp: 50,
-        description: "A shambling mass of mushrooms and rotting wood."
+        description: "A shambling mass of mushrooms and rotting wood.",
+        resistances: ["bludgeoning"],
+        vulnerabilities: ["fire"]
     },
     "spore_zombie": {
         name: "Spore Walker",
@@ -15,6 +17,8 @@ export const enemies = {
         attackBonus: 4,
         damage: "1d8+2",
         xp: 75,
-        description: "A humanoid corpse reanimated by the fungal network."
+        description: "A humanoid corpse reanimated by the fungal network.",
+        resistances: ["poison"],
+        vulnerabilities: ["radiant", "fire"]
     }
 };
