@@ -64,5 +64,11 @@ export const items = {
         effect: "cure_poison",
         description: "A vial of fluid that neutralizes poison.",
         price: 25
+    },
+    "stone_of_oblivion": {
+        name: "Stone of Oblivion",
+        type: "key_item",
+        description: "A dark stone pulsing with ominous energy. Retrieved from Aodhan.",
+        price: 0
     }
 };

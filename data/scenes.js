@@ -1,4 +1,273 @@
 export const scenes = {
+    "SCENE_ARRIVAL_HUSHBRIAR": {
+        id: "SCENE_ARRIVAL_HUSHBRIAR",
+        location: "hushbriar",
+        background: "landscapes/heart_of_silverthorn.png", // Placeholder until hushbriar landscape exists
+        text: "You arrive at Hushbriar Cove, trailing behind a squad of Silverthorn soldiers. The sun sets, and a dense fog swallows the sky. Two guards stand at the city gates, their torchlight struggling against the gloom.",
+        onEnter: {
+            addGold: 10 // Starting cash or adjustment
+        },
+        choices: [
+            {
+                text: "Approach the gates calmly.",
+                nextScene: "SCENE_HUSHBRIAR_GATES"
+            },
+            {
+                text: "Observe the guards first (Perception)",
+                type: "skillCheck",
+                skill: "perception",
+                dc: 12,
+                successText: "The guard on the left looks exhausted, leaning heavily on his spear. The one on the right is alert, his eyes scanning every face with suspicion.",
+                failText: "It's too dark to make out details, but they seem on edge.",
+                nextSceneSuccess: "SCENE_HUSHBRIAR_GATES",
+                nextSceneFail: "SCENE_HUSHBRIAR_GATES"
+            }
+        ]
+    },
+    "SCENE_HUSHBRIAR_GATES": {
+        id: "SCENE_HUSHBRIAR_GATES",
+        location: "hushbriar",
+        background: "landscapes/heart_of_silverthorn.png", // Placeholder
+        text: "'Halt travelers! State your business,' the tired guard grunts. Before you can answer, the suspicious guard steps forward, squinting at you. 'Wait. That look...'",
+        choices: [
+            {
+                text: "Show respect and compliance.",
+                type: "skillCheck",
+                skill: "persuasion",
+                dc: 10,
+                successText: "You explain you are seeking refuge like everyone else. The tired guard waves you through. 'The emperor is conducting a search. Keep your heads low.'",
+                failText: "The suspicious guard isn't convinced. 'I've seen your face before...' He reaches for his weapon.",
+                nextSceneSuccess: "SCENE_HUSHBRIAR_TOWN",
+                nextSceneFail: "SCENE_HUSHBRIAR_COMBAT_GUARDS"
+            },
+            {
+                text: "Slip past while they argue (Stealth)",
+                type: "skillCheck",
+                skill: "stealth",
+                dc: 14,
+                successText: "You blend into the crowd of refugees entering the gate, leaving the guards bickering.",
+                failText: "Your cloak catches on a crate. 'Hey! You there!' The guards surround you.",
+                nextSceneSuccess: "SCENE_HUSHBRIAR_TOWN",
+                nextSceneFail: "SCENE_HUSHBRIAR_COMBAT_GUARDS"
+            }
+        ]
+    },
+    "SCENE_HUSHBRIAR_COMBAT_GUARDS": {
+        id: "SCENE_HUSHBRIAR_COMBAT_GUARDS",
+        location: "hushbriar",
+        background: "landscapes/heart_of_silverthorn.png",
+        text: "'Traitors! Seize them!' The guards attack. You have no choice but to defend yourself.",
+        type: "combat",
+        enemyId: "fungal_beast", // Placeholder for Guard Enemy
+        winScene: "SCENE_HUSHBRIAR_TOWN",
+        loseScene: "SCENE_DEFEAT" // Should technically go to Prison, but not implemented yet.
+    },
+    "SCENE_HUSHBRIAR_TOWN": {
+        id: "SCENE_HUSHBRIAR_TOWN",
+        location: "hushbriar",
+        background: "landscapes/heart_of_silverthorn.png",
+        text: "Inside, the town is quiet and fearful. Few elves roam the streets. The Briarwood Inn stands ahead, bustling with refugees.",
+        choices: [
+            {
+                text: "Enter the Briarwood Inn.",
+                nextScene: "SCENE_BRIARWOOD_INN"
+            },
+            {
+                text: "Visit the shops.",
+                nextScene: "SCENE_HUSHBRIAR_MARKET"
+            }
+        ]
+    },
+    "SCENE_HUSHBRIAR_MARKET": {
+        id: "SCENE_HUSHBRIAR_MARKET",
+        location: "hushbriar",
+        background: "landscapes/heart_of_silverthorn.png",
+        text: "A few run-down shops are open: an herbalist tent, a library, and a provisioner.",
+        type: "shop",
+        shopId: "silverthorn_market", // Reuse for now
+        choices: [
+            { text: "Return to town center.", nextScene: "SCENE_HUSHBRIAR_TOWN" }
+        ]
+    },
+    "SCENE_BRIARWOOD_INN": {
+        id: "SCENE_BRIARWOOD_INN",
+        location: "hushbriar",
+        background: "landscapes/heart_of_silverthorn.png", // Placeholder
+        text: "The inn is crowded. In the corner, a human man sits alone, head in hands. He looks up as you enter. It's Fionnlagh!",
+        onEnter: {
+            questUpdate: { id: "investigate_whisperwood", stage: 0 } // Or new quest
+        },
+        choices: [
+            {
+                text: "Approach him.",
+                nextScene: "SCENE_FIONNLAGH_TALK"
+            }
+        ]
+    },
+    "SCENE_FIONNLAGH_TALK": {
+        id: "SCENE_FIONNLAGH_TALK",
+        location: "hushbriar",
+        background: "landscapes/heart_of_silverthorn.png",
+        npcPortrait: "portraits/npc_male_placeholder_portrait.png",
+        text: "'Son? Is that... really you?' Fionnlagh grabs your shoulders. 'We need to leave. Something worse than the plague is here. I can feel death everywhere.'",
+        choices: [
+            {
+                text: "Ask what he means.",
+                nextScene: "SCENE_HUSHBRIAR_SCREAMS"
+            }
+        ]
+    },
+    "SCENE_HUSHBRIAR_SCREAMS": {
+        id: "SCENE_HUSHBRIAR_SCREAMS",
+        location: "hushbriar",
+        background: "landscapes/heart_of_silverthorn.png",
+        text: "Before he can explain, a child's scream pierces the air outside. Moments later, a woman's frantic cry joins it.",
+        choices: [
+            {
+                text: "Run outside to investigate.",
+                nextScene: "SCENE_INVESTIGATION"
+            },
+            {
+                text: "Stay cautious.",
+                nextScene: "SCENE_INVESTIGATION"
+            }
+        ]
+    },
+    "SCENE_INVESTIGATION": {
+        id: "SCENE_INVESTIGATION",
+        location: "hushbriar",
+        background: "landscapes/heart_of_silverthorn.png",
+        text: "At the edge of town, an elven woman weeps by a smashed door. A severed hand clutching a wooden sword lies on the ground. Suddenly, two figures emerge from the shadows: Neala and Liobhán.",
+        choices: [
+            {
+                text: "Draw weapons.",
+                nextScene: "SCENE_THIEVES_CONFRONTATION"
+            },
+            {
+                text: "Ask what happened.",
+                nextScene: "SCENE_THIEVES_CONFRONTATION"
+            }
+        ]
+    },
+    "SCENE_THIEVES_CONFRONTATION": {
+        id: "SCENE_THIEVES_CONFRONTATION",
+        location: "hushbriar",
+        background: "landscapes/heart_of_silverthorn.png",
+        npcPortrait: "portraits/npc_female_placeholder_portrait.png",
+        text: "Neala points her weapon at you. 'Choldriths. They followed you here. Explain yourselves or die.' Liobhán appears behind you, dagger at your throat.",
+        choices: [
+            {
+                text: "Explain and offer to help (Persuasion)",
+                type: "skillCheck",
+                skill: "persuasion",
+                dc: 12,
+                successText: "Neala lowers her blade. 'Fine. We have a common enemy then. Track them. Kill them.'",
+                failText: "'Lies!' Neala shouts. Combat is inevitable.",
+                nextSceneSuccess: "SCENE_TRACKING_CHOLDRITHS",
+                nextSceneFail: "SCENE_THIEVES_COMBAT"
+            },
+            {
+                text: "Attack them.",
+                nextScene: "SCENE_THIEVES_COMBAT"
+            }
+        ]
+    },
+    "SCENE_THIEVES_COMBAT": {
+        id: "SCENE_THIEVES_COMBAT",
+        location: "hushbriar",
+        background: "landscapes/heart_of_silverthorn.png",
+        text: "The guild members attack with deadly precision!",
+        type: "combat",
+        enemyId: "fungal_beast", // Placeholder for Rogue Enemy
+        winScene: "SCENE_TRACKING_CHOLDRITHS",
+        loseScene: "SCENE_DEFEAT"
+    },
+    "SCENE_TRACKING_CHOLDRITHS": {
+        id: "SCENE_TRACKING_CHOLDRITHS",
+        location: "hushbriar",
+        background: "landscapes/forest_walk.png",
+        text: "You follow the drag marks and blood spatter out of the city and into the forest. The trail ends at the Moonwell.",
+        choices: [
+            {
+                text: "Approach the Moonwell.",
+                nextScene: "SCENE_MOONWELL"
+            }
+        ]
+    },
+    "SCENE_MOONWELL": {
+        id: "SCENE_MOONWELL",
+        location: "hushbriar",
+        background: "landscapes/forest_walk_alt.png",
+        text: "Two small bodies hang above the well. A man stands below, tossing a stone. It is Aodhan. 'Sad, isn't it?' he says, not turning around. 'To die so young.'",
+        choices: [
+            {
+                text: "Confront Aodhan.",
+                nextScene: "SCENE_AODHAN_TALK"
+            }
+        ]
+    },
+    "SCENE_AODHAN_TALK": {
+        id: "SCENE_AODHAN_TALK",
+        location: "hushbriar",
+        background: "landscapes/forest_walk_alt.png",
+        npcPortrait: "portraits/npc_male_placeholder_portrait.png",
+        text: "Aodhan pockets the Stone of Oblivion. 'The barrier I created failed moments ago. The darkness is coming.' He looks at you with hollow eyes.",
+        choices: [
+            {
+                text: "Attack him.",
+                nextScene: "SCENE_AODHAN_COMBAT"
+            },
+            {
+                text: "Let him go.",
+                nextScene: "SCENE_AFTERMATH"
+            }
+        ]
+    },
+    "SCENE_AODHAN_COMBAT": {
+        id: "SCENE_AODHAN_COMBAT",
+        location: "hushbriar",
+        background: "landscapes/forest_walk_alt.png",
+        text: "Aodhan unleashes dark magic!",
+        type: "combat",
+        enemyId: "spore_zombie", // Placeholder for Aodhan
+        winScene: "SCENE_AODHAN_DEFEAT",
+        loseScene: "SCENE_DEFEAT"
+    },
+    "SCENE_AODHAN_DEFEAT": {
+        id: "SCENE_AODHAN_DEFEAT",
+        location: "hushbriar",
+        background: "landscapes/forest_walk_alt.png",
+        text: "Aodhan falls. You retrieve the Stone of Oblivion from his body. As he dies, the ground shakes.",
+        onEnter: {
+            addItem: "stone_of_oblivion"
+        },
+        choices: [
+            {
+                text: "Watch the sky.",
+                nextScene: "SCENE_AFTERMATH"
+            }
+        ]
+    },
+    "SCENE_AFTERMATH": {
+        id: "SCENE_AFTERMATH",
+        location: "hushbriar",
+        background: "landscapes/forest_walk.png",
+        text: "The following morning never arrives. The moon turns crimson red. The Underdark begins to consume the earth. The prophecy has begun.",
+        choices: [
+            {
+                text: "Travel to Silverthorn (Report to Alderic)",
+                nextScene: "SCENE_BRIEFING"
+            },
+            {
+                text: "Head towards Lament Hill (Follow rumors)",
+                nextScene: "SCENE_LAMENT_HILL_APPROACH"
+            },
+            {
+                text: "Seek Durnhelm (Dwarven Allies)",
+                nextScene: "SCENE_DURNHELM_GATES"
+            }
+        ]
+    },
     "SCENE_BRIEFING": {
         id: "SCENE_BRIEFING",
         location: "silverthorn",
@@ -17,6 +286,11 @@ export const scenes = {
                 dc: 12,
                 successText: "You notice the room is devoid of personal touches, cold and sterile. A map on the desk has a red circle around Whisperwood.",
                 failText: "The shadows make it hard to see details, but the Prince's tension is palpable.",
+                onSuccess: {
+                    effects: [
+                        { type: "relationship", npcId: "alderic", amount: 5 }
+                    ]
+                },
                 nextSceneSuccess: "SCENE_BRIEFING_2", // Loop back or continue
                 nextSceneFail: "SCENE_BRIEFING_2"
             },
@@ -66,9 +340,9 @@ export const scenes = {
                 nextScene: "SCENE_TRAVEL_SHADOWMIRE"
             },
             {
-                text: "Request extra supplies (Requires 20 Alderic Relationship)",
+                text: "Request extra supplies (Requires 5 Alderic Relationship)",
                 requires: {
-                    relationship: { npcId: "alderic", min: 20 }
+                    relationship: { npcId: "alderic", min: 5 }
                 },
                 effects: [
                     { type: "addItem", itemId: "potion_healing" } // Logic needs to handle this in game.js handleChoice too
@@ -370,5 +644,88 @@ export const scenes = {
         background: "landscapes/forest_walk.png",
         text: "The oppressive gloom of Shadowmire Forest surrounds you.",
         choices: []
+    },
+    "SCENE_DURNHELM_GATES": {
+        id: "SCENE_DURNHELM_GATES",
+        location: "durnhelm",
+        background: "landscapes/forest_walk_alt.png", // Placeholder
+        text: "The massive stone gates of Durnhelm loom before you, carved with runes of endurance.",
+        choices: [
+            { text: "Speak to the guards", nextScene: "SCENE_DURNHELM_ENTRY" },
+            { text: "Leave", action: "openMap" }
+        ]
+    },
+    "SCENE_DURNHELM_ENTRY": {
+        id: "SCENE_DURNHELM_ENTRY",
+        location: "durnhelm",
+        background: "landscapes/forest_walk_alt.png",
+        text: "The guards eye you suspiciously but allow you entry.",
+        choices: [
+            { text: "Explore the city", action: "openMap" } // Placeholder
+        ]
+    },
+    "SCENE_LAMENT_HILL_APPROACH": {
+        id: "SCENE_LAMENT_HILL_APPROACH",
+        location: "lament_hill",
+        background: "landscapes/forest_walk.png", // Placeholder
+        text: "Rain begins to fall as you ascend. The air smells of ozone and old sorrow. A broken cottage sits at the summit.",
+        choices: [
+            { text: "Investigate the cottage", nextScene: "SCENE_LAMENT_COTTAGE" },
+            { text: "Look for the graves", nextScene: "SCENE_LAMENT_GRAVES" }
+        ]
+    },
+    "SCENE_LAMENT_COTTAGE": {
+        id: "SCENE_LAMENT_COTTAGE",
+        location: "lament_hill",
+        background: "landscapes/forest_walk.png",
+        text: "The roof is collapsed. You hear a voice in your head: 'You don't belong here...'",
+        choices: [
+            { text: "Leave", action: "openMap" }
+        ]
+    },
+    "SCENE_LAMENT_GRAVES": {
+        id: "SCENE_LAMENT_GRAVES",
+        location: "lament_hill",
+        background: "landscapes/forest_walk.png",
+        text: "Two small handmade graves lie to the east.",
+        choices: [
+            { text: "Pay respects", action: "openMap" }
+        ]
+    },
+    "SCENE_SOLASMOR_APPROACH": {
+        id: "SCENE_SOLASMOR_APPROACH",
+        location: "solasmor",
+        background: "landscapes/forest_walk.png",
+        text: "The monastery of Solasmór stands silent in the hills.",
+        choices: [
+            { text: "Approach the gates", nextScene: "SCENE_SOLASMOR_GATES" }
+        ]
+    },
+    "SCENE_SOLASMOR_GATES": {
+        id: "SCENE_SOLASMOR_GATES",
+        location: "solasmor",
+        background: "landscapes/forest_walk.png",
+        text: "The gates are barred. It seems the monks are not welcoming visitors.",
+        choices: [
+            { text: "Knock", action: "openMap" }
+        ]
+    },
+    "SCENE_SOUL_MILL_APPROACH": {
+        id: "SCENE_SOUL_MILL_APPROACH",
+        location: "soul_mill",
+        background: "landscapes/sporefall_whisperwood_reveal.png", // Placeholder
+        text: "Dark smoke rises from the Soul Mill. The screams of the damned echo faintly.",
+        choices: [
+            { text: "Observe from distance", action: "openMap" }
+        ]
+    },
+    "SCENE_THIEVES_HIDEOUT": {
+        id: "SCENE_THIEVES_HIDEOUT",
+        location: "thieves_hideout",
+        background: "landscapes/heart_of_silverthorn.png", // Placeholder
+        text: "You find the hidden entrance under the bridge.",
+        choices: [
+            { text: "Enter", action: "openMap" }
+        ]
     }
 };

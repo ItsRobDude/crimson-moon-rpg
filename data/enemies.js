@@ -20,5 +20,16 @@ export const enemies = {
         description: "A humanoid corpse reanimated by the fungal network.",
         resistances: ["poison"],
         vulnerabilities: ["radiant", "fire"]
+    },
+    "choldrith": {
+        name: "Choldrith",
+        hp: 30,
+        ac: 13,
+        attackBonus: 5,
+        damage: "2d4+2",
+        xp: 100,
+        description: "A horrifying hybrid of drow and spider, serving the dark.",
+        resistances: ["poison"],
+        vulnerabilities: ["fire"]
     }
 };
