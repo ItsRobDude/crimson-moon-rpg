@@ -108,7 +108,38 @@ export const scenes = {
                 successText: "You hold your breath and cover your face, resisting the sickening vapors.",
                 failText: "The spores fill your lungs. You cough violently and feel weakened.",
                 failEffect: { type: "damage", amount: "1d4" },
-                nextScene: "SCENE_ARRIVAL_WHISPERWOOD"
+                nextScene: "SCENE_SPOREFALL_WAKE"
+            }
+        ]
+    },
+    "SCENE_SPOREFALL_WAKE": {
+        id: "SCENE_SPOREFALL_WAKE",
+        location: "whisperwood",
+        background: "landscapes/sporefall_outskirts.png",
+        text: "Your eyes snap open to a soft red haze. Spores drift like snowflakes around you, clinging to your eyelashes. The memory of Silverthorn feels distant in this muffled world.",
+        onEnter: {
+            once: true
+        },
+        choices: [
+            {
+                text: "Steady your breathing (WIS Check)",
+                type: "skillCheck",
+                skill: "insight",
+                dc: 11,
+                successText: "You center yourself, matching your breath to the rhythm of the forest. The panic fades.",
+                failText: "The spores sting your throat, making you cough loudly before you can quiet down.",
+                nextSceneSuccess: "SCENE_ARRIVAL_WHISPERWOOD",
+                nextSceneFail: "SCENE_ARRIVAL_WHISPERWOOD"
+            },
+            {
+                text: "Lie still and listen (Perception)",
+                type: "skillCheck",
+                skill: "perception",
+                dc: 12,
+                successText: "Something heavy is pacing nearby. Its breathing is wet, wrong. You chart a path away from it in your mind before you move.",
+                failText: "You hear only the wind and the whisper of spores, offering no guidance.",
+                nextSceneSuccess: "SCENE_ARRIVAL_WHISPERWOOD",
+                nextSceneFail: "SCENE_ARRIVAL_WHISPERWOOD"
             }
         ]
     },
@@ -116,20 +147,30 @@ export const scenes = {
         id: "SCENE_ARRIVAL_WHISPERWOOD",
         location: "whisperwood",
         background: "landscapes/sporefall_outskirts.png",
-        text: "You arrive at the edge of Whisperwood. The flora here is twisted, glowing with a sickly violet light. The crimson moon hangs low overhead.",
+        text: "You push through low-hanging branches into Whisperwood proper. The trees bend under the weight of crimson spores, and the ground glistens like wet embers. Shapes move in the haze—too large to be deer.",
         choices: [
             {
                 text: "Investigate the glowing plants.",
                 type: "skillCheck",
                 skill: "investigation",
                 dc: 13,
-                successText: "You find a strange residue on the leaves. It's not natural; it's magical corruption.",
-                failText: "The plants are gross and slimy. You learn nothing.",
+                successText: "You find a strange residue on the leaves. It's not natural; it's magical corruption. A low growl rumbles behind you as you disturb the patch.",
+                failText: "The plants are gross and slimy. Your fingers come away sticky—and something stirs nearby.",
                 nextScene: "SCENE_COMBAT_ENCOUNTER"
             },
             {
                 text: "Move cautiously deeper.",
                 nextScene: "SCENE_COMBAT_ENCOUNTER"
+            },
+            {
+                text: "Circle around the movement (Stealth)",
+                type: "skillCheck",
+                skill: "stealth",
+                dc: 13,
+                successText: "You slip between roots and climb a fallen log, keeping the rustling to your left.",
+                failText: "A twig snaps underfoot. The rustling becomes a charge.",
+                nextSceneSuccess: "SCENE_SKIRT_BEAST",
+                nextSceneFail: "SCENE_COMBAT_ENCOUNTER"
             }
         ]
     },
@@ -137,11 +178,53 @@ export const scenes = {
         id: "SCENE_COMBAT_ENCOUNTER",
         location: "whisperwood",
         background: "landscapes/sporefall_outskirt_encounter.png",
-        text: "A rustling in the bushes turns into a roar! A Fungal Beast charges at you!",
+        text: "A rustling becomes a rolling thunder of hooves and claws. Spores scatter as a hulking shape pushes through the undergrowth. It hasn't seen you yet, but the distance is closing fast.",
+        choices: [
+            {
+                text: "Stand your ground and fight",
+                nextScene: "SCENE_FUNGAL_AMBUSH"
+            },
+            {
+                text: "Back away slowly (Acrobatics)",
+                type: "skillCheck",
+                skill: "acrobatics",
+                dc: 12,
+                successText: "You ease back, keeping low. The beast's head swings the other way as you clear the worst of the spores.",
+                failText: "You stumble on slick moss. The beast lunges toward the noise!",
+                nextSceneSuccess: "SCENE_SKIRT_BEAST",
+                nextSceneFail: "SCENE_FUNGAL_AMBUSH"
+            },
+            {
+                text: "Throw a stone to distract it",
+                nextScene: "SCENE_SKIRT_BEAST"
+            }
+        ]
+    },
+    "SCENE_FUNGAL_AMBUSH": {
+        id: "SCENE_FUNGAL_AMBUSH",
+        location: "whisperwood",
+        background: "landscapes/sporefall_outskirt_encounter.png",
+        text: "The Fungal Beast erupts from the haze, spores streaming from its matted hide as it barrels toward you!",
         type: "combat",
         enemyId: "fungal_beast",
         winScene: "SCENE_VICTORY",
         loseScene: "SCENE_DEFEAT"
+    },
+    "SCENE_SKIRT_BEAST": {
+        id: "SCENE_SKIRT_BEAST",
+        location: "whisperwood",
+        background: "landscapes/sporefall_outskirts.png",
+        text: "You give the creature a wide berth, slipping between the trees while it snorts and paws at the moss. The spores glow faintly on your cloak, but the beast fades behind you.",
+        onEnter: {
+            questUpdate: { id: "investigate_whisperwood", stage: 3 },
+            once: true
+        },
+        choices: [
+            {
+                text: "Keep moving while it's distracted",
+                nextScene: "SCENE_MEET_EOIN"
+            }
+        ]
     },
     "SCENE_VICTORY": {
         id: "SCENE_VICTORY",

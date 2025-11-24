@@ -344,14 +344,20 @@ function goToScene(sceneId) {
     textBox.innerText = scene.text;
 
     if (scene.onEnter) {
-        if (scene.onEnter.questUpdate) {
-            updateQuestStage(scene.onEnter.questUpdate.id, scene.onEnter.questUpdate.stage);
-            const q = quests[scene.onEnter.questUpdate.id];
-            logMessage(`Quest Updated: ${q.title}`, "gain");
-        }
-        if (scene.onEnter.addGold) {
-            addGold(scene.onEnter.addGold);
-            logMessage(`Gained ${scene.onEnter.addGold} gold.`, "gain");
+        const runOnEnter = !scene.onEnter.once || firstVisit;
+        if (runOnEnter) {
+            if (scene.onEnter.questUpdate) {
+                updateQuestStage(scene.onEnter.questUpdate.id, scene.onEnter.questUpdate.stage);
+                const q = quests[scene.onEnter.questUpdate.id];
+                logMessage(`Quest Updated: ${q.title}`, "gain");
+            }
+            if (scene.onEnter.addGold) {
+                addGold(scene.onEnter.addGold);
+                logMessage(`Gained ${scene.onEnter.addGold} gold.`, "gain");
+            }
+            if (scene.onEnter.setFlag) {
+                gameState.flags[scene.onEnter.setFlag] = true;
+            }
         }
     }
 
