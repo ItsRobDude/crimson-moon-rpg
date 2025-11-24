@@ -105,6 +105,9 @@ function goToScene(sceneId) {
 
     gameState.currentSceneId = sceneId;
 
+    const firstVisit = !gameState.visitedScenes[sceneId];
+    gameState.visitedScenes[sceneId] = true;
+
     const bgEl = document.getElementById('scene-background');
     if (scene.background) {
         bgEl.style.backgroundImage = `url('${scene.background}')`;
@@ -123,14 +126,20 @@ function goToScene(sceneId) {
     textBox.innerText = scene.text;
 
     if (scene.onEnter) {
-        if (scene.onEnter.questUpdate) {
-            updateQuestStage(scene.onEnter.questUpdate.id, scene.onEnter.questUpdate.stage);
-            const q = quests[scene.onEnter.questUpdate.id];
-            logMessage(`Quest Updated: ${q.title}`, "gain");
-        }
-        if (scene.onEnter.addGold) {
-            addGold(scene.onEnter.addGold);
-            logMessage(`Gained ${scene.onEnter.addGold} gold.`, "gain");
+        const runOnEnter = !scene.onEnter.once || firstVisit;
+        if (runOnEnter) {
+            if (scene.onEnter.questUpdate) {
+                updateQuestStage(scene.onEnter.questUpdate.id, scene.onEnter.questUpdate.stage);
+                const q = quests[scene.onEnter.questUpdate.id];
+                logMessage(`Quest Updated: ${q.title}`, "gain");
+            }
+            if (scene.onEnter.addGold) {
+                addGold(scene.onEnter.addGold);
+                logMessage(`Gained ${scene.onEnter.addGold} gold.`, "gain");
+            }
+            if (scene.onEnter.setFlag) {
+                gameState.flags[scene.onEnter.setFlag] = true;
+            }
         }
     }
 
@@ -225,7 +234,8 @@ function startCombat(enemyId, winScene, loseScene) {
         enemyId: enemyId,
         enemy: JSON.parse(JSON.stringify(enemies[enemyId])), // Clone
         winScene: winScene,
-        loseScene: loseScene
+        loseScene: loseScene,
+        specialsUsed: {}
     };
 
     logMessage(`Combat started against ${gameState.combat.enemy.name}!`, "combat");
@@ -297,35 +307,8 @@ function renderCombatUI(showSpells = false) {
 
 function handleCombatAction(action) {
     if (action === 'attack') {
-        // Player Attack
-        const weaponId = gameState.player.equippedWeaponId;
-        const weapon = items[weaponId] || { name: "Unarmed", damage: "1d2", modifier: "STR" };
-
-        const stat = weapon.modifier || "STR";
-        const prof = gameState.player.proficiencyBonus;
-
-        const result = rollAttack(gameState, stat, prof);
-
-        const enemy = gameState.combat.enemy;
-
-        logMessage(`You attack with ${weapon.name}: ${result.roll} + ${result.modifier} = ${result.total} (vs AC ${enemy.ac})${result.note}`, "system");
-
-        if (result.total >= enemy.ac) {
-            const dmgRoll = rollDiceExpression(weapon.damage);
-            const mod = gameState.player.modifiers[stat];
-            const totalDmg = dmgRoll.total + mod;
-            enemy.hp -= totalDmg;
-            logMessage(`Hit! Dealt ${totalDmg} damage.`, "combat");
-        } else {
-            logMessage(`Miss!`, "system");
-        }
-
-        updateCombatStatusText();
-        checkCombatState(); // Check if enemy died
-
-        if (gameState.inCombat) {
-             setTimeout(enemyTurn, 600);
-        }
+        renderAttackOptions();
+        return;
 
     } else if (action === 'spell') {
         renderCombatUI(true);
@@ -345,6 +328,131 @@ function handleCombatAction(action) {
             logMessage("Failed to escape!", "combat");
             enemyTurn();
         }
+    }
+}
+
+function renderAttackOptions() {
+    const choiceContainer = document.getElementById('choice-container');
+    choiceContainer.innerHTML = '';
+
+    const attacks = getAvailableAttacks();
+
+    attacks.forEach(attack => {
+        const btn = document.createElement('button');
+        btn.innerHTML = `<strong>${attack.name}</strong><br><small>${attack.detail}</small>`;
+        btn.onclick = () => performAttack(attack);
+        choiceContainer.appendChild(btn);
+    });
+
+    const backBtn = document.createElement('button');
+    backBtn.innerText = "Back";
+    backBtn.onclick = () => renderCombatUI(false);
+    choiceContainer.appendChild(backBtn);
+}
+
+function getAvailableAttacks() {
+    const attacks = [];
+    const weaponId = gameState.player.equippedWeaponId;
+    const weapon = items[weaponId] || { name: "Unarmed", damage: "1d2", modifier: "STR" };
+
+    attacks.push({
+        id: 'basic',
+        name: `Strike with ${weapon.name}`,
+        damage: weapon.damage,
+        stat: weapon.modifier || 'STR',
+        detail: `${weapon.damage} using ${weapon.modifier || 'STR'} modifier`,
+        proficiency: gameState.player.proficiencyBonus
+    });
+
+    const cls = gameState.player.classId;
+
+    if (cls === 'fighter') {
+        attacks.push({
+            id: 'power_strike',
+            name: 'Power Strike',
+            damage: weapon.damage,
+            stat: weapon.modifier || 'STR',
+            bonusDamage: '1d4',
+            detail: 'Once per combat, add 1d4 extra damage.',
+            once: true
+        });
+    }
+
+    if (cls === 'rogue' && !gameState.combat.specialsUsed['sneak_attack']) {
+        attacks.push({
+            id: 'sneak_attack',
+            name: 'Sneak Attack',
+            damage: weapon.damage,
+            stat: 'DEX',
+            bonusDamage: '1d6',
+            detail: 'Cunning strike with an extra 1d6 damage (once per combat).',
+            once: true
+        });
+    }
+
+    if (cls === 'wizard') {
+        attacks.push({
+            id: 'arcane_pulse',
+            name: 'Arcane Pulse',
+            damage: '1d8',
+            stat: 'INT',
+            detail: 'Hurl raw force using your INT modifier.',
+            proficiency: gameState.player.proficiencyBonus
+        });
+    }
+
+    if (cls === 'cleric' && !gameState.combat.specialsUsed['guided_strike']) {
+        attacks.push({
+            id: 'guided_strike',
+            name: 'Guided Strike',
+            damage: weapon.damage,
+            stat: weapon.modifier || 'STR',
+            hitBonus: 2,
+            detail: 'Call for guidance for +2 to hit (once per combat).',
+            once: true
+        });
+    }
+
+    return attacks;
+}
+
+function performAttack(attack) {
+    const stat = attack.stat || 'STR';
+    const prof = attack.proficiency !== undefined ? attack.proficiency : gameState.player.proficiencyBonus;
+    const enemy = gameState.combat.enemy;
+
+    const rollResult = rollAttack(gameState, stat, prof);
+    const totalToHit = rollResult.total + (attack.hitBonus || 0);
+    const hitBonusText = attack.hitBonus ? ` + ${attack.hitBonus}` : '';
+
+    logMessage(`${attack.name}: ${rollResult.roll} + ${rollResult.modifier}${hitBonusText} = ${totalToHit} (vs AC ${enemy.ac})${rollResult.note}`, "system");
+
+    if (totalToHit >= enemy.ac) {
+        const dmgRoll = rollDiceExpression(attack.damage);
+        let totalDmg = dmgRoll.total + gameState.player.modifiers[stat];
+
+        if (attack.bonusDamage) {
+            const extra = rollDiceExpression(attack.bonusDamage);
+            totalDmg += extra.total;
+            logMessage(`Extra damage roll: ${extra.total}`, "combat");
+        }
+
+        enemy.hp -= totalDmg;
+        logMessage(`Hit! Dealt ${totalDmg} damage.`, "combat");
+    } else {
+        logMessage(`Miss!`, "system");
+    }
+
+    if (attack.once) {
+        gameState.combat.specialsUsed[attack.id] = true;
+    }
+
+    updateCombatStatusText();
+    checkCombatState();
+
+    if (gameState.inCombat) {
+        renderCombatUI(false);
+        setTimeout(enemyTurn, 600);
     }
 }
 
@@ -414,7 +522,7 @@ function enemyTurn() {
         logMessage(`You took ${dmgRoll.total} damage!`, "combat");
 
         // Fungal Beast Poison Chance
-        if (enemyId === 'fungal_beast' || gameState.combat.enemyId === 'fungal_beast') {
+        if (gameState.combat.enemyId === 'fungal_beast') {
              if (rollDie(100) <= 25) {
                  applyStatusEffect('poisoned', 3);
              }
@@ -570,7 +678,8 @@ function saveGame() {
         currentSceneId: gameState.currentSceneId,
         quests: gameState.quests,
         flags: gameState.flags,
-        reputation: gameState.reputation
+        reputation: gameState.reputation,
+        visitedScenes: gameState.visitedScenes
     };
     localStorage.setItem('crimsonMoonSave', JSON.stringify(data));
     logMessage("Game Saved.", "system");
@@ -587,6 +696,7 @@ function loadGame() {
         gameState.quests = data.quests;
         gameState.flags = data.flags;
         gameState.reputation = data.reputation;
+        gameState.visitedScenes = data.visitedScenes || {};
 
         // Reset transient state
         gameState.inCombat = false;

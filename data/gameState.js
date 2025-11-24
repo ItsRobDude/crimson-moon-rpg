@@ -34,7 +34,8 @@ export const gameState = {
         durnhelm: 0
     },
     inCombat: false,
-    combatEnemy: null
+    combatEnemy: null,
+    visitedScenes: {}
 };
 
 // Helper to calc mod
@@ -104,6 +105,8 @@ export function initializeNewGame(name, raceId, classId) {
     }
 
     gameState.currentSceneId = "SCENE_BRIEFING";
+    gameState.visitedScenes = {};
+    gameState.flags = {};
 }
 
 export function updateQuestStage(questId, stageNumber) {
