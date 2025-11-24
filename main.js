@@ -6,11 +6,10 @@ async function main() {
         // This ensures all its dependencies (data modules) are parsed before execution.
         const game = await import('./game.js');
 
-        // Now that the module is loaded, we can safely initialize the game.
-        document.addEventListener('DOMContentLoaded', () => {
-            game.initUI();
-            game.showCharacterCreation();
-        });
+        // The DOM is ready because this script is at the end of the body.
+        // No need to wait for DOMContentLoaded, which can cause race conditions with modules.
+        game.initUI();
+        game.showCharacterCreation();
     } catch (error) {
         console.error("Failed to load the game module:", error);
         document.body.innerHTML = `<div style="color: white; padding: 20px;">

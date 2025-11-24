@@ -12,7 +12,7 @@ import { shops } from './data/shops.js';
 import { npcs } from './data/npcs.js';
 import { factions } from './data/factions.js';
 import { gameState, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus } from './data/gameState.js';
-import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod } from './rules.js';
+import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod, generateScaledStats } from './rules.js';
 
 export function initUI() {
     window.goToScene = goToScene;
@@ -382,20 +382,8 @@ function handleChoice(choice) {
         toggleMap();
         return;
     }
-    if (choice.action === 'shortRest') {
-        if (spendGold(choice.cost)) {
-            const healed = performShortRest(); // Updated
-            logMessage(`Short Rest: Healed ${healed} HP and restored resources.`, "gain");
-            updateStatsUI();
-        } else logMessage("Not enough gold.", "check-fail");
-        return;
-    }
-    if (choice.action === 'longRest') {
-        if (spendGold(choice.cost)) {
-            performLongRest(); // Updated
-            logMessage("Long Rest: Fully restored HP, Slots, and Resources.", "gain");
-            updateStatsUI();
-        } else logMessage("Not enough gold.", "check-fail");
+    if (choice.action === 'shortRest' || choice.action === 'longRest') {
+        showRestModal();
         return;
     }
     if (choice.effects) {
@@ -585,6 +573,18 @@ function toggleMap() {
         pinList.appendChild(row);
     });
 
+    const mapContainer = document.getElementById('map-container');
+
+    // New: Click listener for adding pins directly on the map image
+    mapContainer.onclick = (e) => {
+        const note = prompt("Enter a note for this pin:", "Marked location");
+        if (note) {
+            const currentLocation = scenes[gameState.currentSceneId]?.location || 'travel';
+            addMapPin(currentLocation, note);
+            toggleMap(); // Refresh the map to show the new pin
+        }
+    };
+
     addBtn.onclick = () => {
         const currentLocation = scenes[gameState.currentSceneId]?.location || 'travel';
         addMapPin(currentLocation, pinNote.value);
@@ -765,7 +765,7 @@ function renderCodexFactions(container) {
 
 // --- Combat System ---
 
-function startCombat(enemyIds, winScene, loseScene) {
+function startCombat(combatantIds, winScene, loseScene) {
     // Show combat screen, hide main scene
     document.getElementById('scene-container').classList.add('hidden');
     document.getElementById('battle-screen').classList.remove('hidden');
@@ -773,22 +773,47 @@ function startCombat(enemyIds, winScene, loseScene) {
 
     const currentScene = scenes[gameState.currentSceneId];
 
-    const combatEnemies = enemyIds.map((id, index) => {
-        const enemyData = enemies[id];
+    const combatEnemies = combatantIds.map((id, index) => {
+        let combatantData;
+        let isNpc = false;
+
+        if (npcs[id] && npcs[id].combatStats) {
+            // It's a scalable NPC, level-matched to the player
+            combatantData = generateScaledStats(npcs[id].combatStats, gameState.player.level);
+            combatantData.name = npcs[id].name; // Ensure the base name is used
+            combatantData.portrait = npcs[id].portrait;
+            isNpc = true;
+        } else {
+            // It's a regular enemy from enemies.js
+            combatantData = enemies[id];
+        }
+
+        if (!combatantData) {
+            console.error(`Combatant data for ID "${id}" not found in enemies.js or npcs.js.`);
+            return null; // Skip if no data found
+        }
+
+        // Harmonize the data structure for the combat loop
+        const primaryAttack = combatantData.actions ? combatantData.actions.find(a => a.type === 'attack') : null;
+
         return {
             id: id,
-            name: enemyData.name,
-            hp: enemyData.hp,
-            maxHp: enemyData.hp,
-            ac: enemyData.ac,
-            attackBonus: enemyData.attackBonus,
-            damage: enemyData.damage,
-            portrait: enemyData.portrait || 'portraits/placeholder.png',
+            name: combatantData.name,
+            hp: combatantData.hp,
+            maxHp: combatantData.hp,
+            ac: combatantData.ac,
+            // For NPCs, derive from actions; for enemies, use direct properties
+            attackBonus: isNpc ? (primaryAttack ? primaryAttack.toHit : 0) : combatantData.attackBonus,
+            damage: isNpc ? (primaryAttack ? primaryAttack.damage : "1d4") : combatantData.damage,
+            portrait: combatantData.portrait || 'portraits/placeholder.png',
             initiative: 0,
             statusEffects: [],
-            uniqueId: `${id}_${index}` // To target specific enemies
+            uniqueId: `${id}_${index}`,
+            intent: "",
+            // Store the full stat block for access to resistances, special abilities, etc.
+            fullStats: isNpc ? combatantData : null
         };
-    });
+    }).filter(c => c !== null); // Remove any null entries if a combatant wasn't found
 
     gameState.combat = {
         active: true,
@@ -897,7 +922,7 @@ function updateCombatUI() {
                 <div class="enemy-bar-background">
                     <div class="enemy-bar-fill" style="width: ${enemyHpPct}%;"></div>
                 </div>
-                <div class="enemy-status"></div>
+                <div class="enemy-status">${enemy.intent || ''}</div>
             </div>
         `;
         enemiesContainer.appendChild(enemyCard);
@@ -977,16 +1002,21 @@ function renderPlayerActions(container, subMenu = null) {
 }
 
 function calculateDamage(baseDamage, damageType, target) {
-    const enemyData = enemies[target.id];
-    if (!enemyData) return baseDamage;
+    // Check for NPC-specific stats first, then fall back to enemy data
+    const combatantStats = target.fullStats || enemies[target.id];
+    if (!combatantStats) return baseDamage;
 
     let finalDamage = baseDamage;
     let message = "";
 
-    if (enemyData.vulnerabilities && enemyData.vulnerabilities.includes(damageType)) {
+    // Ensure properties exist and are strings before calling .includes()
+    const vulnerabilities = combatantStats.vulnerabilities || "";
+    const resistances = combatantStats.resistances || "";
+
+    if (vulnerabilities.includes(damageType)) {
         finalDamage *= 2;
         message = `${target.name} is vulnerable to ${damageType}! Damage doubled.`;
-    } else if (enemyData.resistances && enemyData.resistances.includes(damageType)) {
+    } else if (resistances.includes(damageType)) {
         finalDamage = Math.floor(finalDamage / 2);
         message = `${target.name} resists ${damageType}. Damage halved.`;
     }
@@ -1023,7 +1053,10 @@ function performAttack(targetId) {
     const result = rollAttack(gameState, stat, prof);
 
     let msg = `You attack ${target.name} with ${weapon.name}: ${result.total} (vs AC ${target.ac}).`;
-    if (result.isCritical) msg += " CRITICAL HIT!";
+    if (result.isCritical) {
+        msg += " CRITICAL HIT!";
+        showBattleEventText("Critical Hit!");
+    }
     logMessage(msg, "system");
 
     if (result.total >= target.ac || result.isCritical) {
@@ -1037,8 +1070,10 @@ function performAttack(targetId) {
         const finalDamage = calculateDamage(dmg, weapon.damageType, target);
         target.hp -= Math.max(1, finalDamage);
         logMessage(`Hit! Dealt ${finalDamage} ${weapon.damageType} damage to ${target.name}.`, "combat");
+        showBattleEventText(`${finalDamage}`);
     } else {
         logMessage("Miss!", "system");
+        showBattleEventText("Miss!");
     }
 
     if (!checkWinCondition()) {
@@ -1098,8 +1133,9 @@ function performCastSpell(spellId, targetId) {
 
             if (result.total >= target.ac || result.isCritical) {
                 let dmg = rollDiceExpression(spell.damage).total;
-                target.hp -= Math.max(1, dmg);
-                logMessage(`Hit! ${target.name} takes ${dmg} ${spell.damageType} damage.`, "combat");
+                const finalDamage = calculateDamage(dmg, spell.damageType, target);
+                target.hp -= Math.max(1, finalDamage);
+                logMessage(`Hit! ${target.name} takes ${finalDamage} ${spell.damageType} damage.`, "combat");
             } else {
                 logMessage("The spell misses!", "system");
             }
@@ -1114,8 +1150,9 @@ function performCastSpell(spellId, targetId) {
             } else {
                 logMessage(`${target.name} failed save!`, "combat");
             }
-            target.hp -= Math.max(1, dmg);
-            logMessage(`Dealt ${dmg} ${spell.damageType} damage.`, "combat");
+            const finalDamage = calculateDamage(dmg, spell.damageType, target);
+            target.hp -= Math.max(1, finalDamage);
+            logMessage(`Dealt ${finalDamage} ${spell.damageType} damage.`, "combat");
         }
     }
 
@@ -1156,9 +1193,14 @@ function enemyTurn(enemy) {
         endEnemyTurn(enemy);
         return;
     }
-    logMessage(`${enemy.name} attacks!`, "combat");
 
-    const totalHit = rollDie(20) + enemy.attackBonus;
+    // Set Intent
+    enemy.intent = "is preparing to attack!";
+    updateCombatUI(); // Update UI to show intent
+
+    setTimeout(() => {
+        logMessage(`${enemy.name} attacks!`, "combat");
+        const totalHit = rollDie(20) + enemy.attackBonus;
     const ac = getPlayerAC();
 
     if (totalHit >= ac) {
@@ -1169,10 +1211,12 @@ function enemyTurn(enemy) {
         }
         gameState.player.hp -= dmg;
         logMessage(`You took ${dmg} damage.`, "combat");
+        showBattleEventText(`${dmg}`);
 
         // Special Effects: Fungal Beast Poison
         if (enemy.id === 'fungal_beast' && rollDie(100) <= 25) { // 25% chance
             applyStatusEffect('poisoned');
+            showBattleEventText("Poisoned!");
         }
 
         if (gameState.player.hp <= 0) {
@@ -1182,12 +1226,17 @@ function enemyTurn(enemy) {
         }
     } else {
         logMessage(`${enemy.name} missed!`, "system");
+        showBattleEventText("Miss!");
     }
 
     endEnemyTurn(enemy);
+    }, 1000); // 1-second delay for the attack after showing intent
 }
 
 function endEnemyTurn(enemy) {
+    // Clear intent
+    enemy.intent = "";
+
     // Before ending turn, remove any dead enemies from turn order
     const deadEnemies = gameState.combat.enemies.filter(e => e.hp <= 0).map(e => e.uniqueId);
     if (deadEnemies.length > 0) {
@@ -1412,6 +1461,42 @@ function toggleMenu() {
     modal.classList.toggle('hidden');
 }
 
+function showRestModal() {
+    const modal = document.getElementById('rest-modal');
+    const warning = document.getElementById('long-rest-warning');
+    const shortRestBtn = document.getElementById('btn-short-rest');
+    const longRestBtn = document.getElementById('btn-long-rest');
+
+    if (gameState.threat.level > 50) {
+        warning.innerText = "Resting here is dangerous. There is a high chance of being ambushed.";
+    } else if (gameState.threat.level > 20) {
+        warning.innerText = "The area is unsafe. Resting might attract unwanted attention.";
+    } else {
+        warning.innerText = "";
+    }
+
+    shortRestBtn.onclick = () => {
+        modal.classList.add('hidden');
+        logMessage("You take a short rest.", "system");
+        performShortRest();
+        updateStatsUI();
+    };
+
+    longRestBtn.onclick = () => {
+        modal.classList.add('hidden');
+        if (gameState.threat.level > 20 && rollDie(100) <= gameState.threat.level) {
+            logMessage("You are ambushed while resting!", "combat");
+            startCombat(['fungal_beast'], gameState.currentSceneId, 'SCENE_DEFEAT');
+        } else {
+            logMessage("You take a long rest.", "system");
+            performLongRest();
+            updateStatsUI();
+        }
+    };
+
+    modal.classList.remove('hidden');
+}
+
 // --- Global Logging ---
 // We'll have two separate log functions and swap them based on game state.
 
@@ -1446,3 +1531,18 @@ function logToBattle(msg, type) {
 
 // Default log is main
 window.logMessage = logToMain;
+
+let eventTextTimeout;
+function showBattleEventText(message, duration = 1500) {
+    const eventTextElement = document.getElementById('battle-event-text');
+    if (!eventTextElement) return;
+
+    clearTimeout(eventTextTimeout);
+
+    eventTextElement.innerText = message;
+    eventTextElement.classList.add('visible');
+
+    eventTextTimeout = setTimeout(() => {
+        eventTextElement.classList.remove('visible');
+    }, duration);
+}
