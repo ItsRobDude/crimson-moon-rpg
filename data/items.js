@@ -2,6 +2,7 @@ export const items = {
     "longsword": {
         name: "Longsword",
         type: "weapon",
+        subtype: "martial",
         damage: "1d8",
         modifier: "STR",
         damageType: "slashing",
@@ -11,6 +12,7 @@ export const items = {
     "shortbow": {
         name: "Shortbow",
         type: "weapon",
+        subtype: "simple",
         damage: "1d6",
         modifier: "DEX",
         damageType: "piercing",
@@ -20,6 +22,7 @@ export const items = {
     "dagger": {
         name: "Dagger",
         type: "weapon",
+        subtype: "simple",
         damage: "1d4",
         modifier: "DEX",
         damageType: "piercing",

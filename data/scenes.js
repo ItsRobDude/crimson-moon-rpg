@@ -152,32 +152,91 @@ export const scenes = {
             { text: "Return to town center.", nextScene: "SCENE_HUSHBRIAR_TOWN" }
         ]
     },
+    "SCENE_HUSHBRIAR_CORRUPTED": {
+        id: "SCENE_HUSHBRIAR_CORRUPTED",
+        location: "hushbriar",
+        background: "landscapes/heart_of_silverthorn.png", // Placeholder: needs corrupted variant
+        text: "Hushbriar has fallen to shadow. The streets are empty, save for the occasional Silverthorn patrol enforcing martial law. Strange growths cover the buildings.",
+        choices: [
+            {
+                text: "Sneak to the Inn (Stealth)",
+                type: "skillCheck",
+                skill: "stealth",
+                dc: 14,
+                successText: "You slip past the patrols.",
+                failText: "A patrol spots you!",
+                nextSceneSuccess: "SCENE_BRIARWOOD_INN",
+                nextSceneFail: "SCENE_HUSHBRIAR_COMBAT_GUARDS"
+            },
+            {
+                text: "Leave the town.",
+                action: "openMap"
+            }
+        ]
+    },
     "SCENE_BRIARWOOD_INN": {
         id: "SCENE_BRIARWOOD_INN",
         location: "hushbriar",
         background: "landscapes/heart_of_silverthorn.png", // Placeholder
-        text: "The inn is crowded. In the corner, a human man sits alone, head in hands. He looks up as you enter. It's Fionnlagh!",
+        text: "The inn is crowded.",
         onEnter: {
-            questUpdate: { id: "investigate_whisperwood", stage: 0 } // Or new quest
+            questUpdate: { id: "investigate_whisperwood", stage: 0 }
         },
         choices: [
             {
-                text: "Approach him.",
-                nextScene: "SCENE_FIONNLAGH_TALK"
+                text: "Talk to Fionnlagh (if alive)",
+                requires: { npcState: { id: "fionnlagh", status: "alive" } }, // Logic needed in game.js
+                nextScene: "SCENE_FIONNLAGH_HUB"
+            },
+            {
+                text: "Leave the Inn",
+                nextScene: "SCENE_HUSHBRIAR_TOWN"
             }
         ]
     },
-    "SCENE_FIONNLAGH_TALK": {
-        id: "SCENE_FIONNLAGH_TALK",
+    "SCENE_FIONNLAGH_HUB": {
+        id: "SCENE_FIONNLAGH_HUB",
         location: "hushbriar",
         background: "landscapes/heart_of_silverthorn.png",
         npcPortrait: "portraits/npc_male_placeholder_portrait.png",
-        text: "'Son? Is that... really you?' Fionnlagh grabs your shoulders. 'We need to leave. Something worse than the plague is here. I can feel death everywhere.'",
+        text: "Fionnlagh looks weary. 'What is it, my son?'",
         choices: [
             {
-                text: "Ask what he means.",
+                text: "Ask about the plague.",
+                nextScene: "SCENE_FIONNLAGH_PLAGUE_INFO"
+            },
+            {
+                text: "Ask about the clan.",
+                nextScene: "SCENE_FIONNLAGH_CLAN_INFO"
+            },
+            {
+                text: "We need to leave (Trigger Event)",
                 nextScene: "SCENE_HUSHBRIAR_SCREAMS"
+            },
+            {
+                text: "Back",
+                nextScene: "SCENE_BRIARWOOD_INN"
             }
+        ]
+    },
+    "SCENE_FIONNLAGH_PLAGUE_INFO": {
+        id: "SCENE_FIONNLAGH_PLAGUE_INFO",
+        location: "hushbriar",
+        background: "landscapes/heart_of_silverthorn.png",
+        npcPortrait: "portraits/npc_male_placeholder_portrait.png",
+        text: "'It's not just a sickness. It's a corruption of the soul. I've seen men turn into beasts.'",
+        choices: [
+            { text: "Back", nextScene: "SCENE_FIONNLAGH_HUB" }
+        ]
+    },
+    "SCENE_FIONNLAGH_CLAN_INFO": {
+        id: "SCENE_FIONNLAGH_CLAN_INFO",
+        location: "hushbriar",
+        background: "landscapes/heart_of_silverthorn.png",
+        npcPortrait: "portraits/npc_male_placeholder_portrait.png",
+        text: "'The clan has scattered. Some blame the humans, some blame the elves. We are broken.'",
+        choices: [
+            { text: "Back", nextScene: "SCENE_FIONNLAGH_HUB" }
         ]
     },
     "SCENE_HUSHBRIAR_SCREAMS": {
