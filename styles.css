@@ -731,6 +731,10 @@ button:hover {
     background-color: #5a3232;
 }
 
+.battle-action-button.col-span-2 {
+    grid-column: span 2;
+}
+
 /* Enemies Section */
 #enemies-container {
     display: flex;

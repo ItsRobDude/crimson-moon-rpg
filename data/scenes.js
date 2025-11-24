@@ -455,6 +455,9 @@ export const scenes = {
             },
             {
                 text: "I need more information about Aodhan.",
+                effects: [
+                    { type: "relationship", npcId: "alderic", amount: 5 }
+                ],
                 nextScene: "SCENE_BRIEFING_INFO"
             },
             {
@@ -703,10 +706,33 @@ export const scenes = {
         text: "Eoin explains that a massive creature, a 'Spore Walker', is raising the dead further in. 'It guards the old ruins. If you go there, you go to your grave.'",
         choices: [
             {
+                text: "Ask for help (Requires 20 Eoin Relationship)",
+                requires: {
+                    relationship: { npcId: "eoin", min: 20 }
+                },
+                nextScene: "SCENE_EOIN_ASSISTANCE"
+            },
+            {
                 text: "I must face it.",
                 effects: [
                     { type: "relationship", npcId: "eoin", amount: 5 }
                 ],
+                nextScene: "SCENE_RUINS_APPROACH"
+            }
+        ]
+    },
+    "SCENE_EOIN_ASSISTANCE": {
+        id: "SCENE_EOIN_ASSISTANCE",
+        location: "whisperwood",
+        background: "landscapes/sporefall_outskirts.png",
+        npcPortrait: "portraits/npc_male_placeholder_portrait.png",
+        text: "'You are brave, but not foolish,' Eoin says, pressing a small vial into your hand. 'Take this. It may be the only thing that sees you through.'",
+        onEnter: {
+            addItem: "potion_healing"
+        },
+        choices: [
+            {
+                text: "Thank him and proceed to the ruins.",
                 nextScene: "SCENE_RUINS_APPROACH"
             }
         ]

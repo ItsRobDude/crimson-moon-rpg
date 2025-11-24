@@ -1,0 +1,24 @@
+// This is the new main entry point.
+// It dynamically imports the game logic after ensuring all data modules are loaded.
+async function main() {
+    try {
+        // Dynamically import the game logic module.
+        // This ensures all its dependencies (data modules) are parsed before execution.
+        const game = await import('./game.js');
+
+        // Now that the module is loaded, we can safely initialize the game.
+        document.addEventListener('DOMContentLoaded', () => {
+            game.initUI();
+            game.showCharacterCreation();
+        });
+    } catch (error) {
+        console.error("Failed to load the game module:", error);
+        document.body.innerHTML = `<div style="color: white; padding: 20px;">
+            <h1>Fatal Error</h1>
+            <p>Could not load game files. Please check the console for details.</p>
+            <p>Error: ${error.message}</p>
+        </div>`;
+    }
+}
+
+main();
