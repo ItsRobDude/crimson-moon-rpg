@@ -40,10 +40,6 @@ export const scenes = {
             {
                 text: "I need more information about Aodhan.",
                 nextScene: "SCENE_BRIEFING_INFO"
-            },
-            {
-                text: "Visit the market before leaving.",
-                nextScene: "SCENE_SILVERTHORN_MARKET"
             }
         ]
     },
@@ -58,19 +54,6 @@ export const scenes = {
                 text: "Understood. I will go.",
                 nextScene: "SCENE_TRAVEL_SHADOWMIRE"
             }
-        ]
-    },
-    "SCENE_SILVERTHORN_MARKET": {
-        id: "SCENE_SILVERTHORN_MARKET",
-        location: "silverthorn",
-        background: "landscapes/heart_of_silverthorn.png", // Reusing city bg
-        text: "Stalls line the square, merchants hawking wares beneath the crimson-tinted sky. An inn, 'The Rusty Blade', stands nearby.",
-        type: "shop",
-        shopId: "silverthorn_market",
-        choices: [
-            { text: "Take a short rest (10 gold).", action: "shortRest", cost: 10 },
-            { text: "Take a long rest (25 gold).", action: "longRest", cost: 25 },
-            { text: "Leave the market.", nextScene: "SCENE_BRIEFING_2" }
         ]
     },
     "SCENE_TRAVEL_SHADOWMIRE": {
@@ -227,35 +210,6 @@ export const scenes = {
         location: "silverthorn",
         background: "landscapes/alderics_chamber.webp",
         text: "You return to Alderic with news of your success. This is the end of the playable demo.",
-        choices: [
-            {
-                text: "Open Map",
-                action: "openMap"
-            }
-        ]
-    },
-    // Hubs
-    "SCENE_HUB_SILVERTHORN": {
-        id: "SCENE_HUB_SILVERTHORN",
-        location: "silverthorn",
-        background: "landscapes/heart_of_silverthorn.png",
-        text: "You stand in the heart of Silverthorn. The city bustle continues around you. The market is busy today.",
-        choices: [
-            {
-                text: "Visit Alderic",
-                nextScene: "SCENE_BRIEFING"
-            },
-            {
-                text: "Visit Market",
-                nextScene: "SCENE_SILVERTHORN_MARKET"
-            }
-        ]
-    },
-    "SCENE_HUB_SHADOWMIRE": {
-        id: "SCENE_HUB_SHADOWMIRE",
-        location: "shadowmire",
-        background: "landscapes/forest_walk.png",
-        text: "The oppressive gloom of Shadowmire Forest surrounds you.",
         choices: []
     }
 };
