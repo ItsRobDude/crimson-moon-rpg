@@ -33,8 +33,10 @@
                 </div>
             </div>
             <div class="stat-group buttons">
+                <button id="btn-map">Map</button>
                 <button id="btn-inventory">Inventory</button>
                 <button id="btn-quests">Quests</button>
+                <button id="btn-codex">Codex</button>
                 <button id="btn-menu">Menu</button>
             </div>
         </header>
@@ -83,24 +85,94 @@
     <div id="char-creation-modal" class="modal hidden">
         <div class="modal-content">
             <h2>Create Your Character</h2>
-            <div class="form-group">
-                <label>Name:</label>
-                <input type="text" id="cc-name" value="Traveler">
+
+            <div class="cc-grid">
+                <!-- Left Column: Choices -->
+                <div class="cc-form-column">
+                    <div class="form-group">
+                        <label>Name:</label>
+                        <input type="text" id="cc-name" value="Traveler">
+                    </div>
+                    <div class="form-group">
+                        <label>Race:</label>
+                        <select id="cc-race"></select>
+                        <p id="cc-race-desc" class="desc-text"></p>
+                    </div>
+                    <div class="form-group">
+                        <label>Class:</label>
+                        <select id="cc-class"></select>
+                        <p id="cc-class-desc" class="desc-text"></p>
+                    </div>
+
+                    <!-- Ability Scores -->
+                    <div class="cc-form-section">
+                        <h3>Ability Scores (Standard Array)</h3>
+                        <div id="cc-abilities-container">
+                            <!-- Injected by JS: STR, DEX, etc with dropdowns -->
+                        </div>
+                    </div>
+
+                    <!-- Skills -->
+                    <div class="cc-form-section">
+                        <h3>Skills (Pick <span id="cc-skill-count">2</span>)</h3>
+                        <div id="cc-skills-container" class="checkbox-group">
+                            <!-- Injected by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Spells -->
+                    <div id="cc-spells-section" class="cc-form-section hidden">
+                        <h3>Starting Spells (Pick 2)</h3>
+                        <div id="cc-spells-container" class="checkbox-group">
+                            <!-- Injected by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Preview -->
+                <div class="cc-preview-column">
+                    <div class="preview-panel">
+                        <h3>Character Preview</h3>
+                        <div id="cc-preview-content">
+                            <!-- Dynamic Stats go here -->
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="form-group">
-                <label>Race:</label>
-                <select id="cc-race"></select> <!-- Populated by JS -->
-                <p id="cc-race-desc" class="desc-text"></p>
-            </div>
-            <div class="form-group">
-                <label>Class:</label>
-                <select id="cc-class"></select> <!-- Populated by JS -->
-                <p id="cc-class-desc" class="desc-text"></p>
-            </div>
-            <div id="cc-stats-preview">
-                <!-- Stats preview -->
-            </div>
+
             <button id="btn-start-game">Begin Journey</button>
+        </div>
+    </div>
+
+    <!-- Codex Modal -->
+    <div id="codex-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>Codex</h2>
+            <div class="codex-tabs">
+                <button id="btn-codex-people" class="tab-active">People</button>
+                <button id="btn-codex-factions">Factions</button>
+            </div>
+            <div id="codex-list"></div>
+            <button class="close-modal">Close</button>
+        </div>
+    </div>
+
+    <!-- Map Modal -->
+    <div id="map-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>World Map</h2>
+            <div id="map-locations"></div>
+            <button class="close-modal">Close</button>
+        </div>
+    </div>
+
+    <!-- Shop Panel (Overlay) -->
+    <div id="shop-panel" class="modal hidden">
+        <div class="modal-content">
+            <h2>Shop</h2>
+            <div id="shop-gold-display" style="text-align:right; color: gold; font-weight:bold; margin-bottom:10px;"></div>
+            <div id="shop-items-container"></div>
+            <button class="close-modal">Leave Shop</button>
         </div>
     </div>
 

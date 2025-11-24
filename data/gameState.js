@@ -4,6 +4,8 @@ import { items } from './items.js';
 import { quests } from './quests.js';
 import { scenes } from './scenes.js';
 import { statusEffects } from './statusEffects.js';
+import { npcs } from './npcs.js';
+import { factions } from './factions.js';
 import { rollDiceExpression } from '../rules.js';
 
 export const gameState = {
@@ -17,8 +19,9 @@ export const gameState = {
         hp: 10,
         maxHp: 10,
         abilities: { STR: 10, DEX: 10, CON: 10, INT: 10, WIS: 10, CHA: 10 },
-        modifiers: { STR: 0, DEX: 0, CON: 0, INT: 0, WIS: 0, CHA: 0 }, // Cache modifiers
-        skills: [], // List of proficient skills
+        modifiers: { STR: 0, DEX: 0, CON: 0, INT: 0, WIS: 0, CHA: 0 },
+        skills: [],
+        knownSpells: [],
         proficiencyBonus: 2,
         equippedWeaponId: null,
         equippedArmorId: null,
@@ -27,15 +30,38 @@ export const gameState = {
         statusEffects: []
     },
     currentSceneId: "SCENE_BRIEFING",
-    quests: JSON.parse(JSON.stringify(quests)), // Deep copy
+    quests: JSON.parse(JSON.stringify(quests)),
     flags: {},
+    // Reputation Trackers (Keyed by Faction ID)
     reputation: {
         silverthorn: 0,
-        durnhelm: 0
+        durnhelm: 0,
+        whisperwood_survivors: 0
     },
-    inCombat: false,
-    combatEnemy: null,
-    visitedScenes: {}
+    // Relationship Trackers (Keyed by NPC ID)
+    relationships: {},
+    // Discovered Locations
+    discoveredLocations: {
+        silverthorn: true,
+        shadowmire: false,
+        whisperwood: false
+    },
+    // Combat State
+    combat: {
+        active: false,
+        enemyId: null,
+        enemyCurrentHp: 0,
+        enemyMaxHp: 0,
+        enemyAc: 0,
+        enemyName: "",
+        playerInitiative: 0,
+        enemyInitiative: 0,
+        round: 1,
+        turn: "player",
+        winSceneId: null,
+        loseSceneId: null,
+        defending: false
+    }
 };
 
 // Helper to calc mod
@@ -43,18 +69,17 @@ function calcMod(score) {
     return Math.floor((score - 10) / 2);
 }
 
-export function initializeNewGame(name, raceId, classId) {
+// Updated Initialize
+export function initializeNewGame(name, raceId, classId, baseAbilityScores, chosenSkills, chosenSpells) {
     const race = races[raceId];
     const cls = classes[classId];
 
-    // 1. Base Stats (Standard Array-ish)
-    const baseStats = { STR: 12, DEX: 12, CON: 12, INT: 12, WIS: 12, CHA: 12 };
+    const abilities = baseAbilityScores ? { ...baseAbilityScores } : { STR: 12, DEX: 12, CON: 12, INT: 12, WIS: 12, CHA: 12 };
 
-    // 2. Apply Race Bonuses
     if (race && race.abilityBonuses) {
         for (const [stat, bonus] of Object.entries(race.abilityBonuses)) {
-            if (baseStats[stat] !== undefined) {
-                baseStats[stat] += bonus;
+            if (abilities[stat] !== undefined) {
+                abilities[stat] += bonus;
             }
         }
     }
@@ -62,27 +87,24 @@ export function initializeNewGame(name, raceId, classId) {
     gameState.player.name = name;
     gameState.player.raceId = raceId;
     gameState.player.classId = classId;
-    gameState.player.abilities = baseStats;
+    gameState.player.abilities = abilities;
     gameState.player.level = 1;
     gameState.player.xp = 0;
-    gameState.player.proficiencyBonus = 2; // Level 1 default
+    gameState.player.proficiencyBonus = 2;
 
-    // Calc Modifiers
     for (const stat of Object.keys(gameState.player.abilities)) {
         gameState.player.modifiers[stat] = calcMod(gameState.player.abilities[stat]);
     }
 
-    // HP Calculation
     const conMod = gameState.player.modifiers.CON;
     gameState.player.maxHp = cls.hitDie + conMod;
     gameState.player.hp = gameState.player.maxHp;
 
-    // Skills
-    gameState.player.skills = cls.proficiencies || [];
+    gameState.player.skills = chosenSkills && chosenSkills.length > 0 ? chosenSkills : (cls.proficiencies || []);
+    gameState.player.knownSpells = chosenSpells || [];
 
-    // Starting Gear
     gameState.player.inventory = [];
-    addItem('potion_healing'); // One free potion
+    addItem('potion_healing');
 
     if (classId === 'fighter') {
         addItem('longsword');
@@ -105,26 +127,89 @@ export function initializeNewGame(name, raceId, classId) {
     }
 
     gameState.currentSceneId = "SCENE_BRIEFING";
-    gameState.visitedScenes = {};
-    gameState.flags = {};
+    gameState.combat.active = false;
+    gameState.combat.enemyId = null;
+
+    gameState.discoveredLocations = {
+        silverthorn: true,
+        shadowmire: false,
+        whisperwood: false
+    };
+
+    // Initialize Relationships
+    initNpcRelationships();
 }
+
+// --- Relationship & Reputation Logic ---
+
+export function initNpcRelationships() {
+    gameState.relationships = {};
+    for (const [id, npc] of Object.entries(npcs)) {
+        gameState.relationships[id] = npc.relationshipStart || 0;
+    }
+}
+
+export function changeRelationship(npcId, amount) {
+    if (gameState.relationships[npcId] === undefined) {
+        // Initialize if missing (e.g. old save)
+        gameState.relationships[npcId] = 0;
+    }
+
+    const npc = npcs[npcId];
+    if (!npc) return;
+
+    const oldVal = gameState.relationships[npcId];
+    let newVal = oldVal + amount;
+
+    // Clamp
+    newVal = Math.max(npc.relationshipMin || -100, Math.min(npc.relationshipMax || 100, newVal));
+    gameState.relationships[npcId] = newVal;
+
+    const sign = amount > 0 ? '+' : '';
+    logMessage(`${npc.name}: ${sign}${amount} (${newVal})`, amount > 0 ? "gain" : "check-fail");
+}
+
+export function getRelationship(npcId) {
+    return gameState.relationships[npcId] || 0;
+}
+
+export function changeReputation(factionId, amount) {
+    if (gameState.reputation[factionId] === undefined) {
+        gameState.reputation[factionId] = 0;
+    }
+
+    const fact = factions[factionId];
+    if (!fact) return;
+
+    const oldVal = gameState.reputation[factionId];
+    let newVal = oldVal + amount;
+
+    // Clamp
+    newVal = Math.max(fact.min || -100, Math.min(fact.max || 100, newVal));
+    gameState.reputation[factionId] = newVal;
+
+    const sign = amount > 0 ? '+' : '';
+    logMessage(`Reputation (${fact.name}): ${sign}${amount} (${newVal})`, amount > 0 ? "gain" : "check-fail");
+}
+
+export function getReputation(factionId) {
+    return gameState.reputation[factionId] || 0;
+}
+
+// --- Standard Helpers ---
 
 export function updateQuestStage(questId, stageNumber) {
     if (!gameState.quests[questId]) {
         if (quests[questId]) {
             gameState.quests[questId] = JSON.parse(JSON.stringify(quests[questId]));
         } else {
-            console.error(`Quest ${questId} not found.`);
             return;
         }
     }
-
     gameState.quests[questId].currentStage = stageNumber;
-
     const questDef = quests[questId];
     const stages = Object.keys(questDef.stages).map(Number);
     const maxStage = Math.max(...stages);
-
     if (stageNumber >= maxStage) {
         gameState.quests[questId].completed = true;
     }
@@ -144,27 +229,20 @@ export function spendGold(amount) {
 
 export function gainXp(amount) {
     gameState.player.xp += amount;
-    // Check level up (simplified: every 300 xp)
     if (gameState.player.xp >= gameState.player.xpNext) {
         gameState.player.level++;
         gameState.player.xpNext = gameState.player.level * 300;
-        // Increase proficiency every 4 levels
         gameState.player.proficiencyBonus = Math.ceil(1 + (gameState.player.level / 4));
-
-        // HP increase?
         const cls = classes[gameState.player.classId];
         const conMod = gameState.player.modifiers.CON;
-        // Usually roll, but max or avg for simplicity
         const hpGain = Math.floor(cls.hitDie / 2) + 1 + conMod;
         gameState.player.maxHp += hpGain;
         gameState.player.hp += hpGain;
-
-        return true; // Leveled up
+        return true;
     }
     return false;
 }
 
-// Inventory Helpers
 export function addItem(itemId) {
     if (items[itemId]) {
         gameState.player.inventory.push(itemId);
@@ -193,7 +271,6 @@ export function useConsumable(itemId) {
         const roll = rollDiceExpression(item.amount);
         const healed = roll.total;
         gameState.player.hp = Math.min(gameState.player.hp + healed, gameState.player.maxHp);
-
         removeItem(itemId);
         return { success: true, msg: `Used ${item.name} and healed ${healed} HP.` };
     }
@@ -201,16 +278,11 @@ export function useConsumable(itemId) {
     return { success: false, msg: "Effect not implemented." };
 }
 
-// Status Effects
 export function applyStatusEffect(effectId, durationOverride) {
     if (!statusEffects[effectId]) return;
-
     const effect = statusEffects[effectId];
     const duration = durationOverride || effect.duration;
-
-    // Check if already has effect
     const existing = gameState.player.statusEffects.find(e => e.id === effectId);
-
     if (existing) {
         existing.remaining = Math.max(existing.remaining, duration);
         logMessage(`Status Effect refreshed: ${effect.name} (${duration} turns).`, "system");
@@ -229,7 +301,6 @@ export function hasStatusEffect(effectId) {
 
 export function tickStatusEffects() {
     const activeEffects = [];
-
     gameState.player.statusEffects.forEach(e => {
         e.remaining--;
         if (e.remaining > 0) {
@@ -239,22 +310,20 @@ export function tickStatusEffects() {
             logMessage(`${def.name} has faded.`, "system");
         }
     });
-
     gameState.player.statusEffects = activeEffects;
 }
 
-// Helper to log (needs to hook into UI or simple console for now, but game.js handles UI)
-// We can't easily call game.js logMessage from here due to circular deps if game imports gameState.
-// We will assume game.js calls tickStatusEffects and handles logging there?
-// No, game.js imports this. We need a callback or event.
-// For simplicity in this modular design, we will export a callback setter or use console.log
-// and let game.js override it, OR simpler: return messages from tickStatusEffects?
-// The prompt said "Log messages...".
-// Let's make logMessage a global or attachable.
-// For now, I'll just use console.log and let game.js handle the UI updates by checking state,
-// OR I'll move tickStatusEffects to game.js as planned initially.
-// Wait, I added it here. Let's move logic that touches UI (logging) to game.js or pass a logger.
-// I will use a simple hack: window.logMessage if available.
+export function discoverLocation(locId) {
+    if (gameState.discoveredLocations[locId] === undefined) return;
+    if (!gameState.discoveredLocations[locId]) {
+        gameState.discoveredLocations[locId] = true;
+        logMessage(`Location Discovered: ${locId.charAt(0).toUpperCase() + locId.slice(1)}`, "gain");
+    }
+}
+
+export function isLocationDiscovered(locId) {
+    return gameState.discoveredLocations[locId] === true;
+}
 
 function logMessage(msg, type) {
     if (window.logMessage) {

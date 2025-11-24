@@ -35,11 +35,19 @@ export const scenes = {
         choices: [
             {
                 text: "I accept.",
+                effects: [
+                    { type: "relationship", npcId: "alderic", amount: 10 },
+                    { type: "reputation", factionId: "silverthorn", amount: 5 }
+                ],
                 nextScene: "SCENE_TRAVEL_SHADOWMIRE"
             },
             {
                 text: "I need more information about Aodhan.",
                 nextScene: "SCENE_BRIEFING_INFO"
+            },
+            {
+                text: "Visit the market before leaving.",
+                nextScene: "SCENE_SILVERTHORN_MARKET"
             }
         ]
     },
@@ -52,8 +60,35 @@ export const scenes = {
         choices: [
             {
                 text: "Understood. I will go.",
+                effects: [
+                    { type: "relationship", npcId: "alderic", amount: 5 }
+                ],
+                nextScene: "SCENE_TRAVEL_SHADOWMIRE"
+            },
+            {
+                text: "Request extra supplies (Requires 20 Alderic Relationship)",
+                requires: {
+                    relationship: { npcId: "alderic", min: 20 }
+                },
+                effects: [
+                    { type: "addItem", itemId: "potion_healing" } // Logic needs to handle this in game.js handleChoice too
+                ],
+                onSuccess: { addGold: 50 }, // Alternative way if logic supports it
                 nextScene: "SCENE_TRAVEL_SHADOWMIRE"
             }
+        ]
+    },
+    "SCENE_SILVERTHORN_MARKET": {
+        id: "SCENE_SILVERTHORN_MARKET",
+        location: "silverthorn",
+        background: "landscapes/heart_of_silverthorn.png",
+        text: "Stalls line the square, merchants hawking wares beneath the crimson-tinted sky. An inn, 'The Rusty Blade', stands nearby.",
+        type: "shop",
+        shopId: "silverthorn_market",
+        choices: [
+            { text: "Take a short rest (10 gold).", action: "shortRest", cost: 10 },
+            { text: "Take a long rest (25 gold).", action: "longRest", cost: 25 },
+            { text: "Leave the market.", nextScene: "SCENE_BRIEFING_2" }
         ]
     },
     "SCENE_TRAVEL_SHADOWMIRE": {
@@ -210,7 +245,7 @@ export const scenes = {
         id: "SCENE_MEET_EOIN",
         location: "whisperwood",
         background: "landscapes/sporefall_outskirts.png",
-        npcPortrait: "portraits/npc_male_placeholder_portrait.png", // placeholder
+        npcPortrait: "portraits/npc_male_placeholder_portrait.png",
         text: "A ragged man stumbles from the treeline. He is covered in scratches and spore-dust. 'Stay back!' he warns, brandishing a broken spear. 'Are you real, or another trick of the moon?'",
         choices: [
             {
@@ -220,11 +255,20 @@ export const scenes = {
                 dc: 12,
                 successText: "'I am real,' you say softly. 'I was sent by Alderic.' The man lowers his weapon. 'Alderic? Then there is hope. I am Eoin. We were ambushed...'",
                 failText: "He doesn't trust you. 'Get back!' he shouts, backing away into the shadows before you can stop him.",
+                onSuccess: {
+                    effects: [
+                        { type: "relationship", npcId: "eoin", amount: 15 },
+                        { type: "reputation", factionId: "whisperwood_survivors", amount: 10 }
+                    ]
+                },
                 nextSceneSuccess: "SCENE_EOIN_TALK",
                 nextSceneFail: "SCENE_ALONE_AGAIN"
             },
             {
                 text: "Demand answers.",
+                effects: [
+                    { type: "relationship", npcId: "eoin", amount: -10 }
+                ],
                 nextScene: "SCENE_ALONE_AGAIN"
             }
         ]
@@ -238,6 +282,9 @@ export const scenes = {
         choices: [
             {
                 text: "I must face it.",
+                effects: [
+                    { type: "relationship", npcId: "eoin", amount: 5 }
+                ],
                 nextScene: "SCENE_RUINS_APPROACH"
             }
         ]
@@ -293,6 +340,35 @@ export const scenes = {
         location: "silverthorn",
         background: "landscapes/alderics_chamber.webp",
         text: "You return to Alderic with news of your success. This is the end of the playable demo.",
+        choices: [
+            {
+                text: "Open Map",
+                action: "openMap"
+            }
+        ]
+    },
+    // Hubs
+    "SCENE_HUB_SILVERTHORN": {
+        id: "SCENE_HUB_SILVERTHORN",
+        location: "silverthorn",
+        background: "landscapes/heart_of_silverthorn.png",
+        text: "You stand in the heart of Silverthorn. The city bustle continues around you. The market is busy today.",
+        choices: [
+            {
+                text: "Visit Alderic",
+                nextScene: "SCENE_BRIEFING"
+            },
+            {
+                text: "Visit Market",
+                nextScene: "SCENE_SILVERTHORN_MARKET"
+            }
+        ]
+    },
+    "SCENE_HUB_SHADOWMIRE": {
+        id: "SCENE_HUB_SHADOWMIRE",
+        location: "shadowmire",
+        background: "landscapes/forest_walk.png",
+        text: "The oppressive gloom of Shadowmire Forest surrounds you.",
         choices: []
     }
 };
