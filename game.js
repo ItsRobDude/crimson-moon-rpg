@@ -274,8 +274,7 @@ function goToScene(sceneId) {
     window.logMessage = logToMain; // Redirect logging to main panel
 
     // Determine if first visit
-    const firstVisit = !gameState.visitedScenes.includes(sceneId);
-    if (firstVisit) {
+    if (!gameState.visitedScenes.includes(sceneId)) {
         gameState.visitedScenes.push(sceneId);
     }
 
@@ -302,7 +301,8 @@ function goToScene(sceneId) {
     document.getElementById('narrative-text').innerText = scene.text;
 
     if (scene.onEnter) {
-        const runOnEnter = !scene.onEnter.once || firstVisit;
+        const isFirstVisit = !gameState.visitedScenes.includes(sceneId);
+        const runOnEnter = !scene.onEnter.once || isFirstVisit;
         if (runOnEnter) {
             if (scene.onEnter.questUpdate) {
                 updateQuestStage(scene.onEnter.questUpdate.id, scene.onEnter.questUpdate.stage);
@@ -946,9 +946,10 @@ function renderPlayerActions(container, subMenu = null) {
         });
         grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, 'spells'), 'flee'));
     } else { // Main menu
+        const hasAbilities = Object.values(gameState.player.resources).some(r => r.current > 0);
         grid.appendChild(createActionButton('Attack', 'swords', () => renderPlayerActions(container, 'attack'), 'primary'));
         grid.appendChild(createActionButton('Spells', 'auto_stories', () => renderPlayerActions(container, 'spells')));
-        grid.appendChild(createActionButton('Abilities', 'star', () => {}, '', true));
+        grid.appendChild(createActionButton('Abilities', 'star', () => {}, '', !hasAbilities));
         grid.appendChild(createActionButton('Defend', 'shield', performDefend));
         grid.appendChild(createActionButton('Items', 'local_drink', () => toggleInventory(true)));
         grid.appendChild(createActionButton('Flee', 'directions_run', performFlee, 'flee'));
