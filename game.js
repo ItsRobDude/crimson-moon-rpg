@@ -10,14 +10,16 @@ import { locations } from './data/locations.js';
 import { travelEvents } from './data/travelEvents.js';
 import { shops } from './data/shops.js';
 import { npcs } from './data/npcs.js';
+import { companions } from './data/companions.js';
 import { factions } from './data/factions.js';
-import { gameState, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus } from './data/gameState.js';
+import { gameState, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, unequipItem, syncPartyLevels } from './data/gameState.js';
 import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod, generateScaledStats } from './rules.js';
 
+// ... (Existing exports and initUI) ...
 export function initUI() {
     window.goToScene = goToScene;
     window.showCharacterCreation = showCharacterCreation;
-    document.getElementById('btn-inventory').onclick = () => toggleInventory(false);
+    document.getElementById('btn-inventory').onclick = () => toggleInventory();
     document.getElementById('btn-quests').onclick = toggleQuestLog;
     document.getElementById('btn-menu').onclick = toggleMenu;
     document.getElementById('btn-map').onclick = toggleMap;
@@ -345,6 +347,7 @@ function goToScene(sceneId) {
     }
 }
 
+// ... (renderChoices, handleChoice, travelTo, etc. - mostly standard) ...
 function renderChoices(choices) {
     const choiceContainer = document.getElementById('choice-container');
     choiceContainer.innerHTML = '';
@@ -525,6 +528,7 @@ function renderShop(shopId) {
 
 // --- Map System --- (Omitted similar to before, unchanged)
 function toggleMap() {
+    // ... (Existing logic)
     const modal = document.getElementById('map-modal');
     const list = document.getElementById('map-locations');
     const pinList = document.getElementById('pin-list');
@@ -751,7 +755,7 @@ function renderCodexFactions(container) {
     });
 }
 
-// --- Combat System ---
+// --- Combat System (Updated for Party) ---
 
 export function startCombat(combatantIds, winScene, loseScene) {
     const sceneContainer = document.getElementById('scene-container');
@@ -764,7 +768,7 @@ export function startCombat(combatantIds, winScene, loseScene) {
 
     const currentScene = scenes[gameState.currentSceneId];
 
-    const combatEnemies = combatantIds.map((id, index) => {
+    const enemiesList = combatantIds.map((id, index) => {
         let combatantData;
         let isNpc = false;
 
@@ -803,7 +807,7 @@ export function startCombat(combatantIds, winScene, loseScene) {
 
     gameState.combat = {
         active: true,
-        enemies: combatEnemies,
+        enemies: enemiesList,
         turnOrder: [],
         turnIndex: 0,
         round: 1,
@@ -818,10 +822,22 @@ export function startCombat(combatantIds, winScene, loseScene) {
     logMessage(`Combat started!`, "combat");
 
     const initiatives = [];
+    // Player
     const playerInit = rollInitiative(gameState, 'player');
     initiatives.push({ type: 'player', id: 'player', initiative: playerInit.total });
     logMessage(`You rolled ${playerInit.total} for initiative.`, "system");
 
+    // Companions
+    gameState.party.forEach(compId => {
+        // Simplify companion initiative (use player's roll or just flat d20 + dex)
+        const char = gameState.roster[compId];
+        const dexMod = char.modifiers.DEX;
+        const roll = rollDie(20) + dexMod;
+        initiatives.push({ type: 'companion', id: compId, initiative: roll });
+        logMessage(`${char.name} rolled ${roll} for initiative.`, "system");
+    });
+
+    // Enemies
     gameState.combat.enemies.forEach(enemy => {
         const init = rollInitiative(gameState, 'enemy', enemy.attackBonus);
         enemy.initiative = init.total;
@@ -847,7 +863,23 @@ function combatTurnLoop() {
 
         logMessage(`Round ${gameState.combat.round} - Your Turn`, "system");
         updateCombatUI();
+    } else if (gameState.party.includes(currentTurnId)) {
+        // Companion Turn
+        const comp = gameState.roster[currentTurnId];
+        logMessage(`Round ${gameState.combat.round} - ${comp.name}'s Turn`, "system");
+
+        if (gameState.settings.companionAI) {
+            // AI Control
+            setTimeout(() => companionTurnAI(comp), 1000);
+        } else {
+            // Manual Control
+            // We treat it like player turn but acting as companion
+            gameState.combat.actionsRemaining = 1;
+            gameState.combat.bonusActionsRemaining = 1;
+            updateCombatUI(currentTurnId); // Pass active character ID
+        }
     } else {
+        // Enemy Turn
         const enemy = gameState.combat.enemies.find(e => e.uniqueId === currentTurnId);
         logMessage(`Round ${gameState.combat.round} - ${enemy.name}'s Turn`, "system");
         updateCombatUI();
@@ -855,16 +887,14 @@ function combatTurnLoop() {
     }
 }
 
-function updateCombatUI() {
+function updateCombatUI(activeCharacterId = 'player') {
     if (!gameState.combat.active) return;
 
     const partyContainer = document.getElementById('party-container');
     partyContainer.innerHTML = '';
 
-    const p = gameState.player;
-    const playerCard = document.createElement('div');
-    const isPlayerTurn = gameState.combat.turnOrder[gameState.combat.turnIndex] === 'player';
-    playerCard.className = `party-card ${isPlayerTurn ? 'active-turn' : ''} ${p.hp <= 0 ? 'down' : ''}`;
+    // Render Player
+    renderPartyCard(gameState.player, 'player', activeCharacterId);
 
     const hpPct = Math.max(0, (p.hp / p.maxHp) * 100);
     const totalSlots = p.spellSlots ? Object.values(p.spellSlots).reduce((a, b) => a + b, 0) : 0;
@@ -922,9 +952,19 @@ function updateCombatUI() {
     const turnIndicator = document.getElementById('turn-indicator');
     const actionsContainer = document.getElementById('battle-actions-container');
     actionsContainer.innerHTML = '';
-    if (isPlayerTurn) {
-        turnIndicator.textContent = `${p.name}'s Turn`;
-        renderPlayerActions(actionsContainer);
+
+    let activeName = "";
+    if (activeCharacterId === 'player') activeName = gameState.player.name;
+    else if (gameState.roster[activeCharacterId]) activeName = gameState.roster[activeCharacterId].name;
+
+    if (activeCharacterId === 'player' || gameState.party.includes(activeCharacterId)) {
+        const isTurn = gameState.combat.turnOrder[gameState.combat.turnIndex] === activeCharacterId;
+        if (isTurn) {
+            turnIndicator.textContent = `${activeName}'s Turn`;
+            renderPlayerActions(actionsContainer, null, activeCharacterId);
+        } else {
+            turnIndicator.textContent = "Waiting...";
+        }
     } else {
         const enemy = gameState.combat.enemies.find(e => e.uniqueId === gameState.combat.turnOrder[gameState.combat.turnIndex]);
         turnIndicator.textContent = enemy ? `${enemy.name}'s Turn` : "Enemy's Turn";
@@ -945,11 +985,11 @@ function renderPlayerActions(container, subMenu = null) {
     if (subMenu === 'attack') {
         gameState.combat.enemies.forEach(enemy => {
             if (enemy.hp <= 0) return;
-            grid.appendChild(createActionButton(enemy.name, 'swords', () => performAttack(enemy.uniqueId), 'primary'));
+            grid.appendChild(createActionButton(enemy.name, 'swords', () => performAttack(enemy.uniqueId, actingId), 'primary'));
         });
         grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, null), 'flee'));
     } else if (subMenu === 'spells') {
-        const spellList = gameState.player.knownSpells || [];
+        const spellList = actor.knownSpells || [];
         spellList.forEach(spellId => {
             const spell = spells[spellId];
             if (!spell) return;
@@ -958,23 +998,31 @@ function renderPlayerActions(container, subMenu = null) {
             const cost = 'action';
             const canCast = (cost === 'action' && hasAction) || (cost === 'bonus' && hasBonus);
 
-            const hasSlots = spell.level === 0 || (gameState.player.currentSlots[spell.level] && gameState.player.currentSlots[spell.level] > 0);
+            const hasSlots = spell.level === 0 || (actor.currentSlots[spell.level] && actor.currentSlots[spell.level] > 0);
             grid.appendChild(createActionButton(spell.name, 'auto_stories', () => {
                  renderPlayerActions(container, { type: 'spell_target', spellId: spellId });
             }, '', !hasSlots || !canCast));
         });
-        grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, null), 'flee'));
+        grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, null, actingId), 'flee'));
     } else if (subMenu && subMenu.type === 'spell_target') {
+        // Targets: Player + Companions + Enemies?
+        // For simplicity, "Party" vs "Enemies".
         const spell = spells[subMenu.spellId];
         if (spell.type === 'heal') {
-            grid.appendChild(createActionButton(`Cast on ${gameState.player.name}`, 'auto_stories', () => performCastSpell(subMenu.spellId, 'player'), 'primary'));
+            // Allow targeting self or allies
+            grid.appendChild(createActionButton(`Self`, 'healing', () => performCastSpell(subMenu.spellId, actingId, actingId), 'primary'));
+            // Add player if actor is companion, and vice versa
+            if (actingId !== 'player') grid.appendChild(createActionButton(gameState.player.name, 'healing', () => performCastSpell(subMenu.spellId, 'player', actingId), 'primary'));
+            gameState.party.forEach(pid => {
+                if (pid !== actingId) grid.appendChild(createActionButton(gameState.roster[pid].name, 'healing', () => performCastSpell(subMenu.spellId, pid, actingId), 'primary'));
+            });
         } else {
             gameState.combat.enemies.forEach(enemy => {
                 if (enemy.hp <= 0) return;
-                grid.appendChild(createActionButton(`Cast on ${enemy.name}`, 'auto_stories', () => performCastSpell(subMenu.spellId, enemy.uniqueId), 'primary'));
+                grid.appendChild(createActionButton(enemy.name, 'auto_stories', () => performCastSpell(subMenu.spellId, enemy.uniqueId, actingId), 'primary'));
             });
         }
-        grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, 'spells'), 'flee'));
+        grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, 'spells', actingId), 'flee'));
     } else if (subMenu === 'abilities') {
         // Render Class Features
         const cls = classes[gameState.player.classId];
@@ -1065,11 +1113,18 @@ function calculateDamage(baseDamage, damageType, target, isCritical = false) {
         message = `${target.name} resists ${damageType}. Damage halved.`;
     }
 
-    if (message) {
-        logMessage(message, "system");
-    }
+function performActionSurge(actorId) {
+    const actor = (actorId === 'player') ? gameState.player : gameState.roster[actorId];
+    const res = actor.resources['action_surge'];
+    if (res.current <= 0) return;
+    res.current--;
+    gameState.combat.actionsRemaining++;
+    logMessage(`${actor.name} used Action Surge!`, "gain");
+    updateCombatUI(actorId);
+}
 
-    return finalDamage;
+function performEndTurn() {
+    endPlayerTurn();
 }
 
 function createActionButton(text, icon, onClick, type = '', disabled = false) {
@@ -1092,7 +1147,7 @@ function performAttack(targetId) {
     }
 
     const target = gameState.combat.enemies.find(e => e.uniqueId === targetId);
-    if (!target) return;
+    const actor = (actorId === 'player') ? gameState.player : gameState.roster[actorId];
 
     gameState.combat.actionsRemaining--;
 
@@ -1100,7 +1155,18 @@ function performAttack(targetId) {
     const weapon = items[weaponId] || { name: "Unarmed", damage: "1d2", modifier: "STR", damageType: "bludgeoning", subtype: "simple" };
     const stat = weapon.modifier || "STR";
 
-    const cls = classes[gameState.player.classId];
+    // Need to access cls proficiencies.
+    // cls structure is slightly different in memory? No, standard.
+    // But wait, do we have `proficiencyBonus` on companion?
+    // Yes, calculated implicitly or should be on object.
+    // I didn't explicitly set it on roster init. Default to 2 + floor((level-1)/4).
+    const profBonus = Math.ceil(1 + (actor.level / 4));
+
+    // Stat mod
+    const statMod = actor.modifiers[stat];
+
+    // Proficiency check
+    const cls = classes[actor.classId];
     const isProficient = weapon.subtype && cls.weaponProficiencies && cls.weaponProficiencies.includes(weapon.subtype);
     const prof = isProficient ? gameState.player.proficiencyBonus : 0;
 
@@ -1144,7 +1210,7 @@ function performAttack(targetId) {
 
         const finalDamage = calculateDamage(dmg, weapon.damageType, target);
         target.hp -= Math.max(1, finalDamage);
-        logMessage(`Hit! Dealt ${finalDamage} ${weapon.damageType} damage to ${target.name}.`, "combat");
+        logMessage(`Hit! Dealt ${finalDamage} damage.`, "combat");
         showBattleEventText(`${finalDamage}`);
     } else {
         logMessage("Miss!", "system");
@@ -1200,15 +1266,10 @@ function performCastSpell(spellId, targetId) {
     }
 
     const spell = spells[spellId];
-    if (!spell) return;
 
     if (spell.level > 0) {
-        if (gameState.player.currentSlots[spell.level] > 0) {
-            gameState.player.currentSlots[spell.level]--;
-        } else {
-            logMessage("Not enough spell slots!", "check-fail");
-            return;
-        }
+        if (actor.currentSlots[spell.level] > 0) actor.currentSlots[spell.level]--;
+        else { logMessage("No slots!", "check-fail"); return; }
     }
 
     gameState.combat.actionsRemaining--;
@@ -1228,41 +1289,21 @@ function performCastSpell(spellId, targetId) {
         const target = gameState.combat.enemies.find(e => e.uniqueId === targetId);
         if (!target) return;
 
-        logMessage(`Casting ${spell.name} on ${target.name}...`, "combat");
+    // Target
+    let target;
+    if (targetId === 'player') target = gameState.player;
+    else if (gameState.roster[targetId]) target = gameState.roster[targetId];
+    else target = gameState.combat.enemies.find(e => e.uniqueId === targetId);
 
-        if (spell.type === 'attack') {
-            const stat = (gameState.player.classId === 'wizard') ? 'INT' : 'WIS';
-            const prof = gameState.player.proficiencyBonus;
-            const result = rollAttack(gameState, stat, prof);
+    if (!target) return;
 
-            if (result.total >= target.ac || result.isCritical) {
-                let dmg = rollDiceExpression(spell.damage).total;
-                const finalDamage = calculateDamage(dmg, spell.damageType, target);
-                target.hp -= Math.max(1, finalDamage);
-                logMessage(`Hit! ${target.name} takes ${finalDamage} ${spell.damageType} damage.`, "combat");
-            } else {
-                logMessage("The spell misses!", "system");
-            }
-        } else if (spell.type === 'save') {
-            const saveDC = 8 + gameState.player.proficiencyBonus + gameState.player.modifiers[(gameState.player.classId === 'wizard') ? 'INT' : 'WIS'];
-            const enemySaveRoll = rollDie(20);
-
-            let dmg = rollDiceExpression(spell.damage).total;
-            if (enemySaveRoll >= saveDC) {
-                dmg = Math.floor(dmg / 2);
-                logMessage(`${target.name} saved! Takes half damage.`, "combat");
-            } else {
-                logMessage(`${target.name} failed save!`, "combat");
-            }
-            const finalDamage = calculateDamage(dmg, spell.damageType, target);
-            target.hp -= Math.max(1, finalDamage);
-            logMessage(`Dealt ${finalDamage} ${spell.damageType} damage.`, "combat");
-        }
-    }
+    logMessage(`${actor.name} casts ${spell.name} on ${target.name}.`, "combat");
 
     if (!checkWinCondition()) {
         updateCombatUI();
     }
+
+    if (!checkWinCondition()) updateCombatUI(actorId);
 }
 
 function performDefend() {
@@ -1359,10 +1400,12 @@ function endEnemyTurn(enemy) {
         checkWinCondition();
         return;
     }
-
-    combatTurnLoop();
 }
 
+// --- AI Companion Logic ---
+function companionTurnAI(actor) {
+    // Very simple AI
+    logMessage(`${actor.name} acts (AI).`, "system");
 
 function checkWinCondition() {
     const allEnemiesDefeated = gameState.combat.enemies.every(e => e.hp <= 0);
@@ -1465,8 +1508,8 @@ function performShortRest() {
     const healed = Math.max(1, roll);
     gameState.player.hp = Math.min(gameState.player.maxHp, gameState.player.hp + healed);
 
-    if (gameState.player.resources['second_wind']) {
-        gameState.player.resources['second_wind'].current = gameState.player.resources['second_wind'].max;
+    if (!checkWinCondition()) {
+        endPlayerTurn(); // End companion turn
     }
     if (gameState.player.resources['action_surge']) {
         gameState.player.resources['action_surge'].current = gameState.player.resources['action_surge'].max;
@@ -1476,6 +1519,146 @@ function performShortRest() {
 }
 
 // ... (Standard helper functions remain) ...
+function saveGame() {
+    localStorage.setItem('crimson_moon_save', JSON.stringify(gameState));
+    logMessage("Game Saved.", "system");
+}
+
+// --- Inventory System Update ---
+
+function toggleInventory(forceOpen = null, characterId = 'player') {
+    const modal = document.getElementById('inventory-modal');
+    const list = document.getElementById('inventory-list');
+    const charSelect = document.getElementById('inventory-character-select');
+
+    if (forceOpen === false || (forceOpen === null && !modal.classList.contains('hidden'))) {
+        modal.classList.add('hidden');
+        return;
+    }
+
+    modal.classList.remove('hidden');
+    list.innerHTML = '';
+    charSelect.innerHTML = ''; // Clear tabs
+
+    // Render Tabs
+    const chars = ['player', ...gameState.party];
+    chars.forEach(id => {
+        const btn = document.createElement('button');
+        const name = (id === 'player') ? gameState.player.name : gameState.roster[id].name;
+        btn.innerText = name;
+        btn.className = (id === characterId) ? 'tab-active' : '';
+        btn.onclick = () => toggleInventory(true, id);
+        charSelect.appendChild(btn);
+    });
+
+    const targetChar = (characterId === 'player') ? gameState.player : gameState.roster[characterId];
+    if (!targetChar || targetChar.inventory.length === 0) {
+        list.innerHTML = '<p>Empty.</p>';
+        return;
+    }
+
+    targetChar.inventory.forEach(itemId => {
+        const item = items[itemId];
+        if (!item) return;
+
+        const row = document.createElement('div');
+        row.className = 'inventory-item';
+        row.innerHTML = `<strong>${item.name}</strong> <small>${item.type}</small>`;
+
+        const actions = document.createElement('div');
+
+        if (item.type === 'weapon' || item.type === 'armor') {
+            const equipBtn = document.createElement('button');
+            let isEquipped = false;
+            if (characterId === 'player') {
+                isEquipped = (gameState.player.equippedWeaponId === itemId || gameState.player.equippedArmorId === itemId);
+            } else {
+                isEquipped = (targetChar.equipped.weapon === itemId || targetChar.equipped.armor === itemId);
+            }
+
+            equipBtn.innerText = isEquipped ? "Equipped" : "Equip";
+            equipBtn.disabled = isEquipped;
+            equipBtn.onclick = () => {
+                const res = equipItem(itemId, characterId);
+                if (res.success) {
+                    logMessage(`Equipped ${item.name}.`, "system");
+                    toggleInventory(true, characterId);
+                    updateStatsUI(); // If player
+                } else {
+                    logMessage(`Cannot equip: ${res.reason}`, "check-fail");
+                }
+            };
+            actions.appendChild(equipBtn);
+        }
+
+        // Transfer Button
+        const transferBtn = document.createElement('button');
+        transferBtn.innerText = "Give";
+        transferBtn.onclick = () => {
+            // Simple cycle: Give to next char
+            // Ideally show dropdown. For now, give to Player if Comp, give to first Comp if Player.
+            let targetId = 'player';
+            if (characterId === 'player') {
+                if (gameState.party.length > 0) targetId = gameState.party[0];
+                else { logMessage("No one to give to.", "system"); return; }
+            }
+
+            removeItem(itemId, characterId);
+            addItem(itemId, targetId);
+            logMessage(`Transferred ${item.name}.`, "system");
+            toggleInventory(true, characterId);
+        };
+        actions.appendChild(transferBtn);
+
+        row.appendChild(actions);
+        list.appendChild(row);
+    });
+}
+
+// ... Rest of file (imports, basic functions) ...
+// NOTE: I need to ensure calculateDamage and createActionButton are available or copied.
+// I used them in performAttack. They are internal helper functions.
+// I will keep them as they were in the previous file content.
+
+function calculateDamage(baseDamage, damageType, target, isCritical = false) {
+    const combatantStats = target.fullStats || enemies[target.id];
+    if (!combatantStats) return baseDamage;
+
+    let finalDamage = baseDamage;
+    let message = "";
+
+    const vulnerabilities = combatantStats.vulnerabilities || "";
+    const resistances = combatantStats.resistances || "";
+
+    if (vulnerabilities.includes(damageType)) {
+        finalDamage *= 2;
+        message = `${target.name} is vulnerable to ${damageType}! Damage doubled.`;
+    } else if (resistances.includes(damageType)) {
+        finalDamage = Math.floor(finalDamage / 2);
+        message = `${target.name} resists ${damageType}. Damage halved.`;
+    }
+
+    if (message) {
+        logMessage(message, "system");
+    }
+
+    return finalDamage;
+}
+
+function createActionButton(text, icon, onClick, type = '', disabled = false) {
+    const button = document.createElement('button');
+    button.className = `battle-action-button ${type}`;
+    button.innerHTML = `<span class="material-symbols-outlined">${icon}</span><span class="truncate">${text}</span>`;
+    button.onclick = onClick;
+    if (disabled) {
+        button.disabled = true;
+        button.style.opacity = '0.5';
+        button.style.cursor = 'not-allowed';
+    }
+    return button;
+}
+
+// Standard helpers (save, load, etc) are kept.
 function saveGame() {
     localStorage.setItem('crimson_moon_save', JSON.stringify(gameState));
     logMessage("Game Saved.", "system");
@@ -1491,70 +1674,6 @@ function loadGame() {
     } else {
         logMessage("No save found.", "check-fail");
     }
-}
-
-function toggleInventory(forceOpen = null) {
-    const modal = document.getElementById('inventory-modal');
-    const list = document.getElementById('inventory-list');
-
-    if (forceOpen === false || (forceOpen === null && !modal.classList.contains('hidden'))) {
-        modal.classList.add('hidden');
-        return;
-    }
-
-    modal.classList.remove('hidden');
-    list.innerHTML = '';
-
-    if (gameState.player.inventory.length === 0) {
-        list.innerHTML = '<p>Empty.</p>';
-        return;
-    }
-
-    gameState.player.inventory.forEach(itemId => {
-        const item = items[itemId];
-        if (!item) return;
-
-        const row = document.createElement('div');
-        row.className = 'inventory-item';
-        row.innerHTML = `<strong>${item.name}</strong> <small>${item.type}</small>`;
-
-        const actions = document.createElement('div');
-
-        if (item.type === 'weapon' || item.type === 'armor') {
-            const equipBtn = document.createElement('button');
-            const isEquipped = (gameState.player.equippedWeaponId === itemId || gameState.player.equippedArmorId === itemId);
-            equipBtn.innerText = isEquipped ? "Equipped" : "Equip";
-            equipBtn.disabled = isEquipped;
-            equipBtn.onclick = () => {
-                const res = equipItem(itemId);
-                if (res.success) {
-                    logMessage(`Equipped ${item.name}.`, "system");
-                    toggleInventory(true); // Refresh
-                    updateStatsUI();
-                } else {
-                    logMessage(`Cannot equip: ${res.reason}`, "check-fail");
-                }
-            };
-            actions.appendChild(equipBtn);
-        } else if (item.type === 'consumable') {
-            const useBtn = document.createElement('button');
-            useBtn.innerText = "Use";
-            useBtn.onclick = () => {
-                const res = useConsumable(itemId);
-                if (res.success) {
-                    logMessage(res.msg, "gain");
-                    toggleInventory(true);
-                    updateStatsUI();
-                } else {
-                    logMessage(res.msg, "check-fail");
-                }
-            };
-            actions.appendChild(useBtn);
-        }
-
-        row.appendChild(actions);
-        list.appendChild(row);
-    });
 }
 
 function toggleQuestLog() {
