@@ -53,7 +53,35 @@ export function getProficiencyBonus(level) {
     return Math.ceil(1 + (level / 4));
 }
 
-export function getSkillBonus(gameState, skillName) {
+export function calculateDerivedStats(character) {
+    const derived = {
+        ac: 10 + getAbilityMod(character.abilities.DEX),
+        toHit: 0,
+    };
+
+    // Armor
+    const armorId = character.equipped.armor;
+    if (armorId && items[armorId]) {
+        const armor = items[armorId];
+        derived.ac = armor.acBase;
+        if (armor.modifiers && armor.modifiers.ac) {
+            derived.ac += armor.modifiers.ac;
+        }
+    }
+
+    // Weapon
+    const weaponId = character.equipped.weapon;
+    if (weaponId && items[weaponId]) {
+        const weapon = items[weaponId];
+        if (weapon.modifiers && weapon.modifiers.toHit) {
+            derived.toHit += weapon.modifiers.toHit;
+        }
+    }
+
+    return derived;
+}
+
+export function getSkillBonus(character, skillName) {
     const skillMap = {
         perception: "WIS",
         investigation: "INT",
@@ -72,26 +100,26 @@ export function getSkillBonus(gameState, skillName) {
     };
 
     const ability = skillMap[skillName.toLowerCase()] || "DEX"; // Default
-    const score = gameState.player.abilities[ability];
+    const score = character.abilities[ability];
     let bonus = getAbilityMod(score);
 
-    if (gameState.player.skills.includes(skillName)) {
-        bonus += gameState.player.proficiencyBonus;
+    if (character.skills.includes(skillName)) {
+        bonus += character.proficiencyBonus;
     }
 
     return { bonus, ability };
 }
 
-function hasStatus(gameState, effectId) {
-    return gameState.player.statusEffects && gameState.player.statusEffects.some(e => e.id === effectId);
+function hasStatus(character, effectId) {
+    return character.statusEffects && character.statusEffects.some(e => e.id === effectId);
 }
 
-export function rollSkillCheck(gameState, skillName, advantage = false) {
-    const { bonus } = getSkillBonus(gameState, skillName);
+export function rollSkillCheck(character, skillName, advantage = false) {
+    const { bonus } = getSkillBonus(character, skillName);
 
-    const isPoisoned = hasStatus(gameState, 'poisoned');
-    const isBlessed = hasStatus(gameState, 'blessed');
-    const hasSporeSickness = hasStatus(gameState, 'spore_sickness');
+    const isPoisoned = hasStatus(character, 'poisoned');
+    const isBlessed = hasStatus(character, 'blessed');
+    const hasSporeSickness = hasStatus(character, 'spore_sickness');
 
     let roll1 = rollDie(20);
     let roll2 = rollDie(20);
@@ -128,11 +156,11 @@ export function rollSkillCheck(gameState, skillName, advantage = false) {
     };
 }
 
-export function rollSavingThrow(gameState, abilityName) {
-    const score = gameState.player.abilities[abilityName];
+export function rollSavingThrow(character, abilityName) {
+    const score = character.abilities[abilityName];
     let bonus = getAbilityMod(score);
 
-    const isBlessed = hasStatus(gameState, 'blessed');
+    const isBlessed = hasStatus(character, 'blessed');
 
     let roll = rollDie(20);
     let total = roll + bonus;
@@ -152,13 +180,13 @@ export function rollSavingThrow(gameState, abilityName) {
     };
 }
 
-export function rollAttack(gameState, modStat, proficiency, advantage = false) {
-    const score = gameState.player.abilities[modStat];
+export function rollAttack(character, modStat, proficiency, advantage = false) {
+    const score = character.abilities[modStat];
     const mod = getAbilityMod(score);
     const totalMod = mod + proficiency;
 
-    const isPoisoned = hasStatus(gameState, 'poisoned');
-    const isBlessed = hasStatus(gameState, 'blessed');
+    const isPoisoned = hasStatus(character, 'poisoned');
+    const isBlessed = hasStatus(character, 'blessed');
 
     let roll1 = rollDie(20);
     let roll2 = rollDie(20);

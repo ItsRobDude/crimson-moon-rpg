@@ -1,5 +1,5 @@
 import { gameState, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, unequipItem, syncPartyLevels } from './data/gameState.js';
-import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod, generateScaledStats } from './rules.js';
+import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod, generateScaledStats, calculateDerivedStats } from './rules.js';
 import { classes } from './data/classes.js';
 import { items } from './data/items.js';
 import { enemies } from './data/enemies.js';
@@ -492,7 +492,7 @@ export function performAttack(targetId, actorId) {
 
     gameState.combat.actionsRemaining--;
 
-    const weaponId = (actorId === 'player') ? actor.equippedWeaponId : actor.equipped.weapon;
+    const weaponId = actor.equipped.weapon;
     const weapon = items[weaponId] || { name: "Unarmed", damage: "1d2", modifier: "STR", damageType: "bludgeoning", subtype: "simple" };
     const stat = weapon.modifier || "STR";
 
@@ -500,7 +500,9 @@ export function performAttack(targetId, actorId) {
     const statMod = actor.modifiers[stat] || 0;
     const cls = classes[actor.classId];
     const isProficient = weapon.subtype && cls.weaponProficiencies && cls.weaponProficiencies.includes(weapon.subtype);
-    const totalBonus = statMod + (isProficient ? profBonus : 0);
+    const prof = isProficient ? profBonus : 0;
+    const derivedStats = calculateDerivedStats(actor);
+    const totalBonus = statMod + prof + derivedStats.toHit;
 
     const roll = rollDie(20);
     const total = roll + totalBonus;
@@ -612,10 +614,8 @@ function getCurrentActorId() {
     return gameState.combat.turnOrder[gameState.combat.turnIndex];
 }
 
-function getAC(char) {
-    const armor = char.equippedArmorId ? items[char.equippedArmorId] : (char.equipped?.armor ? items[char.equipped.armor] : null);
-    if (armor) return armor.acBase;
-    return 10 + (char.modifiers.DEX || 0);
+function getAC(character) {
+    return calculateDerivedStats(character).ac;
 }
 
 function calculateDamage(baseDamage, damageType, target, isCritical = false) {
@@ -638,6 +638,7 @@ function calculateDamage(baseDamage, damageType, target, isCritical = false) {
 
     if (message) logMessage(message, "system");
     return finalDamage;
+    }
 }
 
 
