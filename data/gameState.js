@@ -14,7 +14,7 @@ export const gameState = {
         name: "",
         raceId: "",
         classId: "",
-        subclassId: null,
+        subclassId: null, // New: Subclass tracking
         level: 1,
         xp: 0,
         xpNext: 300,
@@ -24,9 +24,9 @@ export const gameState = {
         modifiers: { STR: 0, DEX: 0, CON: 0, INT: 0, WIS: 0, CHA: 0 },
         skills: [],
         knownSpells: [],
-        spellSlots: {},
-        currentSlots: {},
-        resources: {},
+        spellSlots: {}, // Tracks max slots per level
+        currentSlots: {}, // Tracks current available slots
+        resources: {}, // Tracks class resources (e.g., second_wind, action_surge)
         proficiencyBonus: 2,
         equippedWeaponId: null,
         equippedArmorId: null,
@@ -35,13 +35,7 @@ export const gameState = {
         statusEffects: [],
         classResources: {}
     },
-    party: [], // Array of companion IDs (e.g., ['aodhan'])
-    roster: {}, // Stores state of companions: { aodhan: { level: 1, hp: 10, ... } }
-    settings: {
-        companionAI: false, // Toggle for manual vs auto combat
-        autoLevelCompanions: true // Not used yet, but requested for later
-    },
-    pendingLevelUp: false,
+    pendingLevelUp: false, // New: Track if level up is pending choices
     currentSceneId: "SCENE_ARRIVAL_HUSHBRIAR",
     quests: JSON.parse(JSON.stringify(quests)),
     flags: {},
@@ -80,11 +74,11 @@ export const gameState = {
         round: 1,
         winSceneId: null,
         loseSceneId: null,
-        playerDefending: false,
+        defending: false,
+        // New: Action Economy Tracking
         actionsRemaining: 1,
         bonusActionsRemaining: 1,
-        movementRemaining: 30,
-        sceneText: ""
+        movementRemaining: 30 // Abstracted, maybe used for 'flee' or positioning later
     }
 };
 
@@ -127,13 +121,16 @@ export function initializeNewGame(name, raceId, classId, baseAbilityScores, chos
     gameState.player.skills = chosenSkills && chosenSkills.length > 0 ? chosenSkills : (cls.proficiencies || []);
     gameState.player.knownSpells = chosenSpells || [];
 
+    // Initialize Resources
     gameState.player.resources = {};
     if (cls.progression[1] && cls.progression[1].features) {
         cls.progression[1].features.forEach(feat => {
             if (feat === 'second_wind') gameState.player.resources['second_wind'] = { current: 1, max: 1 };
+            // Add other level 1 resource inits here if needed
         });
     }
 
+    // Spell Slots Init
     if (cls.progression[1].spellSlots) {
         gameState.player.spellSlots = { ...cls.progression[1].spellSlots };
         gameState.player.currentSlots = { ...cls.progression[1].spellSlots };
@@ -318,14 +315,12 @@ export function spendGold(amount) {
 
 export function gainXp(amount) {
     gameState.player.xp += amount;
-
-    // Distribute XP to party if we wanted separate tracking, but we sync.
-    // We still check player threshold.
-
+    // Check if we hit the threshold
     if (gameState.player.xp >= gameState.player.xpNext) {
+        // We do NOT auto-level up anymore. We set a pending state.
         gameState.pendingLevelUp = true;
         logMessage(`You have enough XP to reach Level ${gameState.player.level + 1}! Rest or check your character sheet to level up.`, "gain");
-        return true;
+        return true; // Return true to indicate level up is available
     }
     return false;
 }
