@@ -225,8 +225,6 @@ export function finishCharacterCreation() {
     }
     initializeNewGame(name, raceKey, classKey, ccState.baseStats, ccState.chosenSkills, ccState.chosenSpells);
     document.getElementById('char-creation-modal').classList.add('hidden');
-    const titleScreen = document.getElementById('title-screen');
-    if (titleScreen) titleScreen.classList.add('hidden');
     updateStatsUI();
     goToScene(gameState.currentSceneId);
     logMessage(`Character ${name} created. Welcome to Silverthorn.`, "system");
@@ -757,8 +755,6 @@ export function loadGame() {
     if (data) {
         Object.assign(gameState, JSON.parse(data));
         logMessage("Game Loaded.", "system");
-        const titleScreen = document.getElementById('title-screen');
-        if (titleScreen) titleScreen.classList.add('hidden');
         updateStatsUI();
         goToScene(gameState.currentSceneId);
     } else {

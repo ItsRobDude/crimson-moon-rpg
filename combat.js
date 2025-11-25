@@ -117,8 +117,6 @@ export function combatTurnLoop() {
         logMessage(`Round ${gameState.combat.round} - ${comp.name}'s Turn`, "system");
 
         if (gameState.settings.companionAI) {
-            gameState.combat.actionsRemaining = 1;
-            gameState.combat.bonusActionsRemaining = 1;
             setTimeout(() => companionTurnAI(comp), 1000);
         } else {
             gameState.combat.actionsRemaining = 1;
