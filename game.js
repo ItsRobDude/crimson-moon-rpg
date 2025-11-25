@@ -1,5 +1,5 @@
 import { races } from './data/races.js';
-import { classes } from './data/classes.js';
+import { classes, featureDefinitions } from './data/classes.js';
 import { items } from './data/items.js';
 import { quests } from './data/quests.js';
 import { scenes } from './data/scenes.js';
@@ -25,6 +25,14 @@ export function initUI() {
     document.getElementById('btn-codex-people').onclick = () => toggleCodex('people');
     document.getElementById('btn-codex-factions').onclick = () => toggleCodex('factions');
 
+    // New: Check for pending level up on stats click or button
+    // For now, we'll add a listener to the level text if it has a specific class, or just a button.
+    // Let's make the "Lvl X" text clickable if pending.
+    document.getElementById('char-level').onclick = () => {
+        if (gameState.pendingLevelUp) showLevelUpModal();
+    };
+    // Visual cue update happens in updateStatsUI
+
     document.querySelectorAll('.close-modal').forEach(btn => {
         btn.onclick = (e) => {
             e.target.closest('.modal').classList.add('hidden');
@@ -44,7 +52,7 @@ export function initUI() {
     };
 }
 
-// ... (Character Creation Logic remains same as previous patch) ...
+// ... (Character Creation Logic remains same) ...
 let ccState = {
     baseStats: { STR: 12, DEX: 12, CON: 12, INT: 12, WIS: 12, CHA: 12 },
     chosenSkills: [],
@@ -159,7 +167,7 @@ function renderSkillChoices(cls) {
     container.innerHTML = '';
     const max = 2;
     document.getElementById('cc-skill-count').innerText = max;
-    cls.proficiencies.forEach(skill => {
+    cls.skillProficiencies.forEach(skill => {
         const div = document.createElement('div');
         div.className = 'checkbox-item';
         const label = document.createElement('label');
@@ -237,7 +245,6 @@ function finishCharacterCreation() {
     const raceKey = document.getElementById('cc-race').value;
     const classKey = document.getElementById('cc-class').value;
 
-    // Validate Stats
     const stats = Object.values(ccState.baseStats);
     const uniqueStats = new Set(stats);
     if (uniqueStats.size !== stats.length) {
@@ -261,19 +268,18 @@ function finishCharacterCreation() {
     logMessage(`Character ${name} created. Welcome to Silverthorn.`, "system");
 }
 
-// ... (Standard Scene/Shop/Map Helpers - omitted for brevity but assumed present as before) ...
-// Re-pasting core logic to ensure full file context in patch.
-
 function goToScene(sceneId) {
     const scene = scenes[sceneId];
     if (!scene) { console.error("Scene not found:", sceneId); return; }
 
-    // Hide combat, show main scene
-    document.getElementById('battle-screen').classList.add('hidden');
-    document.getElementById('scene-container').classList.remove('hidden');
-    window.logMessage = logToMain; // Redirect logging to main panel
+    const battleScreen = document.getElementById('battle-screen');
+    if (battleScreen) battleScreen.classList.add('hidden');
 
-    // Determine if first visit
+    const sceneContainer = document.getElementById('scene-container');
+    if (sceneContainer) sceneContainer.classList.remove('hidden');
+
+    window.logMessage = logToMain;
+
     const isFirstVisit = !gameState.visitedScenes.includes(sceneId);
     if (isFirstVisit) {
         gameState.visitedScenes.push(sceneId);
@@ -282,7 +288,6 @@ function goToScene(sceneId) {
     gameState.currentSceneId = sceneId;
     if (scene.location) discoverLocation(scene.location);
 
-    // Faction Hostility Check
     if (scene.type !== 'combat' && scene.location === 'silverthorn') {
         if (getReputation('silverthorn') <= -50) {
             logMessage("The guards recognize you as an enemy of the state!", "combat");
@@ -394,7 +399,6 @@ function handleChoice(choice) {
     }
     if (!choice.type) { if (choice.nextScene) goToScene(choice.nextScene); return; }
 
-    // Skill Checks etc...
     if (choice.type === 'skillCheck') {
         const result = rollSkillCheck(gameState, choice.skill);
         const dc = choice.dc;
@@ -461,17 +465,14 @@ function triggerAmbientByThreat(locationId) {
     }
 }
 
-// --- Shop System ---
+// --- Shop System --- (Omitted similar to before, unchanged)
 function getShopPrice(item, shopId) {
     let price = item.price;
-
-    // Silverthorn Discount
     if (shops[shopId] && shops[shopId].location === 'silverthorn') {
         if (getReputation('silverthorn') >= 30) {
             price = Math.floor(price * 0.9);
         }
     }
-
     return price;
 }
 
@@ -522,7 +523,7 @@ function renderShop(shopId) {
     panel.classList.remove('hidden');
 }
 
-// --- Map System ---
+// --- Map System --- (Omitted similar to before, unchanged)
 function toggleMap() {
     const modal = document.getElementById('map-modal');
     const list = document.getElementById('map-locations');
@@ -574,14 +575,12 @@ function toggleMap() {
     });
 
     const mapContainer = document.getElementById('map-container');
-
-    // New: Click listener for adding pins directly on the map image
     mapContainer.onclick = (e) => {
         const note = prompt("Enter a note for this pin:", "Marked location");
         if (note) {
             const currentLocation = scenes[gameState.currentSceneId]?.location || 'travel';
             addMapPin(currentLocation, note);
-            toggleMap(); // Refresh the map to show the new pin
+            toggleMap();
         }
     };
 
@@ -650,21 +649,14 @@ function travelTo(locationId) {
 }
 
 function getHubSceneForLocation(locationId) {
-    // Dynamic Routing based on World Phase and State
     const phase = gameState.worldPhase || 0;
-
     if (locationId === 'hushbriar') {
         if (phase >= 2 || gameState.flags['aodhan_dead']) {
             return 'SCENE_HUSHBRIAR_CORRUPTED';
         }
         return 'SCENE_HUSHBRIAR_TOWN';
     }
-
-    if (locationId === 'silverthorn') {
-        // Could add sieged version later
-        return 'SCENE_HUB_SILVERTHORN';
-    }
-
+    if (locationId === 'silverthorn') return 'SCENE_HUB_SILVERTHORN';
     if (locationId === 'whisperwood') return 'SCENE_ARRIVAL_WHISPERWOOD';
     if (locationId === 'shadowmire') return 'SCENE_TRAVEL_SHADOWMIRE';
     if (locationId === 'durnhelm') return 'SCENE_DURNHELM_GATES';
@@ -672,11 +664,9 @@ function getHubSceneForLocation(locationId) {
     if (locationId === 'solasmor') return 'SCENE_SOLASMOR_APPROACH';
     if (locationId === 'soul_mill') return 'SCENE_SOUL_MILL_APPROACH';
     if (locationId === 'thieves_hideout') return 'SCENE_THIEVES_HIDEOUT';
-
     return 'SCENE_BRIEFING';
 }
 
-// --- Codex System ---
 function toggleCodex(tab = 'people') {
     const modal = document.getElementById('codex-modal');
     const list = document.getElementById('codex-list');
@@ -686,7 +676,6 @@ function toggleCodex(tab = 'people') {
     modal.classList.remove('hidden');
     list.innerHTML = '';
 
-    // Tab Styling
     if (tab === 'people') {
         btnPeople.classList.add('tab-active');
         btnFactions.classList.remove('tab-active');
@@ -719,7 +708,6 @@ function renderCodexPeople(container) {
         if (score <= -30) label = "Cold";
         if (score <= -70) label = "Hostile";
 
-        // Normalize score for bar (-100 to 100 -> 0 to 100%)
         const pct = ((score + 100) / 200) * 100;
 
         div.innerHTML = `
@@ -765,11 +753,14 @@ function renderCodexFactions(container) {
 
 // --- Combat System ---
 
-function startCombat(combatantIds, winScene, loseScene) {
-    // Show combat screen, hide main scene
-    document.getElementById('scene-container').classList.add('hidden');
-    document.getElementById('battle-screen').classList.remove('hidden');
-    window.logMessage = logToBattle; // Redirect logging to battle log
+export function startCombat(combatantIds, winScene, loseScene) {
+    const sceneContainer = document.getElementById('scene-container');
+    if (sceneContainer) sceneContainer.classList.add('hidden');
+
+    const battleScreen = document.getElementById('battle-screen');
+    if (battleScreen) battleScreen.classList.remove('hidden');
+
+    window.logMessage = logToBattle;
 
     const currentScene = scenes[gameState.currentSceneId];
 
@@ -778,22 +769,19 @@ function startCombat(combatantIds, winScene, loseScene) {
         let isNpc = false;
 
         if (npcs[id] && npcs[id].combatStats) {
-            // It's a scalable NPC, level-matched to the player
             combatantData = generateScaledStats(npcs[id].combatStats, gameState.player.level);
-            combatantData.name = npcs[id].name; // Ensure the base name is used
+            combatantData.name = npcs[id].name;
             combatantData.portrait = npcs[id].portrait;
             isNpc = true;
         } else {
-            // It's a regular enemy from enemies.js
             combatantData = enemies[id];
         }
 
         if (!combatantData) {
-            console.error(`Combatant data for ID "${id}" not found in enemies.js or npcs.js.`);
-            return null; // Skip if no data found
+            console.error(`Combatant data for ID "${id}" not found.`);
+            return null;
         }
 
-        // Harmonize the data structure for the combat loop
         const primaryAttack = combatantData.actions ? combatantData.actions.find(a => a.type === 'attack') : null;
 
         return {
@@ -802,7 +790,6 @@ function startCombat(combatantIds, winScene, loseScene) {
             hp: combatantData.hp,
             maxHp: combatantData.hp,
             ac: combatantData.ac,
-            // For NPCs, derive from actions; for enemies, use direct properties
             attackBonus: isNpc ? (primaryAttack ? primaryAttack.toHit : 0) : combatantData.attackBonus,
             damage: isNpc ? (primaryAttack ? primaryAttack.damage : "1d4") : combatantData.damage,
             portrait: combatantData.portrait || 'portraits/placeholder.png',
@@ -810,10 +797,9 @@ function startCombat(combatantIds, winScene, loseScene) {
             statusEffects: [],
             uniqueId: `${id}_${index}`,
             intent: "",
-            // Store the full stat block for access to resistances, special abilities, etc.
             fullStats: isNpc ? combatantData : null
         };
-    }).filter(c => c !== null); // Remove any null entries if a combatant wasn't found
+    }).filter(c => c !== null);
 
     gameState.combat = {
         active: true,
@@ -824,12 +810,13 @@ function startCombat(combatantIds, winScene, loseScene) {
         winSceneId: winScene,
         loseSceneId: loseScene,
         playerDefending: false,
-        sceneText: currentScene.text
+        sceneText: currentScene.text,
+        actionsRemaining: 1,      // Init for player
+        bonusActionsRemaining: 1
     };
 
     logMessage(`Combat started!`, "combat");
 
-    // Roll initiative for everyone
     const initiatives = [];
     const playerInit = rollInitiative(gameState, 'player');
     initiatives.push({ type: 'player', id: 'player', initiative: playerInit.total });
@@ -842,7 +829,6 @@ function startCombat(combatantIds, winScene, loseScene) {
         logMessage(`${enemy.name} rolled ${init.total} for initiative.`, "system");
     });
 
-    // Sort by initiative descending
     initiatives.sort((a, b) => b.initiative - a.initiative);
     gameState.combat.turnOrder = initiatives.map(i => i.id);
 
@@ -855,6 +841,10 @@ function combatTurnLoop() {
     const currentTurnId = gameState.combat.turnOrder[gameState.combat.turnIndex];
 
     if (currentTurnId === 'player') {
+        // Reset Player Action Economy at start of their turn
+        gameState.combat.actionsRemaining = 1;
+        gameState.combat.bonusActionsRemaining = 1;
+
         logMessage(`Round ${gameState.combat.round} - Your Turn`, "system");
         updateCombatUI();
     } else {
@@ -868,7 +858,6 @@ function combatTurnLoop() {
 function updateCombatUI() {
     if (!gameState.combat.active) return;
 
-    // -- Render Party --
     const partyContainer = document.getElementById('party-container');
     partyContainer.innerHTML = '';
 
@@ -902,11 +891,13 @@ function updateCombatUI() {
         <div class="party-status">
             ${isPlayerTurn ? `<span class="turn-indicator-text">Your Turn</span>` : ''}
             ${p.hp <= 0 ? `<span class="status-down">Down</span>` : ''}
+            <div style="font-size:0.8em; margin-top:4px;">
+                Act: ${gameState.combat.actionsRemaining} | Bns: ${gameState.combat.bonusActionsRemaining}
+            </div>
         </div>
     `;
     partyContainer.appendChild(playerCard);
 
-    // -- Render Enemies --
     const enemiesContainer = document.getElementById('enemies-container');
     enemiesContainer.innerHTML = '';
     gameState.combat.enemies.forEach(enemy => {
@@ -928,7 +919,6 @@ function updateCombatUI() {
         enemiesContainer.appendChild(enemyCard);
     });
 
-    // -- Render Actions --
     const turnIndicator = document.getElementById('turn-indicator');
     const actionsContainer = document.getElementById('battle-actions-container');
     actionsContainer.innerHTML = '';
@@ -940,32 +930,38 @@ function updateCombatUI() {
         turnIndicator.textContent = enemy ? `${enemy.name}'s Turn` : "Enemy's Turn";
     }
 
-    // -- Set Battle Scene Background and Text --
     document.getElementById('battle-scene-image').style.backgroundImage = "url('landscapes/battle_placeholder.webp')";
     document.getElementById('battle-scene-main-text').innerText = gameState.combat.sceneText || "The air crackles with tension.";
 }
 
 function renderPlayerActions(container, subMenu = null) {
-    container.innerHTML = ''; // Clear previous state
+    container.innerHTML = '';
     const grid = document.createElement('div');
     grid.className = 'battle-actions-grid';
+
+    const hasAction = gameState.combat.actionsRemaining > 0;
+    const hasBonus = gameState.combat.bonusActionsRemaining > 0;
 
     if (subMenu === 'attack') {
         gameState.combat.enemies.forEach(enemy => {
             if (enemy.hp <= 0) return;
             grid.appendChild(createActionButton(enemy.name, 'swords', () => performAttack(enemy.uniqueId), 'primary'));
         });
-        grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, null), 'flee')); // Using flee style for back
+        grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, null), 'flee'));
     } else if (subMenu === 'spells') {
         const spellList = gameState.player.knownSpells || [];
         spellList.forEach(spellId => {
             const spell = spells[spellId];
             if (!spell) return;
+            // Check casting time (simplified: most are actions, some bonus)
+            // For now, assume all spells take an ACTION unless specified
+            const cost = 'action';
+            const canCast = (cost === 'action' && hasAction) || (cost === 'bonus' && hasBonus);
 
             const hasSlots = spell.level === 0 || (gameState.player.currentSlots[spell.level] && gameState.player.currentSlots[spell.level] > 0);
             grid.appendChild(createActionButton(spell.name, 'auto_stories', () => {
                  renderPlayerActions(container, { type: 'spell_target', spellId: spellId });
-            }, '', !hasSlots));
+            }, '', !hasSlots || !canCast));
         });
         grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, null), 'flee'));
     } else if (subMenu && subMenu.type === 'spell_target') {
@@ -980,36 +976,84 @@ function renderPlayerActions(container, subMenu = null) {
         }
         grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, 'spells'), 'flee'));
     } else if (subMenu === 'abilities') {
-        Object.entries(gameState.player.resources).forEach(([key, res]) => {
-            if (res.current > 0) {
-                const abilityName = key.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
-                grid.appendChild(createActionButton(abilityName, 'star', () => performAbility(key)));
-            }
-        });
+        // Render Class Features
+        const cls = classes[gameState.player.classId];
+
+        // Cunning Action (Rogue)
+        if (gameState.player.level >= 2 && gameState.player.classId === 'rogue') {
+             grid.appendChild(createActionButton('Dash (Bonus)', 'directions_run', () => performCunningAction('dash'), '', !hasBonus));
+             grid.appendChild(createActionButton('Disengage (Bonus)', 'do_not_step', () => performCunningAction('disengage'), '', !hasBonus));
+        }
+
+        // Action Surge (Fighter)
+        if (gameState.player.level >= 2 && gameState.player.classId === 'fighter') {
+            const res = gameState.player.resources['action_surge'];
+            const available = res && res.current > 0;
+            grid.appendChild(createActionButton('Action Surge', 'bolt', () => performActionSurge(), '', !available));
+        }
+
+        // Second Wind (Fighter)
+        if (gameState.player.classId === 'fighter') {
+            const res = gameState.player.resources['second_wind'];
+            const available = res && res.current > 0;
+            grid.appendChild(createActionButton('Second Wind', 'healing', () => performAbility('second_wind'), '', !available || !hasBonus));
+        }
+
         grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, null), 'flee'));
-    } else { // Main menu
-        const hasAbilities = Object.values(gameState.player.resources).some(r => r.current > 0);
-        const hasSpells = gameState.player.currentSlots && Object.values(gameState.player.currentSlots).some(s => s > 0);
-        grid.appendChild(createActionButton('Attack', 'swords', () => renderPlayerActions(container, 'attack'), 'primary'));
-        grid.appendChild(createActionButton('Spells', 'auto_stories', () => renderPlayerActions(container, 'spells'), '', !hasSpells));
-        grid.appendChild(createActionButton('Abilities', 'star', () => renderPlayerActions(container, 'abilities'), '', !hasAbilities));
-        grid.appendChild(createActionButton('Defend', 'shield', performDefend));
-        grid.appendChild(createActionButton('Items', 'local_drink', () => toggleInventory(true)));
-        grid.appendChild(createActionButton('Flee', 'directions_run', performFlee, 'flee'));
+    } else {
+        // Main Menu
+        const hasSpells = gameState.player.currentSlots && Object.values(gameState.player.currentSlots).some(s => s > 0) || (gameState.player.knownSpells.length > 0); // Include cantrips check
+
+        grid.appendChild(createActionButton('Attack', 'swords', () => renderPlayerActions(container, 'attack'), 'primary', !hasAction));
+        grid.appendChild(createActionButton('Spells', 'auto_stories', () => renderPlayerActions(container, 'spells'), '', !hasSpells || !hasAction)); // Assume spells need action
+        grid.appendChild(createActionButton('Abilities', 'star', () => renderPlayerActions(container, 'abilities')));
+        grid.appendChild(createActionButton('Defend', 'shield', performDefend, '', !hasAction));
+        grid.appendChild(createActionButton('Items', 'local_drink', () => toggleInventory(true), '', !hasAction)); // Using Item is usually an Action (unless Thief)
+        grid.appendChild(createActionButton('End Turn', 'hourglass_bottom', performEndTurn, 'flee')); // Manual End Turn
+        // Flee is special, uses Action
+        // grid.appendChild(createActionButton('Flee', 'directions_run', performFlee, 'flee', !hasAction));
     }
 
     container.appendChild(grid);
 }
 
-function calculateDamage(baseDamage, damageType, target) {
-    // Check for NPC-specific stats first, then fall back to enemy data
+// --- New Action Logic ---
+
+function performCunningAction(type) {
+    if (gameState.combat.bonusActionsRemaining <= 0) {
+        logMessage("No Bonus Action remaining!", "check-fail");
+        return;
+    }
+    gameState.combat.bonusActionsRemaining--;
+    logMessage(`Cunning Action: You used ${type}.`, "gain");
+    // Dash isn't strictly implemented on a grid, but implies movement.
+    // Disengage prevents opportunity attacks (if we had them).
+    // For now, it's flavor or could unlock a 'Flee' without check?
+    updateCombatUI();
+}
+
+function performActionSurge() {
+    const res = gameState.player.resources['action_surge'];
+    if (res.current <= 0) return;
+    res.current--;
+    gameState.combat.actionsRemaining++;
+    logMessage("Action Surge! Gained 1 Action.", "gain");
+    updateCombatUI();
+}
+
+function performEndTurn() {
+    endPlayerTurn();
+}
+
+// ------------------------
+
+function calculateDamage(baseDamage, damageType, target, isCritical = false) {
     const combatantStats = target.fullStats || enemies[target.id];
     if (!combatantStats) return baseDamage;
 
     let finalDamage = baseDamage;
     let message = "";
 
-    // Ensure properties exist and are strings before calling .includes()
     const vulnerabilities = combatantStats.vulnerabilities || "";
     const resistances = combatantStats.resistances || "";
 
@@ -1035,13 +1079,22 @@ function createActionButton(text, icon, onClick, type = '', disabled = false) {
     button.onclick = onClick;
     if (disabled) {
         button.disabled = true;
+        button.style.opacity = '0.5';
+        button.style.cursor = 'not-allowed';
     }
     return button;
 }
 
 function performAttack(targetId) {
+    if (gameState.combat.actionsRemaining <= 0) {
+        logMessage("No Action remaining!", "check-fail");
+        return;
+    }
+
     const target = gameState.combat.enemies.find(e => e.uniqueId === targetId);
     if (!target) return;
+
+    gameState.combat.actionsRemaining--;
 
     const weaponId = gameState.player.equippedWeaponId;
     const weapon = items[weaponId] || { name: "Unarmed", damage: "1d2", modifier: "STR", damageType: "bludgeoning", subtype: "simple" };
@@ -1050,21 +1103,43 @@ function performAttack(targetId) {
     const cls = classes[gameState.player.classId];
     const isProficient = weapon.subtype && cls.weaponProficiencies && cls.weaponProficiencies.includes(weapon.subtype);
     const prof = isProficient ? gameState.player.proficiencyBonus : 0;
-    const result = rollAttack(gameState, stat, prof);
+
+    // Determine Advantage (Simplified: Hidden = Advantage)
+    // const advantage = hasStatusEffect('hidden');
+    // Implementing basic advantage check
+    const advantage = false; // Placeholder
+
+    const result = rollAttack(gameState, stat, prof, advantage);
+
+    // Champion Fighter Crit Range
+    let critThreshold = 20;
+    if (gameState.player.subclassId === 'champion') critThreshold = 19;
+
+    const isCritical = result.roll >= critThreshold;
 
     let msg = `You attack ${target.name} with ${weapon.name}: ${result.total} (vs AC ${target.ac}).`;
-    if (result.isCritical) {
+    if (isCritical) {
         msg += " CRITICAL HIT!";
         showBattleEventText("Critical Hit!");
     }
     logMessage(msg, "system");
 
-    if (result.total >= target.ac || result.isCritical) {
+    if (result.total >= target.ac || isCritical) {
         let dmg = rollDiceExpression(weapon.damage).total + gameState.player.modifiers[stat];
-        if (result.isCritical) {
-            // On a critical hit, roll the weapon's damage dice an additional time
-            const critBonus = rollDiceExpression(weapon.damage.split('+')[0]).total; // Assumes format like '1d8' or '1d6+2'
+        if (isCritical) {
+            const critBonus = rollDiceExpression(weapon.damage.split('+')[0]).total;
             dmg += critBonus;
+        }
+
+        // Sneak Attack Logic
+        if (gameState.player.classId === 'rogue') {
+            // Requirements: Finesse/Ranged + (Advantage OR Ally adjacent)
+            // Simplified: Just check if we hit for now, assuming Rogue positions well.
+            // 5e Rules: 1d6 at Lv1, increases by 1d6 every 2 levels.
+            const sneakDice = Math.ceil(gameState.player.level / 2);
+            const sneakDmg = rollDiceExpression(`${sneakDice}d6`).total;
+            dmg += sneakDmg;
+            logMessage(`Sneak Attack! +${sneakDmg} damage.`, "gain");
         }
 
         const finalDamage = calculateDamage(dmg, weapon.damageType, target);
@@ -1077,20 +1152,36 @@ function performAttack(targetId) {
     }
 
     if (!checkWinCondition()) {
-        endPlayerTurn();
+        updateCombatUI(); // Don't auto-end turn
     }
 }
 
 function performAbility(abilityId) {
+    // Check Action Economy based on ability type
+    let cost = 'action';
+    if (abilityId === 'second_wind') cost = 'bonus';
+
+    if (cost === 'action' && gameState.combat.actionsRemaining <= 0) {
+        logMessage("No Action remaining!", "check-fail");
+        return;
+    }
+    if (cost === 'bonus' && gameState.combat.bonusActionsRemaining <= 0) {
+        logMessage("No Bonus Action remaining!", "check-fail");
+        return;
+    }
+
     const resource = gameState.player.resources[abilityId];
     if (!resource || resource.current <= 0) {
         logMessage("No uses left for that ability.", "check-fail");
         return;
     }
 
+    if (cost === 'action') gameState.combat.actionsRemaining--;
+    if (cost === 'bonus') gameState.combat.bonusActionsRemaining--;
+
     if (abilityId === 'second_wind') {
         resource.current--;
-        const healed = rollDie(10) + gameState.player.level; // 1d10 + Fighter level
+        const healed = rollDie(10) + gameState.player.level;
         gameState.player.hp = Math.min(gameState.player.maxHp, gameState.player.hp + healed);
         logMessage(`Used Second Wind and recovered ${healed} HP.`, "gain");
     } else {
@@ -1098,11 +1189,16 @@ function performAbility(abilityId) {
     }
 
     if (!checkWinCondition()) {
-        endPlayerTurn();
+        updateCombatUI();
     }
 }
 
 function performCastSpell(spellId, targetId) {
+    if (gameState.combat.actionsRemaining <= 0) {
+        logMessage("No Action remaining!", "check-fail");
+        return;
+    }
+
     const spell = spells[spellId];
     if (!spell) return;
 
@@ -1115,11 +1211,19 @@ function performCastSpell(spellId, targetId) {
         }
     }
 
+    gameState.combat.actionsRemaining--;
+
+    // Disciple of Life (Cleric Life Domain) Bonus
+    let healingBonus = 0;
+    if (spell.type === 'heal' && gameState.player.subclassId === 'life' && spell.level > 0) {
+        healingBonus = 2 + spell.level;
+    }
+
     if (spell.type === 'heal') {
-        const roll = rollDiceExpression(spell.amount).total;
+        const roll = rollDiceExpression(spell.amount).total + healingBonus;
         gameState.player.hp = Math.min(gameState.player.hp + roll, gameState.player.maxHp);
-        logMessage(`Healed for ${roll} HP.`, "gain");
-        updateCombatUI(); // Refresh UI to show new health
+        logMessage(`Healed for ${roll} HP.${healingBonus > 0 ? ' (Disciple of Life)' : ''}`, "gain");
+        updateCombatUI();
     } else {
         const target = gameState.combat.enemies.find(e => e.uniqueId === targetId);
         if (!target) return;
@@ -1157,30 +1261,35 @@ function performCastSpell(spellId, targetId) {
     }
 
     if (!checkWinCondition()) {
-        endPlayerTurn();
+        updateCombatUI();
     }
 }
 
 function performDefend() {
+    if (gameState.combat.actionsRemaining <= 0) return;
+    gameState.combat.actionsRemaining--;
     gameState.combat.playerDefending = true;
     logMessage("You brace yourself for the next attack.", "system");
-    endPlayerTurn();
+    updateCombatUI();
 }
 
 function performFlee() {
+    if (gameState.combat.actionsRemaining <= 0) return;
+    gameState.combat.actionsRemaining--;
+
     const roll = rollDie(20) + gameState.player.modifiers.DEX;
     if (roll >= 12) {
         logMessage("You escaped!", "gain");
         gameState.combat.active = false;
-        goToScene(gameState.combat.loseSceneId); // 'lose' scene is often the retreat point
+        goToScene(gameState.combat.loseSceneId);
     } else {
         logMessage("Failed to escape!", "combat");
-        endPlayerTurn();
+        updateCombatUI();
     }
 }
 
 function endPlayerTurn() {
-    gameState.combat.playerDefending = false; // Reset defend status
+    gameState.combat.playerDefending = false;
     gameState.combat.turnIndex = (gameState.combat.turnIndex + 1) % gameState.combat.turnOrder.length;
     if (gameState.combat.turnIndex === 0) {
         gameState.combat.round++;
@@ -1188,15 +1297,16 @@ function endPlayerTurn() {
     combatTurnLoop();
 }
 
+// ... (Enemy Turn & Win Condition remain mostly the same) ...
+
 function enemyTurn(enemy) {
     if (!gameState.combat.active || enemy.hp <= 0) {
         endEnemyTurn(enemy);
         return;
     }
 
-    // Set Intent
     enemy.intent = "is preparing to attack!";
-    updateCombatUI(); // Update UI to show intent
+    updateCombatUI();
 
     setTimeout(() => {
         logMessage(`${enemy.name} attacks!`, "combat");
@@ -1213,8 +1323,7 @@ function enemyTurn(enemy) {
         logMessage(`You took ${dmg} damage.`, "combat");
         showBattleEventText(`${dmg}`);
 
-        // Special Effects: Fungal Beast Poison
-        if (enemy.id === 'fungal_beast' && rollDie(100) <= 25) { // 25% chance
+        if (enemy.id === 'fungal_beast' && rollDie(100) <= 25) {
             applyStatusEffect('poisoned');
             showBattleEventText("Poisoned!");
         }
@@ -1230,27 +1339,23 @@ function enemyTurn(enemy) {
     }
 
     endEnemyTurn(enemy);
-    }, 1000); // 1-second delay for the attack after showing intent
+    }, 1000);
 }
 
 function endEnemyTurn(enemy) {
-    // Clear intent
     enemy.intent = "";
 
-    // Before ending turn, remove any dead enemies from turn order
     const deadEnemies = gameState.combat.enemies.filter(e => e.hp <= 0).map(e => e.uniqueId);
     if (deadEnemies.length > 0) {
         gameState.combat.turnOrder = gameState.combat.turnOrder.filter(id => !deadEnemies.includes(id));
     }
 
-    // Find the current index again in case the array was modified
     const currentIndex = gameState.combat.turnOrder.indexOf(enemy.uniqueId);
     gameState.combat.turnIndex = (currentIndex + 1) % gameState.combat.turnOrder.length;
 
     if (gameState.combat.turnIndex === 0 && gameState.combat.turnOrder.includes('player')) {
         gameState.combat.round++;
     } else if (!gameState.combat.turnOrder.includes('player')) {
-        // This case shouldn't happen if player death is handled, but as a fallback.
         checkWinCondition();
         return;
     }
@@ -1265,29 +1370,27 @@ function checkWinCondition() {
         gameState.combat.active = false;
         logMessage(`Victory!`, "gain");
 
-        // Grant XP from all enemies
         const totalXp = gameState.combat.enemies.reduce((sum, e) => sum + (enemies[e.id].xp || 0), 0);
-        if (gainXp(totalXp)) {
-            logMessage(`Leveled up to ${gameState.player.level}!`, "gain");
-        } else {
-             logMessage(`Gained ${totalXp} XP.`, "gain");
+        // gainXp will return true if pending level up
+        const levelUpAvailable = gainXp(totalXp);
+        logMessage(`Gained ${totalXp} XP.`, "gain");
+        if (levelUpAvailable) {
+            logMessage(`Level Up Available!`, "gain");
         }
 
         updateStatsUI();
         saveGame();
 
-        // Need to switch back to main log before going to next scene
         window.logMessage = logToMain;
 
-        // Show a "Continue" button
         const actionsContainer = document.getElementById('battle-actions-container');
         actionsContainer.innerHTML = '';
         actionsContainer.appendChild(
             createActionButton('Victory!', 'celebration', () => goToScene(gameState.combat.winSceneId), 'col-span-2')
         );
-        return true; // Combat ended
+        return true;
     }
-    return false; // Combat continues
+    return false;
 }
 
 // --- UI Updates ---
@@ -1295,7 +1398,21 @@ function updateStatsUI() {
     const p = gameState.player;
     document.getElementById('char-name').innerText = p.name;
     document.getElementById('char-class').innerText = p.classId ? classes[p.classId].name : "Class";
-    document.getElementById('char-level').innerText = `Lvl ${p.level}`;
+
+    // Level Up Indicator
+    const levelEl = document.getElementById('char-level');
+    if (gameState.pendingLevelUp) {
+        levelEl.innerText = `Lvl ${p.level} (UP!)`;
+        levelEl.style.color = 'gold';
+        levelEl.style.cursor = 'pointer';
+        levelEl.classList.add('pulse-animation'); // Assuming CSS handles this or just color is enough
+    } else {
+        levelEl.innerText = `Lvl ${p.level}`;
+        levelEl.style.color = '';
+        levelEl.style.cursor = 'default';
+        levelEl.classList.remove('pulse-animation');
+    }
+
     document.getElementById('char-ac').innerText = `AC ${getPlayerAC()}`;
 
     const weapon = p.equippedWeaponId ? items[p.equippedWeaponId] : null;
@@ -1318,10 +1435,11 @@ function getPlayerAC() {
     const p = gameState.player;
     const armor = p.equippedArmorId ? items[p.equippedArmorId] : null;
     if (armor) return armor.acBase;
-    if (p.classId === 'fighter') return 10 + p.modifiers.DEX; // Fallback or Unarmored Defense logic?
-    // Simple default: 10 + DEX
+    if (p.classId === 'fighter') return 10 + p.modifiers.DEX;
     return 10 + p.modifiers.DEX;
 }
+
+// ... (Rest of existing functions: performLongRest, toggleInventory, etc. UNCHANGED, but ensuring performLongRest resets new resources) ...
 
 function performLongRest() {
     gameState.player.hp = gameState.player.maxHp;
@@ -1333,11 +1451,15 @@ function performLongRest() {
     if (gameState.player.resources['second_wind']) {
         gameState.player.resources['second_wind'].current = gameState.player.resources['second_wind'].max;
     }
+    if (gameState.player.resources['action_surge']) {
+        gameState.player.resources['action_surge'].current = gameState.player.resources['action_surge'].max;
+    }
+    // Add reset for other resources
+
     return true;
 }
 
 function performShortRest() {
-    // Simplified: Heal 1 HD
     const cls = classes[gameState.player.classId];
     const roll = rollDie(cls.hitDie) + gameState.player.modifiers.CON;
     const healed = Math.max(1, roll);
@@ -1346,10 +1468,14 @@ function performShortRest() {
     if (gameState.player.resources['second_wind']) {
         gameState.player.resources['second_wind'].current = gameState.player.resources['second_wind'].max;
     }
+    if (gameState.player.resources['action_surge']) {
+        gameState.player.resources['action_surge'].current = gameState.player.resources['action_surge'].max;
+    }
 
     return healed;
 }
 
+// ... (Standard helper functions remain) ...
 function saveGame() {
     localStorage.setItem('crimson_moon_save', JSON.stringify(gameState));
     logMessage("Game Saved.", "system");
@@ -1497,8 +1623,140 @@ function showRestModal() {
     modal.classList.remove('hidden');
 }
 
-// --- Global Logging ---
-// We'll have two separate log functions and swap them based on game state.
+// --- Level Up UI ---
+
+function showLevelUpModal() {
+    const modal = document.getElementById('level-up-modal');
+    const levelEl = document.getElementById('lu-level');
+    const hpEl = document.getElementById('lu-hp-gain');
+    const featuresList = document.getElementById('lu-features-list');
+    const subclassSection = document.getElementById('lu-subclass-section');
+    const featSection = document.getElementById('lu-feat-section');
+    const confirmBtn = document.getElementById('btn-confirm-level-up');
+
+    const nextLevel = gameState.player.level + 1;
+    levelEl.innerText = nextLevel;
+
+    // Calculate HP Gain (Fixed average for simplicity in UI, or roll?)
+    // Let's do Average + CON
+    const cls = classes[gameState.player.classId];
+    const hpGain = Math.floor(cls.hitDie / 2) + 1 + gameState.player.modifiers.CON;
+    hpEl.innerText = hpGain;
+
+    // Get New Features
+    const levelData = cls.progression[nextLevel];
+    featuresList.innerHTML = '';
+    if (levelData && levelData.features) {
+        levelData.features.forEach(featKey => {
+            const featDef = featureDefinitions[featKey] || { name: featKey, description: "" };
+            const li = document.createElement('li');
+            li.innerHTML = `<strong>${featDef.name}</strong>: ${featDef.description}`;
+            featuresList.appendChild(li);
+        });
+    }
+
+    // Subclass Choice
+    subclassSection.classList.add('hidden');
+    let selectedSubclass = null;
+    if (nextLevel === 3 && cls.subclasses) {
+        subclassSection.classList.remove('hidden');
+        const optionsDiv = document.getElementById('lu-subclass-options');
+        optionsDiv.innerHTML = '';
+
+        Object.entries(cls.subclasses).forEach(([key, sub]) => {
+            const div = document.createElement('div');
+            div.className = 'subclass-option';
+            div.style.padding = '5px';
+            div.style.border = '1px solid #555';
+            div.style.margin = '5px 0';
+            div.style.cursor = 'pointer';
+
+            div.innerHTML = `<strong>${sub.name}</strong><p><small>${sub.description}</small></p>`;
+            div.onclick = () => {
+                document.querySelectorAll('.subclass-option').forEach(d => d.style.borderColor = '#555');
+                div.style.borderColor = 'gold';
+                selectedSubclass = key;
+            };
+            optionsDiv.appendChild(div);
+        });
+    }
+
+    // Ability Score Improvement Choice (Level 4)
+    // Note: This is a placeholder for the UI logic.
+    // We won't fully implement Feat selection logic here yet, just stat bump.
+    featSection.classList.add('hidden');
+    if (nextLevel % 4 === 0) { // Standard ASI levels
+        featSection.classList.remove('hidden');
+        // Populate Selects
+        const stats = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
+        ['asi-stat-1', 'asi-stat-2'].forEach(id => {
+            const sel = document.getElementById(id);
+            sel.innerHTML = '';
+            stats.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s;
+                opt.innerText = s;
+                sel.appendChild(opt);
+            });
+        });
+    }
+
+    modal.classList.remove('hidden');
+
+    confirmBtn.onclick = () => {
+        if (nextLevel === 3 && cls.subclasses && !selectedSubclass) {
+            alert("You must choose a subclass.");
+            return;
+        }
+
+        // Apply Level Up
+        gameState.player.level = nextLevel;
+        gameState.player.xpNext = nextLevel * 300; // Simple scaling
+        gameState.player.maxHp += hpGain;
+        gameState.player.hp += hpGain;
+
+        if (levelData.proficiencyBonus) gameState.player.proficiencyBonus = levelData.proficiencyBonus;
+
+        // Apply Subclass
+        if (selectedSubclass) {
+            gameState.player.subclassId = selectedSubclass;
+            logMessage(`You have chosen the path of the ${cls.subclasses[selectedSubclass].name}.`, "gain");
+        }
+
+        // Apply ASI
+        if (nextLevel % 4 === 0) {
+            const s1 = document.getElementById('asi-stat-1').value;
+            const s2 = document.getElementById('asi-stat-2').value;
+            gameState.player.abilities[s1]++;
+            gameState.player.abilities[s2]++;
+            // Recalculate mods
+            gameState.player.modifiers[s1] = getAbilityMod(gameState.player.abilities[s1]);
+            gameState.player.modifiers[s2] = getAbilityMod(gameState.player.abilities[s2]);
+            logMessage(`Increased ${s1} and ${s2} by 1.`, "gain");
+        }
+
+        // Unlock Resources (e.g. Action Surge)
+        if (levelData.features) {
+            levelData.features.forEach(f => {
+                if (f === 'action_surge') gameState.player.resources['action_surge'] = { current: 1, max: 1 };
+                // Add others
+            });
+        }
+
+        // Update Spell Slots
+        if (levelData.spellSlots) {
+             gameState.player.spellSlots = { ...levelData.spellSlots };
+             gameState.player.currentSlots = { ...levelData.spellSlots }; // Refresh on level up
+        }
+
+        gameState.pendingLevelUp = false;
+        modal.classList.add('hidden');
+        logMessage(`You are now Level ${nextLevel}!`, "gain");
+        updateStatsUI();
+    };
+}
+
+// ... (Logging functions same as before) ...
 
 function logToMain(msg, type) {
     const logContent = document.getElementById('log-content');
@@ -1512,7 +1770,6 @@ function logToMain(msg, type) {
 
 function logToBattle(msg, type) {
     const logContent = document.getElementById('battle-log-content');
-    // Simplified markup for battle log
     const entry = document.createElement('p');
     const typeToColor = {
         'combat': 'text-red-400',
@@ -1520,7 +1777,6 @@ function logToBattle(msg, type) {
         'system': 'text-primary',
         'default': 'text-[#cbc190]'
     };
-    // Basic span replacement for bolding
     msg = msg.replace(/(\w+'s turn)/g, '<span class="font-bold text-primary">$1</span>');
     entry.innerHTML = `<span class="${typeToColor[type] || typeToColor['default']}">${msg}</span>`;
 
@@ -1529,20 +1785,19 @@ function logToBattle(msg, type) {
      console.log(`[Battle Log - ${type}] ${msg}`);
 }
 
-// Default log is main
 window.logMessage = logToMain;
 
-let eventTextTimeout;
+let eventTextTimeoutRef;
 function showBattleEventText(message, duration = 1500) {
     const eventTextElement = document.getElementById('battle-event-text');
     if (!eventTextElement) return;
 
-    clearTimeout(eventTextTimeout);
+    clearTimeout(eventTextTimeoutRef);
 
     eventTextElement.innerText = message;
     eventTextElement.classList.add('visible');
 
-    eventTextTimeout = setTimeout(() => {
+    eventTextTimeoutRef = setTimeout(() => {
         eventTextElement.classList.remove('visible');
     }, duration);
 }

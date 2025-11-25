@@ -303,5 +303,43 @@
             <button class="close-modal">Cancel</button>
         </div>
     </div>
+
+    <!-- Level Up Modal -->
+    <div id="level-up-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>Level Up!</h2>
+            <div id="level-up-summary">
+                <p>You have reached level <span id="lu-level">2</span>!</p>
+                <div class="lu-section">
+                    <h3>HP Increase</h3>
+                    <p>HP increased by <span id="lu-hp-gain">0</span>.</p>
+                </div>
+                <div class="lu-section" id="lu-features-section">
+                    <h3>New Features</h3>
+                    <ul id="lu-features-list"></ul>
+                </div>
+                <!-- Choice Sections (Hidden by default) -->
+                <div class="lu-section hidden" id="lu-subclass-section">
+                    <h3>Choose Subclass</h3>
+                    <div id="lu-subclass-options"></div>
+                </div>
+                <div class="lu-section hidden" id="lu-feat-section">
+                    <h3>Ability Score Improvement</h3>
+                    <div id="lu-feat-options">
+                        <div class="asi-row">
+                             <label>Stat 1:</label>
+                             <select class="asi-select" id="asi-stat-1"></select>
+                        </div>
+                        <div class="asi-row">
+                             <label>Stat 2:</label>
+                             <select class="asi-select" id="asi-stat-2"></select>
+                        </div>
+                        <p><i>(Feats not yet implemented)</i></p>
+                    </div>
+                </div>
+            </div>
+            <button id="btn-confirm-level-up">Confirm</button>
+        </div>
+    </div>
 </body>
 </html>

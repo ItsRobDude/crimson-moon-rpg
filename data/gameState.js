@@ -13,6 +13,7 @@ export const gameState = {
         name: "",
         raceId: "",
         classId: "",
+        subclassId: null, // New: Subclass tracking
         level: 1,
         xp: 0,
         xpNext: 300,
@@ -24,7 +25,7 @@ export const gameState = {
         knownSpells: [],
         spellSlots: {}, // Tracks max slots per level
         currentSlots: {}, // Tracks current available slots
-        resources: {}, // Tracks class resources (e.g., second_wind)
+        resources: {}, // Tracks class resources (e.g., second_wind, action_surge)
         proficiencyBonus: 2,
         equippedWeaponId: null,
         equippedArmorId: null,
@@ -33,6 +34,7 @@ export const gameState = {
         statusEffects: [],
         classResources: {}
     },
+    pendingLevelUp: false, // New: Track if level up is pending choices
     currentSceneId: "SCENE_ARRIVAL_HUSHBRIAR",
     quests: JSON.parse(JSON.stringify(quests)),
     flags: {},
@@ -78,7 +80,11 @@ export const gameState = {
         turn: "player",
         winSceneId: null,
         loseSceneId: null,
-        defending: false
+        defending: false,
+        // New: Action Economy Tracking
+        actionsRemaining: 1,
+        bonusActionsRemaining: 1,
+        movementRemaining: 30 // Abstracted, maybe used for 'flee' or positioning later
     }
 };
 
@@ -103,10 +109,12 @@ export function initializeNewGame(name, raceId, classId, baseAbilityScores, chos
     gameState.player.name = name;
     gameState.player.raceId = raceId;
     gameState.player.classId = classId;
+    gameState.player.subclassId = null;
     gameState.player.abilities = abilities;
     gameState.player.level = 1;
     gameState.player.xp = 0;
     gameState.player.proficiencyBonus = 2;
+    gameState.pendingLevelUp = false;
 
     for (const stat of Object.keys(gameState.player.abilities)) {
         gameState.player.modifiers[stat] = calcMod(gameState.player.abilities[stat]);
@@ -118,30 +126,23 @@ export function initializeNewGame(name, raceId, classId, baseAbilityScores, chos
 
     gameState.player.skills = chosenSkills && chosenSkills.length > 0 ? chosenSkills : (cls.proficiencies || []);
     gameState.player.knownSpells = chosenSpells || [];
-    gameState.player.classResources = {
-        maneuvers: classId === 'fighter' ? 3 : 0,
-        grit: classId === 'rogue' ? 2 : 0,
-        spellSlots: classId === 'wizard' ? 2 : 1,
-        blessings: classId === 'cleric' ? 2 : 0
-    };
+
+    // Initialize Resources
+    gameState.player.resources = {};
+    if (cls.progression[1] && cls.progression[1].features) {
+        cls.progression[1].features.forEach(feat => {
+            if (feat === 'second_wind') gameState.player.resources['second_wind'] = { current: 1, max: 1 };
+            // Add other level 1 resource inits here if needed
+        });
+    }
 
     // Spell Slots Init
-    if (cls.spellSlots && cls.spellSlots[1]) {
-        gameState.player.spellSlots = { ...cls.spellSlots[1] }; // Level 1 slots
-        gameState.player.currentSlots = { ...cls.spellSlots[1] };
+    if (cls.progression[1].spellSlots) {
+        gameState.player.spellSlots = { ...cls.progression[1].spellSlots };
+        gameState.player.currentSlots = { ...cls.progression[1].spellSlots };
     } else {
         gameState.player.spellSlots = {};
         gameState.player.currentSlots = {};
-    }
-
-    // Class Resources Init
-    gameState.player.resources = {};
-    if (cls.features) {
-        cls.features.forEach(feat => {
-            if (feat === 'second_wind') {
-                gameState.player.resources['second_wind'] = { current: 1, max: 1 };
-            }
-        });
     }
 
     gameState.player.inventory = [];
@@ -230,41 +231,12 @@ export function spendGold(amount) {
 
 export function gainXp(amount) {
     gameState.player.xp += amount;
+    // Check if we hit the threshold
     if (gameState.player.xp >= gameState.player.xpNext) {
-        gameState.player.level++;
-        gameState.player.xpNext = gameState.player.level * 300;
-
-        const cls = classes[gameState.player.classId];
-        const levelData = cls.progression[gameState.player.level];
-
-        if (levelData) {
-            if (levelData.proficiencyBonus) {
-                gameState.player.proficiencyBonus = levelData.proficiencyBonus;
-            }
-            if (levelData.features) {
-                // Could add logic to display "New Feature Unlocked"
-                logMessage(`Level Up! Features: ${levelData.features.join(', ')}`, "gain");
-            }
-            if (levelData.spellSlots) {
-                // Merge slots
-                for (const [lvl, count] of Object.entries(levelData.spellSlots)) {
-                    gameState.player.spellSlots[lvl] = count;
-                    // Restore new slots immediately or wait for rest? 5e usually on rest, but CRPG often immediate max increase.
-                    // Let's just update max. Current stays same until rest.
-                }
-            }
-        } else {
-             // Fallback
-             gameState.player.proficiencyBonus = Math.ceil(1 + (gameState.player.level / 4));
-        }
-
-        const conMod = gameState.player.modifiers.CON;
-        const hpGain = Math.floor(cls.hitDie / 2) + 1 + conMod;
-        gameState.player.maxHp += hpGain;
-        gameState.player.hp += hpGain;
-
-        logMessage(`Level Up! You are now level ${gameState.player.level}. HP increased by ${hpGain}.`, "gain");
-        return true;
+        // We do NOT auto-level up anymore. We set a pending state.
+        gameState.pendingLevelUp = true;
+        logMessage(`You have enough XP to reach Level ${gameState.player.level + 1}! Rest or check your character sheet to level up.`, "gain");
+        return true; // Return true to indicate level up is available
     }
     return false;
 }
