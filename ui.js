@@ -252,8 +252,8 @@ export function updateStatsUI() {
 
     document.getElementById('char-ac').innerText = `AC ${getPlayerAC()}`;
 
-    const weapon = p.equippedWeaponId ? items[p.equippedWeaponId] : null;
-    const armor = p.equippedArmorId ? items[p.equippedArmorId] : null;
+    const weapon = p.equipped.weapon ? items[p.equipped.weapon] : null;
+    const armor = p.equipped.armor ? items[p.equipped.armor] : null;
     const weaponDetail = weapon ? `${weapon.damage} ${weapon.modifier ? `(${weapon.modifier})` : ''}`.trim() : '1d2 (STR)';
     const armorDetail = armor ? `${armor.armorType || 'armor'} AC ${armor.acBase}` : 'base 10 + DEX';
     document.getElementById('char-weapon').innerText = `Weapon: ${weapon ? weapon.name : 'Unarmed'} · ${weaponDetail}`;
@@ -321,7 +321,7 @@ export function toggleInventory(forceOpen = null, characterId = 'player') {
             const equipBtn = document.createElement('button');
             let isEquipped = false;
             if (characterId === 'player') {
-                isEquipped = (gameState.player.equippedWeaponId === itemId || gameState.player.equippedArmorId === itemId);
+                isEquipped = (gameState.player.equipped.weapon === itemId || gameState.player.equipped.armor === itemId);
             } else {
                 isEquipped = (targetChar.equipped.weapon === itemId || targetChar.equipped.armor === itemId);
             }

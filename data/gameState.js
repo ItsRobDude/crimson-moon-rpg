@@ -28,8 +28,10 @@ export const gameState = {
         currentSlots: {}, // Tracks current available slots
         resources: {}, // Tracks class resources (e.g., second_wind, action_surge)
         proficiencyBonus: 2,
-        equippedWeaponId: null,
-        equippedArmorId: null,
+        equipped: {
+            weapon: null,
+            armor: null
+        },
         inventory: [],
         gold: 0,
         statusEffects: [],
@@ -368,23 +370,12 @@ export function equipItem(itemId, characterId = 'player') {
         if (item.reqStr && char.abilities.STR < item.reqStr) {
             return { success: false, reason: 'reqStr', value: item.reqStr };
         }
-        // For roster chars, store in 'equipped' object, for player use root keys (legacy compat or refactor?)
-        // Player uses equippedArmorId. Roster uses equipped.armor.
-        // Let's unify or handle check.
-        if (characterId === 'player') {
-            char.equippedArmorId = itemId;
-        } else {
-            char.equipped.armor = itemId;
-        }
+        char.equipped.armor = itemId;
         return { success: true, slot: 'armor' };
     }
 
     if (item.type === 'weapon') {
-        if (characterId === 'player') {
-            char.equippedWeaponId = itemId;
-        } else {
-            char.equipped.weapon = itemId;
-        }
+        char.equipped.weapon = itemId;
         return { success: true, slot: 'weapon' };
     }
 
@@ -395,12 +386,10 @@ export function unequipItem(slot, characterId = 'player') {
     let char = (characterId === 'player') ? gameState.player : gameState.roster[characterId];
     if (!char) return { success: false, reason: 'char_not_found' };
 
-    if (characterId === 'player') {
-        if (slot === 'weapon') char.equippedWeaponId = null;
-        if (slot === 'armor') char.equippedArmorId = null;
-    } else {
-        if (slot === 'weapon') char.equipped.weapon = null;
-        if (slot === 'armor') char.equipped.armor = null;
+    if (slot === 'weapon') {
+        char.equipped.weapon = null;
+    } else if (slot === 'armor') {
+        char.equipped.armor = null;
     }
     return { success: true, slot };
 }

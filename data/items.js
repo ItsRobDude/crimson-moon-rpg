@@ -7,7 +7,10 @@ export const items = {
         modifier: "STR",
         damageType: "slashing",
         description: "A versatile blade.",
-        price: 20
+        price: 20,
+        modifiers: {
+            toHit: 1
+        }
     },
     "shortbow": {
         name: "Shortbow",
@@ -44,7 +47,10 @@ export const items = {
         acBase: 16,
         reqStr: 13,
         description: "Made of interlocking metal rings.",
-        price: 75
+        price: 75,
+        modifiers: {
+            ac: 1
+        }
     },
     "potion_healing": {
         name: "Potion of Healing",
