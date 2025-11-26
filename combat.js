@@ -1,5 +1,5 @@
 import { gameState, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, unequipItem, syncPartyLevels } from './data/gameState.js';
-import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod, generateScaledStats } from './rules.js';
+import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod, generateScaledStats, calculateDerivedStats } from './rules.js';
 import { classes } from './data/classes.js';
 import { items } from './data/items.js';
 import { enemies } from './data/enemies.js';
@@ -74,26 +74,16 @@ export function startCombat(combatantIds, winScene, loseScene) {
     logMessage(`Combat started!`, "combat");
 
     const initiatives = [];
-    // Player
-    const playerInit = rollInitiative(gameState, 'player');
-    initiatives.push({ type: 'player', id: 'player', initiative: playerInit.total });
-    logMessage(`You rolled ${playerInit.total} for initiative.`, "system");
+    const combatants = [
+        { id: 'player', ...gameState.player },
+        ...gameState.party.map(id => ({ id, ...gameState.roster[id] })),
+        ...gameState.combat.enemies.map(e => ({ id: e.uniqueId, ...e }))
+    ];
 
-    // Companions
-    gameState.party.forEach(compId => {
-        const char = gameState.roster[compId];
-        const dexMod = char.modifiers.DEX;
-        const roll = rollDie(20) + dexMod;
-        initiatives.push({ type: 'companion', id: compId, initiative: roll });
-        logMessage(`${char.name} rolled ${roll} for initiative.`, "system");
-    });
-
-    // Enemies
-    gameState.combat.enemies.forEach(enemy => {
-        const init = rollInitiative(gameState, 'enemy', enemy.attackBonus);
-        enemy.initiative = init.total;
-        initiatives.push({ type: 'enemy', id: enemy.uniqueId, initiative: init.total });
-        logMessage(`${enemy.name} rolled ${init.total} for initiative.`, "system");
+    combatants.forEach(c => {
+        const init = rollInitiative(c);
+        initiatives.push({ id: c.id, initiative: init.total });
+        logMessage(`${c.name} rolled ${init.total} for initiative.`, "system");
     });
 
     initiatives.sort((a, b) => b.initiative - a.initiative);
@@ -492,7 +482,7 @@ export function performAttack(targetId, actorId) {
 
     gameState.combat.actionsRemaining--;
 
-    const weaponId = (actorId === 'player') ? actor.equippedWeaponId : actor.equipped.weapon;
+    const weaponId = actor.equipped.weapon;
     const weapon = items[weaponId] || { name: "Unarmed", damage: "1d2", modifier: "STR", damageType: "bludgeoning", subtype: "simple" };
     const stat = weapon.modifier || "STR";
 
@@ -500,7 +490,9 @@ export function performAttack(targetId, actorId) {
     const statMod = actor.modifiers[stat] || 0;
     const cls = classes[actor.classId];
     const isProficient = weapon.subtype && cls.weaponProficiencies && cls.weaponProficiencies.includes(weapon.subtype);
-    const totalBonus = statMod + (isProficient ? profBonus : 0);
+    const prof = isProficient ? profBonus : 0;
+    const derivedStats = calculateDerivedStats(actor);
+    const totalBonus = statMod + prof + derivedStats.toHit;
 
     const roll = rollDie(20);
     const total = roll + totalBonus;
@@ -582,8 +574,12 @@ export function performAbility(abilityId, actorId) {
     if (!checkWinCondition()) updateCombatUI(actorId);
 }
 
-export function performCastSpell(spellId, targetId, actorId) {
-    if (gameState.combat.actionsRemaining <= 0) return;
+export function performCastSpell(spellId, targetId, actorId = 'player') {
+    if (gameState.combat.actionsRemaining <= 0) {
+        logMessage("No Action remaining!", "check-fail");
+        return;
+    }
+
     const actor = (actorId === 'player') ? gameState.player : gameState.roster[actorId];
     const spell = spells[spellId];
 
@@ -593,29 +589,51 @@ export function performCastSpell(spellId, targetId, actorId) {
     }
 
     gameState.combat.actionsRemaining--;
-    let target;
-    if (targetId === 'player') target = gameState.player;
-    else if (gameState.roster[targetId]) target = gameState.roster[targetId];
-    else target = gameState.combat.enemies.find(e => e.uniqueId === targetId);
-    if (!target) return;
 
-    logMessage(`${actor.name} casts ${spell.name} on ${target.name}.`, "combat");
-    if (spell.type === 'heal') {
-        const roll = rollDiceExpression(spell.amount).total;
-        target.hp = Math.min(target.maxHp, target.hp + roll);
-        logMessage(`Healed ${roll} HP.`, "gain");
+    // Disciple of Life (Cleric Life Domain) Bonus
+    let healingBonus = 0;
+    if (spell.type === 'heal' && gameState.player.subclassId === 'life' && spell.level > 0) {
+        healingBonus = 2 + spell.level;
     }
-    if (!checkWinCondition()) updateCombatUI(actorId);
+
+    // Choose target (player, companion, or enemy)
+    let spellTarget;
+    if (targetId === 'player') spellTarget = gameState.player;
+    else if (gameState.roster[targetId]) spellTarget = gameState.roster[targetId];
+    else spellTarget = gameState.combat.enemies.find(e => e.uniqueId === targetId);
+
+    if (!spellTarget) return;
+
+    if (spell.type === 'heal') {
+        const roll = rollDiceExpression(spell.amount).total + healingBonus;
+        target.hp = Math.min(target.hp + roll, target.maxHp);
+        logMessage(`Healed ${target.name} for ${roll} HP.${healingBonus > 0 ? ' (Disciple of Life)' : ''}`, "gain");
+        updateCombatUI(actorId);
+    } else {
+        // damage spell
+        const toHit = rollAttack(actor, 'INT', actor.proficiencyBonus, false);
+        if (toHit.total >= target.ac) {
+            let dmg = rollDiceExpression(spell.amount).total;
+            const finalDamage = calculateDamage(dmg, spell.damageType || 'force', target);
+            target.hp -= Math.max(1, finalDamage);
+            logMessage(`${actor.name} hits ${target.name} with ${spell.name} for ${finalDamage} damage.`, "combat");
+        } else {
+            logMessage(`${actor.name}'s ${spell.name} misses ${target.name}.`, "system");
+        }
+        updateCombatUI(actorId);
+    }
+
+    if (!checkWinCondition()) {
+        updateCombatUI(actorId);
+    }
 }
 
 function getCurrentActorId() {
     return gameState.combat.turnOrder[gameState.combat.turnIndex];
 }
 
-function getAC(char) {
-    const armor = char.equippedArmorId ? items[char.equippedArmorId] : (char.equipped?.armor ? items[char.equipped.armor] : null);
-    if (armor) return armor.acBase;
-    return 10 + (char.modifiers.DEX || 0);
+function getAC(character) {
+    return calculateDerivedStats(character).ac;
 }
 
 function calculateDamage(baseDamage, damageType, target, isCritical = false) {
@@ -641,4 +659,3 @@ function calculateDamage(baseDamage, damageType, target, isCritical = false) {
 }
 
 
-window.startCombat = startCombat;

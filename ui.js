@@ -10,6 +10,7 @@ import { factions } from './data/factions.js';
 import { logMessage } from './logger.js';
 import { getAbilityMod } from './rules.js';
 import { goToScene, travelTo } from './exploration.js';
+import { startCombat } from './combat.js';
 
 // --- Character Creation ---
 let ccState = {
@@ -419,11 +420,7 @@ export function showRestModal() {
         modal.classList.add('hidden');
         if (gameState.threat.level > 20 && Math.random() * 100 <= gameState.threat.level) {
             logMessage("You are ambushed while resting!", "combat");
-            if (window.startCombat) {
-                window.startCombat(['fungal_beast'], gameState.currentSceneId, 'SCENE_DEFEAT');
-            } else {
-                console.error("startCombat is not available on window.");
-            }
+            startCombat(['fungal_beast'], gameState.currentSceneId, 'SCENE_DEFEAT');
         } else {
             logMessage("You take a long rest.", "system");
             performLongRest();

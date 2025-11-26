@@ -5,6 +5,7 @@ async function main() {
         // Dynamically import the game logic module.
         // This ensures all its dependencies (data modules) are parsed before execution.
         const game = await import('./game.js');
+        const { gameState } = await import('./data/gameState.js');
 
         // The DOM is ready because this script is at the end of the body.
         // No need to wait for DOMContentLoaded, which can cause race conditions with modules.

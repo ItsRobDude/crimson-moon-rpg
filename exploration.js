@@ -144,7 +144,7 @@ function handleChoice(choice) {
     if (!choice.type) { if (choice.nextScene) goToScene(choice.nextScene); return; }
 
     if (choice.type === 'skillCheck') {
-        const result = rollSkillCheck(gameState, choice.skill);
+        const result = rollSkillCheck(gameState.player, choice.skill);
         const dc = choice.dc;
 
         log(`Skill Check (${choice.skill}): Rolled ${result.roll} + ${result.modifier} = ${result.total} (DC ${dc})${result.note || ''}`, result.total >= dc ? "check-success" : "check-fail");
@@ -167,7 +167,7 @@ function handleChoice(choice) {
             if (choice.nextSceneFail) renderContinueButton(choice.nextSceneFail);
         }
     } else if (choice.type === 'save') {
-        const result = rollSavingThrow(gameState, choice.ability);
+        const result = rollSavingThrow(gameState.player, choice.ability);
         const success = result.total >= choice.dc;
         log(`Save (${choice.ability}): ${result.total} (DC ${choice.dc})`, success ? "check-success" : "check-fail");
         if (success) {
