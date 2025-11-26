@@ -1,24 +1,91 @@
+// ui.js
+
 import { races } from './data/races.js';
 import { classes, featureDefinitions } from './data/classes.js';
-import { spells } from './data/spells.js';
-import { gameState, initializeNewGame, equipItem, useConsumable, addItem, removeItem, syncPartyLevels } from './data/gameState.js';
 import { items } from './data/items.js';
 import { quests } from './data/quests.js';
+import { scenes } from './data/scenes.js';
+import { enemies } from './data/enemies.js';
+import { spells } from './data/spells.js';
+import { statusEffects } from './data/statusEffects.js';
 import { locations } from './data/locations.js';
+import { travelEvents } from './data/travelEvents.js';
+import { shops } from './data/shops.js';
 import { npcs } from './data/npcs.js';
+import { companions } from './data/companions.js';
 import { factions } from './data/factions.js';
-import { logMessage } from './logger.js';
-import { getAbilityMod } from './rules.js';
-import { goToScene, travelTo } from './exploration.js';
-import { startCombat } from './combat.js';
+import { gameState, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, unequipItem, syncPartyLevels, saveGame, loadGame, removeItem } from './data/gameState.js';
+import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod, generateScaledStats } from './rules.js';
 
-// --- Character Creation ---
-let ccState = {
-    baseStats: { STR: 12, DEX: 12, CON: 12, INT: 12, WIS: 12, CHA: 12 },
+// This object will be populated by the orchestrator in game.js
+// to break circular dependencies. UI functions will call these callbacks
+// instead of directly importing combat functions.
+export const combatHooks = {
+    startCombat: () => console.error("UI: startCombat hook not connected!"),
+    performShortRest: () => console.error("UI: performShortRest hook not connected!"),
+    performLongRest: () => console.error("UI: performLongRest hook not connected!"),
+};
+
+const ccState = {
+    baseStats: {},
     chosenSkills: [],
     chosenSpells: []
 };
 
+
+// ... (Existing exports and initUI) ...
+export function initUI() {
+    console.log("UI: Initializing UI event listeners...");
+    window.goToScene = goToScene;
+    window.showCharacterCreation = showCharacterCreation;
+    document.getElementById('btn-inventory').onclick = () => toggleInventory();
+    document.getElementById('btn-quests').onclick = toggleQuestLog;
+    document.getElementById('btn-menu').onclick = toggleMenu;
+    document.getElementById('btn-map').onclick = toggleMap;
+    document.getElementById('btn-codex').onclick = () => toggleCodex('people');
+    document.getElementById('btn-codex-people').onclick = () => toggleCodex('people');
+    document.getElementById('btn-codex-factions').onclick = () => toggleCodex('factions');
+
+    // New: Check for pending level up on stats click or button
+    // For now, we'll add a listener to the level text if it has a specific class, or just a button.
+    // Let's make the "Lvl X" text clickable if pending.
+    document.getElementById('char-level').onclick = () => {
+        if (gameState.pendingLevelUp) showLevelUpModal();
+    };
+    // Visual cue update happens in updateStatsUI
+
+    document.querySelectorAll('.close-modal').forEach(btn => {
+        btn.onclick = (e) => {
+            e.target.closest('.modal').classList.add('hidden');
+        };
+    });
+
+    document.getElementById('btn-start-game').onclick = finishCharacterCreation;
+
+    document.getElementById('btn-debug-toggle').onclick = () => {
+        logMessage("Debug mode toggled.", "system");
+    };
+
+    document.getElementById('btn-save').onclick = () => {
+        saveGame();
+        logMessage("Game Saved.", "system");
+    };
+    document.getElementById('btn-load').onclick = () => {
+        if (loadGame()) {
+            logMessage("Game Loaded.", "system");
+            // We need to refresh the entire UI state
+            updateStatsUI();
+            goToScene(gameState.currentSceneId);
+        } else {
+            logMessage("No save data found to load.", "check-fail");
+        }
+    };
+    document.getElementById('btn-tutorial').onclick = () => {
+        document.getElementById('tutorial-overlay').classList.remove('hidden');
+    };
+}
+
+// ... (Character Creation Logic remains same) ...
 export function showCharacterCreation() {
     const raceSelect = document.getElementById('cc-race');
     const classSelect = document.getElementById('cc-class');
@@ -52,9 +119,7 @@ function renderAbilityScoreUI() {
     container.innerHTML = '';
     const standardArray = [15, 14, 13, 12, 10, 8];
     const stats = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
-    // Reset defaults only if first load? No, reset here.
     ccState.baseStats = { STR: 15, DEX: 14, CON: 13, INT: 12, WIS: 10, CHA: 8 };
-
     stats.forEach((stat, index) => {
         const row = document.createElement('div');
         row.className = 'stat-row';
@@ -129,7 +194,6 @@ function renderSkillChoices(cls) {
     container.innerHTML = '';
     const max = 2;
     document.getElementById('cc-skill-count').innerText = max;
-    // Use skillProficiencies as fixed previously
     cls.skillProficiencies.forEach(skill => {
         const div = document.createElement('div');
         div.className = 'checkbox-item';
@@ -203,7 +267,7 @@ function renderSpellChoices(cls) {
     });
 }
 
-export function finishCharacterCreation() {
+function finishCharacterCreation() {
     const name = document.getElementById('cc-name').value || "Traveler";
     const raceKey = document.getElementById('cc-race').value;
     const classKey = document.getElementById('cc-class').value;
@@ -231,246 +295,269 @@ export function finishCharacterCreation() {
     logMessage(`Character ${name} created. Welcome to Silverthorn.`, "system");
 }
 
-// --- HUD / Menus ---
+export function goToScene(sceneId) {
+    const scene = scenes[sceneId];
+    if (!scene) { console.error("Scene not found:", sceneId); return; }
 
-export function updateStatsUI() {
-    const p = gameState.player;
-    document.getElementById('char-name').innerText = p.name;
-    document.getElementById('char-class').innerText = p.classId ? classes[p.classId].name : "Class";
+    const battleScreen = document.getElementById('battle-screen');
+    if (battleScreen) battleScreen.classList.add('hidden');
 
-    const levelEl = document.getElementById('char-level');
-    if (gameState.pendingLevelUp) {
-        levelEl.innerText = `Lvl ${p.level} (UP!)`;
-        levelEl.style.color = 'gold';
-        levelEl.style.cursor = 'pointer';
-        levelEl.classList.add('pulse-animation');
+    const sceneContainer = document.getElementById('scene-container');
+    if (sceneContainer) sceneContainer.classList.remove('hidden');
+
+    const isFirstVisit = !gameState.visitedScenes.includes(sceneId);
+    if (isFirstVisit) {
+        gameState.visitedScenes.push(sceneId);
+    }
+
+    gameState.currentSceneId = sceneId;
+    if (scene.location) discoverLocation(scene.location);
+
+    if (scene.type !== 'combat' && scene.location === 'silverthorn') {
+        if (getReputation('silverthorn') <= -50) {
+            logMessage("The guards recognize you as an enemy of the state!", "combat");
+            combatHooks.startCombat(['fungal_beast'], 'SCENE_DEFEAT', 'SCENE_DEFEAT');
+            return;
+        }
+    }
+
+    document.getElementById('scene-background').style.backgroundImage = `url('${scene.background}')`;
+    const portraitContainer = document.getElementById('portrait-container');
+    if (scene.npcPortrait) {
+        document.getElementById('npc-portrait').src = scene.npcPortrait;
+        portraitContainer.classList.remove('hidden');
     } else {
-        levelEl.innerText = `Lvl ${p.level}`;
-        levelEl.style.color = '';
-        levelEl.style.cursor = 'default';
-        levelEl.classList.remove('pulse-animation');
+        portraitContainer.classList.add('hidden');
+    }
+    document.getElementById('narrative-text').innerText = scene.text;
+
+    if (scene.onEnter) {
+        const runOnEnter = !scene.onEnter.once || isFirstVisit;
+        if (runOnEnter) {
+            if (scene.onEnter.questUpdate) {
+                updateQuestStage(scene.onEnter.questUpdate.id, scene.onEnter.questUpdate.stage);
+                const q = quests[scene.onEnter.questUpdate.id];
+                logMessage(`Quest Updated: ${q.title}`, "gain");
+            }
+            if (scene.onEnter.addGold) {
+                addGold(scene.onEnter.addGold);
+                logMessage(`Gained ${scene.onEnter.addGold} gold.`, "gain");
+            }
+            if (scene.onEnter.setFlag) {
+                gameState.flags[scene.onEnter.setFlag] = true;
+                if (scene.onEnter.setFlag === 'aodhan_dead') {
+                    setNpcStatus('aodhan', 'dead');
+                }
+            }
+        }
     }
 
-    document.getElementById('char-ac').innerText = `AC ${getPlayerAC()}`;
+    triggerAmbientByThreat(scene.location);
 
-    const weapon = p.equipped.weapon ? items[p.equipped.weapon] : null;
-    const armor = p.equipped.armor ? items[p.equipped.armor] : null;
-    const weaponDetail = weapon ? `${weapon.damage} ${weapon.modifier ? `(${weapon.modifier})` : ''}`.trim() : '1d2 (STR)';
-    const armorDetail = armor ? `${armor.armorType || 'armor'} AC ${armor.acBase}` : 'base 10 + DEX';
-    document.getElementById('char-weapon').innerText = `Weapon: ${weapon ? weapon.name : 'Unarmed'} · ${weaponDetail}`;
-    document.getElementById('char-armor').innerText = `Armor: ${armor ? armor.name : 'None'} · ${armorDetail}`;
-
-    const hpPct = Math.max(0, (p.hp / p.maxHp) * 100);
-    document.getElementById('hp-bar-fill').style.width = `${hpPct}%`;
-    document.getElementById('hp-text').innerText = `HP: ${p.hp}/${p.maxHp}`;
-
-    const xpPct = Math.max(0, (p.xp / p.xpNext) * 100);
-    document.getElementById('xp-bar-fill').style.width = `${xpPct}%`;
-    document.getElementById('xp-text').innerText = `XP: ${p.xp}/${p.xpNext}`;
+    if (scene.type === 'combat') {
+        document.getElementById('shop-panel').classList.add('hidden');
+        combatHooks.startCombat(scene.enemies, scene.winScene, scene.loseScene);
+    } else if (scene.type === 'shop') {
+        renderShop(scene.shopId);
+        gameState.combat.active = false;
+        renderChoices(scene.choices);
+        saveGame();
+    } else {
+        document.getElementById('shop-panel').classList.add('hidden');
+        gameState.combat.active = false;
+        renderChoices(scene.choices);
+        saveGame();
+    }
 }
 
-function getPlayerAC() {
-    const p = gameState.player;
-    const armor = p.equippedArmorId ? items[p.equippedArmorId] : null;
-    if (armor) return armor.acBase;
-    if (p.classId === 'fighter') return 10 + p.modifiers.DEX;
-    return 10 + p.modifiers.DEX;
+// ... (renderChoices, handleChoice, travelTo, etc. - mostly standard) ...
+function renderChoices(choices) {
+    const choiceContainer = document.getElementById('choice-container');
+    choiceContainer.innerHTML = '';
+    if (choices) {
+        choices.forEach((choice) => {
+            if (choice.requires) {
+                if (choice.requires.relationship) {
+                    const current = getRelationship(choice.requires.relationship.npcId);
+                    if (current < (choice.requires.relationship.min || -999)) return;
+                }
+                if (choice.requires.reputation) {
+                    const current = getReputation(choice.requires.reputation.factionId);
+                    if (current < (choice.requires.reputation.min || -999)) return;
+                }
+                if (choice.requires.flag) {
+                    if (!gameState.flags[choice.requires.flag]) return;
+                }
+                if (choice.requires.npcState) {
+                    const { id, status } = choice.requires.npcState;
+                    if (getNpcStatus(id) !== status) return;
+                }
+            }
+            const btn = document.createElement('button');
+            btn.innerText = choice.text + (choice.cost ? ` (${choice.cost}g)` : "");
+            btn.onclick = () => handleChoice(choice);
+            choiceContainer.appendChild(btn);
+        });
+    }
 }
 
-export function toggleInventory(forceOpen = null, characterId = 'player') {
-    const modal = document.getElementById('inventory-modal');
-    const list = document.getElementById('inventory-list');
-    const charSelect = document.getElementById('inventory-character-select');
-
-    if (forceOpen === false || (forceOpen === null && !modal.classList.contains('hidden'))) {
-        modal.classList.add('hidden');
+function handleChoice(choice) {
+    if (choice.action === 'loadGame') {
+        if (loadGame()) {
+            logMessage("Game Loaded.", "system");
+            updateStatsUI();
+            goToScene(gameState.currentSceneId);
+        } else {
+            logMessage("No save data found to load.", "check-fail");
+        }
+        return;
+    } else if (choice.action === 'inventory') {
+        toggleInventory();
         return;
     }
-
-    modal.classList.remove('hidden');
-    list.innerHTML = '';
-    charSelect.innerHTML = '';
-
-    // Render Tabs
-    const chars = ['player', ...gameState.party];
-    chars.forEach(id => {
-        const btn = document.createElement('button');
-        const name = (id === 'player') ? gameState.player.name : gameState.roster[id].name;
-        btn.innerText = name;
-        btn.className = (id === characterId) ? 'tab-active' : '';
-        btn.onclick = () => toggleInventory(true, id);
-        charSelect.appendChild(btn);
-    });
-
-    const targetChar = (characterId === 'player') ? gameState.player : gameState.roster[characterId];
-    if (!targetChar || targetChar.inventory.length === 0) {
-        list.innerHTML = '<p>Empty.</p>';
+    if (choice.action === 'openMap') {
+        toggleMap();
         return;
     }
+    if (choice.action === 'shortRest' || choice.action === 'longRest') {
+        showRestModal();
+        return;
+    }
+    if (choice.effects) {
+        choice.effects.forEach(effect => {
+            if (effect.type === 'relationship') changeRelationship(effect.npcId, effect.amount);
+            if (effect.type === 'reputation') changeReputation(effect.factionId, effect.amount);
+        });
+    }
+    if (!choice.type) { if (choice.nextScene) goToScene(choice.nextScene); return; }
 
-    targetChar.inventory.forEach(itemId => {
+    if (choice.type === 'skillCheck') {
+        const result = rollSkillCheck(gameState.player, choice.skill);
+        const dc = choice.dc;
+
+        logMessage(`Skill Check (${choice.skill}): Rolled ${result.roll} + ${result.modifier} = ${result.total} (DC ${dc})${result.note || ''}`, result.total >= dc ? "check-success" : "check-fail");
+
+        if (result.total >= dc) {
+            if (choice.skill === 'stealth') {
+                adjustThreat(-5, 'moving quietly');
+                clearTransientThreat();
+            }
+            if (choice.onSuccess && choice.onSuccess.addGold) {
+                addGold(choice.onSuccess.addGold);
+            }
+            document.getElementById('narrative-text').innerText = choice.successText;
+            if (choice.nextSceneSuccess) renderContinueButton(choice.nextSceneSuccess);
+        } else {
+            if (choice.skill === 'stealth' || choice.skill === 'acrobatics') {
+                adjustThreat(5, 'noise draws attention');
+            }
+            document.getElementById('narrative-text').innerText = choice.failText;
+            if (choice.nextSceneFail) renderContinueButton(choice.nextSceneFail);
+        }
+    } else if (choice.type === 'save') {
+        const result = rollSavingThrow(gameState.player, choice.ability);
+        const success = result.total >= choice.dc;
+        logMessage(`Save (${choice.ability}): ${result.total} (DC ${choice.dc})`, success ? "check-success" : "check-fail");
+        if (success) {
+            document.getElementById('narrative-text').innerText = choice.successText;
+        } else {
+            document.getElementById('narrative-text').innerText = choice.failText;
+            if (choice.failEffect?.type === 'damage') {
+                const dmg = rollDiceExpression(choice.failEffect.amount).total;
+                gameState.player.hp -= dmg;
+                logMessage(`Took ${dmg} damage.`, "combat");
+                updateStatsUI();
+                if (gameState.player.hp <= 0) { goToScene('SCENE_DEFEAT'); return; }
+            }
+            if (choice.failEffect?.type === 'status') {
+                applyStatusEffect(choice.failEffect.id);
+            }
+        }
+        if (choice.nextScene) renderContinueButton(choice.nextScene);
+    }
+}
+
+function renderContinueButton(nextSceneId) {
+    const choiceContainer = document.getElementById('choice-container');
+    choiceContainer.innerHTML = '';
+    const btn = document.createElement('button');
+    btn.innerText = "Continue";
+    btn.onclick = () => goToScene(nextSceneId);
+    choiceContainer.appendChild(btn);
+}
+
+function triggerAmbientByThreat(locationId) {
+    const roll = rollDie(20);
+    const threat = gameState.threat.level;
+    if (roll + threat / 10 > 20) {
+        const warning = locationId === 'whisperwood' ? 'Distant clicking echoes between the spores.' : 'You hear rustling—wildlife unsettled by your presence.';
+        recordAmbientEvent(warning, threat > 40 ? 'combat' : 'system');
+    } else if (roll === 1 && gameState.threat.recentStealth > 0) {
+        recordAmbientEvent('Your quiet steps muffle the forest. Predators pass you by.', 'gain');
+    }
+}
+
+// --- Shop System --- (Omitted similar to before, unchanged)
+function getShopPrice(item, shopId) {
+    let price = item.price;
+    if (shops[shopId] && shops[shopId].location === 'silverthorn') {
+        if (getReputation('silverthorn') >= 30) {
+            price = Math.floor(price * 0.9);
+        }
+    }
+    return price;
+}
+
+function renderShop(shopId) {
+    const shopDef = shops[shopId];
+    if (!shopDef) return;
+
+    const panel = document.getElementById('shop-panel');
+    const container = document.getElementById('shop-items-container');
+    const goldDisplay = document.getElementById('shop-gold-display');
+
+    container.innerHTML = '';
+    goldDisplay.innerText = `Gold: ${gameState.player.gold}`;
+
+    shopDef.items.forEach(itemId => {
         const item = items[itemId];
         if (!item) return;
 
+        const price = getShopPrice(item, shopId);
+
         const row = document.createElement('div');
-        row.className = 'inventory-item';
-        row.innerHTML = `<strong>${item.name}</strong> <small>${item.type}</small>`;
+        row.style.display = "flex";
+        row.style.justifyContent = "space-between";
+        row.style.alignItems = "center";
+        row.style.padding = "8px";
+        row.style.borderBottom = "1px solid #444";
 
-        const actions = document.createElement('div');
+        const info = document.createElement('div');
+        info.innerHTML = `<strong>${item.name}</strong> (${price}g)<br><small>${item.description}</small>`;
 
-        if (item.type === 'weapon' || item.type === 'armor') {
-            const equipBtn = document.createElement('button');
-            let isEquipped = false;
-            if (characterId === 'player') {
-                isEquipped = (gameState.player.equipped.weapon === itemId || gameState.player.equipped.armor === itemId);
+        const btn = document.createElement('button');
+        btn.innerText = "Buy";
+        btn.onclick = () => {
+            if (spendGold(price)) {
+                addItem(itemId);
+                logMessage(`Bought ${item.name} for ${price}g.`, "gain");
+                goldDisplay.innerText = `Gold: ${gameState.player.gold}`;
             } else {
-                isEquipped = (targetChar.equipped.weapon === itemId || targetChar.equipped.armor === itemId);
+                logMessage("Not enough gold.", "check-fail");
             }
-
-            equipBtn.innerText = isEquipped ? "Equipped" : "Equip";
-            equipBtn.disabled = isEquipped;
-            equipBtn.onclick = () => {
-                const res = equipItem(itemId, characterId);
-                if (res.success) {
-                    logMessage(`Equipped ${item.name}.`, "system");
-                    toggleInventory(true, characterId);
-                    updateStatsUI();
-                } else {
-                    logMessage(`Cannot equip: ${res.reason}`, "check-fail");
-                }
-            };
-            actions.appendChild(equipBtn);
-        }
-
-        // Transfer Button
-        const transferBtn = document.createElement('button');
-        transferBtn.innerText = "Give";
-        transferBtn.onclick = () => {
-            // Simple cycle: Give to next char
-            let targetId = 'player';
-            if (characterId === 'player') {
-                if (gameState.party.length > 0) targetId = gameState.party[0];
-                else { logMessage("No one to give to.", "system"); return; }
-            }
-
-            removeItem(itemId, characterId);
-            addItem(itemId, targetId);
-            logMessage(`Transferred ${item.name}.`, "system");
-            toggleInventory(true, characterId);
         };
-        actions.appendChild(transferBtn);
 
-        row.appendChild(actions);
-        list.appendChild(row);
-    });
-}
-
-export function toggleQuestLog() {
-    const modal = document.getElementById('quest-modal');
-    const list = document.getElementById('quest-list');
-
-    if (!modal.classList.contains('hidden')) {
-        modal.classList.add('hidden');
-        return;
-    }
-
-    modal.classList.remove('hidden');
-    list.innerHTML = '';
-
-    for (const [qid, qData] of Object.entries(gameState.quests)) {
-        if (qData.currentStage > 0) {
-            const div = document.createElement('div');
-            div.className = 'quest-entry';
-            div.innerHTML = `<h4>${qData.title}</h4><p>${qData.stages[qData.currentStage]}</p>`;
-            if (qData.completed) div.innerHTML += ` <span style='color:gold'>(Completed)</span>`;
-            list.appendChild(div);
-        }
-    }
-
-    if (list.innerHTML === '') list.innerHTML = '<p>No active quests.</p>';
-}
-
-export function toggleMenu() {
-    const modal = document.getElementById('menu-modal');
-    modal.classList.toggle('hidden');
-}
-
-export function showRestModal() {
-    const modal = document.getElementById('rest-modal');
-    const warning = document.getElementById('long-rest-warning');
-    const shortRestBtn = document.getElementById('btn-short-rest');
-    const longRestBtn = document.getElementById('btn-long-rest');
-
-    if (gameState.threat.level > 50) {
-        warning.innerText = "Resting here is dangerous. There is a high chance of being ambushed.";
-    } else if (gameState.threat.level > 20) {
-        warning.innerText = "The area is unsafe. Resting might attract unwanted attention.";
-    } else {
-        warning.innerText = "";
-    }
-
-    shortRestBtn.onclick = () => {
-        modal.classList.add('hidden');
-        logMessage("You take a short rest.", "system");
-        performShortRest();
-        updateStatsUI();
-    };
-
-    longRestBtn.onclick = () => {
-        modal.classList.add('hidden');
-        if (gameState.threat.level > 20 && Math.random() * 100 <= gameState.threat.level) {
-            logMessage("You are ambushed while resting!", "combat");
-            startCombat(['fungal_beast'], gameState.currentSceneId, 'SCENE_DEFEAT');
-        } else {
-            logMessage("You take a long rest.", "system");
-            performLongRest();
-            updateStatsUI();
-        }
-    };
-
-    modal.classList.remove('hidden');
-}
-
-function performLongRest() {
-    gameState.player.hp = gameState.player.maxHp;
-    if (gameState.player.spellSlots) {
-        gameState.player.currentSlots = { ...gameState.player.spellSlots };
-    }
-    if (gameState.player.resources['second_wind']) {
-        gameState.player.resources['second_wind'].current = gameState.player.resources['second_wind'].max;
-    }
-    if (gameState.player.resources['action_surge']) {
-        gameState.player.resources['action_surge'].current = gameState.player.resources['action_surge'].max;
-    }
-    // Restore party
-    gameState.party.forEach(id => {
-        const char = gameState.roster[id];
-        char.hp = char.maxHp;
-        if (char.spellSlots) char.currentSlots = { ...char.spellSlots };
-        if (char.resources['second_wind']) char.resources['second_wind'].current = char.resources['second_wind'].max;
-        if (char.resources['action_surge']) char.resources['action_surge'].current = char.resources['action_surge'].max;
-    });
-    return true;
-}
-
-function performShortRest() {
-    // Heal 1 HD for everyone
-    [gameState.player, ...gameState.party.map(id => gameState.roster[id])].forEach(char => {
-        const cls = classes[char.classId];
-        const roll = Math.floor(Math.random() * cls.hitDie) + 1 + (char.modifiers.CON || 0);
-        const healed = Math.max(1, roll);
-        char.hp = Math.min(char.maxHp, char.hp + healed);
-
-        if (char.resources['second_wind']) char.resources['second_wind'].current = char.resources['second_wind'].max;
-        if (char.resources['action_surge']) char.resources['action_surge'].current = char.resources['action_surge'].max;
+        row.appendChild(info);
+        row.appendChild(btn);
+        container.appendChild(row);
     });
 
-    return true;
+    panel.classList.remove('hidden');
 }
 
-// --- Codex & Map ---
-
-export function toggleMap() {
+// --- Map System --- (Omitted similar to before, unchanged)
+function toggleMap() {
+    // ... (Existing logic)
     const modal = document.getElementById('map-modal');
     const list = document.getElementById('map-locations');
     const pinList = document.getElementById('pin-list');
@@ -540,7 +627,80 @@ export function toggleMap() {
     modal.classList.remove('hidden');
 }
 
-export function toggleCodex(tab = 'people') {
+function travelTo(locationId) {
+    document.getElementById('map-modal').classList.add('hidden');
+    logMessage(`Traveling to ${locations[locationId].name}...`, "system");
+
+    if (rollDie(100) <= 20) {
+        const event = travelEvents[Math.floor(Math.random() * travelEvents.length)];
+        const eventSceneId = "SCENE_TRAVEL_EVENT_" + Date.now();
+        const destSceneId = getHubSceneForLocation(locationId);
+
+        if (event.type === 'combat') {
+            scenes[eventSceneId] = {
+                id: eventSceneId,
+                location: "travel",
+                background: "landscapes/forest_walk_alt.png",
+                text: event.text,
+                type: 'combat',
+                enemyId: event.enemyId,
+                winScene: destSceneId,
+                loseScene: "SCENE_DEFEAT"
+            };
+            goToScene(eventSceneId);
+            return;
+        } else if (event.type === 'skillCheck') {
+            scenes[eventSceneId] = {
+                id: eventSceneId,
+                location: "travel",
+                background: "landscapes/forest_walk_alt.png",
+                text: event.text,
+                choices: [
+                    {
+                        text: "Investigate",
+                        type: "skillCheck",
+                        skill: event.skill,
+                        dc: event.dc,
+                        successText: event.successText,
+                        failText: event.failText,
+                        onSuccess: event.onSuccess,
+                        nextSceneSuccess: destSceneId,
+                        nextSceneFail: destSceneId
+                    },
+                    {
+                        text: "Ignore and move on",
+                        nextScene: destSceneId
+                    }
+                ]
+            };
+            goToScene(eventSceneId);
+            return;
+        }
+    }
+
+    goToScene(getHubSceneForLocation(locationId));
+}
+
+function getHubSceneForLocation(locationId) {
+    const phase = gameState.worldPhase || 0;
+    if (locationId === 'hushbriar') {
+        if (phase >= 2 || gameState.flags['aodhan_dead']) {
+            return 'SCENE_HUSHBRIAR_CORRUPTED';
+        }
+        return 'SCENE_HUSHBRIAR_TOWN';
+    }
+    if (locationId === 'silverthorn') return 'SCENE_HUB_SILVERTHORN';
+    if (locationId === 'whisperwood') return 'SCENE_ARRIVAL_WHISPERWOOD';
+    if (locationId === 'shadowmire') return 'SCENE_TRAVEL_SHADOWMIRE';
+    if (locationId === 'durnhelm') return 'SCENE_DURNHELM_GATES';
+    if (locationId === 'lament_hill') return 'SCENE_LAMENT_HILL_APPROACH';
+    if (locationId === 'solasmor') return 'SCENE_SOLASMOR_APPROACH';
+    if (locationId === 'soul_mill') return 'SCENE_SOUL_MILL_APPROACH';
+    if (locationId === 'thieves_hideout') return 'SCENE_THIEVES_HIDEOUT';
+    return 'SCENE_BRIEFING';
+}
+
+function toggleCodex(tab = 'people') {
     const modal = document.getElementById('codex-modal');
     const list = document.getElementById('codex-list');
     const btnPeople = document.getElementById('btn-codex-people');
@@ -624,7 +784,251 @@ function renderCodexFactions(container) {
     });
 }
 
-export function showLevelUpModal() {
+// --- UI Updates ---
+
+// --- UI Updates ---
+export function updateStatsUI() {
+    const p = gameState.player;
+    document.getElementById('char-name').innerText = p.name;
+    document.getElementById('char-class').innerText = p.classId ? classes[p.classId].name : "Class";
+
+    // Level Up Indicator
+    const levelEl = document.getElementById('char-level');
+    if (gameState.pendingLevelUp) {
+        levelEl.innerText = `Lvl ${p.level} (UP!)`;
+        levelEl.style.color = 'gold';
+        levelEl.style.cursor = 'pointer';
+        levelEl.classList.add('pulse-animation'); // Assuming CSS handles this or just color is enough
+    } else {
+        levelEl.innerText = `Lvl ${p.level}`;
+        levelEl.style.color = '';
+        levelEl.style.cursor = 'default';
+        levelEl.classList.remove('pulse-animation');
+    }
+
+    document.getElementById('char-ac').innerText = `AC ${gameState.player.ac}`;
+
+    const weapon = p.equipped.weapon ? items[p.equipped.weapon] : null;
+    const armor = p.equipped.armor ? items[p.equipped.armor] : null;
+    const weaponDetail = weapon ? `${weapon.damage} ${weapon.modifier ? `(${weapon.modifier})` : ''}`.trim() : '1d2 (STR)';
+    const armorDetail = armor ? `${armor.armorType || 'armor'} AC ${armor.acBase}` : 'base 10 + DEX';
+    document.getElementById('char-weapon').innerText = `Weapon: ${weapon ? weapon.name : 'Unarmed'} · ${weaponDetail}`;
+    document.getElementById('char-armor').innerText = `Armor: ${armor ? armor.name : 'None'} · ${armorDetail}`;
+
+    const hpPct = Math.max(0, (p.hp / p.maxHp) * 100);
+    document.getElementById('hp-bar-fill').style.width = `${hpPct}%`;
+    document.getElementById('hp-text').innerText = `HP: ${p.hp}/${p.maxHp}`;
+
+    const xpPct = Math.max(0, (p.xp / p.xpNext) * 100);
+    document.getElementById('xp-bar-fill').style.width = `${xpPct}%`;
+    document.getElementById('xp-text').innerText = `XP: ${p.xp}/${p.xpNext}`;
+}
+
+// ... (Rest of existing functions: toggleInventory, etc. UNCHANGED, but ensuring performLongRest resets new resources) ...
+
+// --- Inventory System Update ---
+
+function toggleInventory(forceOpen = null, characterId = 'player') {
+    const modal = document.getElementById('inventory-modal');
+    const list = document.getElementById('inventory-list');
+    const charSelect = document.getElementById('inventory-character-select');
+
+    if (forceOpen === false || (forceOpen === null && !modal.classList.contains('hidden'))) {
+        modal.classList.add('hidden');
+        return;
+    }
+
+    modal.classList.remove('hidden');
+    list.innerHTML = '';
+    charSelect.innerHTML = ''; // Clear tabs
+
+    // Render Tabs
+    const chars = ['player', ...gameState.party];
+    chars.forEach(id => {
+        const btn = document.createElement('button');
+        const name = (id === 'player') ? gameState.player.name : gameState.roster[id].name;
+        btn.innerText = name;
+        btn.className = (id === characterId) ? 'tab-active' : '';
+        btn.onclick = () => toggleInventory(true, id);
+        charSelect.appendChild(btn);
+    });
+
+    const targetChar = (characterId === 'player') ? gameState.player : gameState.roster[characterId];
+    if (!targetChar || targetChar.inventory.length === 0) {
+        list.innerHTML = '<p>Empty.</p>';
+        return;
+    }
+
+    targetChar.inventory.forEach(itemId => {
+        const item = items[itemId];
+        if (!item) return;
+
+        const row = document.createElement('div');
+        row.className = 'inventory-item';
+        row.innerHTML = `<strong>${item.name}</strong> <small>${item.type}</small>`;
+
+        const actions = document.createElement('div');
+
+        if (item.type === 'weapon' || item.type === 'armor') {
+            const equipBtn = document.createElement('button');
+            let isEquipped = false;
+            if (characterId === 'player') {
+                isEquipped = (gameState.player.equipped.weapon === itemId || gameState.player.equipped.armor === itemId);
+            } else {
+                isEquipped = (targetChar.equipped.weapon === itemId || targetChar.equipped.armor === itemId);
+            }
+
+            equipBtn.innerText = isEquipped ? "Equipped" : "Equip";
+            equipBtn.disabled = isEquipped;
+            equipBtn.onclick = () => {
+                const res = equipItem(itemId, characterId);
+                if (res.success) {
+                    logMessage(`Equipped ${item.name}.`, "system");
+                    toggleInventory(true, characterId);
+                    updateStatsUI(); // If player
+                } else {
+                    logMessage(`Cannot equip: ${res.reason}`, "check-fail");
+                }
+            };
+            actions.appendChild(equipBtn);
+        }
+
+        // Transfer Button
+        const transferBtn = document.createElement('button');
+        transferBtn.innerText = "Give";
+        transferBtn.onclick = () => {
+            // Simple cycle: Give to next char
+            // Ideally show dropdown. For now, give to Player if Comp, give to first Comp if Player.
+            let targetId = 'player';
+            if (characterId === 'player') {
+                if (gameState.party.length > 0) targetId = gameState.party[0];
+                else { logMessage("No one to give to.", "system"); return; }
+            }
+
+            removeItem(itemId, characterId);
+            addItem(itemId, targetId);
+            logMessage(`Transferred ${item.name}.`, "system");
+            toggleInventory(true, characterId);
+        };
+        actions.appendChild(transferBtn);
+
+        row.appendChild(actions);
+        list.appendChild(row);
+    });
+}
+
+// ... Rest of file (imports, basic functions) ...
+// NOTE: I need to ensure calculateDamage and createActionButton are available or copied.
+// I used them in performAttack. They are internal helper functions.
+// I will keep them as they were in the previous file content.
+
+export function calculateDamage(baseDamage, damageType, target, isCritical = false) {
+    const combatantStats = target.fullStats || enemies[target.id];
+    if (!combatantStats) return baseDamage;
+
+    let finalDamage = baseDamage;
+    let message = "";
+
+    const vulnerabilities = combatantStats.vulnerabilities || "";
+    const resistances = combatantStats.resistances || "";
+
+    if (vulnerabilities.includes(damageType)) {
+        finalDamage *= 2;
+        message = `${target.name} is vulnerable to ${damageType}! Damage doubled.`;
+    } else if (resistances.includes(damageType)) {
+        finalDamage = Math.floor(finalDamage / 2);
+        message = `${target.name} resists ${damageType}. Damage halved.`;
+    }
+
+    if (message) {
+        logMessage(message, "system");
+    }
+
+    return finalDamage;
+}
+
+export function createActionButton(text, icon, onClick, type = '', disabled = false) {
+    const button = document.createElement('button');
+    button.className = `battle-action-button ${type}`;
+    button.innerHTML = `<span class="material-symbols-outlined">${icon}</span><span class="truncate">${text}</span>`;
+    button.onclick = onClick;
+    if (disabled) {
+        button.disabled = true;
+        button.style.opacity = '0.5';
+        button.style.cursor = 'not-allowed';
+    }
+    return button;
+}
+
+function toggleQuestLog() {
+    const modal = document.getElementById('quest-modal');
+    const list = document.getElementById('quest-list');
+
+    if (!modal.classList.contains('hidden')) {
+        modal.classList.add('hidden');
+        return;
+    }
+
+    modal.classList.remove('hidden');
+    list.innerHTML = '';
+
+    for (const [qid, qData] of Object.entries(gameState.quests)) {
+        if (qData.currentStage > 0) {
+            const div = document.createElement('div');
+            div.className = 'quest-entry';
+            div.innerHTML = `<h4>${qData.title}</h4><p>${qData.stages[qData.currentStage]}</p>`;
+            if (qData.completed) div.innerHTML += ` <span style='color:gold'>(Completed)</span>`;
+            list.appendChild(div);
+        }
+    }
+
+    if (list.innerHTML === '') list.innerHTML = '<p>No active quests.</p>';
+}
+
+function toggleMenu() {
+    const modal = document.getElementById('menu-modal');
+    modal.classList.toggle('hidden');
+}
+
+function showRestModal() {
+    const modal = document.getElementById('rest-modal');
+    const warning = document.getElementById('long-rest-warning');
+    const shortRestBtn = document.getElementById('btn-short-rest');
+    const longRestBtn = document.getElementById('btn-long-rest');
+
+    if (gameState.threat.level > 50) {
+        warning.innerText = "Resting here is dangerous. There is a high chance of being ambushed.";
+    } else if (gameState.threat.level > 20) {
+        warning.innerText = "The area is unsafe. Resting might attract unwanted attention.";
+    } else {
+        warning.innerText = "";
+    }
+
+    shortRestBtn.onclick = () => {
+        modal.classList.add('hidden');
+        logMessage("You take a short rest.", "system");
+        combatHooks.performShortRest();
+        updateStatsUI();
+    };
+
+    longRestBtn.onclick = () => {
+        modal.classList.add('hidden');
+        if (gameState.threat.level > 20 && rollDie(100) <= gameState.threat.level) {
+            logMessage("You are ambushed while resting!", "combat");
+            combatHooks.startCombat(['fungal_beast'], gameState.currentSceneId, 'SCENE_DEFEAT');
+        } else {
+            logMessage("You take a long rest.", "system");
+            combatHooks.performLongRest();
+            updateStatsUI();
+        }
+    };
+
+    modal.classList.remove('hidden');
+}
+
+// --- Level Up UI ---
+
+function showLevelUpModal() {
     const modal = document.getElementById('level-up-modal');
     const levelEl = document.getElementById('lu-level');
     const hpEl = document.getElementById('lu-hp-gain');
@@ -636,10 +1040,13 @@ export function showLevelUpModal() {
     const nextLevel = gameState.player.level + 1;
     levelEl.innerText = nextLevel;
 
+    // Calculate HP Gain (Fixed average for simplicity in UI, or roll?)
+    // Let's do Average + CON
     const cls = classes[gameState.player.classId];
     const hpGain = Math.floor(cls.hitDie / 2) + 1 + gameState.player.modifiers.CON;
     hpEl.innerText = hpGain;
 
+    // Get New Features
     const levelData = cls.progression[nextLevel];
     featuresList.innerHTML = '';
     if (levelData && levelData.features) {
@@ -651,6 +1058,7 @@ export function showLevelUpModal() {
         });
     }
 
+    // Subclass Choice
     subclassSection.classList.add('hidden');
     let selectedSubclass = null;
     if (nextLevel === 3 && cls.subclasses) {
@@ -676,9 +1084,13 @@ export function showLevelUpModal() {
         });
     }
 
+    // Ability Score Improvement Choice (Level 4)
+    // Note: This is a placeholder for the UI logic.
+    // We won't fully implement Feat selection logic here yet, just stat bump.
     featSection.classList.add('hidden');
-    if (nextLevel % 4 === 0) {
+    if (nextLevel % 4 === 0) { // Standard ASI levels
         featSection.classList.remove('hidden');
+        // Populate Selects
         const stats = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
         ['asi-stat-1', 'asi-stat-2'].forEach(id => {
             const sel = document.getElementById(id);
@@ -700,106 +1112,99 @@ export function showLevelUpModal() {
             return;
         }
 
+        // Apply Level Up
         gameState.player.level = nextLevel;
-        gameState.player.xpNext = nextLevel * 300;
+        gameState.player.xpNext = nextLevel * 300; // Simple scaling
         gameState.player.maxHp += hpGain;
         gameState.player.hp += hpGain;
 
         if (levelData.proficiencyBonus) gameState.player.proficiencyBonus = levelData.proficiencyBonus;
 
+        // Apply Subclass
         if (selectedSubclass) {
             gameState.player.subclassId = selectedSubclass;
             logMessage(`You have chosen the path of the ${cls.subclasses[selectedSubclass].name}.`, "gain");
         }
 
+        // Apply ASI
         if (nextLevel % 4 === 0) {
             const s1 = document.getElementById('asi-stat-1').value;
             const s2 = document.getElementById('asi-stat-2').value;
             gameState.player.abilities[s1]++;
             gameState.player.abilities[s2]++;
+            // Recalculate mods
             gameState.player.modifiers[s1] = getAbilityMod(gameState.player.abilities[s1]);
             gameState.player.modifiers[s2] = getAbilityMod(gameState.player.abilities[s2]);
             logMessage(`Increased ${s1} and ${s2} by 1.`, "gain");
         }
 
+        // Unlock Resources (e.g. Action Surge)
         if (levelData.features) {
             levelData.features.forEach(f => {
                 if (f === 'action_surge') gameState.player.resources['action_surge'] = { current: 1, max: 1 };
+                // Add others
             });
         }
 
+        // Update Spell Slots
         if (levelData.spellSlots) {
              gameState.player.spellSlots = { ...levelData.spellSlots };
-             gameState.player.currentSlots = { ...levelData.spellSlots };
+             gameState.player.currentSlots = { ...levelData.spellSlots }; // Refresh on level up
         }
 
         gameState.pendingLevelUp = false;
         modal.classList.add('hidden');
         logMessage(`You are now Level ${nextLevel}!`, "gain");
         updateStatsUI();
-
-        syncPartyLevels();
     };
 }
 
-export function saveGame() {
-    localStorage.setItem('crimson_moon_save', JSON.stringify(gameState));
-    logMessage("Game Saved.", "system");
-}
+// ... (Logging functions same as before) ...
 
-export function loadGame() {
-    const data = localStorage.getItem('crimson_moon_save');
-    if (data) {
-        Object.assign(gameState, JSON.parse(data));
-        logMessage("Game Loaded.", "system");
-        updateStatsUI();
-        goToScene(gameState.currentSceneId);
+export function logMessage(msg, type) {
+    if (gameState.combat.active) {
+        logToBattle(msg, type);
     } else {
-        logMessage("No save found.", "check-fail");
+        const logContent = document.getElementById('log-content');
+        const entry = document.createElement('div');
+        entry.className = `log-entry ${type}`;
+        entry.innerText = msg;
+        logContent.appendChild(entry);
+        logContent.scrollTop = logContent.scrollHeight;
+        console.log(`[Main Log - ${type}] ${msg}`);
     }
 }
 
-export function initUI() {
-    // This function will be called from game.js to set up listeners
-    const btnNew = document.getElementById('btn-new-game');
-    if (btnNew) btnNew.onclick = showCharacterCreation;
+export function logToBattle(msg, type) {
+    const logContent = document.getElementById('battle-log-content');
+    const entry = document.createElement('p');
+    const typeToColor = {
+        'combat': 'text-red-400',
+        'gain': 'text-green-400',
+        'system': 'text-primary',
+        'default': 'text-[#cbc190]'
+    };
+    msg = msg.replace(/(\w+'s turn)/g, '<span class="font-bold text-primary">$1</span>');
+    entry.innerHTML = `<span class="${typeToColor[type] || typeToColor['default']}">${msg}</span>`;
 
-    const btnLoad = document.getElementById('btn-load-game');
-    if (btnLoad) btnLoad.onclick = loadGame;
+    logContent.appendChild(entry);
+    logContent.scrollTop = logContent.scrollHeight;
+     console.log(`[Battle Log - ${type}] ${msg}`);
+}
 
-    const btnSettings = document.getElementById('btn-settings');
-    if (btnSettings) btnSettings.onclick = () => alert("Settings not implemented.");
+window.logMessage = logMessage;
 
-    // Inventory close
-    const btnCloseInv = document.getElementById('btn-close-inventory');
-    if (btnCloseInv) btnCloseInv.onclick = () => toggleInventory(false);
+let eventTextTimeoutRef;
+export function showBattleEventText(message, duration = 1500) {
+    const eventTextElement = document.getElementById('battle-event-text');
+    if (!eventTextElement) return;
 
-    // Map close
-    const btnCloseMap = document.getElementById('btn-close-map');
-    if (btnCloseMap) btnCloseMap.onclick = toggleMap;
+    clearTimeout(eventTextTimeoutRef);
 
-    // Quest close
-    const btnCloseQuest = document.getElementById('btn-close-quest');
-    if (btnCloseQuest) btnCloseQuest.onclick = toggleQuestLog;
+    eventTextElement.innerText = message;
+    eventTextElement.classList.add('visible');
 
-    // Menu close
-    const btnCloseMenu = document.getElementById('btn-close-menu');
-    if (btnCloseMenu) btnCloseMenu.onclick = toggleMenu;
-
-    // Codex close
-    const btnCloseCodex = document.getElementById('btn-close-codex');
-    if (btnCloseCodex) btnCloseCodex.onclick = () => document.getElementById('codex-modal').classList.add('hidden');
-
-    // Expose UI functions to window for other modules to use without circular imports
-    window.toggleInventory = toggleInventory;
-    window.toggleMap = toggleMap;
-    window.toggleQuestLog = toggleQuestLog;
-    window.toggleMenu = toggleMenu;
-    window.toggleCodex = toggleCodex;
-    window.showRestModal = showRestModal;
-    window.updateStatsUI = updateStatsUI;
-    window.saveGame = saveGame;
-    window.loadGame = loadGame;
-    window.showCharacterCreation = showCharacterCreation;
-    window.showLevelUpModal = showLevelUpModal;
+    eventTextTimeoutRef = setTimeout(() => {
+        eventTextElement.classList.remove('visible');
+    }, duration);
 }
