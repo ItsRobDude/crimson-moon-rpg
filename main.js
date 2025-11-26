@@ -5,9 +5,7 @@ async function main() {
         // Dynamically import the game logic module.
         // This will execute the code inside game.js, which now handles
         // its own initialization via a DOMContentLoaded listener.
-        const game = await import('./game.js');
-        game.initUI();
-        game.showCharacterCreation();
+        await import('./game.js');
     } catch (error) {
         console.error("Failed to load the game module:", error);
         document.body.innerHTML = `<div style="color: white; padding: 20px;">
