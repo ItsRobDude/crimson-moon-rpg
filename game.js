@@ -1087,21 +1087,6 @@ function performCunningAction(type) {
     updateCombatUI();
 }
 
-function performActionSurge() {
-    const res = gameState.player.resources['action_surge'];
-    if (res.current <= 0) return;
-    res.current--;
-    gameState.combat.actionsRemaining++;
-    logMessage("Action Surge! Gained 1 Action.", "gain");
-    updateCombatUI();
-}
-
-function performEndTurn() {
-    endPlayerTurn();
-}
-
-// ------------------------
-
 function calculateDamage(baseDamage, damageType, target, isCritical = false) {
     const combatantStats = target.fullStats || enemies[target.id];
     if (!combatantStats) return baseDamage;
@@ -1120,10 +1105,15 @@ function calculateDamage(baseDamage, damageType, target, isCritical = false) {
         message = `${target.name} resists ${damageType}. Damage halved.`;
     }
 
-function performActionSurge(actorId) {
+    if (message) logMessage(message, "system");
+    return finalDamage;
+}
+
+function performActionSurge(actorId = 'player') {
     const actor = (actorId === 'player') ? gameState.player : gameState.roster[actorId];
     const res = actor.resources['action_surge'];
-    if (res.current <= 0) return;
+    if (!res || res.current <= 0) return;
+
     res.current--;
     gameState.combat.actionsRemaining++;
     logMessage(`${actor.name} used Action Surge!`, "gain");
@@ -1485,6 +1475,18 @@ function saveGame() {
     logMessage("Game Saved.", "system");
 }
 
+function loadGame() {
+    const data = localStorage.getItem('crimson_moon_save');
+    if (data) {
+        Object.assign(gameState, JSON.parse(data));
+        logMessage("Game Loaded.", "system");
+        updateStatsUI();
+        goToScene(gameState.currentSceneId);
+    } else {
+        logMessage("No save found.", "check-fail");
+    }
+}
+
 // --- Inventory System Update ---
 
 function toggleInventory(forceOpen = null, characterId = 'player') {
@@ -1574,66 +1576,6 @@ function toggleInventory(forceOpen = null, characterId = 'player') {
         row.appendChild(actions);
         list.appendChild(row);
     });
-}
-
-// ... Rest of file (imports, basic functions) ...
-// NOTE: I need to ensure calculateDamage and createActionButton are available or copied.
-// I used them in performAttack. They are internal helper functions.
-// I will keep them as they were in the previous file content.
-
-function calculateDamage(baseDamage, damageType, target, isCritical = false) {
-    const combatantStats = target.fullStats || enemies[target.id];
-    if (!combatantStats) return baseDamage;
-
-    let finalDamage = baseDamage;
-    let message = "";
-
-    const vulnerabilities = combatantStats.vulnerabilities || "";
-    const resistances = combatantStats.resistances || "";
-
-    if (vulnerabilities.includes(damageType)) {
-        finalDamage *= 2;
-        message = `${target.name} is vulnerable to ${damageType}! Damage doubled.`;
-    } else if (resistances.includes(damageType)) {
-        finalDamage = Math.floor(finalDamage / 2);
-        message = `${target.name} resists ${damageType}. Damage halved.`;
-    }
-
-    if (message) {
-        logMessage(message, "system");
-    }
-
-    return finalDamage;
-
-function createActionButton(text, icon, onClick, type = '', disabled = false) {
-    const button = document.createElement('button');
-    button.className = `battle-action-button ${type}`;
-    button.innerHTML = `<span class="material-symbols-outlined">${icon}</span><span class="truncate">${text}</span>`;
-    button.onclick = onClick;
-    if (disabled) {
-        button.disabled = true;
-        button.style.opacity = '0.5';
-        button.style.cursor = 'not-allowed';
-    }
-    return button;
-}
-
-// Standard helpers (save, load, etc) are kept.
-function saveGame() {
-    localStorage.setItem('crimson_moon_save', JSON.stringify(gameState));
-    logMessage("Game Saved.", "system");
-}
-
-function loadGame() {
-    const data = localStorage.getItem('crimson_moon_save');
-    if (data) {
-        Object.assign(gameState, JSON.parse(data));
-        logMessage("Game Loaded.", "system");
-        updateStatsUI();
-        goToScene(gameState.currentSceneId);
-    } else {
-        logMessage("No save found.", "check-fail");
-    }
 }
 
 function toggleQuestLog() {
