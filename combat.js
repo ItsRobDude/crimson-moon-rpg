@@ -472,12 +472,14 @@ function performDefend() {
     updateCombatUI(getCurrentActorId());
 }
 
-export function performAttack(targetId, actorId) {
+export function performAttack(targetId, actorId = getCurrentActorId() || 'player') {
     // ... (Same logic as before) ...
+    const actingId = actorId || 'player';
+
     if (gameState.combat.actionsRemaining <= 0) return;
 
     const target = gameState.combat.enemies.find(e => e.uniqueId === targetId);
-    const actor = (actorId === 'player') ? gameState.player : gameState.roster[actorId];
+    const actor = (actingId === 'player') ? gameState.player : gameState.roster[actingId];
     if (!target || !actor) return;
 
     gameState.combat.actionsRemaining--;
@@ -527,7 +529,7 @@ export function performAttack(targetId, actorId) {
         showBattleEventText("Miss!");
     }
 
-    if (!checkWinCondition()) updateCombatUI(actorId);
+    if (!checkWinCondition()) updateCombatUI(actingId);
 }
 
 export function performFlee() {
