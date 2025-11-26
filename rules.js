@@ -302,3 +302,10 @@ export function generateScaledStats(template, targetLevel) {
 
     return stats;
 }
+
+export function getPlayerAC(p) {
+    const armor = p.equipped.armor ? items[p.equipped.armor] : null;
+    if (armor) return armor.acBase;
+    if (p.classId === 'fighter') return 10 + p.modifiers.DEX;
+    return 10 + p.modifiers.DEX;
+}
