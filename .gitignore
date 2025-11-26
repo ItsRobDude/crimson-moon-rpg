@@ -3,3 +3,4 @@ __pycache__/
 *.pyc
 server.log
 screen.png
+test-results/
