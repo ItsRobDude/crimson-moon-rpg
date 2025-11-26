@@ -1604,6 +1604,7 @@ function calculateDamage(baseDamage, damageType, target, isCritical = false) {
     }
 
     return finalDamage;
+}
 
 function createActionButton(text, icon, onClick, type = '', disabled = false) {
     const button = document.createElement('button');
