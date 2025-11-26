@@ -9,12 +9,13 @@ import { companions } from './companions.js';
 import { factions } from './factions.js';
 import { rollDiceExpression } from '../rules.js';
 
-export const gameState = {
+// This object serves as a blueprint for a clean game state.
+const defaultGameState = {
     player: {
         name: "",
         raceId: "",
         classId: "",
-        subclassId: null, // New: Subclass tracking
+        subclassId: null,
         level: 1,
         xp: 0,
         xpNext: 300,
@@ -24,9 +25,9 @@ export const gameState = {
         modifiers: { STR: 0, DEX: 0, CON: 0, INT: 0, WIS: 0, CHA: 0 },
         skills: [],
         knownSpells: [],
-        spellSlots: {}, // Tracks max slots per level
-        currentSlots: {}, // Tracks current available slots
-        resources: {}, // Tracks class resources (e.g., second_wind, action_surge)
+        spellSlots: {},
+        currentSlots: {},
+        resources: {},
         proficiencyBonus: 2,
         equipped: {
             weapon: null,
@@ -37,9 +38,9 @@ export const gameState = {
         statusEffects: [],
         classResources: {}
     },
-    pendingLevelUp: false, // New: Track if level up is pending choices
+    pendingLevelUp: false,
     currentSceneId: "SCENE_ARRIVAL_HUSHBRIAR",
-    quests: JSON.parse(JSON.stringify(quests)),
+    quests: {}, // Populated from quests.js on reset
     flags: {},
     threat: {
         level: 0,
@@ -68,6 +69,8 @@ export const gameState = {
     npcStates: {},
     visitedScenes: [],
     mapPins: [],
+    party: [],
+    roster: {},
     combat: {
         active: false,
         enemies: [],
@@ -77,22 +80,54 @@ export const gameState = {
         winSceneId: null,
         loseSceneId: null,
         defending: false,
-        // New: Action Economy Tracking
         actionsRemaining: 1,
         bonusActionsRemaining: 1,
-        movementRemaining: 30 // Abstracted, maybe used for 'flee' or positioning later
+        movementRemaining: 30
     }
 };
+
+// The active gameState is initialized as a deep copy of the default.
+export const gameState = JSON.parse(JSON.stringify(defaultGameState));
+
+/**
+ * Resets the active gameState to its default values. This is crucial for starting a new game
+ * without carrying over data from a previous session.
+ */
+export function resetGameState() {
+    // Deep copy each top-level property from the default state to the active state.
+    // This preserves the `gameState` object reference, which is important for ES module exports.
+    Object.assign(gameState.player, JSON.parse(JSON.stringify(defaultGameState.player)));
+
+    gameState.pendingLevelUp = defaultGameState.pendingLevelUp;
+    gameState.currentSceneId = defaultGameState.currentSceneId;
+    gameState.quests = JSON.parse(JSON.stringify(quests)); // Re-initialize from source
+    gameState.flags = {};
+    Object.assign(gameState.threat, JSON.parse(JSON.stringify(defaultGameState.threat)));
+    gameState.worldPhase = defaultGameState.worldPhase;
+    Object.assign(gameState.reputation, JSON.parse(JSON.stringify(defaultGameState.reputation)));
+    gameState.relationships = {};
+    Object.assign(gameState.discoveredLocations, JSON.parse(JSON.stringify(defaultGameState.discoveredLocations)));
+    gameState.npcStates = {};
+    gameState.visitedScenes = [];
+    gameState.mapPins = [];
+    gameState.party = [];
+    gameState.roster = {};
+    Object.assign(gameState.combat, JSON.parse(JSON.stringify(defaultGameState.combat)));
+}
+
 
 function calcMod(score) {
     return Math.floor((score - 10) / 2);
 }
 
-export function initializeNewGame(name, raceId, classId, baseAbilityScores, chosenSkills, chosenSpells) {
+export function initializeNewGame(ccState) {
+    // First, reset the game state to ensure no data from a previous game persists.
+    resetGameState();
+    const { name, raceId, classId, baseStats, chosenSkills, chosenSpells } = ccState;
     const race = races[raceId];
     const cls = classes[classId];
 
-    const abilities = baseAbilityScores ? { ...baseAbilityScores } : { STR: 12, DEX: 12, CON: 12, INT: 12, WIS: 12, CHA: 12 };
+    const abilities = { ...baseStats };
 
     if (race && race.abilityBonuses) {
         for (const [stat, bonus] of Object.entries(race.abilityBonuses)) {
@@ -107,14 +142,13 @@ export function initializeNewGame(name, raceId, classId, baseAbilityScores, chos
     gameState.player.classId = classId;
     gameState.player.subclassId = null;
     gameState.player.abilities = abilities;
+    for (const stat of Object.keys(abilities)) {
+        gameState.player.modifiers[stat] = calcMod(abilities[stat]);
+    }
     gameState.player.level = 1;
     gameState.player.xp = 0;
     gameState.player.proficiencyBonus = 2;
     gameState.pendingLevelUp = false;
-
-    for (const stat of Object.keys(gameState.player.abilities)) {
-        gameState.player.modifiers[stat] = calcMod(gameState.player.abilities[stat]);
-    }
 
     const conMod = gameState.player.modifiers.CON;
     gameState.player.maxHp = cls.hitDie + conMod;
@@ -574,10 +608,3 @@ export function getReputation(factionId) {
     return gameState.reputation[factionId] || 0;
 }
 
-function logMessage(msg, type) {
-    if (window.logMessage) {
-        window.logMessage(msg, type);
-    } else {
-        console.log(`[${type}] ${msg}`);
-    }
-}

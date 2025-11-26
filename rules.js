@@ -223,13 +223,15 @@ export function rollAttack(character, modStat, proficiency, advantage = false) {
     };
 }
 
-export function rollInitiative(gameState, entityType, bonus = 0) {
+export function rollInitiative(character) {
     let roll = rollDie(20);
-    let modifier = bonus;
+    let modifier = 0;
 
-    if (entityType === 'player') {
-        // DEX check essentially
-        modifier = getAbilityMod(gameState.player.abilities.DEX);
+    if (character.abilities && character.abilities.DEX) {
+        modifier = getAbilityMod(character.abilities.DEX);
+    } else if (character.attackBonus) {
+        // Fallback for simple enemies
+        modifier = character.attackBonus;
     }
 
     return {

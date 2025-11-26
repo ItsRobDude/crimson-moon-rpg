@@ -1266,52 +1266,6 @@ function performAbility(abilityId) {
     }
 }
 
-function performCastSpell(spellId, targetId) {
-    if (gameState.combat.actionsRemaining <= 0) {
-        logMessage("No Action remaining!", "check-fail");
-        return;
-    }
-
-    const spell = spells[spellId];
-
-    if (spell.level > 0) {
-        if (actor.currentSlots[spell.level] > 0) actor.currentSlots[spell.level]--;
-        else { logMessage("No slots!", "check-fail"); return; }
-    }
-
-    gameState.combat.actionsRemaining--;
-
-    // Disciple of Life (Cleric Life Domain) Bonus
-    let healingBonus = 0;
-    if (spell.type === 'heal' && gameState.player.subclassId === 'life' && spell.level > 0) {
-        healingBonus = 2 + spell.level;
-    }
-
-    if (spell.type === 'heal') {
-        const roll = rollDiceExpression(spell.amount).total + healingBonus;
-        gameState.player.hp = Math.min(gameState.player.hp + roll, gameState.player.maxHp);
-        logMessage(`Healed for ${roll} HP.${healingBonus > 0 ? ' (Disciple of Life)' : ''}`, "gain");
-        updateCombatUI();
-    } else {
-        const target = gameState.combat.enemies.find(e => e.uniqueId === targetId);
-        if (!target) return;
-
-    // Target
-    let target;
-    if (targetId === 'player') target = gameState.player;
-    else if (gameState.roster[targetId]) target = gameState.roster[targetId];
-    else target = gameState.combat.enemies.find(e => e.uniqueId === targetId);
-
-    if (!target) return;
-
-    logMessage(`${actor.name} casts ${spell.name} on ${target.name}.`, "combat");
-
-    if (!checkWinCondition()) {
-        updateCombatUI();
-    }
-
-    if (!checkWinCondition()) updateCombatUI(actorId);
-}
 
 function performDefend() {
     if (gameState.combat.actionsRemaining <= 0) return;
@@ -1650,7 +1604,6 @@ function calculateDamage(baseDamage, damageType, target, isCritical = false) {
     }
 
     return finalDamage;
-}
 
 function createActionButton(text, icon, onClick, type = '', disabled = false) {
     const button = document.createElement('button');
