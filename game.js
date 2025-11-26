@@ -1087,21 +1087,6 @@ function performCunningAction(type) {
     updateCombatUI();
 }
 
-function performActionSurge() {
-    const res = gameState.player.resources['action_surge'];
-    if (res.current <= 0) return;
-    res.current--;
-    gameState.combat.actionsRemaining++;
-    logMessage("Action Surge! Gained 1 Action.", "gain");
-    updateCombatUI();
-}
-
-function performEndTurn() {
-    endPlayerTurn();
-}
-
-// ------------------------
-
 function calculateDamage(baseDamage, damageType, target, isCritical = false) {
     const combatantStats = target.fullStats || enemies[target.id];
     if (!combatantStats) return baseDamage;
@@ -1120,10 +1105,15 @@ function calculateDamage(baseDamage, damageType, target, isCritical = false) {
         message = `${target.name} resists ${damageType}. Damage halved.`;
     }
 
-function performActionSurge(actorId) {
+    if (message) logMessage(message, "system");
+    return finalDamage;
+}
+
+function performActionSurge(actorId = 'player') {
     const actor = (actorId === 'player') ? gameState.player : gameState.roster[actorId];
     const res = actor.resources['action_surge'];
-    if (res.current <= 0) return;
+    if (!res || res.current <= 0) return;
+
     res.current--;
     gameState.combat.actionsRemaining++;
     logMessage(`${actor.name} used Action Surge!`, "gain");
@@ -1483,6 +1473,18 @@ function performShortRest() {
 function saveGame() {
     localStorage.setItem('crimson_moon_save', JSON.stringify(gameState));
     logMessage("Game Saved.", "system");
+}
+
+function loadGame() {
+    const data = localStorage.getItem('crimson_moon_save');
+    if (data) {
+        Object.assign(gameState, JSON.parse(data));
+        logMessage("Game Loaded.", "system");
+        updateStatsUI();
+        goToScene(gameState.currentSceneId);
+    } else {
+        logMessage("No save found.", "check-fail");
+    }
 }
 
 // --- Inventory System Update ---
