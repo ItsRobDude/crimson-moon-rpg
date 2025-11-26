@@ -379,6 +379,7 @@ export function gainXp(amount) {
     if (gameState.player.xp >= gameState.player.xpNext) {
         // We do NOT auto-level up anymore. We set a pending state.
         gameState.pendingLevelUp = true;
+    logMessage(`You have enough XP to reach Level ${gameState.player.level + 1}! Rest or check your character sheet to level up.`, "gain");
         return true; // Return true to indicate level up is available
     }
     return false;
