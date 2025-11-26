@@ -1121,7 +1121,7 @@ function performActionSurge(actorId = 'player') {
 }
 
 function performEndTurn() {
-    endPlayerTurn();
+    endCurrentTurn();
 }
 
 function createActionButton(text, icon, onClick, type = '', disabled = false) {
@@ -1280,7 +1280,7 @@ function performFlee() {
     }
 }
 
-function endPlayerTurn() {
+function endCurrentTurn() {
     gameState.combat.playerDefending = false;
     gameState.combat.turnIndex = (gameState.combat.turnIndex + 1) % gameState.combat.turnOrder.length;
     if (gameState.combat.turnIndex === 0) {
@@ -1357,6 +1357,9 @@ function endEnemyTurn(enemy) {
 function companionTurnAI(actor) {
     // Very simple AI
     logMessage(`${actor.name} acts (AI).`, "system");
+    // AI logic is not implemented, so the companion will just end their turn.
+    endCurrentTurn();
+}
 
 function checkWinCondition() {
     const allEnemiesDefeated = gameState.combat.enemies.every(e => e.hp <= 0);
@@ -1460,7 +1463,7 @@ function performShortRest() {
     gameState.player.hp = Math.min(gameState.player.maxHp, gameState.player.hp + healed);
 
     if (!checkWinCondition()) {
-        endPlayerTurn(); // End companion turn
+        endCurrentTurn(); // End companion turn
     }
     if (gameState.player.resources['action_surge']) {
         gameState.player.resources['action_surge'].current = gameState.player.resources['action_surge'].max;
@@ -1579,35 +1582,6 @@ function toggleInventory(forceOpen = null, characterId = 'player') {
 }
 
 // ... Rest of file (imports, basic functions) ...
-// NOTE: I need to ensure calculateDamage and createActionButton are available or copied.
-// I used them in performAttack. They are internal helper functions.
-// I will keep them as they were in the previous file content.
-
-function calculateDamage(baseDamage, damageType, target, isCritical = false) {
-    const combatantStats = target.fullStats || enemies[target.id];
-    if (!combatantStats) return baseDamage;
-
-    let finalDamage = baseDamage;
-    let message = "";
-
-    const vulnerabilities = combatantStats.vulnerabilities || "";
-    const resistances = combatantStats.resistances || "";
-
-    if (vulnerabilities.includes(damageType)) {
-        finalDamage *= 2;
-        message = `${target.name} is vulnerable to ${damageType}! Damage doubled.`;
-    } else if (resistances.includes(damageType)) {
-        finalDamage = Math.floor(finalDamage / 2);
-        message = `${target.name} resists ${damageType}. Damage halved.`;
-    }
-
-    if (message) {
-        logMessage(message, "system");
-    }
-
-    return finalDamage;
-}
-
 function createActionButton(text, icon, onClick, type = '', disabled = false) {
     const button = document.createElement('button');
     button.className = `battle-action-button ${type}`;
