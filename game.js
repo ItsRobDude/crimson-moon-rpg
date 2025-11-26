@@ -15,6 +15,13 @@ import { factions } from './data/factions.js';
 import { gameState, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, unequipItem, syncPartyLevels } from './data/gameState.js';
 import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod, generateScaledStats } from './rules.js';
 
+export function getCharacterById(characterId) {
+    if (characterId === 'player') {
+        return gameState.player;
+    }
+    return gameState.roster[characterId];
+}
+
 // ... (Existing exports and initUI) ...
 export function initUI() {
     window.goToScene = goToScene;
@@ -403,7 +410,7 @@ function handleChoice(choice) {
     if (!choice.type) { if (choice.nextScene) goToScene(choice.nextScene); return; }
 
     if (choice.type === 'skillCheck') {
-        const result = rollSkillCheck(gameState, choice.skill);
+        const result = rollSkillCheck(gameState.player, choice.skill);
         const dc = choice.dc;
 
         logMessage(`Skill Check (${choice.skill}): Rolled ${result.roll} + ${result.modifier} = ${result.total} (DC ${dc})${result.note || ''}`, result.total >= dc ? "check-success" : "check-fail");
@@ -426,7 +433,7 @@ function handleChoice(choice) {
             if (choice.nextSceneFail) renderContinueButton(choice.nextSceneFail);
         }
     } else if (choice.type === 'save') {
-        const result = rollSavingThrow(gameState, choice.ability);
+        const result = rollSavingThrow(gameState.player, choice.ability);
         const success = result.total >= choice.dc;
         logMessage(`Save (${choice.ability}): ${result.total} (DC ${choice.dc})`, success ? "check-success" : "check-fail");
         if (success) {
@@ -1151,7 +1158,7 @@ function performAttack(targetId) {
 
     gameState.combat.actionsRemaining--;
 
-    const weaponId = gameState.player.equippedWeaponId;
+    const weaponId = gameState.player.equipped.weapon;
     const weapon = items[weaponId] || { name: "Unarmed", damage: "1d2", modifier: "STR", damageType: "bludgeoning", subtype: "simple" };
     const stat = weapon.modifier || "STR";
 
@@ -1175,7 +1182,7 @@ function performAttack(targetId) {
     // Implementing basic advantage check
     const advantage = false; // Placeholder
 
-    const result = rollAttack(gameState, stat, prof, advantage);
+    const result = rollAttack(actor, stat, prof, advantage);
 
     // Champion Fighter Crit Range
     let critThreshold = 20;
@@ -1412,8 +1419,8 @@ function updateStatsUI() {
 
     document.getElementById('char-ac').innerText = `AC ${getPlayerAC()}`;
 
-    const weapon = p.equippedWeaponId ? items[p.equippedWeaponId] : null;
-    const armor = p.equippedArmorId ? items[p.equippedArmorId] : null;
+    const weapon = p.equipped.weapon ? items[p.equipped.weapon] : null;
+    const armor = p.equipped.armor ? items[p.equipped.armor] : null;
     const weaponDetail = weapon ? `${weapon.damage} ${weapon.modifier ? `(${weapon.modifier})` : ''}`.trim() : '1d2 (STR)';
     const armorDetail = armor ? `${armor.armorType || 'armor'} AC ${armor.acBase}` : 'base 10 + DEX';
     document.getElementById('char-weapon').innerText = `Weapon: ${weapon ? weapon.name : 'Unarmed'} · ${weaponDetail}`;
@@ -1430,7 +1437,7 @@ function updateStatsUI() {
 
 function getPlayerAC() {
     const p = gameState.player;
-    const armor = p.equippedArmorId ? items[p.equippedArmorId] : null;
+    const armor = p.equipped.armor ? items[p.equipped.armor] : null;
     if (armor) return armor.acBase;
     if (p.classId === 'fighter') return 10 + p.modifiers.DEX;
     return 10 + p.modifiers.DEX;
@@ -1525,7 +1532,7 @@ function toggleInventory(forceOpen = null, characterId = 'player') {
             const equipBtn = document.createElement('button');
             let isEquipped = false;
             if (characterId === 'player') {
-                isEquipped = (gameState.player.equippedWeaponId === itemId || gameState.player.equippedArmorId === itemId);
+                isEquipped = (gameState.player.equipped.weapon === itemId || gameState.player.equipped.armor === itemId);
             } else {
                 isEquipped = (targetChar.equipped.weapon === itemId || targetChar.equipped.armor === itemId);
             }

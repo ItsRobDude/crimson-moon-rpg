@@ -53,29 +53,17 @@ export function getProficiencyBonus(level) {
     return Math.ceil(1 + (level / 4));
 }
 
-import { items } from './data/items.js';
-
 export function calculateDerivedStats(character) {
     const derived = {
         ac: 10 + getAbilityMod(character.abilities.DEX),
         toHit: 0,
     };
-    const dexMod = getAbilityMod(character.abilities.DEX);
 
     // Armor
     const armorId = character.equipped.armor;
     if (armorId && items[armorId]) {
         const armor = items[armorId];
-        if (armor.armorType === 'light') {
-            derived.ac = armor.acBase + dexMod;
-        } else if (armor.armorType === 'medium') {
-            derived.ac = armor.acBase + Math.min(2, dexMod);
-        } else if (armor.armorType === 'heavy') {
-            derived.ac = armor.acBase;
-        } else {
-            derived.ac = armor.acBase;
-        }
-
+        derived.ac = armor.acBase;
         if (armor.modifiers && armor.modifiers.ac) {
             derived.ac += armor.modifiers.ac;
         }

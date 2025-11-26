@@ -656,6 +656,7 @@ function calculateDamage(baseDamage, damageType, target, isCritical = false) {
 
     if (message) logMessage(message, "system");
     return finalDamage;
+    }
 }
 
 
