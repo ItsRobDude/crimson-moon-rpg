@@ -120,10 +120,9 @@ function calcMod(score) {
     return Math.floor((score - 10) / 2);
 }
 
-export function initializeNewGame(ccState) {
+export function initializeNewGame(name, raceId, classId, baseStats, chosenSkills, chosenSpells) {
     // First, reset the game state to ensure no data from a previous game persists.
     resetGameState();
-    const { name, raceId, classId, baseStats, chosenSkills, chosenSpells } = ccState;
     const race = races[raceId];
     const cls = classes[classId];
 
@@ -270,14 +269,12 @@ export function addCompanion(companionId) {
     }
 
     gameState.party.push(companionId);
-    logMessage(`${companions[companionId].name} has joined the party.`, "gain");
 }
 
 export function removeCompanion(companionId) {
     const idx = gameState.party.indexOf(companionId);
     if (idx > -1) {
         gameState.party.splice(idx, 1);
-        logMessage(`${companions[companionId].name} has left the party.`, "system");
     }
 }
 
@@ -349,13 +346,40 @@ export function spendGold(amount) {
     return false;
 }
 
+export function performShortRest() {
+    const cls = classes[gameState.player.classId];
+    const roll = rollDie(cls.hitDie) + gameState.player.modifiers.CON;
+    const healed = Math.max(1, roll);
+    gameState.player.hp = Math.min(gameState.player.maxHp, gameState.player.hp + healed);
+
+    if (gameState.player.resources['action_surge']) {
+        gameState.player.resources['action_surge'].current = gameState.player.resources['action_surge'].max;
+    }
+
+    return healed;
+}
+
+export function performLongRest() {
+    gameState.player.hp = gameState.player.maxHp;
+    if (gameState.player.spellSlots) {
+        gameState.player.currentSlots = { ...gameState.player.spellSlots };
+    }
+    if (gameState.player.resources['second_wind']) {
+        gameState.player.resources['second_wind'].current = gameState.player.resources['second_wind'].max;
+    }
+    if (gameState.player.resources['action_surge']) {
+        gameState.player.resources['action_surge'].current = gameState.player.resources['action_surge'].max;
+    }
+    return true;
+}
+
 export function gainXp(amount) {
     gameState.player.xp += amount;
     // Check if we hit the threshold
     if (gameState.player.xp >= gameState.player.xpNext) {
         // We do NOT auto-level up anymore. We set a pending state.
         gameState.pendingLevelUp = true;
-        logMessage(`You have enough XP to reach Level ${gameState.player.level + 1}! Rest or check your character sheet to level up.`, "gain");
+    logMessage(`You have enough XP to reach Level ${gameState.player.level + 1}! Rest or check your character sheet to level up.`, "gain");
         return true; // Return true to indicate level up is available
     }
     return false;
@@ -474,13 +498,10 @@ export function applyStatusEffect(effectId, durationOverride, characterId = 'pla
     const effect = statusEffects[effectId];
     const duration = durationOverride || effect.duration;
     const existing = char.statusEffects.find(e => e.id === effectId);
-
     if (existing) {
         existing.remaining = Math.max(existing.remaining, duration);
-        logMessage(`${char.name}: ${effect.name} refreshed (${duration} turns).`, "system");
     } else {
         char.statusEffects.push({ id: effectId, remaining: duration });
-        logMessage(`${char.name} is now ${effect.name} (${duration} turns).`, "combat");
     }
 }
 
@@ -508,7 +529,6 @@ function tickCharEffects(char) {
             active.push(e);
         } else {
             const def = statusEffects[e.id];
-            logMessage(`${char.name}: ${def.name} has faded.`, "system");
         }
     });
     char.statusEffects = active;
@@ -519,7 +539,6 @@ export function discoverLocation(locId) {
     if (gameState.discoveredLocations[locId] === undefined) return;
     if (!gameState.discoveredLocations[locId]) {
         gameState.discoveredLocations[locId] = true;
-        logMessage(`Location Discovered: ${locId.charAt(0).toUpperCase() + locId.slice(1)}`, "gain");
     }
 }
 
@@ -529,10 +548,6 @@ export function isLocationDiscovered(locId) {
 
 export function adjustThreat(amount, reason = "") {
     gameState.threat.level = Math.max(0, Math.min(100, gameState.threat.level + amount));
-    if (amount !== 0) {
-        const dir = amount > 0 ? "+" : "";
-        logMessage(`Threat ${dir}${amount} (${gameState.threat.level}) ${reason ? '- ' + reason : ''}`, amount > 0 ? "check-fail" : "gain");
-    }
     if (amount > 0) {
         gameState.threat.recentNoise = Math.min(3, gameState.threat.recentNoise + 1);
         gameState.threat.recentStealth = Math.max(0, gameState.threat.recentStealth - 1);
@@ -550,13 +565,11 @@ export function clearTransientThreat() {
 export function recordAmbientEvent(text, tone = "system") {
     const entry = { text, tone, ts: Date.now() };
     gameState.threat.ambient.push(entry);
-    logMessage(text, tone);
 }
 
 export function addMapPin(locationId, note) {
     if (!locationId) return;
     gameState.mapPins.push({ locationId, note, ts: Date.now() });
-    logMessage(`Pinned ${locationId}: ${note || 'path marked'}`, "system");
 }
 
 export function removeMapPin(index) {
@@ -578,7 +591,6 @@ function initNpcRelationships() {
 export function setNpcStatus(npcId, status) {
     if (!gameState.npcStates[npcId]) gameState.npcStates[npcId] = { status: 'alive', flags: {} };
     gameState.npcStates[npcId].status = status;
-    logMessage(`${npcs[npcId]?.name || npcId} is now ${status}.`, "system");
 }
 
 export function getNpcStatus(npcId) {
@@ -589,7 +601,6 @@ export function getNpcStatus(npcId) {
 export function changeRelationship(npcId, amount) {
     if (gameState.relationships[npcId] !== undefined) {
         gameState.relationships[npcId] += amount;
-        logMessage(`Relationship with ${npcs[npcId]?.name || npcId}: ${amount > 0 ? '+' : ''}${amount}`, amount > 0 ? "gain" : "check-fail");
     }
 }
 
@@ -600,7 +611,6 @@ export function getRelationship(npcId) {
 export function changeReputation(factionId, amount) {
     if (gameState.reputation[factionId] !== undefined) {
         gameState.reputation[factionId] += amount;
-        logMessage(`Reputation with ${factions[factionId]?.name || factionId}: ${amount > 0 ? '+' : ''}${amount}`, amount > 0 ? "gain" : "check-fail");
     }
 }
 
@@ -608,3 +618,37 @@ export function getReputation(factionId) {
     return gameState.reputation[factionId] || 0;
 }
 
+export function saveGame() {
+    localStorage.setItem('crimson_moon_save', JSON.stringify(gameState));
+    // We can't use logMessage here directly as it creates a circular dependency
+    console.log("[SAVE] Game saved to localStorage.");
+}
+
+export function loadGame() {
+    const saved = localStorage.getItem('crimson_moon_save');
+    if (saved) {
+        const savedState = JSON.parse(saved);
+        // Replace the entire gameState object content without breaking the export reference
+        Object.keys(defaultGameState).forEach(key => {
+            if (savedState[key] !== undefined) {
+                // For objects and arrays, replace their content
+                if (typeof gameState[key] === 'object' && gameState[key] !== null) {
+                    // Clear existing object/array before assigning new values
+                    if (Array.isArray(gameState[key])) {
+                        gameState[key].length = 0;
+                        Array.prototype.push.apply(gameState[key], savedState[key]);
+                    } else {
+                         Object.keys(gameState[key]).forEach(prop => delete gameState[key][prop]);
+                         Object.assign(gameState[key], savedState[key]);
+                    }
+                } else {
+                     gameState[key] = savedState[key];
+                }
+            }
+        });
+        console.log("[LOAD] Game loaded from localStorage.");
+        return true;
+    }
+    console.log("[LOAD] No save data found.");
+    return false;
+}

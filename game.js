@@ -1486,7 +1486,8 @@ function loadGame() {
         updateStatsUI();
         goToScene(gameState.currentSceneId);
     } else {
-        logMessage("No save found.", "check-fail");
+        // No save file, go to character creation
+        showCharacterCreation();
     }
 }
 
