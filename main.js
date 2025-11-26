@@ -1,14 +1,11 @@
 // This is the new main entry point.
-// It dynamically imports the game logic after ensuring all data modules are loaded.
+// It dynamically imports the game logic.
 async function main() {
     try {
         // Dynamically import the game logic module.
-        // This ensures all its dependencies (data modules) are parsed before execution.
+        // This will execute the code inside game.js, which now handles
+        // its own initialization via a DOMContentLoaded listener.
         const game = await import('./game.js');
-        const { gameState } = await import('./data/gameState.js');
-
-        // The DOM is ready because this script is at the end of the body.
-        // No need to wait for DOMContentLoaded, which can cause race conditions with modules.
         game.initUI();
         game.showCharacterCreation();
     } catch (error) {
