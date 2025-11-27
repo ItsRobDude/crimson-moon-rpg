@@ -1160,7 +1160,7 @@ function performEndTurn() {
     endCurrentTurn();
 }
 
-function performAttack(targetId, actorId = 'player') {
+function performAttack(targetId) {
     if (gameState.combat.actionsRemaining <= 0) {
         logMessage("No Action remaining!", "check-fail");
         return;
