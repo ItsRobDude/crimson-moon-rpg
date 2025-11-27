@@ -12,7 +12,7 @@ import { shops } from './data/shops.js';
 import { npcs } from './data/npcs.js';
 import { companions } from './data/companions.js';
 import { factions } from './data/factions.js';
-import { gameState, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, unequipItem, syncPartyLevels } from './data/gameState.js';
+import { gameState, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, unequipItem, syncPartyLevels, saveGame, loadGame as loadGameData } from './data/gameState.js';
 import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod, generateScaledStats } from './rules.js';
 
 export function getCharacterById(characterId) {
@@ -253,7 +253,9 @@ function finishCharacterCreation() {
     const name = document.getElementById('cc-name').value || "Traveler";
     const raceKey = document.getElementById('cc-race').value;
     const classKey = document.getElementById('cc-class').value;
+    const cls = classes[classKey];
 
+    // Keep the standard array uniqueness check (your existing guard)
     const stats = Object.values(ccState.baseStats);
     const uniqueStats = new Set(stats);
     if (uniqueStats.size !== stats.length) {
@@ -261,16 +263,34 @@ function finishCharacterCreation() {
         return;
     }
 
-    if (ccState.chosenSkills.length === 0) {
-        alert("Please choose your skills.");
-        return;
+    // ✅ Auto-pick skills if none selected (helps Playwright + forgetful players)
+    if (ccState.chosenSkills.length === 0 && cls.skillProficiencies?.length) {
+        const max = 2; // or derive from class data if you add that later
+        ccState.chosenSkills = cls.skillProficiencies.slice(0, max);
     }
+
+    // ✅ Auto-pick spells for casters if none selected
     const isCaster = (classKey === 'wizard' || classKey === 'cleric');
     if (isCaster && ccState.chosenSpells.length === 0) {
-        alert("Please choose your starting spells.");
-        return;
+        let availableSpells = [];
+        if (classKey === 'wizard') {
+            availableSpells = ['firebolt', 'magic_missile', 'burning_hands', 'cure_wounds'];
+        } else if (classKey === 'cleric') {
+            availableSpells = ['cure_wounds'];
+        }
+        const max = 2;
+        ccState.chosenSpells = availableSpells.slice(0, max);
     }
-    initializeNewGame(name, raceKey, classKey, ccState.baseStats, ccState.chosenSkills, ccState.chosenSpells);
+
+    // Now complete character creation as before
+    initializeNewGame(
+        name,
+        raceKey,
+        classKey,
+        ccState.baseStats,
+        ccState.chosenSkills,
+        ccState.chosenSpells
+    );
     document.getElementById('char-creation-modal').classList.add('hidden');
     updateStatsUI();
     goToScene(gameState.currentSceneId);
@@ -1124,19 +1144,6 @@ function performEndTurn() {
     endCurrentTurn();
 }
 
-function createActionButton(text, icon, onClick, type = '', disabled = false) {
-    const button = document.createElement('button');
-    button.className = `battle-action-button ${type}`;
-    button.innerHTML = `<span class="material-symbols-outlined">${icon}</span><span class="truncate">${text}</span>`;
-    button.onclick = onClick;
-    if (disabled) {
-        button.disabled = true;
-        button.style.opacity = '0.5';
-        button.style.cursor = 'not-allowed';
-    }
-    return button;
-}
-
 function performAttack(targetId) {
     if (gameState.combat.actionsRemaining <= 0) {
         logMessage("No Action remaining!", "check-fail");
@@ -1473,18 +1480,13 @@ function performShortRest() {
 }
 
 // ... (Standard helper functions remain) ...
-function saveGame() {
-    localStorage.setItem('crimson_moon_save', JSON.stringify(gameState));
-    logMessage("Game Saved.", "system");
-}
-
-function loadGame() {
-    const data = localStorage.getItem('crimson_moon_save');
-    if (data) {
-        Object.assign(gameState, JSON.parse(data));
+export function loadGame() {
+    if (loadGameData()) {
         logMessage("Game Loaded.", "system");
         updateStatsUI();
         goToScene(gameState.currentSceneId);
+        // Ensure character creation is hidden
+        document.getElementById('char-creation-modal').classList.add('hidden');
     } else {
         // No save file, go to character creation
         showCharacterCreation();
@@ -1505,36 +1507,7 @@ function toggleInventory(forceOpen = null, characterId = 'player') {
 }
 
 // ... Rest of file (imports, basic functions) ...
-function createActionButton(text, icon, onClick, type = '', disabled = false) {
-    const button = document.createElement('button');
-    button.className = `battle-action-button ${type}`;
-    button.innerHTML = `<span class="material-symbols-outlined">${icon}</span><span class="truncate">${text}</span>`;
-    button.onclick = onClick;
-    if (disabled) {
-        button.disabled = true;
-        button.style.opacity = '0.5';
-        button.style.cursor = 'not-allowed';
-    }
-    return button;
-}
-
 // Standard helpers (save, load, etc) are kept.
-function saveGame() {
-    localStorage.setItem('crimson_moon_save', JSON.stringify(gameState));
-    logMessage("Game Saved.", "system");
-}
-
-function loadGame() {
-    const data = localStorage.getItem('crimson_moon_save');
-    if (data) {
-        Object.assign(gameState, JSON.parse(data));
-        logMessage("Game Loaded.", "system");
-        updateStatsUI();
-        goToScene(gameState.currentSceneId);
-    } else {
-        logMessage("No save found.", "check-fail");
-    }
-}
 
 function toggleQuestLog() {
     const modal = document.getElementById('quest-modal');
