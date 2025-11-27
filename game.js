@@ -312,6 +312,9 @@ function finishCharacterCreation() {
         ccState.chosenSkills,
         ccState.chosenSpells
     );
+    // Explicitly save the new character immediately
+    saveGame();
+
     document.getElementById('char-creation-modal').classList.add('hidden');
     updateStatsUI();
     goToScene(gameState.currentSceneId);
@@ -1364,4 +1367,25 @@ function showBattleEventText(message, duration = 1500) {
     eventTextTimeoutRef = setTimeout(() => {
         eventTextElement.classList.remove('visible');
     }, duration);
+}
+
+export function bootstrapGame() {
+    initUI();
+
+    try {
+        const hasSave = !!localStorage.getItem('crimson_moon_save');
+        if (hasSave) {
+            loadGame();  // This helper already handles UI update & goToScene
+        } else {
+            showCharacterCreation();
+        }
+    } catch (e) {
+        console.error("Error during bootstrap/load, starting new game:", e);
+        localStorage.removeItem('crimson_moon_save');
+        showCharacterCreation();
+    }
+
+    // Signal ready for Playwright tests
+    window.gameReady = true;
+    console.log("Game bootstrapped and ready.");
 }
