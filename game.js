@@ -46,15 +46,15 @@ export function initUI() {
         updateStatsUI: updateStatsUI,
         saveGame: saveGame
     });
-
+    
     // We need to ensure createActionButton is defined or passed properly.
-    // In game.js it was defined inside renderPlayerActions scope or global?
+    // In game.js it was defined inside renderPlayerActions scope or global? 
     // It was not defined in the read_file output of game.js!
     // Wait, I missed createActionButton definition in previous reads.
     // Let me check if I can find it or if it was part of renderPlayerActions.
     // It was used in renderPlayerActions. I'll assume it's a helper function in this file.
     // If not, I need to add it.
-
+    
     // New: Check for pending level up on stats click or button
     // For now, we'll add a listener to the level text if it has a specific class, or just a button.
     // Let's make the "Lvl X" text clickable if pending.
@@ -970,7 +970,7 @@ function renderPartyCard(p, id, activeId) {
     const isPlayerTurn = (gameState.combat.turnOrder[gameState.combat.turnIndex] === id);
     const card = document.createElement('div');
     card.className = `party-card ${isPlayerTurn ? 'active-turn' : ''}`;
-
+    
     // Calculate Percentages
     const hpPct = Math.max(0, (p.hp / p.maxHp) * 100);
     const totalSlots = p.spellSlots ? Object.values(p.spellSlots).reduce((a, b) => a + b, 0) : 0;
@@ -1002,10 +1002,10 @@ function renderPartyCard(p, id, activeId) {
             </div>
         </div>
     `;
-
+    
     // Attach click listener for selection?
     // card.onclick = () => ...
-
+    
     document.getElementById('party-container').appendChild(card);
 }
 

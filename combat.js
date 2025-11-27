@@ -7,7 +7,7 @@ import { enemies } from './data/enemies.js';
 import { items } from './data/items.js';
 import { classes } from './data/classes.js';
 import { spells } from './data/spells.js';
-import { rollInitiative, rollDie, rollAttack, rollDiceExpression, rollSavingThrow, calculateDamageRoll, calculateDamageReduction, getProficiencyBonus } from './rules.js';
+import { rollInitiative, rollDie, rollAttack, rollDiceExpression, rollSavingThrow, calculateDamageRoll, calculateDamageReduction, getProficiencyBonus, getPlayerAC } from './rules.js';
 import { generateScaledStats } from './rules.js';
 
 export const uiHooks = {
@@ -258,7 +258,7 @@ export function performCastSpell(spellId, targetId, actorId = 'player') {
     }
 
     const actor = (actorId === 'player') ? gameState.player : gameState.roster[actorId];
-
+    
     // Check Resources
     const level = spell.level;
     if (level > 0) {
@@ -298,15 +298,15 @@ export function performCastSpell(spellId, targetId, actorId = 'player') {
             const proficiencyBonus = actor.proficiencyBonus || getProficiencyBonus(actor.level);
             const profToAdd = proficiencyBonus; // Spells usually proficient
             const result = rollAttack(actor, stat, profToAdd);
-
+            
             uiHooks.logToBattle(`Spell Attack: ${result.total} (vs AC ${target.ac})`, "system");
-
+            
             if (result.total >= target.ac || result.isCritical) {
                  const dmgResult = calculateDamageRoll(spell.damage, 0, result.isCritical);
                  const targetStats = target.fullStats || enemies[target.id] || target;
                  const { finalDamage, message } = calculateDamageReduction(dmgResult.total, spell.damageType, targetStats);
                  if (message) uiHooks.logToBattle(message, "system");
-
+                 
                  target.hp -= Math.max(1, finalDamage);
                  uiHooks.logToBattle(`Hit! Dealt ${finalDamage} ${spell.damageType} damage.`, "combat");
                  uiHooks.showBattleEventText(`${finalDamage}`);
@@ -324,7 +324,7 @@ export function performCastSpell(spellId, targetId, actorId = 'player') {
              // `generateScaledStats` creates a full object? Let's check rules.js.
              // Yes, `generateScaledStats` copies base stats. If base has abilities, we are good.
              // If not, we need a fallback.
-
+             
              let saveTotal = 0;
              if (target.fullStats && target.fullStats.abilities) {
                  const saveRes = rollSavingThrow(target.fullStats, spell.saveAbility);
@@ -333,25 +333,25 @@ export function performCastSpell(spellId, targetId, actorId = 'player') {
                  // Simple enemy fallback
                  saveTotal = rollDie(20); // + 0
              }
-
+             
              const dc = 8 + (actor.proficiencyBonus || 2) + (actor.modifiers.INT || 0); // Simplified DC
-
+             
              uiHooks.logToBattle(`${target.name} Save (${spell.saveAbility}): ${saveTotal} (DC ${dc})`, "system");
-
+             
              const dmgResult = rollDiceExpression(spell.damage);
              let damage = dmgResult.total;
-
+             
              if (saveTotal >= dc) {
                  damage = Math.floor(damage / 2);
                  uiHooks.logToBattle("Save successful! Damage halved.", "gain");
              } else {
                  uiHooks.logToBattle("Save failed!", "combat");
              }
-
+             
              const targetStats = target.fullStats || enemies[target.id] || target;
              const { finalDamage, message } = calculateDamageReduction(damage, spell.damageType, targetStats);
              if (message) uiHooks.logToBattle(message, "system");
-
+             
              target.hp -= Math.max(1, finalDamage);
              uiHooks.logToBattle(`Dealt ${finalDamage} ${spell.damageType} damage.`, "combat");
              uiHooks.showBattleEventText(`${finalDamage}`);
@@ -457,17 +457,7 @@ export function enemyTurn(enemy) {
     setTimeout(() => {
         uiHooks.logToBattle(`${enemy.name} attacks!`, "combat");
         const totalHit = rollDie(20) + enemy.attackBonus;
-    const ac = gameState.player.ac || 10; // Default if not derived yet? No, rely on getter or prop
-
-    // Need to get Player AC correctly.
-    // Usually stored in derived stats or we calc it.
-    // game.js had getPlayerAC.
-    // Let's assume passed in or use rules helper.
-    // Better: use AC from target. But enemy attacks player mainly.
-    // We should support attacking companions too.
-
-    // For now, assume player target (legacy behavior)
-    // TODO: AI targeting logic
+    const ac = getPlayerAC(gameState.player);
 
     if (totalHit >= ac) {
         let dmg = rollDiceExpression(enemy.damage).total;
