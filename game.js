@@ -1029,7 +1029,7 @@ function updateStatsUI() {
         levelEl.classList.remove('pulse-animation');
     }
 
-    document.getElementById('char-ac').innerText = `AC ${getPlayerAC()}`;
+    document.getElementById('char-ac').innerText = `AC ${getPlayerAC(gameState.player)}`;
 
     const weapon = p.equipped.weapon ? items[p.equipped.weapon] : null;
     const armor = p.equipped.armor ? items[p.equipped.armor] : null;
@@ -1047,17 +1047,15 @@ function updateStatsUI() {
     document.getElementById('xp-text').innerText = `XP: ${p.xp}/${p.xpNext}`;
 }
 
-function getPlayerAC() {
-    const p = gameState.player;
-    const armor = p.equipped.armor ? items[p.equipped.armor] : null;
-    if (armor) return armor.acBase;
-    if (p.classId === 'fighter') return 10 + p.modifiers.DEX;
-    return 10 + p.modifiers.DEX;
-}
 
 // ... (Rest of existing functions: performLongRest, toggleInventory, etc. UNCHANGED, but ensuring performLongRest resets new resources) ...
 
 function performLongRest() {
+    if (gameState.combat.active) {
+        logMessage("Cannot rest during combat!", "check-fail");
+        return;
+    }
+
     gameState.player.hp = gameState.player.maxHp;
     // Reset slots
     if (gameState.player.spellSlots) {
@@ -1076,14 +1074,16 @@ function performLongRest() {
 }
 
 function performShortRest() {
+    if (gameState.combat.active) {
+        logMessage("Cannot rest during combat!", "check-fail");
+        return 0;
+    }
+
     const cls = classes[gameState.player.classId];
     const roll = rollDie(cls.hitDie) + gameState.player.modifiers.CON;
     const healed = Math.max(1, roll);
     gameState.player.hp = Math.min(gameState.player.maxHp, gameState.player.hp + healed);
 
-    if (!checkWinCondition()) {
-        endCurrentTurn(); // End companion turn
-    }
     if (gameState.player.resources['action_surge']) {
         gameState.player.resources['action_surge'].current = gameState.player.resources['action_surge'].max;
     }
