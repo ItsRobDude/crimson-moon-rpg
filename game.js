@@ -12,7 +12,7 @@ import { shops } from './data/shops.js';
 import { npcs } from './data/npcs.js';
 import { companions } from './data/companions.js';
 import { factions } from './data/factions.js';
-import { gameState, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, unequipItem, syncPartyLevels } from './data/gameState.js';
+import { gameState, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, unequipItem, syncPartyLevels, saveGame, loadGame as loadGameData } from './data/gameState.js';
 import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod, generateScaledStats } from './rules.js';
 
 export function getCharacterById(characterId) {
@@ -24,8 +24,10 @@ export function getCharacterById(characterId) {
 
 // ... (Existing exports and initUI) ...
 export function initUI() {
+    // Expose functions to the global scope for easier debugging and testing
     window.goToScene = goToScene;
     window.showCharacterCreation = showCharacterCreation;
+    window.startCombat = startCombat; // Make combat startable from the console for tests
     document.getElementById('btn-inventory').onclick = () => toggleInventory();
     document.getElementById('btn-quests').onclick = toggleQuestLog;
     document.getElementById('btn-menu').onclick = toggleMenu;
@@ -253,7 +255,9 @@ function finishCharacterCreation() {
     const name = document.getElementById('cc-name').value || "Traveler";
     const raceKey = document.getElementById('cc-race').value;
     const classKey = document.getElementById('cc-class').value;
+    const cls = classes[classKey];
 
+    // Keep the standard array uniqueness check (your existing guard)
     const stats = Object.values(ccState.baseStats);
     const uniqueStats = new Set(stats);
     if (uniqueStats.size !== stats.length) {
@@ -261,16 +265,34 @@ function finishCharacterCreation() {
         return;
     }
 
-    if (ccState.chosenSkills.length === 0) {
-        alert("Please choose your skills.");
-        return;
+    // ✅ Auto-pick skills if none selected (helps Playwright + forgetful players)
+    if (ccState.chosenSkills.length === 0 && cls.skillProficiencies?.length) {
+        const max = 2; // or derive from class data if you add that later
+        ccState.chosenSkills = cls.skillProficiencies.slice(0, max);
     }
+
+    // ✅ Auto-pick spells for casters if none selected
     const isCaster = (classKey === 'wizard' || classKey === 'cleric');
     if (isCaster && ccState.chosenSpells.length === 0) {
-        alert("Please choose your starting spells.");
-        return;
+        let availableSpells = [];
+        if (classKey === 'wizard') {
+            availableSpells = ['firebolt', 'magic_missile', 'burning_hands', 'cure_wounds'];
+        } else if (classKey === 'cleric') {
+            availableSpells = ['cure_wounds'];
+        }
+        const max = 2;
+        ccState.chosenSpells = availableSpells.slice(0, max);
     }
-    initializeNewGame(name, raceKey, classKey, ccState.baseStats, ccState.chosenSkills, ccState.chosenSpells);
+
+    // Now complete character creation as before
+    initializeNewGame(
+        name,
+        raceKey,
+        classKey,
+        ccState.baseStats,
+        ccState.chosenSkills,
+        ccState.chosenSpells
+    );
     document.getElementById('char-creation-modal').classList.add('hidden');
     updateStatsUI();
     goToScene(gameState.currentSceneId);
@@ -901,39 +923,15 @@ function updateCombatUI(activeCharacterId = 'player') {
     partyContainer.innerHTML = '';
 
     // Render Player
-    renderPartyCard(gameState.player, 'player', activeCharacterId);
+    renderPartyCard(gameState.player, 'player', activeCharacterId, partyContainer);
 
-    const hpPct = Math.max(0, (p.hp / p.maxHp) * 100);
-    const totalSlots = p.spellSlots ? Object.values(p.spellSlots).reduce((a, b) => a + b, 0) : 0;
-    const currentSlots = p.currentSlots ? Object.values(p.currentSlots).reduce((a, b) => a + b, 0) : 0;
-    const manaPct = totalSlots > 0 ? Math.max(0, (currentSlots / totalSlots) * 100) : 0;
-
-    playerCard.innerHTML = `
-        <div class="party-header">
-            <div class="party-portrait" style='background-image: url("portraits/player_placeholder.png");'></div>
-            <div>
-                <p class="party-name">${p.name}</p>
-                <p class="party-class">Lv. ${p.level} ${classes[p.classId].name}</p>
-            </div>
-        </div>
-        <div>
-            <div class="party-bar-label"><span>Health</span><span>${p.hp}/${p.maxHp}</span></div>
-            <div class="party-bar-background"><div class="party-bar-fill hp-fill" style="width: ${hpPct}%;"></div></div>
-        </div>
-        ${totalSlots > 0 ? `
-        <div>
-            <div class="party-bar-label"><span>Spell Slots</span><span>${currentSlots}/${totalSlots}</span></div>
-            <div class="party-bar-background"><div class="party-bar-fill mana-fill" style="width: ${manaPct}%;"></div></div>
-        </div>` : ''}
-        <div class="party-status">
-            ${isPlayerTurn ? `<span class="turn-indicator-text">Your Turn</span>` : ''}
-            ${p.hp <= 0 ? `<span class="status-down">Down</span>` : ''}
-            <div style="font-size:0.8em; margin-top:4px;">
-                Act: ${gameState.combat.actionsRemaining} | Bns: ${gameState.combat.bonusActionsRemaining}
-            </div>
-        </div>
-    `;
-    partyContainer.appendChild(playerCard);
+    // Render Companions
+    gameState.party.forEach(id => {
+        const companion = gameState.roster[id];
+        if (companion) {
+            renderPartyCard(companion, id, activeCharacterId, partyContainer);
+        }
+    });
 
     const enemiesContainer = document.getElementById('enemies-container');
     enemiesContainer.innerHTML = '';
@@ -981,11 +979,51 @@ function updateCombatUI(activeCharacterId = 'player') {
     document.getElementById('battle-scene-main-text').innerText = gameState.combat.sceneText || "The air crackles with tension.";
 }
 
-function renderPlayerActions(container, subMenu = null) {
+function renderPartyCard(character, characterId, activeCharacterId, container) {
+    const p = character;
+    const card = document.createElement('div');
+    card.className = 'party-card';
+    if (characterId === activeCharacterId) {
+        card.classList.add('active-character');
+    }
+
+    const hpPct = Math.max(0, (p.hp / p.maxHp) * 100);
+    const totalSlots = p.spellSlots ? Object.values(p.spellSlots).reduce((a, b) => a + b, 0) : 0;
+    const currentSlots = p.currentSlots ? Object.values(p.currentSlots).reduce((a, b) => a + b, 0) : 0;
+    const manaPct = totalSlots > 0 ? Math.max(0, (currentSlots / totalSlots) * 100) : 0;
+    const isTurn = gameState.combat.turnOrder[gameState.combat.turnIndex] === characterId;
+
+    card.innerHTML = `
+        <div class="party-header">
+            <div class="party-portrait" style='background-image: url("${p.portrait || 'portraits/player_placeholder.png'}");'></div>
+            <div>
+                <p class="party-name">${p.name}</p>
+                <p class="party-class">Lv. ${p.level} ${classes[p.classId].name}</p>
+            </div>
+        </div>
+        <div>
+            <div class="party-bar-label"><span>Health</span><span>${p.hp}/${p.maxHp}</span></div>
+            <div class="party-bar-background"><div class="party-bar-fill hp-fill" style="width: ${hpPct}%;"></div></div>
+        </div>
+        ${totalSlots > 0 ? `
+        <div>
+            <div class="party-bar-label"><span>Spell Slots</span><span>${currentSlots}/${totalSlots}</span></div>
+            <div class="party-bar-background"><div class="party-bar-fill mana-fill" style="width: ${manaPct}%;"></div></div>
+        </div>` : ''}
+        <div class="party-status">
+            ${isTurn ? `<span class="turn-indicator-text">Turn</span>` : ''}
+            ${p.hp <= 0 ? `<span class="status-down">Down</span>` : ''}
+        </div>
+    `;
+    container.appendChild(card);
+}
+
+function renderPlayerActions(container, subMenu = null, actingId = 'player') {
     container.innerHTML = '';
     const grid = document.createElement('div');
     grid.className = 'battle-actions-grid';
 
+    const actor = getCharacterById(actingId);
     const hasAction = gameState.combat.actionsRemaining > 0;
     const hasBonus = gameState.combat.bonusActionsRemaining > 0;
 
@@ -994,7 +1032,7 @@ function renderPlayerActions(container, subMenu = null) {
             if (enemy.hp <= 0) return;
             grid.appendChild(createActionButton(enemy.name, 'swords', () => performAttack(enemy.uniqueId, actingId), 'primary'));
         });
-        grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, null), 'flee'));
+        grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, null, actingId), 'flee'));
     } else if (subMenu === 'spells') {
         const spellList = actor.knownSpells || [];
         spellList.forEach(spellId => {
@@ -1005,9 +1043,9 @@ function renderPlayerActions(container, subMenu = null) {
             const cost = 'action';
             const canCast = (cost === 'action' && hasAction) || (cost === 'bonus' && hasBonus);
 
-            const hasSlots = spell.level === 0 || (actor.currentSlots[spell.level] && actor.currentSlots[spell.level] > 0);
+            const hasSlots = spell.level === 0 || (actor.currentSlots && actor.currentSlots[spell.level] && actor.currentSlots[spell.level] > 0);
             grid.appendChild(createActionButton(spell.name, 'auto_stories', () => {
-                 renderPlayerActions(container, { type: 'spell_target', spellId: spellId });
+                 renderPlayerActions(container, { type: 'spell_target', spellId: spellId }, actingId);
             }, '', !hasSlots || !canCast));
         });
         grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, null, actingId), 'flee'));
@@ -1032,41 +1070,39 @@ function renderPlayerActions(container, subMenu = null) {
         grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, 'spells', actingId), 'flee'));
     } else if (subMenu === 'abilities') {
         // Render Class Features
-        const cls = classes[gameState.player.classId];
+        const cls = classes[actor.classId];
 
         // Cunning Action (Rogue)
-        if (gameState.player.level >= 2 && gameState.player.classId === 'rogue') {
+        if (actor.classId === 'rogue' && actor.level >= 2) {
              grid.appendChild(createActionButton('Dash (Bonus)', 'directions_run', () => performCunningAction('dash'), '', !hasBonus));
              grid.appendChild(createActionButton('Disengage (Bonus)', 'do_not_step', () => performCunningAction('disengage'), '', !hasBonus));
         }
 
         // Action Surge (Fighter)
-        if (gameState.player.level >= 2 && gameState.player.classId === 'fighter') {
-            const res = gameState.player.resources['action_surge'];
+        if (actor.classId === 'fighter' && actor.level >= 2) {
+            const res = actor.resources['action_surge'];
             const available = res && res.current > 0;
-            grid.appendChild(createActionButton('Action Surge', 'bolt', () => performActionSurge(), '', !available));
+            grid.appendChild(createActionButton('Action Surge', 'bolt', () => performActionSurge(actingId), '', !available));
         }
 
         // Second Wind (Fighter)
-        if (gameState.player.classId === 'fighter') {
-            const res = gameState.player.resources['second_wind'];
+        if (actor.classId === 'fighter') {
+            const res = actor.resources['second_wind'];
             const available = res && res.current > 0;
             grid.appendChild(createActionButton('Second Wind', 'healing', () => performAbility('second_wind'), '', !available || !hasBonus));
         }
 
-        grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, null), 'flee'));
+        grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, null, actingId), 'flee'));
     } else {
         // Main Menu
-        const hasSpells = gameState.player.currentSlots && Object.values(gameState.player.currentSlots).some(s => s > 0) || (gameState.player.knownSpells.length > 0); // Include cantrips check
+        const hasSpells = (actor.currentSlots && Object.values(actor.currentSlots).some(s => s > 0)) || (actor.knownSpells && actor.knownSpells.length > 0);
 
-        grid.appendChild(createActionButton('Attack', 'swords', () => renderPlayerActions(container, 'attack'), 'primary', !hasAction));
-        grid.appendChild(createActionButton('Spells', 'auto_stories', () => renderPlayerActions(container, 'spells'), '', !hasSpells || !hasAction)); // Assume spells need action
-        grid.appendChild(createActionButton('Abilities', 'star', () => renderPlayerActions(container, 'abilities')));
+        grid.appendChild(createActionButton('Attack', 'swords', () => renderPlayerActions(container, 'attack', actingId), 'primary', !hasAction));
+        grid.appendChild(createActionButton('Spells', 'auto_stories', () => renderPlayerActions(container, 'spells', actingId), '', !hasSpells || !hasAction));
+        grid.appendChild(createActionButton('Abilities', 'star', () => renderPlayerActions(container, 'abilities', actingId)));
         grid.appendChild(createActionButton('Defend', 'shield', performDefend, '', !hasAction));
-        grid.appendChild(createActionButton('Items', 'local_drink', () => toggleInventory(true), '', !hasAction)); // Using Item is usually an Action (unless Thief)
-        grid.appendChild(createActionButton('End Turn', 'hourglass_bottom', performEndTurn, 'flee')); // Manual End Turn
-        // Flee is special, uses Action
-        // grid.appendChild(createActionButton('Flee', 'directions_run', performFlee, 'flee', !hasAction));
+        grid.appendChild(createActionButton('Items', 'local_drink', () => toggleInventory(true, actingId), '', !hasAction));
+        grid.appendChild(createActionButton('End Turn', 'hourglass_bottom', performEndTurn, 'flee'));
     }
 
     container.appendChild(grid);
@@ -1124,39 +1160,22 @@ function performEndTurn() {
     endCurrentTurn();
 }
 
-function createActionButton(text, icon, onClick, type = '', disabled = false) {
-    const button = document.createElement('button');
-    button.className = `battle-action-button ${type}`;
-    button.innerHTML = `<span class="material-symbols-outlined">${icon}</span><span class="truncate">${text}</span>`;
-    button.onclick = onClick;
-    if (disabled) {
-        button.disabled = true;
-        button.style.opacity = '0.5';
-        button.style.cursor = 'not-allowed';
-    }
-    return button;
-}
-
-function performAttack(targetId) {
+function performAttack(targetId, actorId = 'player') {
     if (gameState.combat.actionsRemaining <= 0) {
         logMessage("No Action remaining!", "check-fail");
         return;
     }
 
     const target = gameState.combat.enemies.find(e => e.uniqueId === targetId);
-    const actor = (actorId === 'player') ? gameState.player : gameState.roster[actorId];
+    const actor = getCharacterById(actorId);
 
     gameState.combat.actionsRemaining--;
 
-    const weaponId = gameState.player.equipped.weapon;
+    const weaponId = actor.equipped.weapon;
     const weapon = items[weaponId] || { name: "Unarmed", damage: "1d2", modifier: "STR", damageType: "bludgeoning", subtype: "simple" };
     const stat = weapon.modifier || "STR";
 
     // Need to access cls proficiencies.
-    // cls structure is slightly different in memory? No, standard.
-    // But wait, do we have `proficiencyBonus` on companion?
-    // Yes, calculated implicitly or should be on object.
-    // I didn't explicitly set it on roster init. Default to 2 + floor((level-1)/4).
     const profBonus = Math.ceil(1 + (actor.level / 4));
 
     // Stat mod
@@ -1165,22 +1184,20 @@ function performAttack(targetId) {
     // Proficiency check
     const cls = classes[actor.classId];
     const isProficient = weapon.subtype && cls.weaponProficiencies && cls.weaponProficiencies.includes(weapon.subtype);
-    const prof = isProficient ? gameState.player.proficiencyBonus : 0;
+    const prof = isProficient ? profBonus : 0;
 
     // Determine Advantage (Simplified: Hidden = Advantage)
-    // const advantage = hasStatusEffect('hidden');
-    // Implementing basic advantage check
     const advantage = false; // Placeholder
 
     const result = rollAttack(actor, stat, prof, advantage);
 
     // Champion Fighter Crit Range
     let critThreshold = 20;
-    if (gameState.player.subclassId === 'champion') critThreshold = 19;
+    if (actor.subclassId === 'champion') critThreshold = 19;
 
     const isCritical = result.roll >= critThreshold;
 
-    let msg = `You attack ${target.name} with ${weapon.name}: ${result.total} (vs AC ${target.ac}).`;
+    let msg = `${actor.name} attacks ${target.name} with ${weapon.name}: ${result.total} (vs AC ${target.ac}).`;
     if (isCritical) {
         msg += " CRITICAL HIT!";
         showBattleEventText("Critical Hit!");
@@ -1188,18 +1205,15 @@ function performAttack(targetId) {
     logMessage(msg, "system");
 
     if (result.total >= target.ac || isCritical) {
-        let dmg = rollDiceExpression(weapon.damage).total + gameState.player.modifiers[stat];
+        let dmg = rollDiceExpression(weapon.damage).total + actor.modifiers[stat];
         if (isCritical) {
             const critBonus = rollDiceExpression(weapon.damage.split('+')[0]).total;
             dmg += critBonus;
         }
 
         // Sneak Attack Logic
-        if (gameState.player.classId === 'rogue') {
-            // Requirements: Finesse/Ranged + (Advantage OR Ally adjacent)
-            // Simplified: Just check if we hit for now, assuming Rogue positions well.
-            // 5e Rules: 1d6 at Lv1, increases by 1d6 every 2 levels.
-            const sneakDice = Math.ceil(gameState.player.level / 2);
+        if (actor.classId === 'rogue') {
+            const sneakDice = Math.ceil(actor.level / 2);
             const sneakDmg = rollDiceExpression(`${sneakDice}d6`).total;
             dmg += sneakDmg;
             logMessage(`Sneak Attack! +${sneakDmg} damage.`, "gain");
@@ -1215,7 +1229,7 @@ function performAttack(targetId) {
     }
 
     if (!checkWinCondition()) {
-        updateCombatUI(); // Don't auto-end turn
+        updateCombatUI();
     }
 }
 
@@ -1473,18 +1487,13 @@ function performShortRest() {
 }
 
 // ... (Standard helper functions remain) ...
-function saveGame() {
-    localStorage.setItem('crimson_moon_save', JSON.stringify(gameState));
-    logMessage("Game Saved.", "system");
-}
-
-function loadGame() {
-    const data = localStorage.getItem('crimson_moon_save');
-    if (data) {
-        Object.assign(gameState, JSON.parse(data));
+export function loadGame() {
+    if (loadGameData()) {
         logMessage("Game Loaded.", "system");
         updateStatsUI();
         goToScene(gameState.currentSceneId);
+        // Ensure character creation is hidden
+        document.getElementById('char-creation-modal').classList.add('hidden');
     } else {
         // No save file, go to character creation
         showCharacterCreation();
@@ -1505,36 +1514,7 @@ function toggleInventory(forceOpen = null, characterId = 'player') {
 }
 
 // ... Rest of file (imports, basic functions) ...
-function createActionButton(text, icon, onClick, type = '', disabled = false) {
-    const button = document.createElement('button');
-    button.className = `battle-action-button ${type}`;
-    button.innerHTML = `<span class="material-symbols-outlined">${icon}</span><span class="truncate">${text}</span>`;
-    button.onclick = onClick;
-    if (disabled) {
-        button.disabled = true;
-        button.style.opacity = '0.5';
-        button.style.cursor = 'not-allowed';
-    }
-    return button;
-}
-
 // Standard helpers (save, load, etc) are kept.
-function saveGame() {
-    localStorage.setItem('crimson_moon_save', JSON.stringify(gameState));
-    logMessage("Game Saved.", "system");
-}
-
-function loadGame() {
-    const data = localStorage.getItem('crimson_moon_save');
-    if (data) {
-        Object.assign(gameState, JSON.parse(data));
-        logMessage("Game Loaded.", "system");
-        updateStatsUI();
-        goToScene(gameState.currentSceneId);
-    } else {
-        logMessage("No save found.", "check-fail");
-    }
-}
 
 function toggleQuestLog() {
     const modal = document.getElementById('quest-modal');
