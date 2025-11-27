@@ -1,3 +1,5 @@
+import { items } from './data/items.js';
+
 export function rollDie(sides) {
     return Math.floor(Math.random() * sides) + 1;
 }
@@ -43,6 +45,35 @@ export function getCritDamageExpression(expr) {
 
     // Double the dice count
     return `${count * 2}d${sides}${modifier}`;
+}
+
+export function calculateDamageRoll(diceExpr, modifier = 0, isCritical = false) {
+    let expr = diceExpr;
+    if (isCritical) {
+        expr = getCritDamageExpression(diceExpr);
+    }
+    const result = rollDiceExpression(expr);
+    result.total += modifier;
+    result.modifier += modifier; // Track total modifier
+    return result;
+}
+
+export function calculateDamageReduction(damage, damageType, targetStats) {
+    let finalDamage = damage;
+    let message = "";
+
+    const vulnerabilities = targetStats.vulnerabilities || "";
+    const resistances = targetStats.resistances || "";
+
+    if (vulnerabilities.includes(damageType)) {
+        finalDamage *= 2;
+        message = `${targetStats.name} is vulnerable to ${damageType}! Damage doubled.`;
+    } else if (resistances.includes(damageType)) {
+        finalDamage = Math.floor(finalDamage / 2);
+        message = `${targetStats.name} resists ${damageType}. Damage halved.`;
+    }
+
+    return { finalDamage, message };
 }
 
 export function getAbilityMod(score) {
