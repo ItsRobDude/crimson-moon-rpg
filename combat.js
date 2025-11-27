@@ -7,7 +7,7 @@ import { enemies } from './data/enemies.js';
 import { items } from './data/items.js';
 import { classes } from './data/classes.js';
 import { spells } from './data/spells.js';
-import { rollInitiative, rollDie, rollAttack, rollDiceExpression } from './rules.js';
+import { rollInitiative, rollDie, rollAttack, rollDiceExpression, getPlayerAC } from './rules.js';
 import { generateScaledStats } from './rules.js';
 
 export const uiHooks = {
@@ -362,7 +362,7 @@ function enemyTurn(enemy) {
     setTimeout(() => {
         uiHooks.logToBattle(`${enemy.name} attacks!`, "combat");
         const totalHit = rollDie(20) + enemy.attackBonus;
-    const ac = gameState.player.ac;
+    const ac = getPlayerAC(gameState.player);
 
     if (totalHit >= ac) {
         let dmg = rollDiceExpression(enemy.damage).total;
