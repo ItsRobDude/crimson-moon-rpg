@@ -24,8 +24,10 @@ export function getCharacterById(characterId) {
 
 // ... (Existing exports and initUI) ...
 export function initUI() {
+    // Expose functions to the global scope for easier debugging and testing
     window.goToScene = goToScene;
     window.showCharacterCreation = showCharacterCreation;
+    window.startCombat = startCombat; // Make combat startable from the console for tests
     document.getElementById('btn-inventory').onclick = () => toggleInventory();
     document.getElementById('btn-quests').onclick = toggleQuestLog;
     document.getElementById('btn-menu').onclick = toggleMenu;
@@ -921,41 +923,22 @@ function updateCombatUI(activeCharacterId = 'player') {
     partyContainer.innerHTML = '';
 
     // Render Player
-    renderPartyCard(gameState.player, 'player', activeCharacterId);
+    renderPartyCard(gameState.player, 'player', activeCharacterId, partyContainer);
 
+    // Render Companions
+    gameState.party.forEach(id => {
+        const companion = gameState.roster[id];
+        if (companion) {
+            renderPartyCard(companion, id, activeCharacterId, partyContainer);
+        }
+    });
+
+    const p = gameState.player;
     const hpPct = Math.max(0, (p.hp / p.maxHp) * 100);
     const totalSlots = p.spellSlots ? Object.values(p.spellSlots).reduce((a, b) => a + b, 0) : 0;
     const currentSlots = p.currentSlots ? Object.values(p.currentSlots).reduce((a, b) => a + b, 0) : 0;
     const manaPct = totalSlots > 0 ? Math.max(0, (currentSlots / totalSlots) * 100) : 0;
-
-    playerCard.innerHTML = `
-        <div class="party-header">
-            <div class="party-portrait" style='background-image: url("portraits/player_placeholder.png");'></div>
-            <div>
-                <p class="party-name">${p.name}</p>
-                <p class="party-class">Lv. ${p.level} ${classes[p.classId].name}</p>
-            </div>
-        </div>
-        <div>
-            <div class="party-bar-label"><span>Health</span><span>${p.hp}/${p.maxHp}</span></div>
-            <div class="party-bar-background"><div class="party-bar-fill hp-fill" style="width: ${hpPct}%;"></div></div>
-        </div>
-        ${totalSlots > 0 ? `
-        <div>
-            <div class="party-bar-label"><span>Spell Slots</span><span>${currentSlots}/${totalSlots}</span></div>
-            <div class="party-bar-background"><div class="party-bar-fill mana-fill" style="width: ${manaPct}%;"></div></div>
-        </div>` : ''}
-        <div class="party-status">
-            ${isPlayerTurn ? `<span class="turn-indicator-text">Your Turn</span>` : ''}
-            ${p.hp <= 0 ? `<span class="status-down">Down</span>` : ''}
-            <div style="font-size:0.8em; margin-top:4px;">
-                Act: ${gameState.combat.actionsRemaining} | Bns: ${gameState.combat.bonusActionsRemaining}
-            </div>
-        </div>
-    `;
-    partyContainer.appendChild(playerCard);
-
-    const enemiesContainer = document.getElementById('enemies-container');
+        const enemiesContainer = document.getElementById('enemies-container');
     enemiesContainer.innerHTML = '';
     gameState.combat.enemies.forEach(enemy => {
         if (enemy.hp <= 0) return;
@@ -1001,7 +984,46 @@ function updateCombatUI(activeCharacterId = 'player') {
     document.getElementById('battle-scene-main-text').innerText = gameState.combat.sceneText || "The air crackles with tension.";
 }
 
-function renderPlayerActions(container, subMenu = null) {
+function renderPartyCard(character, characterId, activeCharacterId, container) {
+    const p = character;
+    const card = document.createElement('div');
+    card.className = 'party-card';
+    if (characterId === activeCharacterId) {
+        card.classList.add('active-character');
+    }
+
+    const hpPct = Math.max(0, (p.hp / p.maxHp) * 100);
+    const totalSlots = p.spellSlots ? Object.values(p.spellSlots).reduce((a, b) => a + b, 0) : 0;
+    const currentSlots = p.currentSlots ? Object.values(p.currentSlots).reduce((a, b) => a + b, 0) : 0;
+    const manaPct = totalSlots > 0 ? Math.max(0, (currentSlots / totalSlots) * 100) : 0;
+    const isTurn = gameState.combat.turnOrder[gameState.combat.turnIndex] === characterId;
+
+    card.innerHTML = `
+        <div class="party-header">
+            <div class="party-portrait" style='background-image: url("${p.portrait || 'portraits/player_placeholder.png'}");'></div>
+            <div>
+                <p class="party-name">${p.name}</p>
+                <p class="party-class">Lv. ${p.level} ${classes[p.classId].name}</p>
+            </div>
+        </div>
+        <div>
+            <div class="party-bar-label"><span>Health</span><span>${p.hp}/${p.maxHp}</span></div>
+            <div class="party-bar-background"><div class="party-bar-fill hp-fill" style="width: ${hpPct}%;"></div></div>
+        </div>
+        ${totalSlots > 0 ? `
+        <div>
+            <div class="party-bar-label"><span>Spell Slots</span><span>${currentSlots}/${totalSlots}</span></div>
+            <div class="party-bar-background"><div class="party-bar-fill mana-fill" style="width: ${manaPct}%;"></div></div>
+        </div>` : ''}
+        <div class="party-status">
+            ${isTurn ? `<span class="turn-indicator-text">Turn</span>` : ''}
+            ${p.hp <= 0 ? `<span class="status-down">Down</span>` : ''}
+        </div>
+    `;
+    container.appendChild(card);
+}
+
+function renderPlayerActions(container, subMenu = null, actingId = 'player') {
     container.innerHTML = '';
     const grid = document.createElement('div');
     grid.className = 'battle-actions-grid';
@@ -1014,7 +1036,7 @@ function renderPlayerActions(container, subMenu = null) {
             if (enemy.hp <= 0) return;
             grid.appendChild(createActionButton(enemy.name, 'swords', () => performAttack(enemy.uniqueId, actingId), 'primary'));
         });
-        grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, null), 'flee'));
+        grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, null, actingId), 'flee'));
     } else if (subMenu === 'spells') {
         const spellList = actor.knownSpells || [];
         spellList.forEach(spellId => {
@@ -1074,14 +1096,14 @@ function renderPlayerActions(container, subMenu = null) {
             grid.appendChild(createActionButton('Second Wind', 'healing', () => performAbility('second_wind'), '', !available || !hasBonus));
         }
 
-        grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, null), 'flee'));
+        grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, null, actingId), 'flee'));
     } else {
         // Main Menu
         const hasSpells = gameState.player.currentSlots && Object.values(gameState.player.currentSlots).some(s => s > 0) || (gameState.player.knownSpells.length > 0); // Include cantrips check
 
-        grid.appendChild(createActionButton('Attack', 'swords', () => renderPlayerActions(container, 'attack'), 'primary', !hasAction));
-        grid.appendChild(createActionButton('Spells', 'auto_stories', () => renderPlayerActions(container, 'spells'), '', !hasSpells || !hasAction)); // Assume spells need action
-        grid.appendChild(createActionButton('Abilities', 'star', () => renderPlayerActions(container, 'abilities')));
+        grid.appendChild(createActionButton('Attack', 'swords', () => renderPlayerActions(container, 'attack', actingId), 'primary', !hasAction));
+        grid.appendChild(createActionButton('Spells', 'auto_stories', () => renderPlayerActions(container, 'spells', actingId), '', !hasSpells || !hasAction)); // Assume spells need action
+        grid.appendChild(createActionButton('Abilities', 'star', () => renderPlayerActions(container, 'abilities', actingId)));
         grid.appendChild(createActionButton('Defend', 'shield', performDefend, '', !hasAction));
         grid.appendChild(createActionButton('Items', 'local_drink', () => toggleInventory(true), '', !hasAction)); // Using Item is usually an Action (unless Thief)
         grid.appendChild(createActionButton('End Turn', 'hourglass_bottom', performEndTurn, 'flee')); // Manual End Turn
@@ -1142,6 +1164,19 @@ function performActionSurge(actorId = 'player') {
 
 function performEndTurn() {
     endCurrentTurn();
+}
+
+function createActionButton(text, icon, onClick, type = '', disabled = false) {
+    const button = document.createElement('button');
+    button.className = `battle-action-button ${type}`;
+    button.innerHTML = `<span class="material-symbols-outlined">${icon}</span><span class="truncate">${text}</span>`;
+    button.onclick = onClick;
+    if (disabled) {
+        button.disabled = true;
+        button.style.opacity = '0.5';
+        button.style.cursor = 'not-allowed';
+    }
+    return button;
 }
 
 function performAttack(targetId) {
