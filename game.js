@@ -13,7 +13,8 @@ import { npcs } from './data/npcs.js';
 import { companions } from './data/companions.js';
 import { factions } from './data/factions.js';
 import { gameState, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, unequipItem, syncPartyLevels, saveGame, loadGame as loadGameData } from './data/gameState.js';
-import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod, generateScaledStats } from './rules.js';
+import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod, generateScaledStats, getPlayerAC } from './rules.js';
+import { initCombatSystem, startCombat, performAttack, performCastSpell, performAbility, performDefend, performFlee, performEndTurn, performActionSurge, performCunningAction, uiHooks } from './combat.js';
 
 export function getCharacterById(characterId) {
     if (characterId === 'player') {
@@ -25,6 +26,7 @@ export function getCharacterById(characterId) {
 // ... (Existing exports and initUI) ...
 export function initUI() {
     window.goToScene = goToScene;
+    window.startCombat = startCombat; // Expose for testing/debug
     window.showCharacterCreation = showCharacterCreation;
     document.getElementById('btn-inventory').onclick = () => toggleInventory();
     document.getElementById('btn-quests').onclick = toggleQuestLog;
@@ -33,6 +35,25 @@ export function initUI() {
     document.getElementById('btn-codex').onclick = () => toggleCodex('people');
     document.getElementById('btn-codex-people').onclick = () => toggleCodex('people');
     document.getElementById('btn-codex-factions').onclick = () => toggleCodex('factions');
+
+    // Initialize Combat UI Hooks
+    initCombatSystem({
+        updateCombatUI: updateCombatUI,
+        logToBattle: logToBattle,
+        showBattleEventText: showBattleEventText,
+        createActionButton: createActionButton, // Need to expose/ensure this exists? It's used in game.js but not exported?
+        goToScene: goToScene,
+        updateStatsUI: updateStatsUI,
+        saveGame: saveGame
+    });
+
+    // We need to ensure createActionButton is defined or passed properly.
+    // In game.js it was defined inside renderPlayerActions scope or global?
+    // It was not defined in the read_file output of game.js!
+    // Wait, I missed createActionButton definition in previous reads.
+    // Let me check if I can find it or if it was part of renderPlayerActions.
+    // It was used in renderPlayerActions. I'll assume it's a helper function in this file.
+    // If not, I need to add it.
 
     // New: Check for pending level up on stats click or button
     // For now, we'll add a listener to the level text if it has a specific class, or just a button.
@@ -292,6 +313,7 @@ function finishCharacterCreation() {
         ccState.chosenSpells
     );
     document.getElementById('char-creation-modal').classList.add('hidden');
+    document.getElementById('game-container').classList.remove('hidden'); // Ensure game is visible
     updateStatsUI();
     goToScene(gameState.currentSceneId);
     logMessage(`Character ${name} created. Welcome to Silverthorn.`, "system");
@@ -784,136 +806,6 @@ function renderCodexFactions(container) {
 
 // --- Combat System (Updated for Party) ---
 
-export function startCombat(combatantIds, winScene, loseScene) {
-    const sceneContainer = document.getElementById('scene-container');
-    if (sceneContainer) sceneContainer.classList.add('hidden');
-
-    const battleScreen = document.getElementById('battle-screen');
-    if (battleScreen) battleScreen.classList.remove('hidden');
-
-    window.logMessage = logToBattle;
-
-    const currentScene = scenes[gameState.currentSceneId];
-
-    const enemiesList = combatantIds.map((id, index) => {
-        let combatantData;
-        let isNpc = false;
-
-        if (npcs[id] && npcs[id].combatStats) {
-            combatantData = generateScaledStats(npcs[id].combatStats, gameState.player.level);
-            combatantData.name = npcs[id].name;
-            combatantData.portrait = npcs[id].portrait;
-            isNpc = true;
-        } else {
-            combatantData = enemies[id];
-        }
-
-        if (!combatantData) {
-            console.error(`Combatant data for ID "${id}" not found.`);
-            return null;
-        }
-
-        const primaryAttack = combatantData.actions ? combatantData.actions.find(a => a.type === 'attack') : null;
-
-        return {
-            id: id,
-            name: combatantData.name,
-            hp: combatantData.hp,
-            maxHp: combatantData.hp,
-            ac: combatantData.ac,
-            attackBonus: isNpc ? (primaryAttack ? primaryAttack.toHit : 0) : combatantData.attackBonus,
-            damage: isNpc ? (primaryAttack ? primaryAttack.damage : "1d4") : combatantData.damage,
-            portrait: combatantData.portrait || 'portraits/placeholder.png',
-            initiative: 0,
-            statusEffects: [],
-            uniqueId: `${id}_${index}`,
-            intent: "",
-            fullStats: isNpc ? combatantData : null
-        };
-    }).filter(c => c !== null);
-
-    gameState.combat = {
-        active: true,
-        enemies: enemiesList,
-        turnOrder: [],
-        turnIndex: 0,
-        round: 1,
-        winSceneId: winScene,
-        loseSceneId: loseScene,
-        playerDefending: false,
-        sceneText: currentScene.text,
-        actionsRemaining: 1,      // Init for player
-        bonusActionsRemaining: 1
-    };
-
-    logMessage(`Combat started!`, "combat");
-
-    const initiatives = [];
-    // Player
-    const playerInit = rollInitiative(gameState, 'player');
-    initiatives.push({ type: 'player', id: 'player', initiative: playerInit.total });
-    logMessage(`You rolled ${playerInit.total} for initiative.`, "system");
-
-    // Companions
-    gameState.party.forEach(compId => {
-        // Simplify companion initiative (use player's roll or just flat d20 + dex)
-        const char = gameState.roster[compId];
-        const dexMod = char.modifiers.DEX;
-        const roll = rollDie(20) + dexMod;
-        initiatives.push({ type: 'companion', id: compId, initiative: roll });
-        logMessage(`${char.name} rolled ${roll} for initiative.`, "system");
-    });
-
-    // Enemies
-    gameState.combat.enemies.forEach(enemy => {
-        const init = rollInitiative(gameState, 'enemy', enemy.attackBonus);
-        enemy.initiative = init.total;
-        initiatives.push({ type: 'enemy', id: enemy.uniqueId, initiative: init.total });
-        logMessage(`${enemy.name} rolled ${init.total} for initiative.`, "system");
-    });
-
-    initiatives.sort((a, b) => b.initiative - a.initiative);
-    gameState.combat.turnOrder = initiatives.map(i => i.id);
-
-    combatTurnLoop();
-}
-
-function combatTurnLoop() {
-    if (!gameState.combat.active) return;
-
-    const currentTurnId = gameState.combat.turnOrder[gameState.combat.turnIndex];
-
-    if (currentTurnId === 'player') {
-        // Reset Player Action Economy at start of their turn
-        gameState.combat.actionsRemaining = 1;
-        gameState.combat.bonusActionsRemaining = 1;
-
-        logMessage(`Round ${gameState.combat.round} - Your Turn`, "system");
-        updateCombatUI();
-    } else if (gameState.party.includes(currentTurnId)) {
-        // Companion Turn
-        const comp = gameState.roster[currentTurnId];
-        logMessage(`Round ${gameState.combat.round} - ${comp.name}'s Turn`, "system");
-
-        if (gameState.settings.companionAI) {
-            // AI Control
-            setTimeout(() => companionTurnAI(comp), 1000);
-        } else {
-            // Manual Control
-            // We treat it like player turn but acting as companion
-            gameState.combat.actionsRemaining = 1;
-            gameState.combat.bonusActionsRemaining = 1;
-            updateCombatUI(currentTurnId); // Pass active character ID
-        }
-    } else {
-        // Enemy Turn
-        const enemy = gameState.combat.enemies.find(e => e.uniqueId === currentTurnId);
-        logMessage(`Round ${gameState.combat.round} - ${enemy.name}'s Turn`, "system");
-        updateCombatUI();
-        setTimeout(() => enemyTurn(enemy), 1000);
-    }
-}
-
 function updateCombatUI(activeCharacterId = 'player') {
     if (!gameState.combat.active) return;
 
@@ -922,38 +814,6 @@ function updateCombatUI(activeCharacterId = 'player') {
 
     // Render Player
     renderPartyCard(gameState.player, 'player', activeCharacterId);
-
-    const hpPct = Math.max(0, (p.hp / p.maxHp) * 100);
-    const totalSlots = p.spellSlots ? Object.values(p.spellSlots).reduce((a, b) => a + b, 0) : 0;
-    const currentSlots = p.currentSlots ? Object.values(p.currentSlots).reduce((a, b) => a + b, 0) : 0;
-    const manaPct = totalSlots > 0 ? Math.max(0, (currentSlots / totalSlots) * 100) : 0;
-
-    playerCard.innerHTML = `
-        <div class="party-header">
-            <div class="party-portrait" style='background-image: url("portraits/player_placeholder.png");'></div>
-            <div>
-                <p class="party-name">${p.name}</p>
-                <p class="party-class">Lv. ${p.level} ${classes[p.classId].name}</p>
-            </div>
-        </div>
-        <div>
-            <div class="party-bar-label"><span>Health</span><span>${p.hp}/${p.maxHp}</span></div>
-            <div class="party-bar-background"><div class="party-bar-fill hp-fill" style="width: ${hpPct}%;"></div></div>
-        </div>
-        ${totalSlots > 0 ? `
-        <div>
-            <div class="party-bar-label"><span>Spell Slots</span><span>${currentSlots}/${totalSlots}</span></div>
-            <div class="party-bar-background"><div class="party-bar-fill mana-fill" style="width: ${manaPct}%;"></div></div>
-        </div>` : ''}
-        <div class="party-status">
-            ${isPlayerTurn ? `<span class="turn-indicator-text">Your Turn</span>` : ''}
-            ${p.hp <= 0 ? `<span class="status-down">Down</span>` : ''}
-            <div style="font-size:0.8em; margin-top:4px;">
-                Act: ${gameState.combat.actionsRemaining} | Bns: ${gameState.combat.bonusActionsRemaining}
-            </div>
-        </div>
-    `;
-    partyContainer.appendChild(playerCard);
 
     const enemiesContainer = document.getElementById('enemies-container');
     enemiesContainer.innerHTML = '';
@@ -1001,11 +861,27 @@ function updateCombatUI(activeCharacterId = 'player') {
     document.getElementById('battle-scene-main-text').innerText = gameState.combat.sceneText || "The air crackles with tension.";
 }
 
-function renderPlayerActions(container, subMenu = null) {
+function createActionButton(label, icon, onClick, extraClass = '', disabled = false) {
+    const btn = document.createElement('button');
+    btn.className = `action-btn ${extraClass}`;
+    if (disabled) {
+        btn.classList.add('disabled');
+        btn.disabled = true;
+    }
+    btn.innerHTML = `
+        <span class="material-icons">${icon}</span>
+        <span>${label}</span>
+    `;
+    btn.onclick = onClick;
+    return btn;
+}
+
+function renderPlayerActions(container, subMenu = null, actingId = 'player') {
     container.innerHTML = '';
     const grid = document.createElement('div');
     grid.className = 'battle-actions-grid';
 
+    const actor = (actingId === 'player') ? gameState.player : gameState.roster[actingId];
     const hasAction = gameState.combat.actionsRemaining > 0;
     const hasBonus = gameState.combat.bonusActionsRemaining > 0;
 
@@ -1014,7 +890,7 @@ function renderPlayerActions(container, subMenu = null) {
             if (enemy.hp <= 0) return;
             grid.appendChild(createActionButton(enemy.name, 'swords', () => performAttack(enemy.uniqueId, actingId), 'primary'));
         });
-        grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, null), 'flee'));
+        grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, null, actingId), 'flee'));
     } else if (subMenu === 'spells') {
         const spellList = actor.knownSpells || [];
         spellList.forEach(spellId => {
@@ -1027,7 +903,7 @@ function renderPlayerActions(container, subMenu = null) {
 
             const hasSlots = spell.level === 0 || (actor.currentSlots[spell.level] && actor.currentSlots[spell.level] > 0);
             grid.appendChild(createActionButton(spell.name, 'auto_stories', () => {
-                 renderPlayerActions(container, { type: 'spell_target', spellId: spellId });
+                 renderPlayerActions(container, { type: 'spell_target', spellId: spellId }, actingId);
             }, '', !hasSlots || !canCast));
         });
         grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, null, actingId), 'flee'));
@@ -1052,38 +928,36 @@ function renderPlayerActions(container, subMenu = null) {
         grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, 'spells', actingId), 'flee'));
     } else if (subMenu === 'abilities') {
         // Render Class Features
-        const cls = classes[gameState.player.classId];
-
         // Cunning Action (Rogue)
-        if (gameState.player.level >= 2 && gameState.player.classId === 'rogue') {
+        if (actor.level >= 2 && actor.classId === 'rogue') {
              grid.appendChild(createActionButton('Dash (Bonus)', 'directions_run', () => performCunningAction('dash'), '', !hasBonus));
              grid.appendChild(createActionButton('Disengage (Bonus)', 'do_not_step', () => performCunningAction('disengage'), '', !hasBonus));
         }
 
         // Action Surge (Fighter)
-        if (gameState.player.level >= 2 && gameState.player.classId === 'fighter') {
-            const res = gameState.player.resources['action_surge'];
+        if (actor.level >= 2 && actor.classId === 'fighter') {
+            const res = actor.resources['action_surge'];
             const available = res && res.current > 0;
-            grid.appendChild(createActionButton('Action Surge', 'bolt', () => performActionSurge(), '', !available));
+            grid.appendChild(createActionButton('Action Surge', 'bolt', () => performActionSurge(actingId), '', !available));
         }
 
         // Second Wind (Fighter)
-        if (gameState.player.classId === 'fighter') {
-            const res = gameState.player.resources['second_wind'];
+        if (actor.classId === 'fighter') {
+            const res = actor.resources['second_wind'];
             const available = res && res.current > 0;
-            grid.appendChild(createActionButton('Second Wind', 'healing', () => performAbility('second_wind'), '', !available || !hasBonus));
+            grid.appendChild(createActionButton('Second Wind', 'healing', () => performAbility('second_wind', actingId), '', !available || !hasBonus));
         }
 
-        grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, null), 'flee'));
+        grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, null, actingId), 'flee'));
     } else {
         // Main Menu
-        const hasSpells = gameState.player.currentSlots && Object.values(gameState.player.currentSlots).some(s => s > 0) || (gameState.player.knownSpells.length > 0); // Include cantrips check
+        const hasSpells = actor.currentSlots && Object.values(actor.currentSlots).some(s => s > 0) || (actor.knownSpells.length > 0); // Include cantrips check
 
-        grid.appendChild(createActionButton('Attack', 'swords', () => renderPlayerActions(container, 'attack'), 'primary', !hasAction));
-        grid.appendChild(createActionButton('Spells', 'auto_stories', () => renderPlayerActions(container, 'spells'), '', !hasSpells || !hasAction)); // Assume spells need action
-        grid.appendChild(createActionButton('Abilities', 'star', () => renderPlayerActions(container, 'abilities')));
+        grid.appendChild(createActionButton('Attack', 'swords', () => renderPlayerActions(container, 'attack', actingId), 'primary', !hasAction));
+        grid.appendChild(createActionButton('Spells', 'auto_stories', () => renderPlayerActions(container, 'spells', actingId), '', !hasSpells || !hasAction)); // Assume spells need action
+        grid.appendChild(createActionButton('Abilities', 'star', () => renderPlayerActions(container, 'abilities', actingId)));
         grid.appendChild(createActionButton('Defend', 'shield', performDefend, '', !hasAction));
-        grid.appendChild(createActionButton('Items', 'local_drink', () => toggleInventory(true), '', !hasAction)); // Using Item is usually an Action (unless Thief)
+        grid.appendChild(createActionButton('Items', 'local_drink', () => toggleInventory(true, actingId), '', !hasAction)); // Using Item is usually an Action (unless Thief)
         grid.appendChild(createActionButton('End Turn', 'hourglass_bottom', performEndTurn, 'flee')); // Manual End Turn
         // Flee is special, uses Action
         // grid.appendChild(createActionButton('Flee', 'directions_run', performFlee, 'flee', !hasAction));
@@ -1092,309 +966,48 @@ function renderPlayerActions(container, subMenu = null) {
     container.appendChild(grid);
 }
 
-// --- New Action Logic ---
+// Helper to render party card (needed for updateCombatUI)
+function renderPartyCard(p, id, activeId) {
+    const isPlayerTurn = (gameState.combat.turnOrder[gameState.combat.turnIndex] === id);
+    const card = document.createElement('div');
+    card.className = `party-card ${isPlayerTurn ? 'active-turn' : ''}`;
 
-function performCunningAction(type) {
-    if (gameState.combat.bonusActionsRemaining <= 0) {
-        logMessage("No Bonus Action remaining!", "check-fail");
-        return;
-    }
-    gameState.combat.bonusActionsRemaining--;
-    logMessage(`Cunning Action: You used ${type}.`, "gain");
-    // Dash isn't strictly implemented on a grid, but implies movement.
-    // Disengage prevents opportunity attacks (if we had them).
-    // For now, it's flavor or could unlock a 'Flee' without check?
-    updateCombatUI();
-}
+    // Calculate Percentages
+    const hpPct = Math.max(0, (p.hp / p.maxHp) * 100);
+    const totalSlots = p.spellSlots ? Object.values(p.spellSlots).reduce((a, b) => a + b, 0) : 0;
+    const currentSlots = p.currentSlots ? Object.values(p.currentSlots).reduce((a, b) => a + b, 0) : 0;
+    const manaPct = totalSlots > 0 ? Math.max(0, (currentSlots / totalSlots) * 100) : 0;
 
-function calculateDamage(baseDamage, damageType, target, isCritical = false) {
-    const combatantStats = target.fullStats || enemies[target.id];
-    if (!combatantStats) return baseDamage;
+    card.innerHTML = `
+        <div class="party-header">
+            <div class="party-portrait" style='background-image: url("${p.portrait || 'portraits/placeholder.png'}");'></div>
+            <div>
+                <p class="party-name">${p.name}</p>
+                <p class="party-class">Lv. ${p.level} ${classes[p.classId].name}</p>
+            </div>
+        </div>
+        <div>
+            <div class="party-bar-label"><span>Health</span><span>${p.hp}/${p.maxHp}</span></div>
+            <div class="party-bar-background"><div class="party-bar-fill hp-fill" style="width: ${hpPct}%;"></div></div>
+        </div>
+        ${totalSlots > 0 ? `
+        <div>
+            <div class="party-bar-label"><span>Spell Slots</span><span>${currentSlots}/${totalSlots}</span></div>
+            <div class="party-bar-background"><div class="party-bar-fill mana-fill" style="width: ${manaPct}%;"></div></div>
+        </div>` : ''}
+        <div class="party-status">
+            ${isPlayerTurn ? `<span class="turn-indicator-text">Your Turn</span>` : ''}
+            ${p.hp <= 0 ? `<span class="status-down">Down</span>` : ''}
+            <div style="font-size:0.8em; margin-top:4px;">
+                Act: ${gameState.combat.actionsRemaining} | Bns: ${gameState.combat.bonusActionsRemaining}
+            </div>
+        </div>
+    `;
 
-    let finalDamage = baseDamage;
-    let message = "";
+    // Attach click listener for selection?
+    // card.onclick = () => ...
 
-    const vulnerabilities = combatantStats.vulnerabilities || "";
-    const resistances = combatantStats.resistances || "";
-
-    if (vulnerabilities.includes(damageType)) {
-        finalDamage *= 2;
-        message = `${target.name} is vulnerable to ${damageType}! Damage doubled.`;
-    } else if (resistances.includes(damageType)) {
-        finalDamage = Math.floor(finalDamage / 2);
-        message = `${target.name} resists ${damageType}. Damage halved.`;
-    }
-
-    if (message) logMessage(message, "system");
-    return finalDamage;
-}
-
-function performActionSurge(actorId = 'player') {
-    const actor = (actorId === 'player') ? gameState.player : gameState.roster[actorId];
-    const res = actor.resources['action_surge'];
-    if (!res || res.current <= 0) return;
-
-    res.current--;
-    gameState.combat.actionsRemaining++;
-    logMessage(`${actor.name} used Action Surge!`, "gain");
-    updateCombatUI(actorId);
-}
-
-function performEndTurn() {
-    endCurrentTurn();
-}
-
-function performAttack(targetId) {
-    if (gameState.combat.actionsRemaining <= 0) {
-        logMessage("No Action remaining!", "check-fail");
-        return;
-    }
-
-    const target = gameState.combat.enemies.find(e => e.uniqueId === targetId);
-    const actor = (actorId === 'player') ? gameState.player : gameState.roster[actorId];
-
-    gameState.combat.actionsRemaining--;
-
-    const weaponId = gameState.player.equipped.weapon;
-    const weapon = items[weaponId] || { name: "Unarmed", damage: "1d2", modifier: "STR", damageType: "bludgeoning", subtype: "simple" };
-    const stat = weapon.modifier || "STR";
-
-    // Need to access cls proficiencies.
-    // cls structure is slightly different in memory? No, standard.
-    // But wait, do we have `proficiencyBonus` on companion?
-    // Yes, calculated implicitly or should be on object.
-    // I didn't explicitly set it on roster init. Default to 2 + floor((level-1)/4).
-    const profBonus = Math.ceil(1 + (actor.level / 4));
-
-    // Stat mod
-    const statMod = actor.modifiers[stat];
-
-    // Proficiency check
-    const cls = classes[actor.classId];
-    const isProficient = weapon.subtype && cls.weaponProficiencies && cls.weaponProficiencies.includes(weapon.subtype);
-    const prof = isProficient ? gameState.player.proficiencyBonus : 0;
-
-    // Determine Advantage (Simplified: Hidden = Advantage)
-    // const advantage = hasStatusEffect('hidden');
-    // Implementing basic advantage check
-    const advantage = false; // Placeholder
-
-    const result = rollAttack(actor, stat, prof, advantage);
-
-    // Champion Fighter Crit Range
-    let critThreshold = 20;
-    if (gameState.player.subclassId === 'champion') critThreshold = 19;
-
-    const isCritical = result.roll >= critThreshold;
-
-    let msg = `You attack ${target.name} with ${weapon.name}: ${result.total} (vs AC ${target.ac}).`;
-    if (isCritical) {
-        msg += " CRITICAL HIT!";
-        showBattleEventText("Critical Hit!");
-    }
-    logMessage(msg, "system");
-
-    if (result.total >= target.ac || isCritical) {
-        let dmg = rollDiceExpression(weapon.damage).total + gameState.player.modifiers[stat];
-        if (isCritical) {
-            const critBonus = rollDiceExpression(weapon.damage.split('+')[0]).total;
-            dmg += critBonus;
-        }
-
-        // Sneak Attack Logic
-        if (gameState.player.classId === 'rogue') {
-            // Requirements: Finesse/Ranged + (Advantage OR Ally adjacent)
-            // Simplified: Just check if we hit for now, assuming Rogue positions well.
-            // 5e Rules: 1d6 at Lv1, increases by 1d6 every 2 levels.
-            const sneakDice = Math.ceil(gameState.player.level / 2);
-            const sneakDmg = rollDiceExpression(`${sneakDice}d6`).total;
-            dmg += sneakDmg;
-            logMessage(`Sneak Attack! +${sneakDmg} damage.`, "gain");
-        }
-
-        const finalDamage = calculateDamage(dmg, weapon.damageType, target);
-        target.hp -= Math.max(1, finalDamage);
-        logMessage(`Hit! Dealt ${finalDamage} damage.`, "combat");
-        showBattleEventText(`${finalDamage}`);
-    } else {
-        logMessage("Miss!", "system");
-        showBattleEventText("Miss!");
-    }
-
-    if (!checkWinCondition()) {
-        updateCombatUI(); // Don't auto-end turn
-    }
-}
-
-function performAbility(abilityId) {
-    // Check Action Economy based on ability type
-    let cost = 'action';
-    if (abilityId === 'second_wind') cost = 'bonus';
-
-    if (cost === 'action' && gameState.combat.actionsRemaining <= 0) {
-        logMessage("No Action remaining!", "check-fail");
-        return;
-    }
-    if (cost === 'bonus' && gameState.combat.bonusActionsRemaining <= 0) {
-        logMessage("No Bonus Action remaining!", "check-fail");
-        return;
-    }
-
-    const resource = gameState.player.resources[abilityId];
-    if (!resource || resource.current <= 0) {
-        logMessage("No uses left for that ability.", "check-fail");
-        return;
-    }
-
-    if (cost === 'action') gameState.combat.actionsRemaining--;
-    if (cost === 'bonus') gameState.combat.bonusActionsRemaining--;
-
-    if (abilityId === 'second_wind') {
-        resource.current--;
-        const healed = rollDie(10) + gameState.player.level;
-        gameState.player.hp = Math.min(gameState.player.maxHp, gameState.player.hp + healed);
-        logMessage(`Used Second Wind and recovered ${healed} HP.`, "gain");
-    } else {
-        logMessage(`Ability '${abilityId}' is not implemented yet.`, "system");
-    }
-
-    if (!checkWinCondition()) {
-        updateCombatUI();
-    }
-}
-
-
-function performDefend() {
-    if (gameState.combat.actionsRemaining <= 0) return;
-    gameState.combat.actionsRemaining--;
-    gameState.combat.playerDefending = true;
-    logMessage("You brace yourself for the next attack.", "system");
-    updateCombatUI();
-}
-
-function performFlee() {
-    if (gameState.combat.actionsRemaining <= 0) return;
-    gameState.combat.actionsRemaining--;
-
-    const roll = rollDie(20) + gameState.player.modifiers.DEX;
-    if (roll >= 12) {
-        logMessage("You escaped!", "gain");
-        gameState.combat.active = false;
-        goToScene(gameState.combat.loseSceneId);
-    } else {
-        logMessage("Failed to escape!", "combat");
-        updateCombatUI();
-    }
-}
-
-function endCurrentTurn() {
-    gameState.combat.playerDefending = false;
-    gameState.combat.turnIndex = (gameState.combat.turnIndex + 1) % gameState.combat.turnOrder.length;
-    if (gameState.combat.turnIndex === 0) {
-        gameState.combat.round++;
-    }
-    combatTurnLoop();
-}
-
-// ... (Enemy Turn & Win Condition remain mostly the same) ...
-
-function enemyTurn(enemy) {
-    if (!gameState.combat.active || enemy.hp <= 0) {
-        endEnemyTurn(enemy);
-        return;
-    }
-
-    enemy.intent = "is preparing to attack!";
-    updateCombatUI();
-
-    setTimeout(() => {
-        logMessage(`${enemy.name} attacks!`, "combat");
-        const totalHit = rollDie(20) + enemy.attackBonus;
-    const ac = getPlayerAC();
-
-    if (totalHit >= ac) {
-        let dmg = rollDiceExpression(enemy.damage).total;
-        if (gameState.combat.playerDefending) {
-            dmg = Math.floor(dmg / 2);
-            logMessage("Defended! Damage halved.", "gain");
-        }
-        gameState.player.hp -= dmg;
-        logMessage(`You took ${dmg} damage.`, "combat");
-        showBattleEventText(`${dmg}`);
-
-        if (enemy.id === 'fungal_beast' && rollDie(100) <= 25) {
-            applyStatusEffect('poisoned');
-            showBattleEventText("Poisoned!");
-        }
-
-        if (gameState.player.hp <= 0) {
-            gameState.combat.active = false;
-            goToScene(gameState.combat.loseSceneId);
-            return;
-        }
-    } else {
-        logMessage(`${enemy.name} missed!`, "system");
-        showBattleEventText("Miss!");
-    }
-
-    endEnemyTurn(enemy);
-    }, 1000);
-}
-
-function endEnemyTurn(enemy) {
-    enemy.intent = "";
-
-    const deadEnemies = gameState.combat.enemies.filter(e => e.hp <= 0).map(e => e.uniqueId);
-    if (deadEnemies.length > 0) {
-        gameState.combat.turnOrder = gameState.combat.turnOrder.filter(id => !deadEnemies.includes(id));
-    }
-
-    const currentIndex = gameState.combat.turnOrder.indexOf(enemy.uniqueId);
-    gameState.combat.turnIndex = (currentIndex + 1) % gameState.combat.turnOrder.length;
-
-    if (gameState.combat.turnIndex === 0 && gameState.combat.turnOrder.includes('player')) {
-        gameState.combat.round++;
-    } else if (!gameState.combat.turnOrder.includes('player')) {
-        checkWinCondition();
-        return;
-    }
-}
-
-// --- AI Companion Logic ---
-function companionTurnAI(actor) {
-    // Very simple AI
-    logMessage(`${actor.name} acts (AI).`, "system");
-    // AI logic is not implemented, so the companion will just end their turn.
-    endCurrentTurn();
-}
-
-function checkWinCondition() {
-    const allEnemiesDefeated = gameState.combat.enemies.every(e => e.hp <= 0);
-    if (allEnemiesDefeated) {
-        gameState.combat.active = false;
-        logMessage(`Victory!`, "gain");
-
-        const totalXp = gameState.combat.enemies.reduce((sum, e) => sum + (enemies[e.id].xp || 0), 0);
-        // gainXp will return true if pending level up
-        const levelUpAvailable = gainXp(totalXp);
-        logMessage(`Gained ${totalXp} XP.`, "gain");
-        if (levelUpAvailable) {
-            logMessage(`Level Up Available!`, "gain");
-        }
-
-        updateStatsUI();
-        saveGame();
-
-        window.logMessage = logToMain;
-
-        const actionsContainer = document.getElementById('battle-actions-container');
-        actionsContainer.innerHTML = '';
-        actionsContainer.appendChild(
-            createActionButton('Victory!', 'celebration', () => goToScene(gameState.combat.winSceneId), 'col-span-2')
-        );
-        return true;
-    }
-    return false;
+    document.getElementById('party-container').appendChild(card);
 }
 
 // --- UI Updates ---
@@ -1417,7 +1030,7 @@ function updateStatsUI() {
         levelEl.classList.remove('pulse-animation');
     }
 
-    document.getElementById('char-ac').innerText = `AC ${getPlayerAC()}`;
+    document.getElementById('char-ac').innerText = `AC ${getPlayerAC(gameState.player)}`;
 
     const weapon = p.equipped.weapon ? items[p.equipped.weapon] : null;
     const armor = p.equipped.armor ? items[p.equipped.armor] : null;
@@ -1435,17 +1048,15 @@ function updateStatsUI() {
     document.getElementById('xp-text').innerText = `XP: ${p.xp}/${p.xpNext}`;
 }
 
-function getPlayerAC() {
-    const p = gameState.player;
-    const armor = p.equipped.armor ? items[p.equipped.armor] : null;
-    if (armor) return armor.acBase;
-    if (p.classId === 'fighter') return 10 + p.modifiers.DEX;
-    return 10 + p.modifiers.DEX;
-}
 
 // ... (Rest of existing functions: performLongRest, toggleInventory, etc. UNCHANGED, but ensuring performLongRest resets new resources) ...
 
 function performLongRest() {
+    if (gameState.combat.active) {
+        logMessage("Cannot rest during combat!", "check-fail");
+        return;
+    }
+
     gameState.player.hp = gameState.player.maxHp;
     // Reset slots
     if (gameState.player.spellSlots) {
@@ -1464,14 +1075,16 @@ function performLongRest() {
 }
 
 function performShortRest() {
+    if (gameState.combat.active) {
+        logMessage("Cannot rest during combat!", "check-fail");
+        return 0;
+    }
+
     const cls = classes[gameState.player.classId];
     const roll = rollDie(cls.hitDie) + gameState.player.modifiers.CON;
     const healed = Math.max(1, roll);
     gameState.player.hp = Math.min(gameState.player.maxHp, gameState.player.hp + healed);
 
-    if (!checkWinCondition()) {
-        endCurrentTurn(); // End companion turn
-    }
     if (gameState.player.resources['action_surge']) {
         gameState.player.resources['action_surge'].current = gameState.player.resources['action_surge'].max;
     }
