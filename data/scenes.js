@@ -451,7 +451,7 @@ export const scenes = {
                     { type: "relationship", npcId: "alderic", amount: 10 },
                     { type: "reputation", factionId: "silverthorn", amount: 5 }
                 ],
-                nextScene: "SCENE_TRAVEL_SHADOWMIRE"
+                nextScene: "SCENE_HUB_SILVERTHORN"
             },
             {
                 text: "I need more information about Aodhan.",
@@ -478,7 +478,7 @@ export const scenes = {
                 effects: [
                     { type: "relationship", npcId: "alderic", amount: 5 }
                 ],
-                nextScene: "SCENE_TRAVEL_SHADOWMIRE"
+                nextScene: "SCENE_HUB_SILVERTHORN"
             },
             {
                 text: "Request extra supplies (Requires 5 Alderic Relationship)",
@@ -489,7 +489,7 @@ export const scenes = {
                     { type: "addItem", itemId: "potion_healing" } // Logic needs to handle this in game.js handleChoice too
                 ],
                 onSuccess: { addGold: 50 }, // Alternative way if logic supports it
-                nextScene: "SCENE_TRAVEL_SHADOWMIRE"
+                nextScene: "SCENE_HUB_SILVERTHORN"
             }
         ]
     },
@@ -502,7 +502,7 @@ export const scenes = {
         shopId: "silverthorn_market",
         choices: [
             { text: "Take a Rest", action: "longRest" },
-            { text: "Leave the market.", nextScene: "SCENE_BRIEFING_2" }
+            { text: "Return to City Center", nextScene: "SCENE_HUB_SILVERTHORN" }
         ]
     },
     "SCENE_TRAVEL_SHADOWMIRE": {
@@ -808,8 +808,76 @@ export const scenes = {
             {
                 text: "Visit Market",
                 nextScene: "SCENE_SILVERTHORN_MARKET"
+            },
+            {
+                text: "Leave City Gates (Travel to Shadowmire)",
+                nextScene: "SCENE_SHADOWMIRE_ROAD"
             }
         ]
+    },
+    "SCENE_SHADOWMIRE_ROAD": {
+        id: "SCENE_SHADOWMIRE_ROAD",
+        location: "shadowmire",
+        background: "landscapes/forest_walk.png",
+        text: "You leave the safety of Silverthorn behind. The road ahead winds into the Shadowmire Forest. The canopy thickens, blotting out the crimson sun. A heavy mist clings to the ground, obscuring the path. The silence is unnatural.",
+        choices: [
+            {
+                text: "Scan surroundings (Perception)",
+                type: "skillCheck",
+                skill: "perception",
+                dc: 12,
+                successText: "You squint into the fog. A pair of glowing eyes reflects the faint light. A wolf stalks the treeline, ready to pounce.",
+                failText: "The fog is too dense. You see nothing but shifting shadows.",
+                nextSceneSuccess: "SCENE_SHADOWMIRE_SPOTTED",
+                nextSceneFail: "SCENE_SHADOWMIRE_AMBUSH"
+            },
+            {
+                text: "Continue down the road",
+                nextScene: "SCENE_SHADOWMIRE_AMBUSH"
+            }
+        ]
+    },
+    "SCENE_SHADOWMIRE_SPOTTED": {
+        id: "SCENE_SHADOWMIRE_SPOTTED",
+        location: "shadowmire",
+        background: "landscapes/forest_walk_alt.png",
+        text: "You spot the wolf before it strikes. It snarls, realizing it has been seen.",
+        choices: [
+            {
+                text: "Attack (Advantage)",
+                nextScene: "SCENE_SHADOWMIRE_COMBAT"
+            },
+            {
+                text: "Try to scare it off (Intimidation)",
+                type: "skillCheck",
+                skill: "intimidation",
+                dc: 13,
+                successText: "You shout and brandish your weapon. The wolf hesitates, then turns and flees into the mist.",
+                failText: "The wolf is desperate. It lunges!",
+                nextSceneSuccess: "SCENE_TRAVEL_SHADOWMIRE",
+                nextSceneFail: "SCENE_SHADOWMIRE_COMBAT"
+            }
+        ]
+    },
+    "SCENE_SHADOWMIRE_AMBUSH": {
+        id: "SCENE_SHADOWMIRE_AMBUSH",
+        location: "shadowmire",
+        background: "landscapes/forest_walk_alt.png",
+        text: "Suddenly, a growl erupts from the mist! A wolf leaps at you from the shadows!",
+        type: "combat",
+        enemies: ["wolf"],
+        winScene: "SCENE_TRAVEL_SHADOWMIRE",
+        loseScene: "SCENE_DEFEAT"
+    },
+    "SCENE_SHADOWMIRE_COMBAT": {
+        id: "SCENE_SHADOWMIRE_COMBAT",
+        location: "shadowmire",
+        background: "landscapes/forest_walk_alt.png",
+        text: "You engage the wolf.",
+        type: "combat",
+        enemies: ["wolf"],
+        winScene: "SCENE_TRAVEL_SHADOWMIRE",
+        loseScene: "SCENE_DEFEAT"
     },
     "SCENE_HUB_SHADOWMIRE": {
         id: "SCENE_HUB_SHADOWMIRE",

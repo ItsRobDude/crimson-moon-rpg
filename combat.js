@@ -7,7 +7,7 @@ import { enemies } from './data/enemies.js';
 import { items } from './data/items.js';
 import { classes } from './data/classes.js';
 import { spells } from './data/spells.js';
-import { rollInitiative, rollDie, rollAttack, rollDiceExpression } from './rules.js';
+import { rollInitiative, rollDie, rollAttack, rollDiceExpression, rollSavingThrow, calculateDamageRoll, calculateDamageReduction, getProficiencyBonus, getPlayerAC } from './rules.js';
 import { generateScaledStats } from './rules.js';
 
 export const uiHooks = {
@@ -20,8 +20,11 @@ export const uiHooks = {
     saveGame: () => {},
 };
 
+export function initCombatSystem(hooks) {
+    Object.assign(uiHooks, hooks);
+}
+
 export function startCombat(combatantIds, winScene, loseScene) {
-    console.log("Combat: Starting combat...");
     const sceneContainer = document.getElementById('scene-container');
     if (sceneContainer) sceneContainer.classList.add('hidden');
 
@@ -115,7 +118,7 @@ export function startCombat(combatantIds, winScene, loseScene) {
     combatTurnLoop();
 }
 
-function combatTurnLoop() {
+export function combatTurnLoop() {
     if (!gameState.combat.active) return;
 
     const currentTurnId = gameState.combat.turnOrder[gameState.combat.turnIndex];
@@ -161,28 +164,6 @@ export function performCunningAction(type) {
     uiHooks.updateCombatUI();
 }
 
-export function calculateDamage(baseDamage, damageType, target, isCritical = false) {
-    const combatantStats = target.fullStats || enemies[target.id];
-    if (!combatantStats) return baseDamage;
-
-    let finalDamage = baseDamage;
-    let message = "";
-
-    const vulnerabilities = combatantStats.vulnerabilities || "";
-    const resistances = combatantStats.resistances || "";
-
-    if (vulnerabilities.includes(damageType)) {
-        finalDamage *= 2;
-        message = `${target.name} is vulnerable to ${damageType}! Damage doubled.`;
-    } else if (resistances.includes(damageType)) {
-        finalDamage = Math.floor(finalDamage / 2);
-        message = `${target.name} resists ${damageType}. Damage halved.`;
-    }
-
-    if (message) uiHooks.logToBattle(message, "system");
-    return finalDamage;
-}
-
 export function performActionSurge(actorId = 'player') {
     const actor = (actorId === 'player') ? gameState.player : gameState.roster[actorId];
     const res = actor.resources['action_surge'];
@@ -207,22 +188,26 @@ export function performAttack(targetId, actorId = 'player') {
     const target = gameState.combat.enemies.find(e => e.uniqueId === targetId);
     const actor = (actorId === 'player') ? gameState.player : gameState.roster[actorId];
 
+    if (!target) {
+        console.error("Target not found:", targetId);
+        return;
+    }
+
     gameState.combat.actionsRemaining--;
 
     const weaponId = actor.equipped.weapon;
     const weapon = items[weaponId] || { name: "Unarmed", damage: "1d2", modifier: "STR", damageType: "bludgeoning", subtype: "simple" };
     const stat = weapon.modifier || "STR";
 
-    const profBonus = Math.ceil(1 + (actor.level / 4));
-    const statMod = actor.modifiers[stat];
-
     const cls = classes[actor.classId];
+    // Calculate proficiency properly using helper if not available on actor
+    const proficiencyBonus = actor.proficiencyBonus || getProficiencyBonus(actor.level);
     const isProficient = weapon.subtype && cls.weaponProficiencies && cls.weaponProficiencies.includes(weapon.subtype);
-    const prof = isProficient ? actor.proficiencyBonus : 0;
+    const profToAdd = isProficient ? proficiencyBonus : 0;
 
-    const advantage = false;
+    const advantage = false; // Status effects handled inside rollAttack now, but situational adv can go here
 
-    const result = rollAttack(actor, stat, prof, advantage);
+    const result = rollAttack(actor, stat, profToAdd, advantage);
 
     let critThreshold = 20;
     if (actor.subclassId === 'champion') critThreshold = 19;
@@ -237,11 +222,9 @@ export function performAttack(targetId, actorId = 'player') {
     uiHooks.logToBattle(msg, "system");
 
     if (result.total >= target.ac || isCritical) {
-        let dmg = rollDiceExpression(weapon.damage).total + actor.modifiers[stat];
-        if (isCritical) {
-            const critBonus = rollDiceExpression(weapon.damage.split('+')[0]).total;
-            dmg += critBonus;
-        }
+        let modifier = actor.modifiers[stat];
+        let dmgResult = calculateDamageRoll(weapon.damage, modifier, isCritical);
+        let dmg = dmgResult.total;
 
         if (actor.classId === 'rogue') {
             const sneakDice = Math.ceil(actor.level / 2);
@@ -250,7 +233,10 @@ export function performAttack(targetId, actorId = 'player') {
             uiHooks.logToBattle(`Sneak Attack! +${sneakDmg} damage.`, "gain");
         }
 
-        const finalDamage = calculateDamage(dmg, weapon.damageType, target);
+        const targetStats = target.fullStats || enemies[target.id] || target;
+        const { finalDamage, message } = calculateDamageReduction(dmg, weapon.damageType, targetStats);
+        if (message) uiHooks.logToBattle(message, "system");
+
         target.hp -= Math.max(1, finalDamage);
         uiHooks.logToBattle(`Hit! Dealt ${finalDamage} damage.`, "combat");
         uiHooks.showBattleEventText(`${finalDamage}`);
@@ -265,7 +251,116 @@ export function performAttack(targetId, actorId = 'player') {
 }
 
 export function performCastSpell(spellId, targetId, actorId = 'player') {
-    // Implementation needed
+    const spell = spells[spellId];
+    if (!spell) {
+        console.error("Spell not found:", spellId);
+        return;
+    }
+
+    const actor = (actorId === 'player') ? gameState.player : gameState.roster[actorId];
+
+    // Check Resources
+    const level = spell.level;
+    if (level > 0) {
+        if (!actor.currentSlots || !actor.currentSlots[level] || actor.currentSlots[level] <= 0) {
+            uiHooks.logToBattle("Not enough spell slots!", "check-fail");
+            return;
+        }
+        actor.currentSlots[level]--;
+    }
+
+    // Action Economy (simplified: mostly Actions)
+    if (gameState.combat.actionsRemaining <= 0) {
+        uiHooks.logToBattle("No Action remaining!", "check-fail");
+        return; // In real game, undo slot usage? For now, assume button disabled if no action
+    }
+    gameState.combat.actionsRemaining--;
+
+    uiHooks.logToBattle(`${actor.name} casts ${spell.name}.`, "system");
+
+    if (spell.type === 'heal') {
+        let target;
+        if (targetId === 'player') target = gameState.player;
+        else if (gameState.roster[targetId]) target = gameState.roster[targetId];
+        else target = gameState.combat.enemies.find(e => e.uniqueId === targetId);
+
+        if (target) {
+             const healRoll = rollDiceExpression(spell.amount);
+             const healAmount = healRoll.total; // + spell casting mod?
+             target.hp = Math.min(target.maxHp, target.hp + healAmount);
+             uiHooks.logToBattle(`${target.name} recovers ${healAmount} HP.`, "gain");
+             uiHooks.showBattleEventText(`+${healAmount} HP`);
+        }
+    } else if (spell.type === 'attack') {
+        const target = gameState.combat.enemies.find(e => e.uniqueId === targetId);
+        if (target) {
+            const stat = "INT"; // Wizard default, need class mapping
+            const proficiencyBonus = actor.proficiencyBonus || getProficiencyBonus(actor.level);
+            const profToAdd = proficiencyBonus; // Spells usually proficient
+            const result = rollAttack(actor, stat, profToAdd);
+
+            uiHooks.logToBattle(`Spell Attack: ${result.total} (vs AC ${target.ac})`, "system");
+
+            if (result.total >= target.ac || result.isCritical) {
+                 const dmgResult = calculateDamageRoll(spell.damage, 0, result.isCritical);
+                 const targetStats = target.fullStats || enemies[target.id] || target;
+                 const { finalDamage, message } = calculateDamageReduction(dmgResult.total, spell.damageType, targetStats);
+                 if (message) uiHooks.logToBattle(message, "system");
+
+                 target.hp -= Math.max(1, finalDamage);
+                 uiHooks.logToBattle(`Hit! Dealt ${finalDamage} ${spell.damageType} damage.`, "combat");
+                 uiHooks.showBattleEventText(`${finalDamage}`);
+            } else {
+                 uiHooks.logToBattle("Miss!", "system");
+                 uiHooks.showBattleEventText("Miss!");
+            }
+        }
+    } else if (spell.type === 'save') {
+        const target = gameState.combat.enemies.find(e => e.uniqueId === targetId);
+        if (target) {
+             // Target rolls save
+             // We need a helper to roll save for enemy. `rollSavingThrow` expects a character object with abilities.
+             // Enemies might not have full abilities object in `combat.enemies` unless fully generated.
+             // `generateScaledStats` creates a full object? Let's check rules.js.
+             // Yes, `generateScaledStats` copies base stats. If base has abilities, we are good.
+             // If not, we need a fallback.
+
+             let saveTotal = 0;
+             if (target.fullStats && target.fullStats.abilities) {
+                 const saveRes = rollSavingThrow(target.fullStats, spell.saveAbility);
+                 saveTotal = saveRes.total;
+             } else {
+                 // Simple enemy fallback
+                 saveTotal = rollDie(20); // + 0
+             }
+
+             const dc = 8 + (actor.proficiencyBonus || 2) + (actor.modifiers.INT || 0); // Simplified DC
+
+             uiHooks.logToBattle(`${target.name} Save (${spell.saveAbility}): ${saveTotal} (DC ${dc})`, "system");
+
+             const dmgResult = rollDiceExpression(spell.damage);
+             let damage = dmgResult.total;
+
+             if (saveTotal >= dc) {
+                 damage = Math.floor(damage / 2);
+                 uiHooks.logToBattle("Save successful! Damage halved.", "gain");
+             } else {
+                 uiHooks.logToBattle("Save failed!", "combat");
+             }
+
+             const targetStats = target.fullStats || enemies[target.id] || target;
+             const { finalDamage, message } = calculateDamageReduction(damage, spell.damageType, targetStats);
+             if (message) uiHooks.logToBattle(message, "system");
+
+             target.hp -= Math.max(1, finalDamage);
+             uiHooks.logToBattle(`Dealt ${finalDamage} ${spell.damageType} damage.`, "combat");
+             uiHooks.showBattleEventText(`${finalDamage}`);
+        }
+    }
+
+    if (!checkWinCondition()) {
+        uiHooks.updateCombatUI();
+    }
 }
 
 export function performAbility(abilityId, actorId = 'player') {
@@ -350,7 +445,7 @@ export function endCurrentTurn() {
     combatTurnLoop();
 }
 
-function enemyTurn(enemy) {
+export function enemyTurn(enemy) {
     if (!gameState.combat.active || enemy.hp <= 0) {
         endEnemyTurn(enemy);
         return;
@@ -362,7 +457,7 @@ function enemyTurn(enemy) {
     setTimeout(() => {
         uiHooks.logToBattle(`${enemy.name} attacks!`, "combat");
         const totalHit = rollDie(20) + enemy.attackBonus;
-    const ac = gameState.player.ac;
+    const ac = getPlayerAC(gameState.player);
 
     if (totalHit >= ac) {
         let dmg = rollDiceExpression(enemy.damage).total;
@@ -410,14 +505,16 @@ function endEnemyTurn(enemy) {
         checkWinCondition();
         return;
     }
+
+    combatTurnLoop();
 }
 
-function companionTurnAI(actor) {
+export function companionTurnAI(actor) {
     uiHooks.logToBattle(`${actor.name} acts (AI).`, "system");
     endCurrentTurn();
 }
 
-function checkWinCondition() {
+export function checkWinCondition() {
     const allEnemiesDefeated = gameState.combat.enemies.every(e => e.hp <= 0);
     if (allEnemiesDefeated) {
         gameState.combat.active = false;
