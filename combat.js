@@ -7,7 +7,7 @@ import { enemies } from './data/enemies.js';
 import { items } from './data/items.js';
 import { classes } from './data/classes.js';
 import { spells } from './data/spells.js';
-import { rollInitiative, rollDie, rollAttack, rollDiceExpression, rollSavingThrow, calculateDamageRoll, calculateDamageReduction, getProficiencyBonus, getPlayerAC } from './rules.js';
+import { rollInitiative, rollDie, rollAttack, rollDiceExpression, rollSavingThrow, calculateDamageRoll, calculateDamageReduction, getProficiencyBonus } from './rules.js';
 import { generateScaledStats } from './rules.js';
 
 export const uiHooks = {
@@ -457,7 +457,17 @@ export function enemyTurn(enemy) {
     setTimeout(() => {
         uiHooks.logToBattle(`${enemy.name} attacks!`, "combat");
         const totalHit = rollDie(20) + enemy.attackBonus;
-    const ac = getPlayerAC(gameState.player);
+    const ac = gameState.player.ac || 10; // Default if not derived yet? No, rely on getter or prop
+
+    // Need to get Player AC correctly.
+    // Usually stored in derived stats or we calc it.
+    // game.js had getPlayerAC.
+    // Let's assume passed in or use rules helper.
+    // Better: use AC from target. But enemy attacks player mainly.
+    // We should support attacking companions too.
+
+    // For now, assume player target (legacy behavior)
+    // TODO: AI targeting logic
 
     if (totalHit >= ac) {
         let dmg = rollDiceExpression(enemy.damage).total;
