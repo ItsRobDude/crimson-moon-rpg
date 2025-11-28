@@ -28,6 +28,14 @@ export function initUI() {
     window.goToScene = goToScene;
     window.startCombat = startCombat; // Expose for testing/debug
     window.showCharacterCreation = showCharacterCreation;
+
+    // Title Screen Buttons
+    const btnNewGame = document.getElementById('btn-new-game');
+    if (btnNewGame) btnNewGame.onclick = startNewGameFlow;
+
+    const btnContinue = document.getElementById('btn-continue-game');
+    if (btnContinue) btnContinue.onclick = continueGameFlow;
+
     document.getElementById('btn-inventory').onclick = () => toggleInventory();
     document.getElementById('btn-quests').onclick = toggleQuestLog;
     document.getElementById('btn-menu').onclick = toggleMenu;
@@ -61,7 +69,6 @@ export function initUI() {
     document.getElementById('char-level').onclick = () => {
         if (gameState.pendingLevelUp) showLevelUpModal();
     };
-    // Visual cue update happens in updateStatsUI
 
     document.querySelectorAll('.close-modal').forEach(btn => {
         btn.onclick = (e) => {
@@ -80,6 +87,34 @@ export function initUI() {
     document.getElementById('btn-tutorial').onclick = () => {
         document.getElementById('tutorial-overlay').classList.remove('hidden');
     };
+}
+
+// --- Title Screen Logic ---
+
+export function showTitleScreen() {
+    document.getElementById('title-screen').classList.remove('hidden');
+    document.getElementById('game-container').classList.add('hidden');
+    document.getElementById('char-creation-modal').classList.add('hidden');
+
+    const hasSave = localStorage.getItem('crimson_moon_save');
+    const btnContinue = document.getElementById('btn-continue-game');
+    if (hasSave) {
+        btnContinue.classList.remove('hidden');
+    } else {
+        btnContinue.classList.add('hidden');
+    }
+}
+
+export function startNewGameFlow() {
+    document.getElementById('title-screen').classList.add('hidden');
+    document.getElementById('game-container').classList.remove('hidden');
+    showCharacterCreation();
+}
+
+export function continueGameFlow() {
+    document.getElementById('title-screen').classList.add('hidden');
+    document.getElementById('game-container').classList.remove('hidden');
+    loadGame();
 }
 
 // ... (Character Creation Logic remains same) ...
@@ -316,6 +351,7 @@ function finishCharacterCreation() {
     saveGame();
 
     document.getElementById('char-creation-modal').classList.add('hidden');
+    document.getElementById('game-container').classList.remove('hidden'); // Ensure game is visible
     updateStatsUI();
 
     // ✅ FORCE an initial save right here
