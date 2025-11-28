@@ -12,7 +12,7 @@ import { shops } from './data/shops.js';
 import { npcs } from './data/npcs.js';
 import { companions } from './data/companions.js';
 import { factions } from './data/factions.js';
-import { gameState, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, unequipItem, syncPartyLevels, saveGame, loadGame as loadGameData } from './data/gameState.js';
+import { gameState, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, unequipItem, syncPartyLevels, saveGame, loadGame as loadGameData, removeItem } from './data/gameState.js';
 import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod, generateScaledStats } from './rules.js';
 import { initCombatSystem, startCombat, performAttack, performCastSpell, performAbility, performDefend, performFlee, performEndTurn, performActionSurge, performCunningAction, uiHooks } from './combat.js';
 
@@ -1150,10 +1150,182 @@ function toggleInventory(forceOpen = null, characterId = 'player') {
     const list = document.getElementById('inventory-list');
     const charSelect = document.getElementById('inventory-character-select');
 
-    if (forceOpen === false || (forceOpen === null && !modal.classList.contains('hidden'))) {
+    const isOpen = !modal.classList.contains('hidden');
+
+    if (forceOpen === false || (forceOpen === null && isOpen)) {
         modal.classList.add('hidden');
+        list.innerHTML = '';
+        charSelect.innerHTML = '';
+        modal.dataset.activeCharacter = '';
         return;
     }
+
+    const availableCharacters = [
+        { id: 'player', name: gameState.player.name || 'You' },
+        ...gameState.party
+            .filter(pid => !!gameState.roster[pid])
+            .map(pid => ({ id: pid, name: gameState.roster[pid].name || 'Companion' }))
+    ];
+
+    if (!availableCharacters.some(c => c.id === characterId)) {
+        characterId = availableCharacters[0] ? availableCharacters[0].id : 'player';
+    }
+
+    const logInventoryMessage = (msg, type = 'system') => {
+        if (gameState.combat.active) {
+            logToBattle(msg, type);
+        } else {
+            logMessage(msg, type);
+        }
+    };
+
+    const hasActionAvailable = () => {
+        if (!gameState.combat.active) return true;
+        if (gameState.combat.actionsRemaining <= 0) {
+            logToBattle('No Action remaining!', 'check-fail');
+            return false;
+        }
+        return true;
+    };
+
+    const spendAction = () => {
+        if (!gameState.combat.active) return;
+        gameState.combat.actionsRemaining = Math.max(0, gameState.combat.actionsRemaining - 1);
+        updateCombatUI(characterId);
+    };
+
+    const renderInventory = (targetId) => {
+        characterId = targetId;
+        modal.dataset.activeCharacter = targetId;
+
+        // Highlight active character tab
+        charSelect.querySelectorAll('button').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.charId === targetId);
+        });
+
+        const character = getCharacterById(targetId);
+        list.innerHTML = '';
+
+        if (!character) {
+            list.innerHTML = '<p>No character selected.</p>';
+            return;
+        }
+
+        if (!character.inventory || character.inventory.length === 0) {
+            list.innerHTML = '<p>No items.</p>';
+            return;
+        }
+
+        character.inventory.forEach(itemId => {
+            const item = items[itemId];
+            if (!item) return;
+
+            const entry = document.createElement('div');
+            entry.className = 'inventory-entry';
+
+            const equippedSlot = item.type === 'weapon' ? 'weapon' : (item.type === 'armor' ? 'armor' : null);
+            const isEquipped = equippedSlot && character.equipped && character.equipped[equippedSlot] === itemId;
+
+            const details = document.createElement('div');
+            details.className = 'inventory-details';
+            details.innerHTML = `
+                <strong>${item.name}</strong>
+                ${isEquipped ? '<span class="tag">Equipped</span>' : ''}
+                <div class="inventory-desc">${item.description || ''}</div>
+            `;
+
+            const actions = document.createElement('div');
+            actions.className = 'inventory-actions';
+
+            if (item.type === 'weapon' || item.type === 'armor') {
+                const equipBtn = document.createElement('button');
+                equipBtn.innerText = isEquipped ? 'Unequip' : 'Equip';
+                equipBtn.disabled = gameState.combat.active && gameState.combat.actionsRemaining <= 0;
+                equipBtn.onclick = () => {
+                    const char = getCharacterById(characterId);
+                    const slot = item.type === 'weapon' ? 'weapon' : 'armor';
+                    const currentlyEquipped = char && char.equipped && char.equipped[slot] === itemId;
+
+                    if (!hasActionAvailable()) return;
+
+                    let result;
+                    if (currentlyEquipped) {
+                        result = unequipItem(slot, characterId);
+                    } else {
+                        result = equipItem(itemId, characterId);
+                    }
+
+                    if (!result || !result.success) {
+                        const reason = result && result.reason === 'reqStr' ? `Requires STR ${result.value}.` : 'Cannot equip right now.';
+                        logInventoryMessage(reason, 'check-fail');
+                        return;
+                    }
+
+                    spendAction();
+                    logInventoryMessage(`${currentlyEquipped ? 'Unequipped' : 'Equipped'} ${item.name}.`, 'system');
+                    updateStatsUI();
+                    renderInventory(characterId);
+                };
+                actions.appendChild(equipBtn);
+            }
+
+            if (item.type === 'consumable') {
+                const useBtn = document.createElement('button');
+                useBtn.innerText = 'Use';
+                useBtn.disabled = gameState.combat.active && gameState.combat.actionsRemaining <= 0;
+                useBtn.onclick = () => {
+                    if (!hasActionAvailable()) return;
+                    const result = useConsumable(itemId, characterId);
+                    if (!result.success) {
+                        logInventoryMessage(result.msg || `Cannot use ${item.name}.`, 'check-fail');
+                        return;
+                    }
+                    spendAction();
+                    logInventoryMessage(result.msg || `Used ${item.name}.`, 'gain');
+                    updateStatsUI();
+                    renderInventory(characterId);
+                };
+                actions.appendChild(useBtn);
+            }
+
+            const dropBtn = document.createElement('button');
+            dropBtn.innerText = 'Drop';
+            dropBtn.disabled = gameState.combat.active && gameState.combat.actionsRemaining <= 0;
+            dropBtn.onclick = () => {
+                if (!hasActionAvailable()) return;
+
+                // If equipped, unequip first to avoid dangling references
+                if (equippedSlot && character.equipped && character.equipped[equippedSlot] === itemId) {
+                    unequipItem(equippedSlot, characterId);
+                }
+
+                removeItem(itemId, characterId);
+                spendAction();
+                logInventoryMessage(`Dropped ${item.name}.`, 'system');
+                renderInventory(characterId);
+            };
+            actions.appendChild(dropBtn);
+
+            entry.appendChild(details);
+            entry.appendChild(actions);
+            list.appendChild(entry);
+        });
+    };
+
+    // Build character selection tabs
+    charSelect.innerHTML = '';
+    availableCharacters.forEach(char => {
+        const btn = document.createElement('button');
+        btn.dataset.charId = char.id;
+        btn.className = 'inventory-char-btn';
+        btn.innerText = char.name;
+        btn.onclick = () => renderInventory(char.id);
+        if (char.id === characterId) btn.classList.add('active');
+        charSelect.appendChild(btn);
+    });
+
+    renderInventory(characterId);
+    modal.classList.remove('hidden');
 }
 
 // ... Rest of file (imports, basic functions) ...
