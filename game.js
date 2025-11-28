@@ -69,6 +69,32 @@ export function initUI() {
         };
     });
 
+    // Start menu wiring
+    const startMenu = document.getElementById('start-menu');
+    const startContinueBtn = document.getElementById('btn-start-continue');
+    const startNewBtn = document.getElementById('btn-start-new');
+
+    const hasSave = !!localStorage.getItem('crimson_moon_save');
+    if (!hasSave) {
+        startContinueBtn.disabled = true;
+        startContinueBtn.innerText = 'Continue (No Save)';
+    }
+
+    startContinueBtn.onclick = () => {
+        if (!localStorage.getItem('crimson_moon_save')) {
+            logMessage('No existing save found. Start a New Game to begin.', 'system');
+            return;
+        }
+        startMenu.classList.add('hidden');
+        loadGame();
+    };
+
+    startNewBtn.onclick = () => {
+        startMenu.classList.add('hidden');
+        localStorage.removeItem('crimson_moon_save');
+        showCharacterCreation();
+    };
+
     document.getElementById('btn-start-game').onclick = finishCharacterCreation;
 
     document.getElementById('btn-debug-toggle').onclick = () => {
@@ -90,6 +116,7 @@ let ccState = {
 };
 
 export function showCharacterCreation() {
+    document.getElementById('start-menu').classList.add('hidden');
     const raceSelect = document.getElementById('cc-race');
     const classSelect = document.getElementById('cc-class');
     raceSelect.innerHTML = "";
@@ -1109,9 +1136,10 @@ export function loadGame() {
         goToScene(gameState.currentSceneId);
         // Ensure character creation is hidden
         document.getElementById('char-creation-modal').classList.add('hidden');
+        document.getElementById('start-menu').classList.add('hidden');
     } else {
         // No save file, go to character creation
-        showCharacterCreation();
+        document.getElementById('start-menu').classList.remove('hidden');
     }
 }
 
@@ -1380,16 +1408,12 @@ export function bootstrapGame() {
     initUI();
 
     try {
-        const hasSave = !!localStorage.getItem('crimson_moon_save');
-        if (hasSave) {
-            loadGame();  // This helper already handles UI update & goToScene
-        } else {
-            showCharacterCreation();
-        }
+        document.getElementById('start-menu').classList.remove('hidden');
+        document.getElementById('char-creation-modal').classList.add('hidden');
     } catch (e) {
         console.error("Error during bootstrap/load, starting new game:", e);
         localStorage.removeItem('crimson_moon_save');
-        showCharacterCreation();
+        document.getElementById('start-menu').classList.remove('hidden');
     }
 
     // Signal ready for Playwright tests
