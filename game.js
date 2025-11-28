@@ -312,9 +312,17 @@ function finishCharacterCreation() {
         ccState.chosenSkills,
         ccState.chosenSpells
     );
+    // Hide modal and update HUD
     document.getElementById('char-creation-modal').classList.add('hidden');
     updateStatsUI();
-    goToScene(gameState.currentSceneId);
+
+    // ✅ FORCE an initial save right here
+    saveGame();
+
+    // ✅ FORCE the starting scene explicitly
+    const startSceneId = 'SCENE_BRIEFING';
+    goToScene(startSceneId);
+
     logMessage(`Character ${name} created. Welcome to Silverthorn.`, "system");
 }
 
@@ -1364,4 +1372,54 @@ function showBattleEventText(message, duration = 1500) {
     eventTextTimeoutRef = setTimeout(() => {
         eventTextElement.classList.remove('visible');
     }, duration);
+}
+
+export function bootstrapGame() {
+    initUI();  // wires up all buttons, including MENU etc.
+
+    const hasSave = !!localStorage.getItem('crimson_moon_save');
+
+    const startMenu = document.getElementById('start-menu');
+    const btnNew     = document.getElementById('btn-start-new');
+    const btnCont    = document.getElementById('btn-start-continue');
+    const btnLoad    = document.getElementById('btn-start-load');
+    const btnQuit    = document.getElementById('btn-start-quit');
+
+    // Show the start menu overlay
+    startMenu.classList.remove('hidden');
+
+    // Enable/disable Continue/Load based on save
+    btnCont.disabled = !hasSave;
+    btnLoad.disabled = !hasSave;
+
+    // NEW GAME: wipe save and go to character creation
+    btnNew.onclick = () => {
+        if (hasSave && !confirm("Starting a new game will overwrite your existing save. Are you sure?")) {
+            return;
+        }
+        localStorage.removeItem('crimson_moon_save');
+        startMenu.classList.add('hidden');
+        showCharacterCreation();
+    };
+
+    // CONTINUE: load existing save
+    btnCont.onclick = () => {
+        startMenu.classList.add('hidden');
+        loadGame();  // use the canonical loadGame from game.js
+    };
+
+    // LOAD: for now, same as continue (we’re not doing multiple slots yet)
+    btnLoad.onclick = () => {
+        startMenu.classList.add('hidden');
+        loadGame();
+    };
+
+    // QUIT: browser can’t really quit, so just blank out
+    btnQuit.onclick = () => {
+        // soft "quit"
+        document.body.innerHTML = "<div style='display:flex;justify-content:center;align-items:center;height:100vh;background:#121212;'><h1 style='color:white; padding:20px; font-family:Cinzel,serif;'>Thanks for playing.</h1></div>";
+    };
+
+    // For Playwright / debugging
+    window.gameReady = true;
 }
