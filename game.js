@@ -46,15 +46,15 @@ export function initUI() {
         updateStatsUI: updateStatsUI,
         saveGame: saveGame
     });
-
+    
     // We need to ensure createActionButton is defined or passed properly.
-    // In game.js it was defined inside renderPlayerActions scope or global?
+    // In game.js it was defined inside renderPlayerActions scope or global? 
     // It was not defined in the read_file output of game.js!
     // Wait, I missed createActionButton definition in previous reads.
     // Let me check if I can find it or if it was part of renderPlayerActions.
     // It was used in renderPlayerActions. I'll assume it's a helper function in this file.
     // If not, I need to add it.
-
+    
     // New: Check for pending level up on stats click or button
     // For now, we'll add a listener to the level text if it has a specific class, or just a button.
     // Let's make the "Lvl X" text clickable if pending.
@@ -973,7 +973,7 @@ function renderPartyCard(p, id, activeId) {
     const isPlayerTurn = (gameState.combat.turnOrder[gameState.combat.turnIndex] === id);
     const card = document.createElement('div');
     card.className = `party-card ${isPlayerTurn ? 'active-turn' : ''}`;
-
+    
     // Calculate Percentages
     const hpPct = Math.max(0, (p.hp / p.maxHp) * 100);
     const totalSlots = p.spellSlots ? Object.values(p.spellSlots).reduce((a, b) => a + b, 0) : 0;
@@ -1005,10 +1005,10 @@ function renderPartyCard(p, id, activeId) {
             </div>
         </div>
     `;
-
+    
     // Attach click listener for selection?
     // card.onclick = () => ...
-
+    
     document.getElementById('party-container').appendChild(card);
 }
 
@@ -1372,54 +1372,20 @@ function showBattleEventText(message, duration = 1500) {
 export function bootstrapGame() {
     initUI();
 
-    // Show Start Menu regardless of save state
-    const startMenu = document.getElementById('start-menu');
-    const btnContinue = document.getElementById('btn-start-continue');
-    const btnNew = document.getElementById('btn-start-new');
-    const btnOptions = document.getElementById('btn-start-options');
-
-    startMenu.classList.remove('hidden');
-
-    const hasSave = !!localStorage.getItem('crimson_moon_save');
-    if (hasSave) {
-        btnContinue.disabled = false;
-        btnContinue.onclick = () => {
-            try {
-                if (loadGame()) {
-                    startMenu.classList.add('hidden');
-                } else {
-                    alert("Failed to load save. It may be corrupted.");
-                    // Optional: disable button or ask to delete
-                }
-            } catch (e) {
-                console.error("Error loading game:", e);
-                alert("Error loading save data.");
-            }
-        };
-    } else {
-        btnContinue.disabled = true;
-        btnContinue.innerText = "Continue (No Save)";
-        btnContinue.style.opacity = "0.5";
+    try {
+        const hasSave = !!localStorage.getItem('crimson_moon_save');
+        if (hasSave) {
+            loadGame();  // This helper already handles UI update & goToScene
+        } else {
+            showCharacterCreation();
+        }
+    } catch (e) {
+        console.error("Error during bootstrap/load, starting new game:", e);
+        localStorage.removeItem('crimson_moon_save');
+        showCharacterCreation();
     }
 
-    btnNew.onclick = () => {
-        if (hasSave) {
-            if (!confirm("Starting a new game will overwrite your existing save. Are you sure?")) {
-                return;
-            }
-        }
-        // Clear old save to be safe/clean slate logic is handled by initializeNewGame resetGameState
-        // But we want to ensure we don't accidentally load old data.
-        localStorage.removeItem('crimson_moon_save');
-        startMenu.classList.add('hidden');
-        showCharacterCreation();
-    };
-
-    btnOptions.onclick = () => {
-        alert("Options menu not yet implemented.");
-    };
-
-    // Signal ready for Playwright tests (menu is ready)
+    // Signal ready for Playwright tests
     window.gameReady = true;
-    console.log("Game bootstrapped and ready (Start Menu).");
+    console.log("Game bootstrapped and ready.");
 }
