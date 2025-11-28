@@ -316,6 +316,7 @@ function finishCharacterCreation() {
     saveGame();
 
     document.getElementById('char-creation-modal').classList.add('hidden');
+    document.getElementById('game-container').classList.remove('hidden'); // Ensure game is visible
     updateStatsUI();
 
     // ✅ FORCE an initial save right here
