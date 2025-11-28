@@ -46,15 +46,15 @@ export function initUI() {
         updateStatsUI: updateStatsUI,
         saveGame: saveGame
     });
-
+    
     // We need to ensure createActionButton is defined or passed properly.
-    // In game.js it was defined inside renderPlayerActions scope or global?
+    // In game.js it was defined inside renderPlayerActions scope or global? 
     // It was not defined in the read_file output of game.js!
     // Wait, I missed createActionButton definition in previous reads.
     // Let me check if I can find it or if it was part of renderPlayerActions.
     // It was used in renderPlayerActions. I'll assume it's a helper function in this file.
     // If not, I need to add it.
-
+    
     // New: Check for pending level up on stats click or button
     // For now, we'll add a listener to the level text if it has a specific class, or just a button.
     // Let's make the "Lvl X" text clickable if pending.
@@ -312,7 +312,9 @@ function finishCharacterCreation() {
         ccState.chosenSkills,
         ccState.chosenSpells
     );
-    // Hide modal and update HUD
+    // Explicitly save the new character immediately
+    saveGame();
+
     document.getElementById('char-creation-modal').classList.add('hidden');
     updateStatsUI();
 
@@ -978,7 +980,7 @@ function renderPartyCard(p, id, activeId) {
     const isPlayerTurn = (gameState.combat.turnOrder[gameState.combat.turnIndex] === id);
     const card = document.createElement('div');
     card.className = `party-card ${isPlayerTurn ? 'active-turn' : ''}`;
-
+    
     // Calculate Percentages
     const hpPct = Math.max(0, (p.hp / p.maxHp) * 100);
     const totalSlots = p.spellSlots ? Object.values(p.spellSlots).reduce((a, b) => a + b, 0) : 0;
@@ -1010,10 +1012,10 @@ function renderPartyCard(p, id, activeId) {
             </div>
         </div>
     `;
-
+    
     // Attach click listener for selection?
     // card.onclick = () => ...
-
+    
     document.getElementById('party-container').appendChild(card);
 }
 
@@ -1375,51 +1377,22 @@ function showBattleEventText(message, duration = 1500) {
 }
 
 export function bootstrapGame() {
-    initUI();  // wires up all buttons, including MENU etc.
+    initUI();
 
-    const hasSave = !!localStorage.getItem('crimson_moon_save');
-
-    const startMenu = document.getElementById('start-menu');
-    const btnNew     = document.getElementById('btn-start-new');
-    const btnCont    = document.getElementById('btn-start-continue');
-    const btnLoad    = document.getElementById('btn-start-load');
-    const btnQuit    = document.getElementById('btn-start-quit');
-
-    // Show the start menu overlay
-    startMenu.classList.remove('hidden');
-
-    // Enable/disable Continue/Load based on save
-    btnCont.disabled = !hasSave;
-    btnLoad.disabled = !hasSave;
-
-    // NEW GAME: wipe save and go to character creation
-    btnNew.onclick = () => {
-        if (hasSave && !confirm("Starting a new game will overwrite your existing save. Are you sure?")) {
-            return;
+    try {
+        const hasSave = !!localStorage.getItem('crimson_moon_save');
+        if (hasSave) {
+            loadGame();  // This helper already handles UI update & goToScene
+        } else {
+            showCharacterCreation();
         }
+    } catch (e) {
+        console.error("Error during bootstrap/load, starting new game:", e);
         localStorage.removeItem('crimson_moon_save');
-        startMenu.classList.add('hidden');
         showCharacterCreation();
-    };
+    }
 
-    // CONTINUE: load existing save
-    btnCont.onclick = () => {
-        startMenu.classList.add('hidden');
-        loadGame();  // use the canonical loadGame from game.js
-    };
-
-    // LOAD: for now, same as continue (we’re not doing multiple slots yet)
-    btnLoad.onclick = () => {
-        startMenu.classList.add('hidden');
-        loadGame();
-    };
-
-    // QUIT: browser can’t really quit, so just blank out
-    btnQuit.onclick = () => {
-        // soft "quit"
-        document.body.innerHTML = "<div style='display:flex;justify-content:center;align-items:center;height:100vh;background:#121212;'><h1 style='color:white; padding:20px; font-family:Cinzel,serif;'>Thanks for playing.</h1></div>";
-    };
-
-    // For Playwright / debugging
+    // Signal ready for Playwright tests
     window.gameReady = true;
+    console.log("Game bootstrapped and ready.");
 }
