@@ -39,7 +39,7 @@ const defaultGameState = {
         classResources: {}
     },
     pendingLevelUp: false,
-    currentSceneId: "SCENE_ARRIVAL_HUSHBRIAR",
+    currentSceneId: "SCENE_BRIEFING",
     quests: {}, // Populated from quests.js on reset
     flags: {},
     threat: {
@@ -195,7 +195,7 @@ export function initializeNewGame(name, raceId, classId, baseStats, chosenSkills
     // Example: Add Aodhan immediately for testing if desired, or wait for narrative
     // addCompanion('aodhan'); // Uncomment to start with Aodhan for testing
 
-    gameState.currentSceneId = "SCENE_ARRIVAL_HUSHBRIAR";
+    gameState.currentSceneId = "SCENE_BRIEFING";
     gameState.combat.active = false;
     gameState.threat = { level: 0, recentNoise: 0, recentStealth: 0, ambient: [] };
     gameState.discoveredLocations.hushbriar = true;

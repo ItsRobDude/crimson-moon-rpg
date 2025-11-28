@@ -34,5 +34,16 @@ export const enemies = {
         description: "A horrifying hybrid of drow and spider, serving the dark.",
         resistances: ["poison"],
         vulnerabilities: ["fire"]
+    },
+    "wolf": {
+        name: "Shadowmire Wolf",
+        hp: 11,
+        ac: 13,
+        attackBonus: 4,
+        damage: "2d4+2",
+        xp: 50,
+        portrait: "portraits/wolf_portrait.png", // Assuming a placeholder or generic if missing, game handles 404 gracefully usually
+        description: "A large grey wolf with glowing eyes, tainted by the forest's corruption.",
+        vulnerabilities: []
     }
 };

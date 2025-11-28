@@ -312,6 +312,9 @@ function finishCharacterCreation() {
         ccState.chosenSkills,
         ccState.chosenSpells
     );
+    // Explicitly save the new character immediately
+    saveGame();
+
     document.getElementById('char-creation-modal').classList.add('hidden');
     updateStatsUI();
     goToScene(gameState.currentSceneId);
@@ -1029,7 +1032,7 @@ function updateStatsUI() {
         levelEl.classList.remove('pulse-animation');
     }
 
-    document.getElementById('char-ac').innerText = `AC ${getPlayerAC()}`;
+    document.getElementById('char-ac').innerText = `AC ${getPlayerAC(gameState.player)}`;
 
     const weapon = p.equipped.weapon ? items[p.equipped.weapon] : null;
     const armor = p.equipped.armor ? items[p.equipped.armor] : null;
@@ -1047,17 +1050,15 @@ function updateStatsUI() {
     document.getElementById('xp-text').innerText = `XP: ${p.xp}/${p.xpNext}`;
 }
 
-function getPlayerAC() {
-    const p = gameState.player;
-    const armor = p.equipped.armor ? items[p.equipped.armor] : null;
-    if (armor) return armor.acBase;
-    if (p.classId === 'fighter') return 10 + p.modifiers.DEX;
-    return 10 + p.modifiers.DEX;
-}
 
 // ... (Rest of existing functions: performLongRest, toggleInventory, etc. UNCHANGED, but ensuring performLongRest resets new resources) ...
 
 function performLongRest() {
+    if (gameState.combat.active) {
+        logMessage("Cannot rest during combat!", "check-fail");
+        return;
+    }
+
     gameState.player.hp = gameState.player.maxHp;
     // Reset slots
     if (gameState.player.spellSlots) {
@@ -1076,14 +1077,16 @@ function performLongRest() {
 }
 
 function performShortRest() {
+    if (gameState.combat.active) {
+        logMessage("Cannot rest during combat!", "check-fail");
+        return 0;
+    }
+
     const cls = classes[gameState.player.classId];
     const roll = rollDie(cls.hitDie) + gameState.player.modifiers.CON;
     const healed = Math.max(1, roll);
     gameState.player.hp = Math.min(gameState.player.maxHp, gameState.player.hp + healed);
 
-    if (!checkWinCondition()) {
-        endCurrentTurn(); // End companion turn
-    }
     if (gameState.player.resources['action_surge']) {
         gameState.player.resources['action_surge'].current = gameState.player.resources['action_surge'].max;
     }
@@ -1364,4 +1367,25 @@ function showBattleEventText(message, duration = 1500) {
     eventTextTimeoutRef = setTimeout(() => {
         eventTextElement.classList.remove('visible');
     }, duration);
+}
+
+export function bootstrapGame() {
+    initUI();
+
+    try {
+        const hasSave = !!localStorage.getItem('crimson_moon_save');
+        if (hasSave) {
+            loadGame();  // This helper already handles UI update & goToScene
+        } else {
+            showCharacterCreation();
+        }
+    } catch (e) {
+        console.error("Error during bootstrap/load, starting new game:", e);
+        localStorage.removeItem('crimson_moon_save');
+        showCharacterCreation();
+    }
+
+    // Signal ready for Playwright tests
+    window.gameReady = true;
+    console.log("Game bootstrapped and ready.");
 }
