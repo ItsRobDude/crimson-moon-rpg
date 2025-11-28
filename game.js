@@ -317,7 +317,14 @@ function finishCharacterCreation() {
 
     document.getElementById('char-creation-modal').classList.add('hidden');
     updateStatsUI();
-    goToScene(gameState.currentSceneId);
+
+    // ✅ FORCE an initial save right here
+    saveGame();
+
+    // ✅ FORCE the starting scene explicitly
+    const startSceneId = 'SCENE_BRIEFING';
+    goToScene(startSceneId);
+
     logMessage(`Character ${name} created. Welcome to Silverthorn.`, "system");
 }
 
