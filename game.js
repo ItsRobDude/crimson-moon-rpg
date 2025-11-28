@@ -312,6 +312,9 @@ function finishCharacterCreation() {
         ccState.chosenSkills,
         ccState.chosenSpells
     );
+    // Explicitly save the new character immediately
+    saveGame();
+
     document.getElementById('char-creation-modal').classList.add('hidden');
     updateStatsUI();
     goToScene(gameState.currentSceneId);
@@ -1364,4 +1367,59 @@ function showBattleEventText(message, duration = 1500) {
     eventTextTimeoutRef = setTimeout(() => {
         eventTextElement.classList.remove('visible');
     }, duration);
+}
+
+export function bootstrapGame() {
+    initUI();
+
+    // Show Start Menu regardless of save state
+    const startMenu = document.getElementById('start-menu');
+    const btnContinue = document.getElementById('btn-start-continue');
+    const btnNew = document.getElementById('btn-start-new');
+    const btnOptions = document.getElementById('btn-start-options');
+
+    startMenu.classList.remove('hidden');
+
+    const hasSave = !!localStorage.getItem('crimson_moon_save');
+    if (hasSave) {
+        btnContinue.disabled = false;
+        btnContinue.onclick = () => {
+            try {
+                if (loadGame()) {
+                    startMenu.classList.add('hidden');
+                } else {
+                    alert("Failed to load save. It may be corrupted.");
+                    // Optional: disable button or ask to delete
+                }
+            } catch (e) {
+                console.error("Error loading game:", e);
+                alert("Error loading save data.");
+            }
+        };
+    } else {
+        btnContinue.disabled = true;
+        btnContinue.innerText = "Continue (No Save)";
+        btnContinue.style.opacity = "0.5";
+    }
+
+    btnNew.onclick = () => {
+        if (hasSave) {
+            if (!confirm("Starting a new game will overwrite your existing save. Are you sure?")) {
+                return;
+            }
+        }
+        // Clear old save to be safe/clean slate logic is handled by initializeNewGame resetGameState
+        // But we want to ensure we don't accidentally load old data.
+        localStorage.removeItem('crimson_moon_save');
+        startMenu.classList.add('hidden');
+        showCharacterCreation();
+    };
+
+    btnOptions.onclick = () => {
+        alert("Options menu not yet implemented.");
+    };
+
+    // Signal ready for Playwright tests (menu is ready)
+    window.gameReady = true;
+    console.log("Game bootstrapped and ready (Start Menu).");
 }
