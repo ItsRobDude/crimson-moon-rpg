@@ -13,7 +13,7 @@ import { npcs } from './data/npcs.js';
 import { companions } from './data/companions.js';
 import { factions } from './data/factions.js';
 import { gameState, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, unequipItem, syncPartyLevels, saveGame, loadGame as loadGameData, removeItem } from './data/gameState.js';
-import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod, generateScaledStats } from './rules.js';
+import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod, generateScaledStats, getPlayerAC } from './rules.js';
 import { initCombatSystem, startCombat, performAttack, performCastSpell, performAbility, performDefend, performFlee, performEndTurn, performActionSurge, performCunningAction, uiHooks } from './combat.js';
 
 export function getCharacterById(characterId) {
@@ -25,6 +25,7 @@ export function getCharacterById(characterId) {
 
 // ... (Existing exports and initUI) ...
 export function initUI() {
+    window.gameState = gameState; // Expose for debugging/testing
     window.goToScene = goToScene;
     window.startCombat = startCombat; // Expose for testing/debug
     window.showCharacterCreation = showCharacterCreation;
@@ -71,6 +72,9 @@ export function initUI() {
 
     // Start menu wiring
     const startMenu = document.getElementById('start-menu');
+    if (!startMenu) {
+        console.error("[initUI] #start-menu not found – markup mismatch?");
+    }
     const startContinueBtn = document.getElementById('btn-start-continue');
     const startNewBtn = document.getElementById('btn-start-new');
 
@@ -303,7 +307,7 @@ function finishCharacterCreation() {
     const classKey = document.getElementById('cc-class').value;
     const cls = classes[classKey];
 
-    // Keep the standard array uniqueness check (your existing guard)
+    // 1) Stat uniqueness check
     const stats = Object.values(ccState.baseStats);
     const uniqueStats = new Set(stats);
     if (uniqueStats.size !== stats.length) {
@@ -311,13 +315,13 @@ function finishCharacterCreation() {
         return;
     }
 
-    // ✅ Auto-pick skills if none selected (helps Playwright + forgetful players)
+    // 2) Auto-pick skills if none selected (helps Playwright + forgetful players)
     if (ccState.chosenSkills.length === 0 && cls.skillProficiencies?.length) {
         const max = 2; // or derive from class data if you add that later
         ccState.chosenSkills = cls.skillProficiencies.slice(0, max);
     }
 
-    // ✅ Auto-pick spells for casters if none selected
+    // 3) Auto-pick spells for casters if none selected
     const isCaster = (classKey === 'wizard' || classKey === 'cleric');
     if (isCaster && ccState.chosenSpells.length === 0) {
         let availableSpells = [];
@@ -330,7 +334,7 @@ function finishCharacterCreation() {
         ccState.chosenSpells = availableSpells.slice(0, max);
     }
 
-    // Now complete character creation as before
+    // 4) Initialize state
     initializeNewGame(
         name,
         raceKey,
@@ -339,16 +343,15 @@ function finishCharacterCreation() {
         ccState.chosenSkills,
         ccState.chosenSpells
     );
-    // Explicitly save the new character immediately
-    saveGame();
 
+    // 5) Hide CC and update HUD
     document.getElementById('char-creation-modal').classList.add('hidden');
     updateStatsUI();
 
-    // ✅ FORCE an initial save right here
+    // 6) Save once, right here
     saveGame();
 
-    // ✅ FORCE the starting scene explicitly
+    // 7) Jump to explicit starting scene
     const startSceneId = 'SCENE_BRIEFING';
     goToScene(startSceneId);
 
@@ -1577,6 +1580,8 @@ function showBattleEventText(message, duration = 1500) {
 }
 
 export function bootstrapGame() {
+    console.debug("[bootstrapGame] starting");
+    console.debug("[bootstrapGame] hasSave =", !!localStorage.getItem('crimson_moon_save'));
     initUI();
 
     try {
