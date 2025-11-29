@@ -71,6 +71,9 @@ export function initUI() {
 
     // Start menu wiring
     const startMenu = document.getElementById('start-menu');
+    if (!startMenu) {
+        console.error("[initUI] #start-menu not found – markup mismatch?");
+    }
     const startContinueBtn = document.getElementById('btn-start-continue');
     const startNewBtn = document.getElementById('btn-start-new');
 
@@ -1577,6 +1580,8 @@ function showBattleEventText(message, duration = 1500) {
 }
 
 export function bootstrapGame() {
+    console.debug("[bootstrapGame] starting");
+    console.debug("[bootstrapGame] hasSave =", !!localStorage.getItem('crimson_moon_save'));
     initUI();
 
     try {
