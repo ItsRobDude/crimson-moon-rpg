@@ -346,6 +346,7 @@ function finishCharacterCreation() {
 
     // 5) Hide CC and update HUD
     document.getElementById('char-creation-modal').classList.add('hidden');
+    document.getElementById('game-container').classList.remove('hidden'); // Ensure game is visible
     updateStatsUI();
 
     // 6) Save once, right here
