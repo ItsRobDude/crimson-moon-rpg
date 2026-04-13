@@ -10,5 +10,7 @@ This demo is a narrative-forward tactical RPG set in the infected forests and ou
   * Character creation, combat rules, and game state management (game.js, rules.js, data/*).
   * World references: Silverthorn, Whisperwood, Viridian Forest, Thorne Guild, the Druids, the Blackened King, Ciara.
 
+For narrative pacing, event windows, and "what a typical campaign route looks like if certain choices are made," check `dnd-original-campaign-draft`. Treat that file as the best current lore reference when adjusting story timing, Silverthorn sandbox beats, or major event flow.
+
 See `notes/salvage_pitch.md` for a concrete gameplay loop and story structure that ties these pieces together.
 See `notes/story_timeline_model.md` for the canonical Silverthorn opening and the new event-driven timeline model.

@@ -12,7 +12,7 @@ import { shops } from './data/shops.js';
 import { npcs } from './data/npcs.js';
 import { companions } from './data/companions.js';
 import { factions } from './data/factions.js';
-import { gameState, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, unequipItem, syncPartyLevels, saveGame, loadGame as loadGameData, removeItem } from './data/gameState.js';
+import { gameState, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, unequipItem, syncPartyLevels, saveGame, loadGame as loadGameData, removeItem, advanceTime, getTimelineLabel, getTimeSlotLabel, getSceneMemory, setSceneMemory } from './data/gameState.js';
 import { CANONICAL_START_SCENE, ensureStoryState, getLocationStoryRequirement, getLocationUnlockHint, meetsStoryRequirement, storyActs, storyEvents, syncStoryStateForScene } from './data/storyTimeline.js';
 import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod, generateScaledStats, getPlayerAC } from './rules.js';
 import { initCombatSystem, startCombat, performAttack, performCastSpell, performAbility, performDefend, performFlee, performEndTurn, performActionSurge, performCunningAction, uiHooks } from './combat.js';
@@ -30,6 +30,9 @@ export function initUI() {
     window.goToScene = goToScene;
     window.startCombat = startCombat; // Expose for testing/debug
     window.showCharacterCreation = showCharacterCreation;
+    gameSettings = loadGameSettings();
+    populateOptionsForm();
+    void applyGameSettings(gameSettings);
     document.getElementById('btn-inventory').onclick = () => toggleInventory();
     document.getElementById('btn-quests').onclick = toggleQuestLog;
     document.getElementById('btn-menu').onclick = toggleMenu;
@@ -78,16 +81,14 @@ export function initUI() {
     }
     const startContinueBtn = document.getElementById('btn-start-continue');
     const startNewBtn = document.getElementById('btn-start-new');
+    const startOptionsBtn = document.getElementById('btn-start-options');
+    const startExitBtn = document.getElementById('btn-start-exit');
 
-    const hasSave = !!localStorage.getItem('crimson_moon_save');
-    if (!hasSave) {
-        startContinueBtn.disabled = true;
-        startContinueBtn.innerText = 'Continue (No Save)';
-    }
+    refreshStartMenuState();
 
     startContinueBtn.onclick = () => {
         if (!localStorage.getItem('crimson_moon_save')) {
-            logMessage('No existing save found. Start a New Game to begin.', 'system');
+            logMessage('No existing save found. Choose Start to begin a new campaign.', 'system');
             return;
         }
         loadGame();
@@ -97,9 +98,12 @@ export function initUI() {
         beginNewGameFlow();
     };
 
+    startOptionsBtn.onclick = showOptionsModal;
+    startExitBtn.onclick = exitGame;
     document.getElementById('btn-start-game').onclick = finishCharacterCreation;
-    document.getElementById('btn-start-options').onclick = () => {
-        document.getElementById('tutorial-overlay').classList.remove('hidden');
+    document.getElementById('btn-options').onclick = showOptionsModal;
+    document.getElementById('btn-options-apply').onclick = () => {
+        void applyOptionsFromForm();
     };
 
     document.getElementById('btn-debug-toggle').onclick = () => {
@@ -120,6 +124,148 @@ let ccState = {
     chosenSpells: []
 };
 
+const SETTINGS_STORAGE_KEY = 'crimson_moon_settings';
+const defaultGameSettings = {
+    displayMode: 'windowed',
+    textSize: 'normal',
+    uiScale: 'normal',
+    showLog: true
+};
+
+let gameSettings = { ...defaultGameSettings };
+
+function loadGameSettings() {
+    try {
+        const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
+        if (!raw) return { ...defaultGameSettings };
+        return { ...defaultGameSettings, ...JSON.parse(raw) };
+    } catch (error) {
+        console.warn('Failed to load game settings, using defaults.', error);
+        return { ...defaultGameSettings };
+    }
+}
+
+function persistGameSettings() {
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(gameSettings));
+}
+
+function setStartMenuStatus(message = '') {
+    const status = document.getElementById('start-menu-status');
+    if (status) status.innerText = message;
+}
+
+function setOptionsStatus(message = '') {
+    const status = document.getElementById('options-status');
+    if (status) status.innerText = message;
+}
+
+function populateOptionsForm() {
+    const displayMode = document.getElementById('opt-display-mode');
+    const textSize = document.getElementById('opt-text-size');
+    const uiScale = document.getElementById('opt-ui-scale');
+    const showLog = document.getElementById('opt-show-log');
+
+    if (displayMode) displayMode.value = gameSettings.displayMode;
+    if (textSize) textSize.value = gameSettings.textSize;
+    if (uiScale) uiScale.value = gameSettings.uiScale;
+    if (showLog) showLog.checked = !!gameSettings.showLog;
+}
+
+async function applyDisplayMode(mode, userInitiated = false) {
+    if (mode === 'fullscreen') {
+        if (document.fullscreenElement) return true;
+        if (!document.documentElement.requestFullscreen) {
+            if (userInitiated) setOptionsStatus('Fullscreen is not available in this browser.');
+            return false;
+        }
+        try {
+            await document.documentElement.requestFullscreen();
+            return true;
+        } catch (error) {
+            if (userInitiated) {
+                setOptionsStatus('Fullscreen was saved, but the browser blocked the request.');
+            }
+            return false;
+        }
+    }
+
+    if (document.fullscreenElement && document.exitFullscreen) {
+        try {
+            await document.exitFullscreen();
+        } catch (error) {
+            if (userInitiated) {
+                setOptionsStatus('Could not leave fullscreen automatically.');
+            }
+            return false;
+        }
+    }
+
+    return true;
+}
+
+async function applyGameSettings(nextSettings, userInitiated = false) {
+    gameSettings = { ...defaultGameSettings, ...nextSettings };
+    document.body.classList.remove(
+        'text-size-compact',
+        'text-size-normal',
+        'text-size-large',
+        'ui-scale-compact',
+        'ui-scale-large',
+        'hide-log'
+    );
+    document.body.classList.add(`text-size-${gameSettings.textSize}`);
+    if (gameSettings.uiScale !== 'normal') {
+        document.body.classList.add(`ui-scale-${gameSettings.uiScale}`);
+    }
+    if (!gameSettings.showLog) {
+        document.body.classList.add('hide-log');
+    }
+
+    const displayApplied = await applyDisplayMode(gameSettings.displayMode, userInitiated);
+    persistGameSettings();
+    populateOptionsForm();
+
+    if (userInitiated && displayApplied) {
+        setOptionsStatus('Options updated.');
+    }
+}
+
+function refreshStartMenuState() {
+    const startContinueBtn = document.getElementById('btn-start-continue');
+    const hasSave = !!localStorage.getItem('crimson_moon_save');
+
+    if (!startContinueBtn) return;
+
+    startContinueBtn.disabled = !hasSave;
+    startContinueBtn.innerText = hasSave ? 'Continue' : 'Continue (No Save)';
+}
+
+function showOptionsModal() {
+    populateOptionsForm();
+    setOptionsStatus('');
+    document.getElementById('options-modal').classList.remove('hidden');
+}
+
+async function applyOptionsFromForm() {
+    const nextSettings = {
+        displayMode: document.getElementById('opt-display-mode').value,
+        textSize: document.getElementById('opt-text-size').value,
+        uiScale: document.getElementById('opt-ui-scale').value,
+        showLog: document.getElementById('opt-show-log').checked
+    };
+
+    await applyGameSettings(nextSettings, true);
+}
+
+function exitGame() {
+    setStartMenuStatus('Closing window...');
+    window.close();
+
+    window.setTimeout(() => {
+        setStartMenuStatus('If the window stays open, close this tab or app window to exit.');
+    }, 250);
+}
+
 function resetCharacterCreationState() {
     ccState = {
         baseStats: { STR: 15, DEX: 14, CON: 13, INT: 12, WIS: 10, CHA: 8 },
@@ -130,13 +276,326 @@ function resetCharacterCreationState() {
 
 function showStartMenu() {
     document.getElementById('char-creation-modal').classList.add('hidden');
+    document.getElementById('options-modal').classList.add('hidden');
     document.getElementById('start-menu').classList.remove('hidden');
+    refreshStartMenuState();
+    setStartMenuStatus('');
 }
 
 function beginNewGameFlow() {
     localStorage.removeItem('crimson_moon_save');
+    refreshStartMenuState();
+    setStartMenuStatus('');
     resetCharacterCreationState();
     showCharacterCreation();
+}
+
+function isSceneInSilverthorn(sceneId) {
+    return [
+        'SCENE_HUB_SILVERTHORN',
+        'SCENE_ALDERIC_CHAMBER_RETURN',
+        'SCENE_ALDERIC_MISSION_REMINDER',
+        'SCENE_SILVERTHORN_MARKET',
+        'SCENE_SILVERTHORN_GENERAL_STORE',
+        'SCENE_SILVERTHORN_BLACKSMITH',
+        'SCENE_RUSTY_BLADE_INN',
+        'SCENE_RUSTY_BLADE_RUMORS',
+        'SCENE_SILVERTHORN_TEMPLE',
+        'SCENE_SILVERTHORN_TEMPLE_COUNSEL',
+        'SCENE_SILVERTHORN_TEMPLE_PRAYER',
+        'SCENE_SILVERTHORN_NOTICE_BOARD',
+        'SCENE_SILVERTHORN_NOTICE_WHISPERWOOD',
+        'SCENE_SILVERTHORN_NOTICE_CONTRACTS',
+        'SCENE_SILVERTHORN_GATES',
+        'SCENE_SILVERTHORN_GATE_CAPTAIN'
+    ].includes(sceneId);
+}
+
+function getSilverthornTimeState() {
+    const slot = gameState.timeline.slot;
+    return {
+        slot,
+        label: getTimeSlotLabel(slot),
+        timelineLabel: getTimelineLabel(),
+        isMorning: slot === 'morning',
+        isMidday: slot === 'midday',
+        isAfternoon: slot === 'afternoon',
+        isDusk: slot === 'dusk',
+        isNight: slot === 'night',
+        isDaylight: slot === 'morning' || slot === 'midday' || slot === 'afternoon',
+        isMarketOpen: slot !== 'night',
+        isTempleOpen: slot !== 'night',
+        isForgeOpen: slot === 'morning' || slot === 'midday' || slot === 'afternoon',
+        silverthornActions: gameState.timeline.silverthornActionCount
+    };
+}
+
+function getTimeAdvanceText(result, reason = '') {
+    const prefix = reason ? `${reason} ` : '';
+    if (result.previous === result.current) {
+        return `${prefix}Time passes. It is still ${result.current}.`;
+    }
+    return `${prefix}Time passes. ${result.current}.`;
+}
+
+function advanceNarrativeTime(steps = 1, reason = '', context = {}) {
+    if (!steps || steps < 1) return;
+    const result = advanceTime(steps, context);
+    logMessage(getTimeAdvanceText(result, reason), 'system');
+    updateStatsUI();
+}
+
+function advanceToNextMorning(reason = '', context = {}) {
+    const slotOrder = ['morning', 'midday', 'afternoon', 'dusk', 'night'];
+    const currentIndex = slotOrder.indexOf(gameState.timeline.slot);
+    const morningIndex = 0;
+    const steps = currentIndex === -1 ? 1 : ((slotOrder.length - currentIndex) + morningIndex);
+    advanceNarrativeTime(steps, reason, context);
+}
+
+function createChoice(text, nextScene, extra = {}) {
+    return { text, nextScene, ...extra };
+}
+
+function cloneScene(sceneId) {
+    return JSON.parse(JSON.stringify(scenes[sceneId]));
+}
+
+function buildSilverthornRuntimeScene(sceneId, baseScene) {
+    const time = getSilverthornTimeState();
+    const scene = cloneScene(sceneId);
+
+    if (sceneId === 'SCENE_HUB_SILVERTHORN') {
+        const curfewBeat = time.isDusk
+            ? 'Lanterns are being lit and the watch has started calling the evening curfew.'
+            : time.isNight
+                ? 'Most respectable shutters are closed, and the city watch has taken over the streets.'
+                : 'Silverthorn still feels ordered, but the mood under the surface is tight and watchful.';
+
+        scene.text = `${baseScene.text} It is ${time.timelineLabel}. ${curfewBeat}`;
+        scene.choices = [
+            createChoice(time.isNight ? 'See if Alderic still receives visitors' : "Return to Alderic's chamber", 'SCENE_ALDERIC_CHAMBER_RETURN'),
+            createChoice('Walk to the market district', 'SCENE_SILVERTHORN_MARKET', { timeAdvance: 1, timeReason: 'You make your way across the city.', inSilverthorn: true }),
+            createChoice('Visit the General Store', 'SCENE_SILVERTHORN_GENERAL_STORE', { timeAdvance: 1, timeReason: 'You stop to resupply.', inSilverthorn: true }),
+            createChoice('Enter The Rusty Blade', 'SCENE_RUSTY_BLADE_INN', { timeAdvance: 1, timeReason: 'You spend time in the inn.', inSilverthorn: true }),
+            createChoice('Stop at the Temple of Dawn', 'SCENE_SILVERTHORN_TEMPLE', { timeAdvance: 1, timeReason: 'You make a detour to the temple.', inSilverthorn: true }),
+            createChoice('Read the notice board', 'SCENE_SILVERTHORN_NOTICE_BOARD', { timeAdvance: 1, timeReason: 'You spend a while reading the latest postings.', inSilverthorn: true }),
+            createChoice('Head for the city gates', 'SCENE_SILVERTHORN_GATES', { timeAdvance: 1, timeReason: 'You cross Silverthorn toward the eastern gate.', inSilverthorn: true })
+        ];
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_ALDERIC_CHAMBER_RETURN') {
+        if (time.isNight) {
+            scene.text = "A chamberlain meets you outside Alderic's rooms and bows with practiced restraint. 'The prince has retired and will not receive visitors tonight. If the matter can wait, return in the morning. If it cannot, take it to the gate or to the watch.'";
+            scene.choices = [
+                createChoice('Return to the city center', 'SCENE_HUB_SILVERTHORN')
+            ];
+            return scene;
+        }
+
+        scene.text = `${baseScene.text} It is ${time.timelineLabel}, and he seems more interested in dispatches than conversation.`;
+        scene.choices = [
+            createChoice('Ask him to restate the mission.', 'SCENE_ALDERIC_MISSION_REMINDER'),
+            createChoice('Leave the chamber again.', 'SCENE_HUB_SILVERTHORN')
+        ];
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_ALDERIC_MISSION_REMINDER') {
+        scene.text = `Alderic's tone is clipped, as though reciting a report he has already given twice. 'Whisperwood. Learn what caused the corruption. Destroy it if you can. Use the city while you have it, then take the eastern road through Shadowmire.' It is ${time.timelineLabel}.`;
+        scene.choices = [
+            createChoice("Leave Alderic's chamber.", 'SCENE_HUB_SILVERTHORN')
+        ];
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_SILVERTHORN_MARKET') {
+        if (time.isNight) {
+            scene.text = "The market district is mostly shuttered for the night. A few guttering lanterns still burn, the smell of stale ale drifts from The Rusty Blade, and the last of the laborers are dragging carts under awnings before curfew tightens further.";
+            scene.choices = [
+                createChoice('Enter The Rusty Blade', 'SCENE_RUSTY_BLADE_INN', { timeAdvance: 1, timeReason: 'You spend a while in the inn.', inSilverthorn: true }),
+                createChoice('Return to City Center', 'SCENE_HUB_SILVERTHORN')
+            ];
+            return scene;
+        }
+
+        const marketMood = time.isDusk
+            ? 'Merchants are beginning to pack away their goods while buyers hurry through last-minute purchases.'
+            : 'The district is still active, with wagon wheels, shouted prices, and runners weaving between stalls.';
+        scene.text = `${baseScene.text} ${marketMood}`;
+        scene.choices = [
+            createChoice('Browse the General Store', 'SCENE_SILVERTHORN_GENERAL_STORE'),
+            createChoice(time.isForgeOpen ? 'Visit the blacksmith' : 'Check whether the blacksmith is still open', 'SCENE_SILVERTHORN_BLACKSMITH'),
+            createChoice('Step into The Rusty Blade', 'SCENE_RUSTY_BLADE_INN'),
+            createChoice('Return to City Center', 'SCENE_HUB_SILVERTHORN')
+        ];
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_SILVERTHORN_GENERAL_STORE') {
+        if (time.isNight) {
+            scene.text = "The shutters are down and the general store is closed for the night. A chalkboard sign promises it will reopen at first light, but for now only the inn across the district still welcomes customers.";
+            scene.type = undefined;
+            scene.shopId = undefined;
+            scene.choices = [
+                createChoice('Return to the market district', 'SCENE_SILVERTHORN_MARKET'),
+                createChoice('Go to The Rusty Blade instead', 'SCENE_RUSTY_BLADE_INN'),
+                createChoice('Return to City Center', 'SCENE_HUB_SILVERTHORN')
+            ];
+            return scene;
+        }
+
+        if (!getSceneMemory('silverthorn_general_store_seen')) {
+            setSceneMemory('silverthorn_general_store_seen', true);
+            scene.text = `${baseScene.text} The shopkeeper keeps one ear on the street and mutters that everyone suddenly wants bandages, lamp oil, and antitoxin.`;
+        }
+        scene.choices = [
+            createChoice('Step back into the market district', 'SCENE_SILVERTHORN_MARKET'),
+            createChoice('Return to City Center', 'SCENE_HUB_SILVERTHORN')
+        ];
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_SILVERTHORN_BLACKSMITH') {
+        if (!time.isForgeOpen) {
+            scene.text = time.isDusk
+                ? 'The forge has gone quiet for the evening. Apprentices are banking the coals and refusing new commissions until morning.'
+                : 'The forge is dark. Only the smell of ash and quenched steel remains, and any serious work will have to wait for dawn.';
+            scene.type = undefined;
+            scene.shopId = undefined;
+            scene.choices = [
+                createChoice('Return to the market district', 'SCENE_SILVERTHORN_MARKET'),
+                createChoice('Return to City Center', 'SCENE_HUB_SILVERTHORN')
+            ];
+            return scene;
+        }
+
+        if (!getSceneMemory('silverthorn_blacksmith_seen')) {
+            setSceneMemory('silverthorn_blacksmith_seen', true);
+            scene.text = `${baseScene.text} A smith warns that the eastern road has made buyers of everyone with coin and fear in equal measure.`;
+        }
+        scene.choices = [
+            createChoice('Return to the market district', 'SCENE_SILVERTHORN_MARKET'),
+            createChoice('Head back to City Center', 'SCENE_HUB_SILVERTHORN')
+        ];
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_RUSTY_BLADE_INN') {
+        const innMood = time.isNight
+            ? 'The common room is louder now, with late-shift soldiers and nervous travelers drinking against the curfew.'
+            : 'The inn feels like a pressure valve for the whole city, full of half-finished briefings and overheard rumors.';
+        scene.text = `${baseScene.text} ${innMood}`;
+        scene.choices = [
+            createChoice('Take a room and rest', null, { action: 'longRest' }),
+            createChoice('Listen for rumors about Whisperwood', 'SCENE_RUSTY_BLADE_RUMORS', { timeAdvance: 1, timeReason: 'You linger over rumors and stray conversations.', inSilverthorn: true }),
+            createChoice('Return to the market district', 'SCENE_SILVERTHORN_MARKET')
+        ];
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_RUSTY_BLADE_RUMORS') {
+        const heardBefore = !!getSceneMemory('silverthorn_rumors_heard');
+        setSceneMemory('silverthorn_rumors_heard', true);
+        scene.text = heardBefore
+            ? "The rumors are worse on repetition: more travelers missing, more talk of patrols refusing to say what they saw, and more merchants insisting the road changed after sunset. The details vary, but the fear does not."
+            : baseScene.text;
+        scene.choices = [
+            createChoice('Return to the common room', 'SCENE_RUSTY_BLADE_INN'),
+            createChoice('Head for the city gates', 'SCENE_SILVERTHORN_GATES')
+        ];
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_SILVERTHORN_TEMPLE') {
+        if (!time.isTempleOpen) {
+            scene.text = "The main temple doors are barred for the night, though a side shrine remains open for private prayer. Candlelight leaks through the stonework, but the healers and priests are gone from the public hall.";
+            scene.choices = [
+                createChoice('Offer a quiet prayer at the side shrine', 'SCENE_SILVERTHORN_TEMPLE_PRAYER', { timeAdvance: 1, timeReason: 'You spend a quiet hour in reflection.', inSilverthorn: true }),
+                createChoice('Return to City Center', 'SCENE_HUB_SILVERTHORN')
+            ];
+            return scene;
+        }
+
+        scene.text = `${baseScene.text} It is ${time.timelineLabel}, and the place feels like one of the last corners of the city not pretending everything is normal.`;
+        scene.choices = [
+            createChoice('Speak with the healers about the road ahead', 'SCENE_SILVERTHORN_TEMPLE_COUNSEL', { timeAdvance: 1, timeReason: 'You stay to hear the temple counsel.', inSilverthorn: true }),
+            createChoice('Offer a quiet prayer before you depart', 'SCENE_SILVERTHORN_TEMPLE_PRAYER', { timeAdvance: 1, timeReason: 'You spend a quiet hour in reflection.', inSilverthorn: true }),
+            createChoice('Return to City Center', 'SCENE_HUB_SILVERTHORN')
+        ];
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_SILVERTHORN_TEMPLE_COUNSEL') {
+        setSceneMemory('silverthorn_temple_counsel', true);
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_SILVERTHORN_TEMPLE_PRAYER') {
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_SILVERTHORN_NOTICE_BOARD') {
+        const boardMood = time.isNight
+            ? 'Most people have stopped lingering here, leaving the board to flap quietly in the night breeze.'
+            : 'Fresh ink and hastily pinned notices suggest half the city has been trying to make sense of events before the crown can control the message.';
+        scene.text = `${baseScene.text} ${boardMood}`;
+        scene.choices = [
+            createChoice('Read the Whisperwood notices', 'SCENE_SILVERTHORN_NOTICE_WHISPERWOOD'),
+            createChoice('Read the city contracts and bounties', 'SCENE_SILVERTHORN_NOTICE_CONTRACTS'),
+            createChoice('Return to City Center', 'SCENE_HUB_SILVERTHORN')
+        ];
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_SILVERTHORN_NOTICE_WHISPERWOOD') {
+        setSceneMemory('silverthorn_notice_whisperwood', true);
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_SILVERTHORN_NOTICE_CONTRACTS') {
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_SILVERTHORN_GATES') {
+        const gateMood = time.isNight
+            ? 'The gate stands under doubled watch, with fewer departures and harsher questions.'
+            : time.isDusk
+                ? 'The last approved wagons are being hustled through before the watch locks down the night.'
+                : 'Traffic still moves, but every outbound cart is inspected twice.';
+        scene.text = `${baseScene.text} ${gateMood}`;
+        scene.choices = [
+            createChoice('Ask the gate captain about the road', 'SCENE_SILVERTHORN_GATE_CAPTAIN', { timeAdvance: 1, timeReason: 'You spend time getting the latest road intelligence.', inSilverthorn: true }),
+            createChoice(time.isNight ? 'Leave Silverthorn despite the hour' : 'Leave Silverthorn for Shadowmire', 'SCENE_TRAVEL_SHADOWMIRE', { timeAdvance: 1, timeReason: 'You finalize your departure and pass beyond the walls.', inSilverthorn: true }),
+            createChoice('Return to City Center', 'SCENE_HUB_SILVERTHORN')
+        ];
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_SILVERTHORN_GATE_CAPTAIN') {
+        const warnedAlready = !!getSceneMemory('silverthorn_gate_captain_seen');
+        setSceneMemory('silverthorn_gate_captain_seen', true);
+        scene.text = warnedAlready
+            ? "The captain recognizes you immediately. 'Same road, same warning: stay alert, cover your face if the spores turn red, and don't trust how long the forest thinks a mile should be.'"
+            : baseScene.text;
+        scene.choices = [
+            createChoice('Leave Silverthorn now', 'SCENE_TRAVEL_SHADOWMIRE', { timeAdvance: 1, timeReason: 'You leave before the city can hold you any longer.', inSilverthorn: true }),
+            createChoice('Return to the gate plaza', 'SCENE_SILVERTHORN_GATES')
+        ];
+        return scene;
+    }
+
+    return scene;
+}
+
+function getRuntimeScene(sceneId) {
+    const baseScene = scenes[sceneId];
+    if (!baseScene) return null;
+    if (isSceneInSilverthorn(sceneId)) {
+        return buildSilverthornRuntimeScene(sceneId, baseScene);
+    }
+    return cloneScene(sceneId);
 }
 
 function getStoryLabel(collection, id) {
@@ -179,6 +638,12 @@ function applySceneEffect(effect, source = 'scene') {
         if (item) {
             logMessage(`${source === 'choice' ? 'Received' : 'Found'} ${item.name}.`, 'gain');
         }
+        return;
+    }
+
+    if (effect.type === 'addGold') {
+        addGold(effect.amount || 0);
+        logMessage(`Gained ${effect.amount || 0} gold.`, 'gain');
         return;
     }
 
@@ -441,11 +906,11 @@ function finishCharacterCreation() {
     // 7) Jump to explicit starting scene
     goToScene(CANONICAL_START_SCENE);
 
-    logMessage(`Character ${name} created. Welcome to Silverthorn.`, "system");
+    logMessage(`Character ${name} created. Prince Alderic awaits in Silverthorn.`, "system");
 }
 
 function goToScene(sceneId) {
-    const scene = scenes[sceneId];
+    const scene = getRuntimeScene(sceneId);
     if (!scene) { console.error("Scene not found:", sceneId); return; }
 
     gameState.story = ensureStoryState(gameState.story);
@@ -604,6 +1069,9 @@ function handleChoice(choice) {
     }
     if (choice.effects) {
         applyEffectList(choice.effects, 'choice');
+    }
+    if (choice.timeAdvance) {
+        advanceNarrativeTime(choice.timeAdvance, choice.timeReason, { inSilverthorn: !!choice.inSilverthorn });
     }
     if (!choice.type) { if (choice.nextScene) goToScene(choice.nextScene); return; }
 
@@ -1209,6 +1677,7 @@ function updateStatsUI() {
     }
 
     document.getElementById('char-ac').innerText = `AC ${getPlayerAC(gameState.player)}`;
+    document.getElementById('char-time').innerText = getTimelineLabel();
 
     const weapon = p.equipped.weapon ? items[p.equipped.weapon] : null;
     const armor = p.equipped.armor ? items[p.equipped.armor] : null;
@@ -1522,6 +1991,7 @@ function showRestModal() {
         modal.classList.add('hidden');
         logMessage("You take a short rest.", "system");
         performShortRest();
+        advanceNarrativeTime(1, 'You spend an hour catching your breath.', { inSilverthorn: gameState.currentSceneId.startsWith('SCENE_SILVERTHORN') || gameState.currentSceneId.startsWith('SCENE_RUSTY_BLADE') });
         updateStatsUI();
     };
 
@@ -1533,6 +2003,7 @@ function showRestModal() {
         } else {
             logMessage("You take a long rest.", "system");
             performLongRest();
+            advanceToNextMorning('The night passes.', { inSilverthorn: gameState.currentSceneId.startsWith('SCENE_SILVERTHORN') || gameState.currentSceneId.startsWith('SCENE_RUSTY_BLADE') });
             updateStatsUI();
         }
     };

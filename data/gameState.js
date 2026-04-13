@@ -51,6 +51,13 @@ const defaultGameState = {
         ambient: []
     },
     worldPhase: 0,
+    timeline: {
+        day: 1,
+        slot: 'midday',
+        actionCount: 0,
+        silverthornActionCount: 0
+    },
+    sceneMemory: {},
     reputation: {
         silverthorn: 0,
         durnhelm: 0,
@@ -107,6 +114,8 @@ export function resetGameState() {
     gameState.story = createDefaultStoryState();
     Object.assign(gameState.threat, JSON.parse(JSON.stringify(defaultGameState.threat)));
     gameState.worldPhase = defaultGameState.worldPhase;
+    Object.assign(gameState.timeline, JSON.parse(JSON.stringify(defaultGameState.timeline)));
+    gameState.sceneMemory = {};
     Object.assign(gameState.reputation, JSON.parse(JSON.stringify(defaultGameState.reputation)));
     gameState.relationships = {};
     Object.assign(gameState.discoveredLocations, JSON.parse(JSON.stringify(defaultGameState.discoveredLocations)));
@@ -202,6 +211,8 @@ export function initializeNewGame(name, raceId, classId, baseStats, chosenSkills
     gameState.story = createDefaultStoryState();
     gameState.combat.active = false;
     gameState.threat = { level: 0, recentNoise: 0, recentStealth: 0, ambient: [] };
+    gameState.timeline = { day: 1, slot: 'midday', actionCount: 0, silverthornActionCount: 0 };
+    gameState.sceneMemory = {};
     gameState.discoveredLocations.silverthorn = true;
     gameState.discoveredLocations.hushbriar = false;
     gameState.visitedScenes = [];
@@ -621,6 +632,64 @@ export function changeReputation(factionId, amount) {
 
 export function getReputation(factionId) {
     return gameState.reputation[factionId] || 0;
+}
+
+export const TIME_SLOTS = ['morning', 'midday', 'afternoon', 'dusk', 'night'];
+
+export function getTimeSlotLabel(slot = gameState.timeline.slot) {
+    const labels = {
+        morning: 'Morning',
+        midday: 'Midday',
+        afternoon: 'Afternoon',
+        dusk: 'Dusk',
+        night: 'Night'
+    };
+    return labels[slot] || 'Unknown';
+}
+
+export function getTimelineLabel() {
+    return `Day ${gameState.timeline.day} - ${getTimeSlotLabel(gameState.timeline.slot)}`;
+}
+
+export function advanceTime(steps = 1, context = {}) {
+    let slotIndex = TIME_SLOTS.indexOf(gameState.timeline.slot);
+    if (slotIndex < 0) slotIndex = TIME_SLOTS.indexOf('midday');
+
+    const previous = getTimelineLabel();
+
+    for (let i = 0; i < steps; i++) {
+        slotIndex += 1;
+        gameState.timeline.actionCount += 1;
+        if (context.inSilverthorn) {
+            gameState.timeline.silverthornActionCount += 1;
+        }
+        if (slotIndex >= TIME_SLOTS.length) {
+            slotIndex = 0;
+            gameState.timeline.day += 1;
+        }
+    }
+
+    gameState.timeline.slot = TIME_SLOTS[slotIndex];
+
+    return {
+        previous,
+        current: getTimelineLabel(),
+        day: gameState.timeline.day,
+        slot: gameState.timeline.slot
+    };
+}
+
+export function setTimeline(day, slot) {
+    gameState.timeline.day = Math.max(1, day || 1);
+    gameState.timeline.slot = TIME_SLOTS.includes(slot) ? slot : 'midday';
+}
+
+export function setSceneMemory(key, value = true) {
+    gameState.sceneMemory[key] = value;
+}
+
+export function getSceneMemory(key) {
+    return gameState.sceneMemory[key];
 }
 
 export function saveGame() {

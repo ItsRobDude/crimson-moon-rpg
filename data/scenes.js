@@ -428,8 +428,9 @@ export const scenes = {
         location: "silverthorn",
         background: "landscapes/alderics_chamber.webp",
         npcPortrait: "portraits/alderic_portrait.png",
-        text: "The chamber is dim. Prince Alderic stands by the window. 'You have come,' he says. 'The situation in Whisperwood grows dire.'",
+        text: "The chamber is dim and spare, lit by a single brazier. Prince Alderic stands over a map table marked with routes, blockades, and a red circle around Whisperwood. He does not waste time. 'You have come,' he says. 'Good. Silverthorn needs someone who can move before the rot reaches our walls.'",
         onEnter: {
+            once: true,
             questUpdate: { id: "investigate_whisperwood", stage: 1 },
             addGold: 150
         },
@@ -475,15 +476,15 @@ export const scenes = {
         location: "silverthorn",
         background: "landscapes/alderics_chamber.webp",
         npcPortrait: "portraits/alderic_portrait.png",
-        text: "Alderic turns. 'I need you to travel to Whisperwood. Find the source of the corruption and destroy it. I have provided gold for your journey. Will you accept?'",
+        text: "Alderic points to the map. 'You will go to Whisperwood, learn what birthed the corruption, and cut it out at the root. My quartermaster has already prepared coin for travel and whatever supplies Silverthorn can spare. Once you leave this chamber, the city is yours to use. When you are ready, depart through the eastern gates and take the Shadowmire road.'",
         choices: [
             {
-                text: "I accept.",
+                text: "I accept the commission.",
                 effects: [
                     { type: "relationship", npcId: "alderic", amount: 10 },
                     { type: "reputation", factionId: "silverthorn", amount: 5 }
                 ],
-                nextScene: "SCENE_HUB_SILVERTHORN"
+                nextScene: "SCENE_BRIEFING_DISMISSAL"
             },
             {
                 text: "I need more information about Aodhan.",
@@ -491,10 +492,6 @@ export const scenes = {
                     { type: "relationship", npcId: "alderic", amount: 5 }
                 ],
                 nextScene: "SCENE_BRIEFING_INFO"
-            },
-            {
-                text: "Visit the market before leaving.",
-                nextScene: "SCENE_SILVERTHORN_MARKET"
             }
         ]
     },
@@ -506,11 +503,11 @@ export const scenes = {
         text: "'Aodhan... he was once a friend. Now he is lost to the spores. Do not hesitate if you see him.'",
         choices: [
             {
-                text: "Understood. I will go.",
+                text: "Understood. I will take the mission.",
                 effects: [
                     { type: "relationship", npcId: "alderic", amount: 5 }
                 ],
-                nextScene: "SCENE_HUB_SILVERTHORN"
+                nextScene: "SCENE_BRIEFING_DISMISSAL"
             },
             {
                 text: "Request extra supplies (Requires 5 Alderic Relationship)",
@@ -518,9 +515,52 @@ export const scenes = {
                     relationship: { npcId: "alderic", min: 5 }
                 },
                 effects: [
-                    { type: "addItem", itemId: "potion_healing" } // Logic needs to handle this in game.js handleChoice too
+                    { type: "addItem", itemId: "potion_healing" },
+                    { type: "addGold", amount: 50 }
                 ],
-                onSuccess: { addGold: 50 }, // Alternative way if logic supports it
+                nextScene: "SCENE_BRIEFING_DISMISSAL"
+            }
+        ]
+    },
+    "SCENE_BRIEFING_DISMISSAL": {
+        id: "SCENE_BRIEFING_DISMISSAL",
+        location: "silverthorn",
+        background: "landscapes/alderics_chamber.webp",
+        npcPortrait: "portraits/alderic_portrait.png",
+        text: "Alderic slides a sealed writ across the table. 'Show that to any gate sergeant or quartermaster if you are challenged. Do not return without answers.' The chamber doors stand open behind you, and beyond them you can hear the restless life of Silverthorn carrying on outside.",
+        choices: [
+            {
+                text: "Leave Alderic's chamber.",
+                nextScene: "SCENE_HUB_SILVERTHORN"
+            }
+        ]
+    },
+    "SCENE_ALDERIC_CHAMBER_RETURN": {
+        id: "SCENE_ALDERIC_CHAMBER_RETURN",
+        location: "silverthorn",
+        background: "landscapes/alderics_chamber.webp",
+        npcPortrait: "portraits/alderic_portrait.png",
+        text: "Alderic remains in his chamber, studying reports by candlelight. He looks up only briefly. 'You already have your orders. If you need something, be quick about it.'",
+        choices: [
+            {
+                text: "Ask him to restate the mission.",
+                nextScene: "SCENE_ALDERIC_MISSION_REMINDER"
+            },
+            {
+                text: "Leave the chamber again.",
+                nextScene: "SCENE_HUB_SILVERTHORN"
+            }
+        ]
+    },
+    "SCENE_ALDERIC_MISSION_REMINDER": {
+        id: "SCENE_ALDERIC_MISSION_REMINDER",
+        location: "silverthorn",
+        background: "landscapes/alderics_chamber.webp",
+        npcPortrait: "portraits/alderic_portrait.png",
+        text: "Alderic's tone is clipped, as though reciting a report he has already given twice. 'Whisperwood. Learn what caused the corruption. Destroy it if you can. Use the city while you have it, then take the eastern road through Shadowmire.'",
+        choices: [
+            {
+                text: "Leave Alderic's chamber.",
                 nextScene: "SCENE_HUB_SILVERTHORN"
             }
         ]
@@ -529,12 +569,140 @@ export const scenes = {
         id: "SCENE_SILVERTHORN_MARKET",
         location: "silverthorn",
         background: "landscapes/heart_of_silverthorn.png",
-        text: "Stalls line the square, merchants hawking wares beneath the crimson-tinted sky. An inn, 'The Rusty Blade', stands nearby.",
-        type: "shop",
-        shopId: "silverthorn_market",
+        text: "The market district is the loudest corner of Silverthorn. Traders shout over one another, pack animals snort at loaded carts, and a dozen side streets promise food, steel, rumor, or trouble. A weathered sign for The Rusty Blade swings above a nearby lane.",
         choices: [
-            { text: "Take a Rest", action: "longRest" },
+            { text: "Browse the General Store", nextScene: "SCENE_SILVERTHORN_GENERAL_STORE" },
+            { text: "Visit the blacksmith", nextScene: "SCENE_SILVERTHORN_BLACKSMITH" },
+            { text: "Step into The Rusty Blade", nextScene: "SCENE_RUSTY_BLADE_INN" },
             { text: "Return to City Center", nextScene: "SCENE_HUB_SILVERTHORN" }
+        ]
+    },
+    "SCENE_SILVERTHORN_GENERAL_STORE": {
+        id: "SCENE_SILVERTHORN_GENERAL_STORE",
+        location: "silverthorn",
+        background: "landscapes/heart_of_silverthorn.png",
+        text: "Shelves crowd the walls of the general store, laden with lamp oil, dried meat, blankets, bandages, and the sort of practical supplies adventurers always wish they had packed sooner.",
+        type: "shop",
+        shopId: "silverthorn_general_store",
+        choices: [
+            { text: "Step back into the market district", nextScene: "SCENE_SILVERTHORN_MARKET" },
+            { text: "Return to City Center", nextScene: "SCENE_HUB_SILVERTHORN" }
+        ]
+    },
+    "SCENE_SILVERTHORN_BLACKSMITH": {
+        id: "SCENE_SILVERTHORN_BLACKSMITH",
+        location: "silverthorn",
+        background: "landscapes/heart_of_silverthorn.png",
+        text: "The forge glows orange behind a curtain of sparks. Racks of blades, bows, helms, and half-finished mail line the walls while apprentices hurry between bellows and anvils.",
+        type: "shop",
+        shopId: "silverthorn_armorer",
+        choices: [
+            { text: "Return to the market district", nextScene: "SCENE_SILVERTHORN_MARKET" },
+            { text: "Head back to City Center", nextScene: "SCENE_HUB_SILVERTHORN" }
+        ]
+    },
+    "SCENE_RUSTY_BLADE_INN": {
+        id: "SCENE_RUSTY_BLADE_INN",
+        location: "silverthorn",
+        background: "landscapes/heart_of_silverthorn.png",
+        text: "The Rusty Blade is half tavern, half barracks overflow. Couriers, sellswords, and merchants crowd the common room while a barkeep polishes tankards with the steady calm of someone used to overhearing dangerous things.",
+        choices: [
+            { text: "Take a room and rest", action: "longRest" },
+            { text: "Listen for rumors about Whisperwood", nextScene: "SCENE_RUSTY_BLADE_RUMORS" },
+            { text: "Return to the market district", nextScene: "SCENE_SILVERTHORN_MARKET" }
+        ]
+    },
+    "SCENE_RUSTY_BLADE_RUMORS": {
+        id: "SCENE_RUSTY_BLADE_RUMORS",
+        location: "silverthorn",
+        background: "landscapes/heart_of_silverthorn.png",
+        text: "Most of what you hear is frightened speculation, but the useful thread repeats itself often enough: caravans from the east have stopped arriving, and every survivor who does return speaks of drifting red spores, missing patrols, and whole glades gone silent overnight.",
+        choices: [
+            { text: "Return to the common room", nextScene: "SCENE_RUSTY_BLADE_INN" },
+            { text: "Head for the city gates", nextScene: "SCENE_SILVERTHORN_GATES" }
+        ]
+    },
+    "SCENE_SILVERTHORN_TEMPLE": {
+        id: "SCENE_SILVERTHORN_TEMPLE",
+        location: "silverthorn",
+        background: "landscapes/heart_of_silverthorn.png",
+        text: "The Temple of Dawn is quieter than the market, filled with low prayer, warm candlelight, and the smell of incense. A few healers move between benches offering comfort to worried families and soldiers bound for the road.",
+        choices: [
+            { text: "Speak with the healers about the road ahead", nextScene: "SCENE_SILVERTHORN_TEMPLE_COUNSEL" },
+            { text: "Offer a quiet prayer before you depart", nextScene: "SCENE_SILVERTHORN_TEMPLE_PRAYER" },
+            { text: "Return to City Center", nextScene: "SCENE_HUB_SILVERTHORN" }
+        ]
+    },
+    "SCENE_SILVERTHORN_TEMPLE_COUNSEL": {
+        id: "SCENE_SILVERTHORN_TEMPLE_COUNSEL",
+        location: "silverthorn",
+        background: "landscapes/heart_of_silverthorn.png",
+        text: "The healers warn that anything tied to Whisperwood should be treated with suspicion. They urge you to keep antitoxin close, burn tainted cloth, and trust no stream that runs red beneath the moon.",
+        choices: [
+            { text: "Remain in the temple a while longer", nextScene: "SCENE_SILVERTHORN_TEMPLE" },
+            { text: "Return to City Center", nextScene: "SCENE_HUB_SILVERTHORN" }
+        ]
+    },
+    "SCENE_SILVERTHORN_TEMPLE_PRAYER": {
+        id: "SCENE_SILVERTHORN_TEMPLE_PRAYER",
+        location: "silverthorn",
+        background: "landscapes/heart_of_silverthorn.png",
+        text: "You take a quiet moment beneath the stained glass and let the city's noise fall away. For a few breaths, the mission feels less like a command and more like a path you have chosen.",
+        choices: [
+            { text: "Step back into the temple hall", nextScene: "SCENE_SILVERTHORN_TEMPLE" },
+            { text: "Return to City Center", nextScene: "SCENE_HUB_SILVERTHORN" }
+        ]
+    },
+    "SCENE_SILVERTHORN_NOTICE_BOARD": {
+        id: "SCENE_SILVERTHORN_NOTICE_BOARD",
+        location: "silverthorn",
+        background: "landscapes/heart_of_silverthorn.png",
+        text: "A broad notice board stands near the square, layered with militia summons, missing-person sketches, merchant warnings, and handwritten pleas from families with kin somewhere beyond the eastern road.",
+        choices: [
+            { text: "Read the Whisperwood notices", nextScene: "SCENE_SILVERTHORN_NOTICE_WHISPERWOOD" },
+            { text: "Read the city contracts and bounties", nextScene: "SCENE_SILVERTHORN_NOTICE_CONTRACTS" },
+            { text: "Return to City Center", nextScene: "SCENE_HUB_SILVERTHORN" }
+        ]
+    },
+    "SCENE_SILVERTHORN_NOTICE_WHISPERWOOD": {
+        id: "SCENE_SILVERTHORN_NOTICE_WHISPERWOOD",
+        location: "silverthorn",
+        background: "landscapes/heart_of_silverthorn.png",
+        text: "Several notices mention the same pattern: scouts vanish near Whisperwood's edge, hunters return feverish and confused, and an entire patrol failed to report back after entering the treeline under Alderic's banner.",
+        choices: [
+            { text: "Keep reading the board", nextScene: "SCENE_SILVERTHORN_NOTICE_BOARD" },
+            { text: "Head for the city gates", nextScene: "SCENE_SILVERTHORN_GATES" }
+        ]
+    },
+    "SCENE_SILVERTHORN_NOTICE_CONTRACTS": {
+        id: "SCENE_SILVERTHORN_NOTICE_CONTRACTS",
+        location: "silverthorn",
+        background: "landscapes/heart_of_silverthorn.png",
+        text: "Most contracts are routine escort work or rat-clearing jobs, but a few wartime postings hint at what the fuller city game could become later: curfew enforcement, missing smugglers, suspicious alchemists, and sealed district inspections.",
+        choices: [
+            { text: "Return to the notice board", nextScene: "SCENE_SILVERTHORN_NOTICE_BOARD" },
+            { text: "Return to City Center", nextScene: "SCENE_HUB_SILVERTHORN" }
+        ]
+    },
+    "SCENE_SILVERTHORN_GATES": {
+        id: "SCENE_SILVERTHORN_GATES",
+        location: "silverthorn",
+        background: "landscapes/heart_of_silverthorn.png",
+        text: "Silverthorn's eastern gate rises above the road like a fortress wall. Wagons are being inspected before departure, and a tired gate captain keeps one hand on a ledger and the other on the pommel of his sword.",
+        choices: [
+            { text: "Ask the gate captain about the road", nextScene: "SCENE_SILVERTHORN_GATE_CAPTAIN" },
+            { text: "Leave Silverthorn for Shadowmire", nextScene: "SCENE_TRAVEL_SHADOWMIRE" },
+            { text: "Return to City Center", nextScene: "SCENE_HUB_SILVERTHORN" }
+        ]
+    },
+    "SCENE_SILVERTHORN_GATE_CAPTAIN": {
+        id: "SCENE_SILVERTHORN_GATE_CAPTAIN",
+        location: "silverthorn",
+        background: "landscapes/heart_of_silverthorn.png",
+        text: "The captain taps the route on your writ. 'Stay on the road until the fog thickens, then trust your footing more than your eyes. If you see red drifting across the path, cover your mouth and keep moving. No patrol we sent past the old mile-stone has returned unchanged.'",
+        choices: [
+            { text: "Leave Silverthorn now", nextScene: "SCENE_TRAVEL_SHADOWMIRE" },
+            { text: "Return to the gate plaza", nextScene: "SCENE_SILVERTHORN_GATES" }
         ]
     },
     "SCENE_TRAVEL_SHADOWMIRE": {
@@ -831,19 +999,35 @@ export const scenes = {
         id: "SCENE_HUB_SILVERTHORN",
         location: "silverthorn",
         background: "landscapes/heart_of_silverthorn.png",
-        text: "You stand in the heart of Silverthorn. The city bustle continues around you. The market is busy today.",
+        text: "You step out of Alderic's chamber and into the living heart of Silverthorn. Messengers cut through the crowd, temple bells carry over the rooftops, and every street seems to offer another lead, errand, or place to prepare before taking the eastern road.",
         choices: [
             {
-                text: "Visit Alderic",
-                nextScene: "SCENE_BRIEFING"
+                text: "Return to Alderic's chamber",
+                nextScene: "SCENE_ALDERIC_CHAMBER_RETURN"
             },
             {
-                text: "Visit Market",
+                text: "Walk to the market district",
                 nextScene: "SCENE_SILVERTHORN_MARKET"
             },
             {
-                text: "Leave City Gates (Travel to Shadowmire)",
-                nextScene: "SCENE_SHADOWMIRE_ROAD"
+                text: "Visit the General Store",
+                nextScene: "SCENE_SILVERTHORN_GENERAL_STORE"
+            },
+            {
+                text: "Enter The Rusty Blade",
+                nextScene: "SCENE_RUSTY_BLADE_INN"
+            },
+            {
+                text: "Stop at the Temple of Dawn",
+                nextScene: "SCENE_SILVERTHORN_TEMPLE"
+            },
+            {
+                text: "Read the notice board",
+                nextScene: "SCENE_SILVERTHORN_NOTICE_BOARD"
+            },
+            {
+                text: "Head for the city gates",
+                nextScene: "SCENE_SILVERTHORN_GATES"
             }
         ]
     },

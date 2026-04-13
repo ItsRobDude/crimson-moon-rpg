@@ -22,6 +22,8 @@ test.describe('Character Creation UI', () => {
     // Define the character name
     const characterName = 'Jules';
 
+    await page.click('#btn-start-new');
+
     // Fill in the character name
     await page.fill('#cc-name', characterName);
 

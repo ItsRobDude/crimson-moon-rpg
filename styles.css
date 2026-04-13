@@ -27,6 +27,41 @@ body {
     touch-action: manipulation;
 }
 
+body.text-size-compact #narrative-box {
+    font-size: 1rem;
+}
+
+body.text-size-normal #narrative-box {
+    font-size: 1.1rem;
+}
+
+body.text-size-large #narrative-box {
+    font-size: 1.25rem;
+}
+
+body.ui-scale-compact {
+    font-size: 0.92rem;
+}
+
+body.ui-scale-large {
+    font-size: 1.08rem;
+}
+
+body.ui-scale-large button {
+    padding: 8px 14px;
+}
+
+body.hide-log #game-container {
+    grid-template-areas:
+        "header"
+        "viewport";
+    grid-template-columns: 1fr;
+}
+
+body.hide-log #game-log-panel {
+    display: none;
+}
+
 /* Layout */
 #game-container {
     display: grid;
@@ -61,6 +96,11 @@ body {
     font-weight: bold;
     font-size: 1.2rem;
     color: var(--accent-color);
+}
+
+#char-time {
+    color: #b8b8b8;
+    font-style: italic;
 }
 
 .bars {
@@ -394,6 +434,62 @@ button:hover {
     color: var(--accent-color);
     margin-bottom: 20px;
     text-align: center;
+}
+
+.options-section {
+    background: #1a1a1a;
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.options-section h3 {
+    color: var(--accent-color);
+    margin-bottom: 12px;
+}
+
+.option-row,
+.option-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
+.option-row:last-child,
+.option-toggle:last-child {
+    margin-bottom: 0;
+}
+
+.option-row select {
+    min-width: 160px;
+    background: #333;
+    color: white;
+    border: 1px solid #555;
+    padding: 8px;
+}
+
+.option-toggle {
+    justify-content: flex-start;
+}
+
+.options-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.options-actions button {
+    flex: 1;
+    padding: 12px;
+}
+
+.options-status {
+    min-height: 1.4rem;
+    color: #aaa;
+    text-align: center;
+    margin-bottom: 15px;
 }
 
 .form-group {

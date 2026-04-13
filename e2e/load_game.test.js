@@ -10,6 +10,7 @@ test.describe('Game Loading', () => {
     await page.waitForFunction(() => window.gameReady);
 
     const characterName = 'Tester';
+    await page.click('#btn-start-new');
     await page.fill('#cc-name', characterName);
     await page.click('#btn-start-game');
 
@@ -22,9 +23,9 @@ test.describe('Game Loading', () => {
     await page.reload();
     await page.waitForFunction(() => window.gameReady);
 
-    // Verify that the character creation modal is not visible
-    const modal = await page.locator('#char-creation-modal');
-    await expect(modal).toHaveClass(/hidden/);
+    await expect(page.locator('#start-menu')).not.toHaveClass(/hidden/);
+    await expect(page.locator('#btn-start-continue')).toBeEnabled();
+    await page.click('#btn-start-continue');
 
     // Verify that the character name is correctly loaded and displayed
     const loadedCharNameElement = await page.waitForSelector('#char-name');

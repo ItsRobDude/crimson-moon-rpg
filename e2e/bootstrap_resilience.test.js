@@ -9,21 +9,22 @@ test.describe('Game Bootstrap & Resilience', () => {
      // but for these specific tests we manage state explicitly.
   });
 
-  test('Clean load should show character creation', async ({ page }) => {
+  test('Clean load should show the main menu', async ({ page }) => {
     await page.goto('http://localhost:8000');
     await page.evaluate(() => localStorage.removeItem('crimson_moon_save'));
     await page.reload();
     await page.waitForFunction(() => window.gameReady);
 
-    // Check for CC modal
-    await expect(page.locator('#char-creation-modal')).not.toHaveClass(/hidden/);
+    await expect(page.locator('#start-menu')).not.toHaveClass(/hidden/);
+    await expect(page.locator('#btn-start-continue')).toBeDisabled();
   });
 
-  test('Valid save should load game', async ({ page }) => {
+  test('Valid save should be available from Continue', async ({ page }) => {
     await page.goto('http://localhost:8000');
     await page.waitForFunction(() => window.gameReady);
 
     // Create a character to generate a save
+    await page.click('#btn-start-new');
     await page.fill('#cc-name', 'BootstrapTester');
     // Ensure we select valid options just in case defaults fail
     await page.click('#btn-start-game');
@@ -35,12 +36,15 @@ test.describe('Game Bootstrap & Resilience', () => {
     await page.reload();
     await page.waitForFunction(() => window.gameReady);
 
-    // Should be back in game, not CC
+    await expect(page.locator('#start-menu')).not.toHaveClass(/hidden/);
+    await expect(page.locator('#btn-start-continue')).toBeEnabled();
+    await page.click('#btn-start-continue');
+
     await expect(page.locator('#char-name')).toHaveText('BootstrapTester');
     await expect(page.locator('#char-creation-modal')).toHaveClass(/hidden/);
   });
 
-  test('Corrupted save should trigger fallback to character creation', async ({ page }) => {
+  test('Corrupted save should fall back to the main menu', async ({ page }) => {
     await page.goto('http://localhost:8000');
     await page.waitForFunction(() => window.gameReady);
 
@@ -52,9 +56,8 @@ test.describe('Game Bootstrap & Resilience', () => {
     await page.reload();
     await page.waitForFunction(() => window.gameReady);
 
-    // Console should show error (optional check)
-    // Should be in CC
-    await expect(page.locator('#char-creation-modal')).not.toHaveClass(/hidden/);
+    await expect(page.locator('#start-menu')).not.toHaveClass(/hidden/);
+    await expect(page.locator('#btn-start-continue')).toBeDisabled();
 
     // Verify save was cleaned up
     const saved = await page.evaluate(() => localStorage.getItem('crimson_moon_save'));

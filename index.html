@@ -23,6 +23,7 @@
                 <span id="char-level">Lvl 1</span>
                 <span id="char-class">Class</span>
                 <span id="char-ac">AC 10</span>
+                <span id="char-time">Day 1 - Midday</span>
             </div>
             <div class="stat-group bars">
                 <div class="bar-container hp-container">
@@ -137,8 +138,11 @@
             <h1 style="font-family: 'Cinzel', serif; color: var(--accent-color); font-size: 2.5rem; margin-bottom: 30px; text-shadow: 2px 2px 4px black;">Prophecies: Crimson Moon</h1>
 
             <button id="btn-start-continue" style="width: 100%; margin-bottom: 15px; padding: 15px; font-size: 1.2rem;">Continue</button>
-            <button id="btn-start-new" style="width: 100%; margin-bottom: 15px; padding: 15px; font-size: 1.2rem;">New Game</button>
+            <button id="btn-start-new" style="width: 100%; margin-bottom: 15px; padding: 15px; font-size: 1.2rem;">Start</button>
             <button id="btn-start-options" style="width: 100%; margin-bottom: 15px; padding: 15px; font-size: 1.2rem;">Options</button>
+            <button id="btn-start-exit" style="width: 100%; margin-bottom: 15px; padding: 15px; font-size: 1.2rem;">Exit</button>
+
+            <p id="start-menu-status" style="min-height: 1.4rem; color: #aaa; font-style: italic; margin-top: 8px;"></p>
 
             <p style="color: #666; font-style: italic; margin-top: 20px;">Version 0.1.0 (Demo)</p>
         </div>
@@ -277,9 +281,58 @@
             <h2>Game Menu</h2>
             <button id="btn-save">Save Game</button>
             <button id="btn-load">Load Game</button>
+            <button id="btn-options">Options</button>
             <button id="btn-tutorial">Help / Tutorial</button>
             <button id="btn-debug-toggle">Toggle Debug</button>
             <button class="close-modal">Close</button>
+        </div>
+    </div>
+
+    <div id="options-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>Options</h2>
+
+            <div class="options-section">
+                <h3>Display Mode</h3>
+                <label class="option-row">
+                    <span>Screen Mode</span>
+                    <select id="opt-display-mode">
+                        <option value="windowed">Windowed</option>
+                        <option value="fullscreen">Fullscreen</option>
+                    </select>
+                </label>
+            </div>
+
+            <div class="options-section">
+                <h3>Text & UI</h3>
+                <label class="option-row">
+                    <span>Narrative Text Size</span>
+                    <select id="opt-text-size">
+                        <option value="compact">Compact</option>
+                        <option value="normal">Normal</option>
+                        <option value="large">Large</option>
+                    </select>
+                </label>
+                <label class="option-row">
+                    <span>UI Scale</span>
+                    <select id="opt-ui-scale">
+                        <option value="compact">Compact</option>
+                        <option value="normal">Normal</option>
+                        <option value="large">Large</option>
+                    </select>
+                </label>
+                <label class="option-toggle">
+                    <input type="checkbox" id="opt-show-log" checked>
+                    <span>Show game log panel</span>
+                </label>
+            </div>
+
+            <p id="options-status" class="options-status"></p>
+
+            <div class="options-actions">
+                <button id="btn-options-apply">Apply</button>
+                <button class="close-modal">Close</button>
+            </div>
         </div>
     </div>
 
