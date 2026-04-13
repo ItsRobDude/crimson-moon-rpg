@@ -134,6 +134,8 @@ Start here before editing:
 - `data/scenes.js`
   - authored scene definitions
   - canonical story text and choices
+- `data/backgrounds.js`
+  - background packages for skills, tools, and languages
 - `data/storyTimeline.js`
   - act/event progression model
   - scene-triggered story advancement

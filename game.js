@@ -1,5 +1,6 @@
 import { races } from './data/races.js';
 import { classes, featureDefinitions } from './data/classes.js';
+import { backgrounds } from './data/backgrounds.js';
 import { items } from './data/items.js';
 import { quests } from './data/quests.js';
 import { scenes } from './data/scenes.js';
@@ -13,7 +14,7 @@ import { companions } from './data/companions.js';
 import { factions } from './data/factions.js';
 import { gameState, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, unequipItem, syncPartyLevels, saveGame, loadGame as loadGameData, removeItem, advanceTime, getTimelineLabel, getTimeSlotLabel, getSceneMemory, setSceneMemory, performShortRest as gsPerformShortRest, performLongRest as gsPerformLongRest, syncCharacterState } from './data/gameState.js';
 import { CANONICAL_START_SCENE, ensureStoryState, getLocationStoryRequirement, getLocationUnlockHint, meetsStoryRequirement, storyActs, storyEvents, syncStoryStateForScene } from './data/storyTimeline.js';
-import { addEffectToActor, removeEffectFromActor } from './data/mechanics.js';
+import { addEffectToActor, getBonusSkillChoiceCount, getRaceTraitDefinitions, removeEffectFromActor } from './data/mechanics.js';
 import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod, generateScaledStats, getPlayerAC } from './rules.js';
 import { initCombatSystem, startCombat, performAttack, performCastSpell, performAbility, performDefend, performFlee, performEndTurn, performActionSurge, performCunningAction, uiHooks } from './combat.js';
 
@@ -121,6 +122,7 @@ export function initUI() {
 let ccState = {
     baseStats: { STR: 12, DEX: 12, CON: 12, INT: 12, WIS: 12, CHA: 12 },
     chosenSkills: [],
+    chosenBonusSkills: [],
     chosenSpells: []
 };
 
@@ -270,6 +272,7 @@ function resetCharacterCreationState() {
     ccState = {
         baseStats: { STR: 15, DEX: 14, CON: 13, INT: 12, WIS: 10, CHA: 8 },
         chosenSkills: [],
+        chosenBonusSkills: [],
         chosenSpells: []
     };
 }
@@ -706,8 +709,10 @@ export function showCharacterCreation() {
     resetCharacterCreationState();
     const raceSelect = document.getElementById('cc-race');
     const classSelect = document.getElementById('cc-class');
+    const backgroundSelect = document.getElementById('cc-background');
     raceSelect.innerHTML = "";
     classSelect.innerHTML = "";
+    backgroundSelect.innerHTML = "";
     for (const [key, race] of Object.entries(races)) {
         const opt = document.createElement('option');
         opt.value = key;
@@ -720,13 +725,23 @@ export function showCharacterCreation() {
         opt.innerText = cls.name;
         classSelect.appendChild(opt);
     }
+    for (const [key, background] of Object.entries(backgrounds)) {
+        const opt = document.createElement('option');
+        opt.value = key;
+        opt.innerText = background.name;
+        backgroundSelect.appendChild(opt);
+    }
     renderAbilityScoreUI();
-    raceSelect.onchange = updateCCPreview;
+    raceSelect.onchange = () => {
+        ccState.chosenBonusSkills = [];
+        updateCCPreview();
+    };
     classSelect.onchange = () => {
         ccState.chosenSkills = [];
         ccState.chosenSpells = [];
         updateCCPreview();
     };
+    backgroundSelect.onchange = updateCCPreview;
     updateCCPreview();
     document.getElementById('char-creation-modal').classList.remove('hidden');
 }
@@ -760,20 +775,31 @@ function renderAbilityScoreUI() {
     });
 }
 
+function formatChoiceLabel(value) {
+    return String(value)
+        .split('_')
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ');
+}
+
 function updateCCPreview() {
     const raceKey = document.getElementById('cc-race').value;
     const classKey = document.getElementById('cc-class').value;
+    const backgroundKey = document.getElementById('cc-background').value;
     const race = races[raceKey];
     const cls = classes[classKey];
+    const background = backgrounds[backgroundKey];
     document.getElementById('cc-race-desc').innerText = race.description;
     document.getElementById('cc-class-desc').innerText = cls.description;
+    document.getElementById('cc-background-desc').innerText = background.description;
     const finalStats = { ...ccState.baseStats };
     if (race.abilityBonuses) {
         for (const [stat, bonus] of Object.entries(race.abilityBonuses)) {
             if (finalStats[stat]) finalStats[stat] += bonus;
         }
     }
-    renderSkillChoices(cls);
+    renderSkillChoices(cls, background);
+    renderBonusSkillChoices(raceKey, background);
     renderSpellChoices(cls);
     const preview = document.getElementById('cc-preview-content');
     preview.innerHTML = '';
@@ -790,10 +816,37 @@ function updateCCPreview() {
     if (classKey === 'rogue') ac = 11 + getAbilityMod(finalStats.DEX);
     preview.innerHTML += `<div class="preview-stat highlight"><span>HP</span> <span>${hp}</span></div>`;
     preview.innerHTML += `<div class="preview-stat"><span>AC</span> <span>${ac}</span></div>`;
+    preview.innerHTML += `<div class="preview-stat highlight"><span>Background</span> <span>${background.name}</span></div>`;
     if (ccState.chosenSkills.length > 0) {
-        preview.innerHTML += `<div class="preview-stat highlight"><span>Skills</span></div>`;
-        ccState.chosenSkills.forEach(s => {
-             preview.innerHTML += `<div class="preview-stat" style="padding-left:10px; font-size:0.8em;">${s}</div>`;
+        preview.innerHTML += `<div class="preview-stat highlight"><span>Class Skills</span></div>`;
+        ccState.chosenSkills.forEach((s) => {
+             preview.innerHTML += `<div class="preview-stat" style="padding-left:10px; font-size:0.8em;">${formatChoiceLabel(s)}</div>`;
+        });
+    }
+    const allSkillProficiencies = [...new Set([...(background.skillProficiencies || []), ...ccState.chosenSkills, ...ccState.chosenBonusSkills])];
+    if (allSkillProficiencies.length > 0) {
+        preview.innerHTML += `<div class="preview-stat highlight"><span>Skill Proficiencies</span></div>`;
+        allSkillProficiencies.forEach((skill) => {
+            preview.innerHTML += `<div class="preview-stat" style="padding-left:10px; font-size:0.8em;">${formatChoiceLabel(skill)}</div>`;
+        });
+    }
+    if ((background.toolProficiencies || []).length > 0) {
+        preview.innerHTML += `<div class="preview-stat highlight"><span>Tools</span></div>`;
+        background.toolProficiencies.forEach((tool) => {
+            preview.innerHTML += `<div class="preview-stat" style="padding-left:10px; font-size:0.8em;">${formatChoiceLabel(tool)}</div>`;
+        });
+    }
+    if ((background.languages || []).length > 0) {
+        preview.innerHTML += `<div class="preview-stat highlight"><span>Languages</span></div>`;
+        background.languages.forEach((language) => {
+            preview.innerHTML += `<div class="preview-stat" style="padding-left:10px; font-size:0.8em;">${formatChoiceLabel(language)}</div>`;
+        });
+    }
+    const traitDefinitions = getRaceTraitDefinitions(raceKey);
+    if (traitDefinitions.length > 0) {
+        preview.innerHTML += `<div class="preview-stat highlight"><span>Traits</span></div>`;
+        traitDefinitions.forEach((trait) => {
+            preview.innerHTML += `<div class="preview-stat" style="padding-left:10px; font-size:0.8em;">${trait.name}</div>`;
         });
     }
     if (ccState.chosenSpells.length > 0) {
@@ -805,13 +858,16 @@ function updateCCPreview() {
     }
 }
 
-function renderSkillChoices(cls) {
+function renderSkillChoices(cls, background) {
     const container = document.getElementById('cc-skills-container');
-    const currentSkills = ccState.chosenSkills;
+    const backgroundSkills = new Set((background?.skillProficiencies || []).map((skill) => String(skill).toLowerCase()));
+    const availableSkills = (cls.skillProficiencies || []).filter((skill) => !backgroundSkills.has(skill));
+    const currentSkills = ccState.chosenSkills.filter((skill) => availableSkills.includes(skill));
+    ccState.chosenSkills = [...currentSkills];
     container.innerHTML = '';
-    const max = 2;
+    const max = cls.skillChoices || 2;
     document.getElementById('cc-skill-count').innerText = max;
-    cls.skillProficiencies.forEach(skill => {
+    availableSkills.forEach(skill => {
         const div = document.createElement('div');
         div.className = 'checkbox-item';
         const label = document.createElement('label');
@@ -832,7 +888,55 @@ function renderSkillChoices(cls) {
             updateCCPreview();
         };
         label.appendChild(input);
-        label.appendChild(document.createTextNode(" " + skill.charAt(0).toUpperCase() + skill.slice(1)));
+        label.appendChild(document.createTextNode(` ${formatChoiceLabel(skill)}`));
+        div.appendChild(label);
+        container.appendChild(div);
+    });
+}
+
+function renderBonusSkillChoices(raceId, background) {
+    const section = document.getElementById('cc-bonus-skills-section');
+    const container = document.getElementById('cc-bonus-skills-container');
+    const max = getBonusSkillChoiceCount(raceId);
+    const grantedSkills = new Set([...(background?.skillProficiencies || []), ...(ccState.chosenSkills || [])]);
+
+    container.innerHTML = '';
+    document.getElementById('cc-bonus-skill-count').innerText = max;
+
+    if (max <= 0) {
+        section.classList.add('hidden');
+        ccState.chosenBonusSkills = [];
+        return;
+    }
+
+    section.classList.remove('hidden');
+    const availableSkills = [...new Set(Object.values(classes).flatMap(entry => entry.skillProficiencies || []))]
+        .filter(skill => !grantedSkills.has(skill));
+
+    ccState.chosenBonusSkills = ccState.chosenBonusSkills.filter((skill) => availableSkills.includes(skill)).slice(0, max);
+
+    availableSkills.forEach((skill) => {
+        const div = document.createElement('div');
+        div.className = 'checkbox-item';
+        const label = document.createElement('label');
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.value = skill;
+        input.checked = ccState.chosenBonusSkills.includes(skill);
+        input.onchange = (e) => {
+            if (e.target.checked) {
+                if (ccState.chosenBonusSkills.length < max) {
+                    ccState.chosenBonusSkills.push(skill);
+                } else {
+                    e.target.checked = false;
+                }
+            } else {
+                ccState.chosenBonusSkills = ccState.chosenBonusSkills.filter((entry) => entry !== skill);
+            }
+            updateCCPreview();
+        };
+        label.appendChild(input);
+        label.appendChild(document.createTextNode(` ${formatChoiceLabel(skill)}`));
         div.appendChild(label);
         container.appendChild(div);
     });
@@ -888,7 +992,10 @@ function finishCharacterCreation() {
     const name = document.getElementById('cc-name').value || "Traveler";
     const raceKey = document.getElementById('cc-race').value;
     const classKey = document.getElementById('cc-class').value;
+    const backgroundKey = document.getElementById('cc-background').value;
     const cls = classes[classKey];
+    const background = backgrounds[backgroundKey];
+    const bonusSkillChoices = getBonusSkillChoiceCount(raceKey);
 
     // 1) Stat uniqueness check
     const stats = Object.values(ccState.baseStats);
@@ -900,8 +1007,18 @@ function finishCharacterCreation() {
 
     // 2) Auto-pick skills if none selected (helps Playwright + forgetful players)
     if (ccState.chosenSkills.length === 0 && cls.skillProficiencies?.length) {
-        const max = 2; // or derive from class data if you add that later
-        ccState.chosenSkills = cls.skillProficiencies.slice(0, max);
+        const max = cls.skillChoices || 2;
+        const availableClassSkills = cls.skillProficiencies.filter((skill) => !(background?.skillProficiencies || []).includes(skill));
+        ccState.chosenSkills = availableClassSkills.slice(0, max);
+    }
+
+    if (bonusSkillChoices > 0 && ccState.chosenBonusSkills.length === 0) {
+        const backgroundSkills = background?.skillProficiencies || [];
+        const unavailable = new Set([...(ccState.chosenSkills || []), ...backgroundSkills]);
+        const fallbackSkills = [...new Set(Object.values(classes).flatMap(entry => entry.skillProficiencies || []))]
+            .filter((skill) => !unavailable.has(skill))
+            .slice(0, bonusSkillChoices);
+        ccState.chosenBonusSkills = fallbackSkills;
     }
 
     // 3) Auto-pick spells for casters if none selected
@@ -922,8 +1039,9 @@ function finishCharacterCreation() {
         name,
         raceKey,
         classKey,
+        backgroundKey,
         ccState.baseStats,
-        ccState.chosenSkills,
+        [...ccState.chosenSkills, ...ccState.chosenBonusSkills],
         ccState.chosenSpells
     );
 
@@ -1697,7 +1815,9 @@ function renderPartyCard(p, id, activeId) {
 function updateStatsUI() {
     const p = gameState.player;
     document.getElementById('char-name').innerText = p.name;
-    document.getElementById('char-class').innerText = p.classId ? classes[p.classId].name : "Class";
+    const classLabel = p.classId ? classes[p.classId].name : "Class";
+    const backgroundLabel = p.backgroundId && backgrounds[p.backgroundId] ? backgrounds[p.backgroundId].name : '';
+    document.getElementById('char-class').innerText = backgroundLabel ? `${classLabel} / ${backgroundLabel}` : classLabel;
 
     // Level Up Indicator
     const levelEl = document.getElementById('char-level');

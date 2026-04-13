@@ -105,7 +105,8 @@ export function getSkillBonus(character, skillName) {
     const ability = getSkillAbility(normalized);
     let bonus = snapshot.modifiers[ability] || 0;
 
-    if ((character.skills || []).includes(normalized)) {
+    const skillProficiencies = character.proficiencies?.skills || character.skills || [];
+    if (skillProficiencies.includes(normalized)) {
         bonus += snapshot.proficiencyBonus;
     }
 
@@ -162,17 +163,18 @@ export function rollSkillCheck(character, skillName, advantage = false) {
     };
 }
 
-export function rollSavingThrow(character, abilityName) {
+export function rollSavingThrow(character, abilityName, options = {}) {
     ensureActorMechanics(character);
     const snapshot = getDerivedActorState(character);
     let bonus = snapshot.modifiers[abilityName] || 0;
-    if ((character.mechanics?.saveProficiencies || []).includes(abilityName)) {
+    const saveProficiencies = character.proficiencies?.saves || character.mechanics?.saveProficiencies || [];
+    if (saveProficiencies.includes(abilityName)) {
         bonus += snapshot.proficiencyBonus;
     }
     const effectModifiers = getEffectModifiers(character, {
         target: 'saving_throw',
         ability: abilityName,
-        tags: []
+        tags: options.tags || []
     });
     bonus += effectModifiers.flat;
 
@@ -229,13 +231,13 @@ export function rollAttack(character, modStat, proficiency, options = {}) {
     const hasDisadvantage = effectModifiers.disadvantage || resolvedOptions.disadvantage;
     const hasAdvantage = effectModifiers.advantage || resolvedOptions.advantage;
 
-    if ((advantage || hasAdvantage) && !hasDisadvantage) {
+    if (hasAdvantage && !hasDisadvantage) {
         finalRoll = Math.max(roll1, roll2);
         note += " (Advantage)";
-    } else if (hasDisadvantage && !(advantage || hasAdvantage)) {
+    } else if (hasDisadvantage && !hasAdvantage) {
         finalRoll = Math.min(roll1, roll2);
         note += " (Disadvantage)";
-    } else if ((advantage || hasAdvantage) && hasDisadvantage) {
+    } else if (hasAdvantage && hasDisadvantage) {
         finalRoll = roll1; // Cancel
     }
 

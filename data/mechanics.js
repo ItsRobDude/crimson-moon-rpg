@@ -1,4 +1,6 @@
 import { items } from './items.js';
+import { races } from './races.js';
+import { classes } from './classes.js';
 
 export const ABILITY_KEYS = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
 
@@ -31,6 +33,76 @@ export const SKILL_TO_ABILITY = {
 };
 
 export const SOCIAL_SKILLS = ['deception', 'insight', 'intimidation', 'performance', 'persuasion'];
+
+export const traitDefinitions = {
+    versatile: {
+        id: 'versatile',
+        name: 'Versatile',
+        description: 'Humans adapt quickly and bring an extra trained skill into danger.',
+        bonusSkillChoices: 1
+    },
+    darkvision: {
+        id: 'darkvision',
+        name: 'Darkvision',
+        description: 'You can see in darkness out to 60 feet.',
+        senses: { darkvision: 60 }
+    },
+    fey_ancestry: {
+        id: 'fey_ancestry',
+        name: 'Fey Ancestry',
+        description: 'Advantage on saves against being charmed, and magic can\'t put you to sleep.',
+        modifiers: [
+            { type: 'advantage', target: 'saving_throw', tags: ['charm'] }
+        ],
+        conditionImmunities: ['magical_sleep']
+    },
+    dwarven_resilience: {
+        id: 'dwarven_resilience',
+        name: 'Dwarven Resilience',
+        description: 'Advantage on saving throws against poison, and resistance to poison damage.',
+        modifiers: [
+            { type: 'advantage', target: 'saving_throw', tags: ['poison'] }
+        ],
+        damageResistances: ['poison']
+    }
+};
+
+export const PROFICIENCY_KEYS = ['skills', 'saves', 'weapons', 'armor', 'tools', 'languages'];
+
+export function createProficiencyState(seed = {}) {
+    return {
+        skills: [...new Set((seed.skills || []).map((skill) => String(skill).toLowerCase()))],
+        saves: [...new Set((seed.saves || []).map((save) => String(save).toUpperCase()))],
+        weapons: [...new Set(seed.weapons || [])],
+        armor: [...new Set(seed.armor || [])],
+        tools: [...new Set(seed.tools || [])],
+        languages: [...new Set(seed.languages || [])]
+    };
+}
+
+export function mergeProficiencyStates(...states) {
+    const merged = createProficiencyState();
+    states.filter(Boolean).forEach((state) => {
+        PROFICIENCY_KEYS.forEach((key) => {
+            merged[key] = [...new Set([...(merged[key] || []), ...((state[key] || []))])];
+        });
+    });
+    return merged;
+}
+
+export function getTraitDefinition(traitId) {
+    return traitDefinitions[traitId] || null;
+}
+
+export function getRaceTraitDefinitions(raceId) {
+    const race = races[raceId];
+    if (!race?.traits) return [];
+    return race.traits.map(getTraitDefinition).filter(Boolean);
+}
+
+export function getBonusSkillChoiceCount(raceId) {
+    return getRaceTraitDefinitions(raceId).reduce((sum, trait) => sum + (trait.bonusSkillChoices || 0), 0);
+}
 
 export const effectDefinitions = {
     poisoned: {
@@ -153,9 +225,11 @@ export function createDefaultMechanicsState(baseAbilities = null, options = {}) 
         baseSpeed: options.baseSpeed || 30,
         size: options.size || 'medium',
         saveProficiencies: [...(options.saveProficiencies || [])],
+        proficiencies: createProficiencyState(options.proficiencies || { saves: options.saveProficiencies || [] }),
         activeEffects: [],
         concentrationEffectId: null,
-        temporaryHp: options.temporaryHp || 0
+        temporaryHp: options.temporaryHp || 0,
+        bonusTraits: [...(options.bonusTraits || [])]
     };
 }
 
@@ -178,12 +252,41 @@ export function ensureActorMechanics(actor, options = {}) {
     if (!actor.mechanics.activeEffects) {
         actor.mechanics.activeEffects = [];
     }
+    if (!actor.mechanics.proficiencies) {
+        actor.mechanics.proficiencies = createProficiencyState(actor.proficiencies || { saves: actor.mechanics.saveProficiencies || [] });
+    } else {
+        actor.mechanics.proficiencies = createProficiencyState(mergeProficiencyStates(actor.proficiencies || {}, actor.mechanics.proficiencies));
+    }
     if (!actor.mechanics.saveProficiencies || actor.mechanics.saveProficiencies.length === 0) {
         const fallback = CLASS_SAVE_PROFICIENCIES[actor.classId] || [];
         actor.mechanics.saveProficiencies = [...fallback];
     }
+    actor.mechanics.proficiencies.skills = [...new Set([
+        ...(actor.mechanics.proficiencies.skills || []),
+        ...((actor.skills || []).map((skill) => String(skill).toLowerCase()))
+    ])];
+    if (actor.classId) {
+        const cls = classes[actor.classId];
+        actor.mechanics.proficiencies.weapons = [...new Set([
+            ...(actor.mechanics.proficiencies.weapons || []),
+            ...((actor.proficiencies?.weapons || [])),
+            ...((cls?.weaponProficiencies || []))
+        ])];
+        actor.mechanics.proficiencies.armor = [...new Set([
+            ...(actor.mechanics.proficiencies.armor || []),
+            ...((actor.proficiencies?.armor || [])),
+            ...((cls?.armorProficiencies || []))
+        ])];
+    }
+    actor.mechanics.proficiencies.saves = [...new Set([
+        ...(actor.mechanics.proficiencies.saves || []),
+        ...(actor.mechanics.saveProficiencies || [])
+    ])];
     if (!actor.mechanics.baseSpeed) {
         actor.mechanics.baseSpeed = options.baseSpeed || actor.speed || 30;
+    }
+    if (!actor.mechanics.bonusTraits) {
+        actor.mechanics.bonusTraits = [];
     }
 
     if (!actor.statusEffects) {
@@ -193,6 +296,17 @@ export function ensureActorMechanics(actor, options = {}) {
     syncLegacyStatusEffects(actor);
     applyDerivedState(actor);
     return actor;
+}
+
+export function getActorTraitDefinitions(actor) {
+    ensureActorMechanics(actor);
+    const racialTraits = getRaceTraitDefinitions(actor.raceId);
+    const bonusTraits = (actor.mechanics.bonusTraits || []).map(getTraitDefinition).filter(Boolean);
+    const traitMap = new Map();
+    [...racialTraits, ...bonusTraits].forEach((trait) => {
+        traitMap.set(trait.id, trait);
+    });
+    return [...traitMap.values()];
 }
 
 export function syncLegacyStatusEffects(actor) {
@@ -338,6 +452,29 @@ export function getEffectModifiers(actor, context = {}) {
         });
     });
 
+    getActorTraitDefinitions(actor).forEach((trait) => {
+        (trait.modifiers || []).forEach((modifier) => {
+            if (!modifierApplies(modifier, context)) return;
+
+            if (modifier.type === 'flat_bonus') {
+                result.flat += modifier.value || 0;
+                result.notes.push(`${trait.name}: ${modifier.value >= 0 ? '+' : ''}${modifier.value}`);
+            } else if (modifier.type === 'dice_bonus' && modifier.dice) {
+                result.dice.push(modifier.dice);
+                result.notes.push(`${trait.name}: ${modifier.dice}`);
+            } else if (modifier.type === 'advantage') {
+                result.advantage = true;
+                result.notes.push(`${trait.name}: advantage`);
+            } else if (modifier.type === 'disadvantage') {
+                result.disadvantage = true;
+                result.notes.push(`${trait.name}: disadvantage`);
+            } else if (modifier.type === 'multiplier') {
+                result.multipliers.push(modifier.value || 1);
+                result.notes.push(`${trait.name}: x${modifier.value}`);
+            }
+        });
+    });
+
     return result;
 }
 
@@ -359,6 +496,7 @@ export function getAbilityScore(actor, ability) {
 
 export function getDerivedActorState(actor) {
     ensureActorMechanics(actor);
+    const traits = getActorTraitDefinitions(actor);
 
     const abilities = {};
     const modifiers = {};
@@ -404,16 +542,36 @@ export function getDerivedActorState(actor) {
 
     const spellcastingAbility = getSpellcastingAbility(actor.classId);
     const spellSaveDC = 8 + proficiencyBonus + modifiers[spellcastingAbility] + (actor.mechanics.permanentStatBonuses.spellSaveDC || 0);
+    const senses = {};
+    const damageResistances = [];
+    const conditionImmunities = [];
+
+    traits.forEach((trait) => {
+        Object.entries(trait.senses || {}).forEach(([sense, distance]) => {
+            senses[sense] = Math.max(senses[sense] || 0, distance);
+        });
+        (trait.damageResistances || []).forEach((resistance) => {
+            if (!damageResistances.includes(resistance)) damageResistances.push(resistance);
+        });
+        (trait.conditionImmunities || []).forEach((condition) => {
+            if (!conditionImmunities.includes(condition)) conditionImmunities.push(condition);
+        });
+    });
 
     return {
         abilities,
         modifiers,
         proficiencyBonus,
+        proficiencies: createProficiencyState(actor.mechanics.proficiencies),
+        traits: traits.map((trait) => ({ id: trait.id, name: trait.name, description: trait.description })),
+        senses,
         speed,
         ac,
         initiativeModifier,
         spellcastingAbility,
         spellSaveDC,
+        resistances: damageResistances,
+        conditionImmunities,
         conditions: actor.mechanics.activeEffects.map(effect => effect.id),
         temporaryHp: actor.mechanics.temporaryHp || 0,
         breakdowns: {
@@ -436,6 +594,11 @@ export function applyDerivedState(actor) {
     actor.abilities = { ...derived.abilities };
     actor.modifiers = { ...derived.modifiers };
     actor.proficiencyBonus = derived.proficiencyBonus;
+    actor.proficiencies = createProficiencyState(derived.proficiencies);
+    actor.traits = [...derived.traits];
+    actor.senses = { ...derived.senses };
+    actor.resistances = [...derived.resistances];
+    actor.conditionImmunities = [...derived.conditionImmunities];
     actor.speed = derived.speed;
     return derived;
 }

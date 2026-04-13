@@ -1,5 +1,6 @@
 import { races } from './races.js';
 import { classes } from './classes.js';
+import { backgrounds } from './backgrounds.js';
 import { items } from './items.js';
 import { quests } from './quests.js';
 import { scenes } from './scenes.js';
@@ -8,7 +9,7 @@ import { companions } from './companions.js';
 import { factions } from './factions.js';
 import { rollDiceExpression, rollDie } from '../rules.js';
 import { CANONICAL_START_SCENE, createDefaultStoryState, ensureStoryState } from './storyTimeline.js';
-import { addEffectToActor, applyDerivedState, createDefaultMechanicsState, ensureActorMechanics, getDerivedActorState, getAbilityMod, removeEffectFromActor, syncLegacyStatusEffects, tickActorEffects } from './mechanics.js';
+import { addEffectToActor, applyDerivedState, createDefaultMechanicsState, createProficiencyState, ensureActorMechanics, getDerivedActorState, getAbilityMod, mergeProficiencyStates, removeEffectFromActor, syncLegacyStatusEffects, tickActorEffects } from './mechanics.js';
 
 // This object serves as a blueprint for a clean game state.
 const defaultGameState = {
@@ -16,6 +17,7 @@ const defaultGameState = {
         name: "",
         raceId: "",
         classId: "",
+        backgroundId: "",
         subclassId: null,
         level: 1,
         xp: 0,
@@ -37,6 +39,7 @@ const defaultGameState = {
         inventory: [],
         gold: 0,
         statusEffects: [],
+        proficiencies: createProficiencyState(),
         classResources: {},
         mechanics: createDefaultMechanicsState()
     },
@@ -153,15 +156,38 @@ export function syncCharacterState(characterId = 'player') {
     return null;
 }
 
-export function initializeNewGame(name, raceId, classId, baseStats, chosenSkills, chosenSpells) {
+function buildActorProficiencies({ cls = null, background = null, chosenSkills = [], languages = [] } = {}) {
+    return mergeProficiencyStates(
+        createProficiencyState({
+            saves: cls?.saveProficiencies || [],
+            weapons: cls?.weaponProficiencies || [],
+            armor: cls?.armorProficiencies || []
+        }),
+        createProficiencyState({
+            skills: chosenSkills.map((skill) => String(skill).toLowerCase()),
+            tools: background?.toolProficiencies || [],
+            languages: [...(background?.languages || []), ...languages]
+        })
+    );
+}
+
+export function initializeNewGame(name, raceId, classId, backgroundId, baseStats, chosenSkills, chosenSpells) {
     // First, reset the game state to ensure no data from a previous game persists.
     resetGameState();
     const race = races[raceId];
     const cls = classes[classId];
+    const background = backgrounds[backgroundId];
+    const skillProficiencies = [...new Set([...(chosenSkills || []), ...(background?.skillProficiencies || [])].map((skill) => String(skill).toLowerCase()))];
+    const proficiencies = buildActorProficiencies({
+        cls,
+        background,
+        chosenSkills: skillProficiencies
+    });
 
     const abilities = { ...baseStats };
     const mechanics = createDefaultMechanicsState(baseStats, {
         saveProficiencies: cls ? (cls.saveProficiencies || []) : [],
+        proficiencies,
         baseSpeed: 30
     });
 
@@ -177,9 +203,11 @@ export function initializeNewGame(name, raceId, classId, baseStats, chosenSkills
     gameState.player.name = name;
     gameState.player.raceId = raceId;
     gameState.player.classId = classId;
+    gameState.player.backgroundId = backgroundId;
     gameState.player.subclassId = null;
     gameState.player.abilities = abilities;
     gameState.player.mechanics = mechanics;
+    gameState.player.proficiencies = createProficiencyState(proficiencies);
     for (const stat of Object.keys(abilities)) {
         gameState.player.modifiers[stat] = getAbilityMod(abilities[stat]);
     }
@@ -192,7 +220,7 @@ export function initializeNewGame(name, raceId, classId, baseStats, chosenSkills
     gameState.player.maxHp = cls.hitDie + conMod;
     gameState.player.hp = gameState.player.maxHp;
 
-    gameState.player.skills = chosenSkills && chosenSkills.length > 0 ? chosenSkills : (cls.proficiencies || []);
+    gameState.player.skills = skillProficiencies;
     gameState.player.knownSpells = chosenSpells || [];
 
     // Initialize Resources
@@ -259,6 +287,10 @@ export function addCompanion(companionId) {
         const compDef = companions[companionId];
         const race = races[compDef.raceId];
         const cls = classes[compDef.classId];
+        const proficiencies = buildActorProficiencies({
+            cls,
+            chosenSkills: compDef.skills || []
+        });
 
         const stats = { ...compDef.baseStats };
         if (race.abilityBonuses) {
@@ -287,11 +319,13 @@ export function addCompanion(companionId) {
             spellSlots: {},
             currentSlots: {},
             knownSpells: [], // Needs definition
+            proficiencies: createProficiencyState(proficiencies),
             portrait: compDef.portrait,
             subclassId: null,
             statusEffects: [],
             mechanics: createDefaultMechanicsState(compDef.baseStats, {
                 saveProficiencies: cls ? (cls.saveProficiencies || []) : [],
+                proficiencies,
                 baseSpeed: 30
             })
         };

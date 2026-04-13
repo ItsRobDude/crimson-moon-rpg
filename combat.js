@@ -5,7 +5,6 @@ import { scenes } from './data/scenes.js';
 import { npcs } from './data/npcs.js';
 import { enemies } from './data/enemies.js';
 import { items } from './data/items.js';
-import { classes } from './data/classes.js';
 import { spells } from './data/spells.js';
 import { addEffectToActor, createDefaultMechanicsState, getDerivedActorState, getSpellcastingAbility, removeEffectsFromActorBySource, tickActorEffects } from './data/mechanics.js';
 import { rollInitiative, rollDie, rollAttack, rollDiceExpression, rollSavingThrow, calculateDamageRoll, calculateDamageReduction, getProficiencyBonus } from './rules.js';
@@ -189,7 +188,6 @@ function getAttackProfile(actorId) {
 
     const weaponId = actor.equipped?.weapon;
     const weapon = weaponId && items[weaponId] ? items[weaponId] : null;
-    const cls = classes[actor.classId] || {};
 
     if (!weapon) {
         return {
@@ -206,7 +204,8 @@ function getAttackProfile(actorId) {
     }
 
     const proficiencyBonus = actor.proficiencyBonus || getProficiencyBonus(actor.level);
-    const proficient = weapon.subtype && cls.weaponProficiencies && cls.weaponProficiencies.includes(weapon.subtype);
+    const weaponProficiencies = actor.proficiencies?.weapons || [];
+    const proficient = weapon.subtype && weaponProficiencies.includes(weapon.subtype);
     const stat = weapon.modifier || 'STR';
 
     return {

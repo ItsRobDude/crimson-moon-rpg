@@ -1,4 +1,4 @@
-import { addEffectToActor, createDefaultMechanicsState, getDerivedActorState, removeEffectsFromActorBySource } from '../data/mechanics.js';
+import { addEffectToActor, createDefaultMechanicsState, getBonusSkillChoiceCount, getDerivedActorState, getEffectModifiers, removeEffectsFromActorBySource } from '../data/mechanics.js';
 import { getSkillBonus } from '../rules.js';
 
 function createActor(overrides = {}) {
@@ -74,4 +74,42 @@ test('tile-bound effects can be removed cleanly when the actor leaves the tile',
   expect(actor.mechanics.activeEffects).toHaveLength(1);
   removeEffectsFromActorBySource(actor, 'tile:2,3:burning_ground');
   expect(actor.mechanics.activeEffects).toHaveLength(0);
+});
+
+test('derived state exposes unified proficiencies and racial senses/resistances', () => {
+  const actor = createActor({
+    raceId: 'dwarf',
+    proficiencies: {
+      skills: ['athletics', 'insight'],
+      saves: ['CON', 'WIS'],
+      weapons: ['simple', 'martial'],
+      armor: ['light', 'medium'],
+      tools: ['smith_tools'],
+      languages: ['Common', 'Dwarvish']
+    }
+  });
+
+  actor.mechanics.proficiencies = { ...actor.proficiencies };
+  const snapshot = getDerivedActorState(actor);
+
+  expect(snapshot.proficiencies.skills).toContain('athletics');
+  expect(snapshot.proficiencies.tools).toContain('smith_tools');
+  expect(snapshot.senses.darkvision).toBe(60);
+  expect(snapshot.resistances).toContain('poison');
+});
+
+test('racial trait handlers feed contextual save modifiers', () => {
+  const actor = createActor({ raceId: 'elf' });
+
+  const charmSaveModifiers = getEffectModifiers(actor, {
+    target: 'saving_throw',
+    ability: 'WIS',
+    tags: ['charm']
+  });
+
+  expect(charmSaveModifiers.advantage).toBe(true);
+});
+
+test('versatile humans expose an extra skill choice hook', () => {
+  expect(getBonusSkillChoiceCount('human')).toBe(1);
 });
