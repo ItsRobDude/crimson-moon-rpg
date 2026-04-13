@@ -13,7 +13,7 @@ import { npcs } from './data/npcs.js';
 import { companions } from './data/companions.js';
 import { factions } from './data/factions.js';
 import { gameState, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, unequipItem, syncPartyLevels, saveGame, loadGame as loadGameData, removeItem } from './data/gameState.js';
-import { CANONICAL_START_SCENE, ensureStoryState, meetsStoryRequirement, storyActs, storyEvents, syncStoryStateForScene } from './data/storyTimeline.js';
+import { CANONICAL_START_SCENE, ensureStoryState, getLocationStoryRequirement, getLocationUnlockHint, meetsStoryRequirement, storyActs, storyEvents, syncStoryStateForScene } from './data/storyTimeline.js';
 import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod, generateScaledStats, getPlayerAC } from './rules.js';
 import { initCombatSystem, startCombat, performAttack, performCastSpell, performAbility, performDefend, performFlee, performEndTurn, performActionSurge, performCunningAction, uiHooks } from './combat.js';
 
@@ -190,6 +190,19 @@ function applySceneEffect(effect, source = 'scene') {
 function applyEffectList(effects, source = 'scene') {
     if (!Array.isArray(effects)) return;
     effects.forEach((effect) => applySceneEffect(effect, source));
+}
+
+function isLocationUnlocked(locationId) {
+    const requirement = getLocationStoryRequirement(locationId);
+    return !requirement || meetsStoryRequirement(gameState.story, requirement);
+}
+
+function getLocationLockMessage(locationId) {
+    const hint = getLocationUnlockHint(locationId);
+    if (!hint) {
+        return 'That route is not available yet.';
+    }
+    return `That route is not available yet. ${hint}`;
 }
 
 export function showCharacterCreation() {
@@ -752,6 +765,12 @@ function toggleMap() {
             btn.innerText = "Travel";
             btn.onclick = () => travelTo(key);
 
+            if (!isLocationUnlocked(key)) {
+                btn.disabled = true;
+                btn.innerText = "Locked";
+                info.innerHTML += `<br><small>${getLocationUnlockHint(key) || 'Unavailable right now.'}</small>`;
+            }
+
             if (scenes[gameState.currentSceneId] && scenes[gameState.currentSceneId].location === key) {
                 btn.disabled = true;
                 btn.innerText = "You are here";
@@ -799,6 +818,12 @@ function toggleMap() {
 
 function travelTo(locationId) {
     document.getElementById('map-modal').classList.add('hidden');
+
+    if (!isLocationUnlocked(locationId)) {
+        logMessage(getLocationLockMessage(locationId), 'system');
+        return;
+    }
+
     logMessage(`Traveling to ${locations[locationId].name}...`, "system");
 
     if (rollDie(100) <= 20) {
@@ -853,6 +878,9 @@ function travelTo(locationId) {
 
 function getHubSceneForLocation(locationId) {
     const phase = gameState.worldPhase || 0;
+    if (locationId === 'silverthorn' && gameState.flags['aodhan_dead']) {
+        return 'SCENE_SILVERTHORN_QUARANTINE';
+    }
     if (locationId === 'hushbriar') {
         if (phase >= 2 || gameState.flags['aodhan_dead']) {
             return 'SCENE_HUSHBRIAR_CORRUPTED';

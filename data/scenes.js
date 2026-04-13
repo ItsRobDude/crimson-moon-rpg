@@ -378,8 +378,8 @@ export const scenes = {
         text: "The following morning never arrives. The moon turns crimson red. The Underdark begins to consume the earth. The prophecy has begun.",
         choices: [
             {
-                text: "Travel to Silverthorn (Report to Alderic)",
-                nextScene: "SCENE_BRIEFING"
+                text: "Test the road back to Silverthorn",
+                nextScene: "SCENE_SILVERTHORN_QUARANTINE"
             },
             {
                 text: "Head towards Lament Hill (Follow rumors)",
@@ -388,6 +388,38 @@ export const scenes = {
             {
                 text: "Seek Durnhelm (Dwarven Allies)",
                 nextScene: "SCENE_DURNHELM_GATES"
+            }
+        ]
+    },
+    "SCENE_SILVERTHORN_QUARANTINE": {
+        id: "SCENE_SILVERTHORN_QUARANTINE",
+        location: "silverthorn",
+        background: "landscapes/forest_walk_alt.png",
+        text: "You approach Silverthorn expecting orders and sanctuary, but the outer road is lined with makeshift barricades and exhausted guards. Smoke rises from burn pits where infected gear and bodies are being destroyed. No one is being allowed through the gates. The city has sealed itself away from the spreading plague.",
+        choices: [
+            {
+                text: "Demand an audience with Alderic",
+                type: "skillCheck",
+                skill: "persuasion",
+                dc: 14,
+                successText: "The guards waver, but fear wins out. Even with your authority, they refuse to break the quarantine. One mutters that the prince no longer receives travelers from the outer roads.",
+                failText: "The nearest guard lowers his spear and orders you back. Whatever loyalty he once held has been replaced by fear.",
+                nextSceneSuccess: "SCENE_SILVERTHORN_QUARANTINE",
+                nextSceneFail: "SCENE_SILVERTHORN_QUARANTINE"
+            },
+            {
+                text: "Listen to the guards' rumors",
+                type: "skillCheck",
+                skill: "insight",
+                dc: 12,
+                successText: "Their whispers are full of dread. Some call Alderic the Blackened King now, and they speak of Aodhan as a wanted man who must not reach the city again.",
+                failText: "The guards keep their distance and say little beyond repeated orders to stay back from the walls.",
+                nextSceneSuccess: "SCENE_SILVERTHORN_QUARANTINE",
+                nextSceneFail: "SCENE_SILVERTHORN_QUARANTINE"
+            },
+            {
+                text: "Turn back and follow the other leads",
+                action: "openMap"
             }
         ]
     },
@@ -890,7 +922,7 @@ export const scenes = {
         id: "SCENE_DURNHELM_GATES",
         location: "durnhelm",
         background: "landscapes/forest_walk_alt.png", // Placeholder
-        text: "The massive stone gates of Durnhelm loom before you, carved with runes of endurance.",
+        text: "Durnhelm rises from the mountain like a fortress-temple, but the approach is choked with broken wagons, dwarven dead, and the scorched aftermath of arcane violence. The great gates still stand, yet the city beyond carries the hush of a place that survived only by inches.",
         choices: [
             { text: "Speak to the guards", nextScene: "SCENE_DURNHELM_ENTRY" },
             { text: "Leave", action: "openMap" }
@@ -900,16 +932,17 @@ export const scenes = {
         id: "SCENE_DURNHELM_ENTRY",
         location: "durnhelm",
         background: "landscapes/forest_walk_alt.png",
-        text: "The guards eye you suspiciously but allow you entry.",
+        text: "The surviving guards wave you inside with visible reluctance. Every face in Durnhelm looks drawn tight with grief. They speak of a murderous wizard, a stolen relic, and a city still counting its dead.",
         choices: [
-            { text: "Explore the city", action: "openMap" } // Placeholder
+            { text: "Search for the forge master", action: "openMap" },
+            { text: "Withdraw and reconsider your route", action: "openMap" }
         ]
     },
     "SCENE_LAMENT_HILL_APPROACH": {
         id: "SCENE_LAMENT_HILL_APPROACH",
         location: "lament_hill",
         background: "landscapes/forest_walk.png", // Placeholder
-        text: "Rain begins to fall as you ascend. The air smells of ozone and old sorrow. A broken cottage sits at the summit.",
+        text: "Rain begins to fall as you ascend Lament Hill. The path is scarred by old magic, splintered trees, and fresh landslides. By the time the ruined cottage comes into view, the whole hillside feels watched.",
         choices: [
             { text: "Investigate the cottage", nextScene: "SCENE_LAMENT_COTTAGE" },
             { text: "Look for the graves", nextScene: "SCENE_LAMENT_GRAVES" }
@@ -919,18 +952,21 @@ export const scenes = {
         id: "SCENE_LAMENT_COTTAGE",
         location: "lament_hill",
         background: "landscapes/forest_walk.png",
-        text: "The roof is collapsed. You hear a voice in your head: 'You don't belong here...'",
+        text: "The cottage is half-collapsed and cold despite the storm outside. A pressure builds in your skull before a woman's voice reaches you without sound: 'You don't belong here... no one does.' Somewhere inside, something small shifts beneath a pile of old cloth.",
         choices: [
-            { text: "Leave", action: "openMap" }
+            { text: "Search for the hidden presence", action: "openMap" },
+            { text: "Study the ruin and the signs of battle", action: "openMap" },
+            { text: "Retreat and follow another lead", action: "openMap" }
         ]
     },
     "SCENE_LAMENT_GRAVES": {
         id: "SCENE_LAMENT_GRAVES",
         location: "lament_hill",
         background: "landscapes/forest_walk.png",
-        text: "Two small handmade graves lie to the east.",
+        text: "Two small handmade graves rest in the wet earth east of the cottage. Rain collects in the carved names, and the silence around them feels less peaceful than guarded.",
         choices: [
-            { text: "Pay respects", action: "openMap" }
+            { text: "Pay respects", action: "openMap" },
+            { text: "Return to the cottage", nextScene: "SCENE_LAMENT_COTTAGE" }
         ]
     },
     "SCENE_SOLASMOR_APPROACH": {
@@ -955,7 +991,7 @@ export const scenes = {
         id: "SCENE_SOUL_MILL_APPROACH",
         location: "soul_mill",
         background: "landscapes/sporefall_whisperwood_reveal.png", // Placeholder
-        text: "Dark smoke rises from the Soul Mill. The screams of the damned echo faintly.",
+        text: "Dark smoke rises from the Soul Mill in a steady column, carrying the smell of ash, rot, and something industrial beneath it all. Even at a distance the place feels less like a destination and more like a sentence waiting to be carried out.",
         choices: [
             { text: "Observe from distance", action: "openMap" }
         ]
@@ -964,7 +1000,7 @@ export const scenes = {
         id: "SCENE_THIEVES_HIDEOUT",
         location: "thieves_hideout",
         background: "landscapes/heart_of_silverthorn.png", // Placeholder
-        text: "You find the hidden entrance under the bridge.",
+        text: "Beneath the bridge, behind stacked crates and river rot, you find the hidden loading dock the guild uses to move people and contraband. The rowboat is gone, but the place still feels recently used.",
         choices: [
             { text: "Enter", action: "openMap" }
         ]

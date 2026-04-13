@@ -93,6 +93,27 @@ export const storyEvents = {
     }
 };
 
+export const locationStoryRequirements = {
+    silverthorn: null,
+    shadowmire: { id: 'silverthorn_departure', oneOf: [STORY_EVENT_STATUS.AVAILABLE, STORY_EVENT_STATUS.ACTIVE, STORY_EVENT_STATUS.COMPLETED] },
+    whisperwood: { id: 'sporefall_arrival', oneOf: [STORY_EVENT_STATUS.AVAILABLE, STORY_EVENT_STATUS.ACTIVE, STORY_EVENT_STATUS.COMPLETED] },
+    durnhelm: { id: 'durnhelm_thread', oneOf: [STORY_EVENT_STATUS.AVAILABLE, STORY_EVENT_STATUS.ACTIVE, STORY_EVENT_STATUS.COMPLETED] },
+    lament_hill: { id: 'lament_hill_thread', oneOf: [STORY_EVENT_STATUS.AVAILABLE, STORY_EVENT_STATUS.ACTIVE, STORY_EVENT_STATUS.COMPLETED] },
+    hushbriar: { id: 'hushbriar_demigod_thread', oneOf: [STORY_EVENT_STATUS.AVAILABLE, STORY_EVENT_STATUS.ACTIVE, STORY_EVENT_STATUS.COMPLETED] },
+    thieves_hideout: { id: 'hushbriar_demigod_thread', oneOf: [STORY_EVENT_STATUS.AVAILABLE, STORY_EVENT_STATUS.ACTIVE, STORY_EVENT_STATUS.COMPLETED] },
+    soul_mill: { id: 'hushbriar_demigod_thread', oneOf: [STORY_EVENT_STATUS.AVAILABLE, STORY_EVENT_STATUS.ACTIVE, STORY_EVENT_STATUS.COMPLETED] }
+};
+
+export const locationUnlockHints = {
+    shadowmire: 'Leave Silverthorn after Alderic briefs you.',
+    whisperwood: 'Push the Whisperwood investigation past the road into Sporefall.',
+    durnhelm: 'Reach the post-Aodhan branching point to follow the dwarven lead.',
+    lament_hill: 'Reach the post-Aodhan branching point to follow the Lament Hill lead.',
+    hushbriar: 'Advance the Lament Hill thread until the Hushbriar lead opens.',
+    thieves_hideout: 'Open the Hushbriar demigod thread before searching the guild route.',
+    soul_mill: 'Open the Hushbriar endgame thread before heading toward the Soul Mill.'
+};
+
 export const storySceneTriggers = {
     SCENE_BRIEFING: {
         activate: ['alderic_briefing'],
@@ -443,4 +464,12 @@ export function meetsStoryRequirement(storyState, requirement) {
     }
 
     return true;
+}
+
+export function getLocationStoryRequirement(locationId) {
+    return locationStoryRequirements[locationId] || null;
+}
+
+export function getLocationUnlockHint(locationId) {
+    return locationUnlockHints[locationId] || null;
 }
