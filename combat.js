@@ -7,10 +7,10 @@ import { enemies } from './data/enemies.js';
 import { items } from './data/items.js';
 import { classes } from './data/classes.js';
 import { spells } from './data/spells.js';
-import { createDefaultMechanicsState, getDerivedActorState, getSpellcastingAbility, tickActorEffects } from './data/mechanics.js';
+import { addEffectToActor, createDefaultMechanicsState, getDerivedActorState, getSpellcastingAbility, removeEffectsFromActorBySource, tickActorEffects } from './data/mechanics.js';
 import { rollInitiative, rollDie, rollAttack, rollDiceExpression, rollSavingThrow, calculateDamageRoll, calculateDamageReduction, getProficiencyBonus } from './rules.js';
 import { generateScaledStats } from './rules.js';
-import { canTargetToken, createBattlefieldLayout, getGridDistance, getMovementCost, getOpportunityAttackTriggers, getToken, isAdjacent, moveToken } from './battlegrid.js';
+import { canTargetToken, createBattlefieldLayout, feetToTiles, getGridDistance, getMovementCost, getOpportunityAttackTriggers, getTileEffects, getTileKey, getToken, isAdjacent, moveToken, setTerrain, setTileEffect } from './battlegrid.js';
 
 const ABILITY_MAP = {
     strength: 'STR',
@@ -33,6 +33,11 @@ export const uiHooks = {
 
 export function initCombatSystem(hooks) {
     Object.assign(uiHooks, hooks);
+}
+
+export function setCombatTileEffect(x, y, effect) {
+    if (!gameState.combat?.grid) return null;
+    return setTileEffect(gameState.combat.grid, x, y, effect);
 }
 
 function isEnemyId(actorId) {
@@ -227,12 +232,102 @@ function syncGridToken(actorId) {
     const snapshot = getDerivedActorState(actor);
     token.hp = actor.hp;
     token.speed = snapshot.speed;
-    token.reach = Math.max(1, Math.floor((getAttackProfile(actorId)?.reachFeet || 5) / gameState.combat.grid.tileSize));
+    token.reach = feetToTiles(gameState.combat.grid, getAttackProfile(actorId)?.reachFeet || 5);
 }
 
 function syncAllGridTokens() {
     if (!gameState.combat.grid) return;
     ['player', ...gameState.party, ...gameState.combat.enemies.map(enemy => enemy.uniqueId)].forEach(syncGridToken);
+}
+
+function getTokenTileKey(actorId) {
+    const token = getToken(gameState.combat.grid, actorId);
+    if (!token) return null;
+    return getTileKey(token.x, token.y);
+}
+
+function getTileEffectSource(tileKey, effectId) {
+    return `tile:${tileKey}:${effectId}`;
+}
+
+function applyTileDamage(actor, tileEffect) {
+    const roll = typeof tileEffect.damage === 'string'
+        ? rollDiceExpression(tileEffect.damage).total
+        : Math.max(0, tileEffect.damage || 0);
+    if (roll <= 0) return 0;
+
+    const finalDamage = resolveDamage(actor, roll, tileEffect.damageType || 'fire');
+    uiHooks.logToBattle(`${actor.name} takes ${finalDamage} ${tileEffect.damageType || 'fire'} damage from ${tileEffect.name || tileEffect.id}.`, 'combat');
+    uiHooks.showBattleEventText(`${finalDamage}`);
+    return finalDamage;
+}
+
+function applyPersistentTileEffect(actor, tileKey, tileEffect) {
+    const source = getTileEffectSource(tileKey, tileEffect.id);
+
+    if (tileEffect.statusEffectId) {
+        addEffectToActor(actor, tileEffect.statusEffectId, {
+            source,
+            remaining: tileEffect.effectDuration ?? null,
+            durationType: tileEffect.effectDurationType || 'turns'
+        });
+    }
+
+    if (tileEffect.effectModifiers) {
+        addEffectToActor(actor, tileEffect.effectId || tileEffect.id, {
+            id: tileEffect.effectId || tileEffect.id,
+            name: tileEffect.effectName || tileEffect.name || tileEffect.id,
+            source,
+            remaining: tileEffect.effectDuration ?? null,
+            durationType: tileEffect.effectDurationType || 'scenes',
+            modifiers: tileEffect.effectModifiers
+        });
+    }
+}
+
+function removeInactiveTileEffects(actor, currentTileKey) {
+    const activeTileEffects = actor.mechanics?.activeEffects || [];
+    const validPrefix = currentTileKey ? `tile:${currentTileKey}:` : null;
+
+    activeTileEffects
+        .filter(effect => effect.source && String(effect.source).startsWith('tile:'))
+        .forEach(effect => {
+            if (!validPrefix || !String(effect.source).startsWith(validPrefix)) {
+                removeEffectsFromActorBySource(actor, effect.source, true);
+            }
+        });
+}
+
+function reconcileTileEffects(actorId, trigger, previousTileKey = null) {
+    const actor = getCombatActor(actorId);
+    if (!actor || !gameState.combat.grid) return;
+
+    const currentToken = getToken(gameState.combat.grid, actorId);
+    if (!currentToken) return;
+
+    const currentTileKey = getTileKey(currentToken.x, currentToken.y);
+    if (previousTileKey && previousTileKey !== currentTileKey) {
+        (gameState.combat.grid.tileEffects[previousTileKey] || []).forEach(tileEffect => {
+            removeEffectsFromActorBySource(actor, getTileEffectSource(previousTileKey, tileEffect.id), true);
+        });
+    }
+
+    removeInactiveTileEffects(actor, currentTileKey);
+
+    const tileEffects = getTileEffects(gameState.combat.grid, currentToken.x, currentToken.y);
+    tileEffects.forEach(tileEffect => {
+        if (tileEffect.statusEffectId || tileEffect.effectModifiers) {
+            applyPersistentTileEffect(actor, currentTileKey, tileEffect);
+        }
+
+        const triggers = tileEffect.triggers || [];
+        if (triggers.includes(trigger)) {
+            applyTileDamage(actor, tileEffect);
+        }
+    });
+
+    syncActorState(actor);
+    syncGridToken(actorId);
 }
 
 function getAvailableAdjacentTiles(targetId) {
@@ -287,6 +382,7 @@ function moveActorAlongPath(actorId, path) {
     if (!path || path.length < 2) return true;
     const actor = getCombatActor(actorId);
     if (!actor) return false;
+    const previousTileKey = getTokenTileKey(actorId);
 
     let totalCost = 0;
     for (let i = 1; i < path.length; i++) {
@@ -302,6 +398,7 @@ function moveActorAlongPath(actorId, path) {
     moveToken(gameState.combat.grid, actorId, destination.x, destination.y);
     gameState.combat.movementRemaining -= totalCost;
     syncGridToken(actorId);
+    reconcileTileEffects(actorId, 'enter', previousTileKey);
     uiHooks.logToBattle(`${actor.name} moves ${totalCost} feet.`, 'system');
     return true;
 }
@@ -312,7 +409,7 @@ function closeDistanceToTarget(actorId, targetId, reachFeet = 5) {
     const targetToken = getToken(grid, targetId);
     if (!actorToken || !targetToken) return false;
 
-    const reachTiles = Math.max(1, Math.floor(reachFeet / grid.tileSize));
+    const reachTiles = feetToTiles(grid, reachFeet);
     if (getGridDistance(actorToken, targetToken) <= reachTiles) {
         return true;
     }
@@ -335,7 +432,7 @@ function ensureTargetInRange(actorId, targetId, profile, options = {}) {
         return canTargetToken(grid, actorId, targetId, rangeFeet);
     }
 
-    if (isAdjacent(grid, actorId, targetId, Math.max(1, Math.floor(reachFeet / grid.tileSize)))) {
+    if (isAdjacent(grid, actorId, targetId, feetToTiles(grid, reachFeet))) {
         return true;
     }
 
@@ -381,6 +478,7 @@ function beginTurn(actorId) {
     gameState.combat.movementRemaining = getDerivedActorState(actor).speed;
     gameState.combat.sneakAttackUsedThisTurn = false;
     actor.combatFlags = {};
+    reconcileTileEffects(actorId, 'turn_start');
     return true;
 }
 
@@ -388,6 +486,7 @@ function endActorTurn(actorId) {
     const actor = getCombatActor(actorId);
     if (!actor) return;
 
+    reconcileTileEffects(actorId, 'turn_end');
     tickActorEffects(actor, 'turn_end');
     syncActorState(actor);
     syncGridToken(actorId);
@@ -524,12 +623,24 @@ export function startCombat(combatantIds, winScene, loseScene) {
     window.logMessage = uiHooks.logToBattle;
 
     const currentScene = scenes[gameState.currentSceneId];
+    const battlefield = currentScene?.battlefield || {};
 
     const enemiesList = combatantIds
         .map((id, index) => buildEnemyCombatant(id, index))
         .filter(Boolean);
 
-    const grid = createBattlefieldLayout('player', gameState.party, enemiesList.map(enemy => enemy.uniqueId));
+    const grid = createBattlefieldLayout('player', gameState.party, enemiesList.map(enemy => enemy.uniqueId), {
+        width: battlefield.width,
+        height: battlefield.height,
+        tileSize: battlefield.tileSize
+    });
+
+    (battlefield.terrain || []).forEach(tile => {
+        setTerrain(grid, tile.x, tile.y, tile);
+    });
+    (battlefield.effects || []).forEach(tileEffect => {
+        setTileEffect(grid, tileEffect.x, tileEffect.y, tileEffect);
+    });
 
     gameState.combat = {
         active: true,
@@ -551,6 +662,9 @@ export function startCombat(combatantIds, winScene, loseScene) {
     };
 
     syncAllGridTokens();
+    ['player', ...gameState.party, ...gameState.combat.enemies.map(enemy => enemy.uniqueId)].forEach(actorId => {
+        reconcileTileEffects(actorId, 'enter');
+    });
 
     uiHooks.logToBattle(`Combat started!`, "combat");
 

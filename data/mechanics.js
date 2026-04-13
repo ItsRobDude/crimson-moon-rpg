@@ -87,6 +87,17 @@ export const effectDefinitions = {
             { type: 'disadvantage', target: 'skill_check', tags: ['social'] }
         ]
     },
+    burning: {
+        id: 'burning',
+        name: 'Burning',
+        description: 'Open flame singes and distracts the actor.',
+        durationType: 'turns',
+        defaultDuration: 2,
+        modifiers: [
+            { type: 'disadvantage', target: 'ability_check', ability: 'DEX' },
+            { type: 'flat_bonus', target: 'speed', value: -5 }
+        ]
+    },
     exhausted_1: {
         id: 'exhausted_1',
         name: 'Exhaustion I',
@@ -236,6 +247,20 @@ export function removeEffectFromActor(actor, effectId) {
     ensureActorMechanics(actor);
     actor.mechanics.activeEffects = actor.mechanics.activeEffects.filter(effect => effect.id !== effectId);
     if (actor.mechanics.concentrationEffectId === effectId) {
+        actor.mechanics.concentrationEffectId = null;
+    }
+    syncLegacyStatusEffects(actor);
+    applyDerivedState(actor);
+}
+
+export function removeEffectsFromActorBySource(actor, source, exact = true) {
+    ensureActorMechanics(actor);
+    actor.mechanics.activeEffects = actor.mechanics.activeEffects.filter(effect => {
+        if (!effect.source) return true;
+        if (exact) return effect.source !== source;
+        return !String(effect.source).startsWith(source);
+    });
+    if (actor.mechanics.concentrationEffectId && !actor.mechanics.activeEffects.some(effect => effect.id === actor.mechanics.concentrationEffectId)) {
         actor.mechanics.concentrationEffectId = null;
     }
     syncLegacyStatusEffects(actor);

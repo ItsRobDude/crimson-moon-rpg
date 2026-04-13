@@ -12,12 +12,49 @@ export function createBattleGrid(width = DEFAULT_WIDTH, height = DEFAULT_HEIGHT,
         height,
         tileSize,
         terrain: {},
+        tileEffects: {},
         occupied: {}
     };
 }
 
+export function feetToTiles(grid, feet) {
+    return Math.max(1, Math.floor(feet / grid.tileSize));
+}
+
+export function tilesToFeet(grid, tiles) {
+    return tiles * grid.tileSize;
+}
+
 export function setTerrain(grid, x, y, terrain = {}) {
     grid.terrain[getTileKey(x, y)] = terrain;
+}
+
+export function setTileEffect(grid, x, y, effect = {}) {
+    const key = getTileKey(x, y);
+    if (!grid.tileEffects[key]) {
+        grid.tileEffects[key] = [];
+    }
+    grid.tileEffects[key].push({ ...effect });
+    return grid.tileEffects[key];
+}
+
+export function clearTileEffects(grid, x, y, effectId = null) {
+    const key = getTileKey(x, y);
+    if (!grid.tileEffects[key]) return;
+
+    if (!effectId) {
+        delete grid.tileEffects[key];
+        return;
+    }
+
+    grid.tileEffects[key] = grid.tileEffects[key].filter(effect => effect.id !== effectId);
+    if (grid.tileEffects[key].length === 0) {
+        delete grid.tileEffects[key];
+    }
+}
+
+export function getTileEffects(grid, x, y) {
+    return grid.tileEffects[getTileKey(x, y)] || [];
 }
 
 export function placeToken(grid, token) {
@@ -39,6 +76,10 @@ export function getToken(grid, tokenId) {
 export function getGridDistance(from, to) {
     if (!from || !to) return Infinity;
     return Math.abs(from.x - to.x) + Math.abs(from.y - to.y);
+}
+
+export function getGridDistanceFeet(grid, from, to) {
+    return getGridDistance(from, to) * grid.tileSize;
 }
 
 export function isAdjacent(grid, tokenAId, tokenBId, reach = 1) {
@@ -75,7 +116,7 @@ export function canTargetToken(grid, attackerId, targetId, rangeInFeet = 5) {
     const target = getToken(grid, targetId);
     if (!attacker || !target) return false;
 
-    const maxDistanceInTiles = Math.floor(rangeInFeet / grid.tileSize);
+    const maxDistanceInTiles = feetToTiles(grid, rangeInFeet);
     return getGridDistance(attacker, target) <= maxDistanceInTiles && hasLineOfSight(grid, attackerId, targetId);
 }
 

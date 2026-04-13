@@ -211,6 +211,8 @@ Current intended combat direction:
 - avatar placeholders are acceptable early while art is incomplete
 - assume flat ground by default unless a scene explicitly introduces terrain
 - positioning, movement, reach, adjacency, and targeting should eventually be real mechanics
+- tile size should remain authoritative at 5 feet unless a battle scene explicitly overrides it
+- tile hazards/effects should be implemented through the shared grid/effect systems, not one-off combat hacks
 
 Avoid:
 

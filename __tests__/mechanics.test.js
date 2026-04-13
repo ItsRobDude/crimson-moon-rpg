@@ -1,4 +1,4 @@
-import { addEffectToActor, createDefaultMechanicsState, getDerivedActorState } from '../data/mechanics.js';
+import { addEffectToActor, createDefaultMechanicsState, getDerivedActorState, removeEffectsFromActorBySource } from '../data/mechanics.js';
 import { getSkillBonus } from '../rules.js';
 
 function createActor(overrides = {}) {
@@ -62,4 +62,16 @@ test('skill bonuses include persistent effect modifiers and social penalties', (
   expect(result.bonus).toBe(6);
   expect(result.effectModifiers.flat).toBe(2);
   expect(result.effectModifiers.disadvantage).toBe(true);
+});
+
+test('tile-bound effects can be removed cleanly when the actor leaves the tile', () => {
+  const actor = createActor();
+
+  addEffectToActor(actor, 'burning', {
+    source: 'tile:2,3:burning_ground'
+  });
+
+  expect(actor.mechanics.activeEffects).toHaveLength(1);
+  removeEffectsFromActorBySource(actor, 'tile:2,3:burning_ground');
+  expect(actor.mechanics.activeEffects).toHaveLength(0);
 });
