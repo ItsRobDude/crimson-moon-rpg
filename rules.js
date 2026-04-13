@@ -1,4 +1,5 @@
 import { items } from './data/items.js';
+import { ensureActorMechanics, getAbilityMod as getAbilityModFromMechanics, getDerivedActorState, getEffectModifiers, getProficiencyBonus as getProficiencyBonusFromMechanics, getSkillAbility, getSkillTags } from './data/mechanics.js';
 
 export function rollDie(sides) {
     return Math.floor(Math.random() * sides) + 1;
@@ -77,80 +78,52 @@ export function calculateDamageReduction(damage, damageType, targetStats) {
 }
 
 export function getAbilityMod(score) {
-    return Math.floor((score - 10) / 2);
+    return getAbilityModFromMechanics(score);
 }
 
 export function getProficiencyBonus(level) {
-    return Math.ceil(1 + (level / 4));
+    return getProficiencyBonusFromMechanics(level);
 }
 
 export function calculateDerivedStats(character) {
-    const derived = {
-        ac: 10 + getAbilityMod(character.abilities.DEX),
-        toHit: 0,
+    const snapshot = getDerivedActorState(character);
+    const weaponId = character.equipped?.weapon;
+    const weapon = weaponId && items[weaponId] ? items[weaponId] : null;
+
+    return {
+        ac: snapshot.ac,
+        toHit: weapon?.modifiers?.toHit || 0,
+        speed: snapshot.speed,
+        spellSaveDC: snapshot.spellSaveDC
     };
-
-    // Armor
-    const armorId = character.equipped.armor;
-    if (armorId && items[armorId]) {
-        const armor = items[armorId];
-        derived.ac = armor.acBase;
-        if (armor.modifiers && armor.modifiers.ac) {
-            derived.ac += armor.modifiers.ac;
-        }
-    }
-
-    // Weapon
-    const weaponId = character.equipped.weapon;
-    if (weaponId && items[weaponId]) {
-        const weapon = items[weaponId];
-        if (weapon.modifiers && weapon.modifiers.toHit) {
-            derived.toHit += weapon.modifiers.toHit;
-        }
-    }
-
-    return derived;
 }
 
 export function getSkillBonus(character, skillName) {
-    const skillMap = {
-        perception: "WIS",
-        investigation: "INT",
-        athletics: "STR",
-        stealth: "DEX",
-        arcana: "INT",
-        religion: "INT",
-        persuasion: "CHA",
-        intimidation: "CHA",
-        medicine: "WIS",
-        survival: "WIS",
-        insight: "WIS",
-        acrobatics: "DEX",
-        history: "INT",
-        nature: "INT"
-    };
+    ensureActorMechanics(character);
+    const snapshot = getDerivedActorState(character);
+    const normalized = skillName.toLowerCase();
+    const ability = getSkillAbility(normalized);
+    let bonus = snapshot.modifiers[ability] || 0;
 
-    const ability = skillMap[skillName.toLowerCase()] || "DEX"; // Default
-    const score = character.abilities[ability];
-    let bonus = getAbilityMod(score);
-
-    if (character.skills.includes(skillName)) {
-        bonus += character.proficiencyBonus;
+    if ((character.skills || []).includes(normalized)) {
+        bonus += snapshot.proficiencyBonus;
     }
 
-    return { bonus, ability };
-}
+    const modifiers = getEffectModifiers(character, {
+        target: 'skill_check',
+        skill: normalized,
+        ability,
+        tags: getSkillTags(normalized)
+    });
 
-function hasStatus(character, effectId) {
-    return character.statusEffects && character.statusEffects.some(e => e.id === effectId);
+    bonus += modifiers.flat;
+
+    return { bonus, ability, snapshot, effectModifiers: modifiers };
 }
 
 export function rollSkillCheck(character, skillName, advantage = false) {
-    const { bonus } = getSkillBonus(character, skillName);
-
-    const isPoisoned = hasStatus(character, 'poisoned');
-    const isBlessed = hasStatus(character, 'blessed');
-    const hasSporeSickness = hasStatus(character, 'spore_sickness');
+    const normalized = skillName.toLowerCase();
+    const { bonus, ability, effectModifiers } = getSkillBonus(character, normalized);
 
     let roll1 = rollDie(20);
     let roll2 = rollDie(20);
@@ -158,50 +131,72 @@ export function rollSkillCheck(character, skillName, advantage = false) {
     let finalRoll = roll1;
     let note = "";
 
-    const hasDisadvantage = isPoisoned || (hasSporeSickness && skillName === 'constitution'); // Example logic
+    const hasDisadvantage = effectModifiers.disadvantage;
+    const hasAdvantage = effectModifiers.advantage;
 
-    if (advantage && !hasDisadvantage) {
+    if ((advantage || hasAdvantage) && !hasDisadvantage) {
         finalRoll = Math.max(roll1, roll2);
         note += " (Advantage)";
-    } else if (hasDisadvantage && !advantage) {
+    } else if (hasDisadvantage && !(advantage || hasAdvantage)) {
         finalRoll = Math.min(roll1, roll2);
         note += " (Disadvantage)";
-    } else if (advantage && hasDisadvantage) {
+    } else if ((advantage || hasAdvantage) && hasDisadvantage) {
         // Cancel out
         finalRoll = roll1;
     }
 
     let total = finalRoll + bonus;
 
-    if (isBlessed) {
-        const blessDie = rollDie(4);
-        total += blessDie;
-        note += ` + ${blessDie} (Bless)`;
-    }
+    effectModifiers.dice.forEach(dice => {
+        const dieResult = rollDiceExpression(dice).total;
+        total += dieResult;
+        note += ` + ${dieResult} (${dice})`;
+    });
 
     return {
         total,
         roll: finalRoll,
         modifier: bonus,
-        note: note
+        note: note,
+        ability
     };
 }
 
 export function rollSavingThrow(character, abilityName) {
-    const score = character.abilities[abilityName];
-    let bonus = getAbilityMod(score);
-
-    const isBlessed = hasStatus(character, 'blessed');
+    ensureActorMechanics(character);
+    const snapshot = getDerivedActorState(character);
+    let bonus = snapshot.modifiers[abilityName] || 0;
+    if ((character.mechanics?.saveProficiencies || []).includes(abilityName)) {
+        bonus += snapshot.proficiencyBonus;
+    }
+    const effectModifiers = getEffectModifiers(character, {
+        target: 'saving_throw',
+        ability: abilityName,
+        tags: []
+    });
+    bonus += effectModifiers.flat;
 
     let roll = rollDie(20);
     let total = roll + bonus;
     let note = "";
 
-    if (isBlessed) {
-        const blessDie = rollDie(4);
-        total += blessDie;
-        note += ` + ${blessDie} (Bless)`;
+    if (effectModifiers.advantage && !effectModifiers.disadvantage) {
+        const secondRoll = rollDie(20);
+        roll = Math.max(roll, secondRoll);
+        total = roll + bonus;
+        note += " (Advantage)";
+    } else if (effectModifiers.disadvantage && !effectModifiers.advantage) {
+        const secondRoll = rollDie(20);
+        roll = Math.min(roll, secondRoll);
+        total = roll + bonus;
+        note += " (Disadvantage)";
     }
+
+    effectModifiers.dice.forEach(dice => {
+        const dieResult = rollDiceExpression(dice).total;
+        total += dieResult;
+        note += ` + ${dieResult} (${dice})`;
+    });
 
     return {
         total,
@@ -211,13 +206,19 @@ export function rollSavingThrow(character, abilityName) {
     };
 }
 
-export function rollAttack(character, modStat, proficiency, advantage = false) {
-    const score = character.abilities[modStat];
-    const mod = getAbilityMod(score);
-    const totalMod = mod + proficiency;
-
-    const isPoisoned = hasStatus(character, 'poisoned');
-    const isBlessed = hasStatus(character, 'blessed');
+export function rollAttack(character, modStat, proficiency, options = {}) {
+    ensureActorMechanics(character);
+    const snapshot = getDerivedActorState(character);
+    const resolvedOptions = typeof options === 'boolean'
+        ? { advantage: options, disadvantage: false, tags: [] }
+        : { advantage: false, disadvantage: false, tags: [], ...options };
+    const mod = snapshot.modifiers[modStat] || 0;
+    const effectModifiers = getEffectModifiers(character, {
+        target: 'attack_roll',
+        ability: modStat,
+        tags: resolvedOptions.tags || []
+    });
+    const totalMod = mod + proficiency + effectModifiers.flat;
 
     let roll1 = rollDie(20);
     let roll2 = rollDie(20);
@@ -225,45 +226,45 @@ export function rollAttack(character, modStat, proficiency, advantage = false) {
     let finalRoll = roll1;
     let note = "";
 
-    const hasDisadvantage = isPoisoned; // Add more conditions if needed
+    const hasDisadvantage = effectModifiers.disadvantage || resolvedOptions.disadvantage;
+    const hasAdvantage = effectModifiers.advantage || resolvedOptions.advantage;
 
-    if (advantage && !hasDisadvantage) {
+    if ((advantage || hasAdvantage) && !hasDisadvantage) {
         finalRoll = Math.max(roll1, roll2);
         note += " (Advantage)";
-    } else if (hasDisadvantage && !advantage) {
+    } else if (hasDisadvantage && !(advantage || hasAdvantage)) {
         finalRoll = Math.min(roll1, roll2);
         note += " (Disadvantage)";
-    } else if (advantage && hasDisadvantage) {
+    } else if ((advantage || hasAdvantage) && hasDisadvantage) {
         finalRoll = roll1; // Cancel
     }
 
     let total = finalRoll + totalMod;
 
-    if (isBlessed) {
-        const blessDie = rollDie(4);
-        total += blessDie;
-        note += ` + ${blessDie} (Bless)`;
-    }
+    effectModifiers.dice.forEach(dice => {
+        const dieResult = rollDiceExpression(dice).total;
+        total += dieResult;
+        note += ` + ${dieResult} (${dice})`;
+    });
 
     return {
         total,
         roll: finalRoll,
         modifier: totalMod,
         note,
-        isCritical: (finalRoll === 20)
+        isCritical: (finalRoll === 20),
+        advantageState: {
+            advantage: hasAdvantage,
+            disadvantage: hasDisadvantage
+        }
     };
 }
 
 export function rollInitiative(character) {
+    ensureActorMechanics(character);
+    const snapshot = getDerivedActorState(character);
     let roll = rollDie(20);
-    let modifier = 0;
-
-    if (character.abilities && character.abilities.DEX) {
-        modifier = getAbilityMod(character.abilities.DEX);
-    } else if (character.attackBonus) {
-        // Fallback for simple enemies
-        modifier = character.attackBonus;
-    }
+    let modifier = snapshot.initiativeModifier;
 
     return {
         total: roll + modifier,
@@ -335,8 +336,6 @@ export function generateScaledStats(template, targetLevel) {
 }
 
 export function getPlayerAC(p) {
-    const armor = p.equipped.armor ? items[p.equipped.armor] : null;
-    if (armor) return armor.acBase;
-    if (p.classId === 'fighter') return 10 + p.modifiers.DEX;
-    return 10 + p.modifiers.DEX;
+    ensureActorMechanics(p);
+    return getDerivedActorState(p).ac;
 }

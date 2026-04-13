@@ -1,14 +1,25 @@
 // combat.js - All combat-related logic and actions
 
-import { gameState, gainXp, applyStatusEffect, performShortRest as gsPerformShortRest, performLongRest as gsPerformLongRest } from './data/gameState.js';
+import { gameState, gainXp, applyStatusEffect, performShortRest as gsPerformShortRest, performLongRest as gsPerformLongRest, syncActorState } from './data/gameState.js';
 import { scenes } from './data/scenes.js';
 import { npcs } from './data/npcs.js';
 import { enemies } from './data/enemies.js';
 import { items } from './data/items.js';
 import { classes } from './data/classes.js';
 import { spells } from './data/spells.js';
-import { rollInitiative, rollDie, rollAttack, rollDiceExpression, rollSavingThrow, calculateDamageRoll, calculateDamageReduction, getProficiencyBonus, getPlayerAC } from './rules.js';
+import { createDefaultMechanicsState, getDerivedActorState, getSpellcastingAbility, tickActorEffects } from './data/mechanics.js';
+import { rollInitiative, rollDie, rollAttack, rollDiceExpression, rollSavingThrow, calculateDamageRoll, calculateDamageReduction, getProficiencyBonus } from './rules.js';
 import { generateScaledStats } from './rules.js';
+import { canTargetToken, createBattlefieldLayout, getGridDistance, getMovementCost, getOpportunityAttackTriggers, getToken, isAdjacent, moveToken } from './battlegrid.js';
+
+const ABILITY_MAP = {
+    strength: 'STR',
+    dexterity: 'DEX',
+    constitution: 'CON',
+    intelligence: 'INT',
+    wisdom: 'WIS',
+    charisma: 'CHA'
+};
 
 export const uiHooks = {
     updateCombatUI: () => {},
@@ -24,6 +35,485 @@ export function initCombatSystem(hooks) {
     Object.assign(uiHooks, hooks);
 }
 
+function isEnemyId(actorId) {
+    return actorId !== 'player' && !gameState.party.includes(actorId);
+}
+
+function getCombatActor(actorId) {
+    if (actorId === 'player') return gameState.player;
+    if (gameState.roster[actorId]) return gameState.roster[actorId];
+    return gameState.combat.enemies.find(enemy => enemy.uniqueId === actorId) || null;
+}
+
+function normalizeAbilityBlock(attributes = {}, fallback = {}) {
+    const base = {
+        STR: fallback.STR || 10,
+        DEX: fallback.DEX || 10,
+        CON: fallback.CON || 10,
+        INT: fallback.INT || 10,
+        WIS: fallback.WIS || 10,
+        CHA: fallback.CHA || 10
+    };
+
+    Object.entries(attributes || {}).forEach(([key, value]) => {
+        const normalized = ABILITY_MAP[key] || key;
+        if (base[normalized] !== undefined) {
+            base[normalized] = value;
+        }
+    });
+
+    return base;
+}
+
+function normalizeSaveProficiencies(saves = []) {
+    return saves
+        .map(save => ABILITY_MAP[save] || save)
+        .filter(Boolean)
+        .map(save => save.toUpperCase());
+}
+
+function getPrimaryEnemyAttack(template) {
+    if (template.actions && Array.isArray(template.actions)) {
+        return template.actions.find(action => action.type === 'attack') || null;
+    }
+    return null;
+}
+
+function buildEnemyCombatant(id, index) {
+    let combatantData;
+    let isNpc = false;
+
+    if (npcs[id] && npcs[id].combatStats) {
+        combatantData = generateScaledStats(npcs[id].combatStats, gameState.player.level);
+        combatantData.name = npcs[id].name;
+        combatantData.portrait = npcs[id].portrait;
+        isNpc = true;
+    } else {
+        combatantData = enemies[id];
+    }
+
+    if (!combatantData) {
+        console.error(`Combatant data for ID "${id}" not found.`);
+        return null;
+    }
+
+    const primaryAttack = isNpc
+        ? getPrimaryEnemyAttack(combatantData)
+        : {
+            name: 'Attack',
+            type: 'attack',
+            toHit: combatantData.attackBonus || 2,
+            damage: combatantData.damage || '1d4',
+            damageType: combatantData.damageType || 'bludgeoning'
+        };
+
+    const fallbackAbilities = {
+        STR: 12 + Math.max(0, (primaryAttack?.toHit || combatantData.attackBonus || 2) - 3),
+        DEX: 12,
+        CON: 12,
+        INT: 8,
+        WIS: 10,
+        CHA: 8
+    };
+
+    const abilities = normalizeAbilityBlock(combatantData.attributes, fallbackAbilities);
+    const dexMod = Math.floor((abilities.DEX - 10) / 2);
+    const acTarget = combatantData.ac || (10 + dexMod);
+    const level = combatantData.level || gameState.player.level || 1;
+
+    const combatant = {
+        id,
+        uniqueId: `${id}_${index}`,
+        type: 'enemy',
+        name: combatantData.name,
+        portrait: combatantData.portrait || 'portraits/placeholder.png',
+        level,
+        hp: combatantData.hp,
+        maxHp: combatantData.hp,
+        ac: acTarget,
+        abilities: { ...abilities },
+        modifiers: {},
+        proficiencyBonus: getProficiencyBonus(level),
+        statusEffects: [],
+        mechanics: createDefaultMechanicsState(abilities, {
+            baseSpeed: combatantData.speed || 30,
+            saveProficiencies: normalizeSaveProficiencies(combatantData.proficiencies?.savingThrows || [])
+        }),
+        equipped: {},
+        inventory: [],
+        resources: {},
+        spellSlots: {},
+        currentSlots: {},
+        knownSpells: [],
+        intent: '',
+        fullStats: combatantData,
+        attackProfile: {
+            name: primaryAttack?.name || 'Attack',
+            toHit: primaryAttack?.toHit || combatantData.attackBonus || 2,
+            damage: primaryAttack?.damage || combatantData.damage || '1d4',
+            damageType: primaryAttack?.damageType || combatantData.damageType || 'bludgeoning',
+            rangeFeet: primaryAttack?.range ? parseInt(String(primaryAttack.range).split('/')[0], 10) : null,
+            reachFeet: primaryAttack?.reachFeet || 5
+        },
+        combatFlags: {}
+    };
+
+    combatant.mechanics.permanentStatBonuses.ac = acTarget - (10 + dexMod);
+    syncActorState(combatant);
+    combatant.ac = getDerivedActorState(combatant).ac;
+    return combatant;
+}
+
+function getAttackProfile(actorId) {
+    const actor = getCombatActor(actorId);
+    if (!actor) return null;
+
+    if (isEnemyId(actorId)) {
+        const profile = actor.attackProfile || {};
+        return {
+            name: profile.name || 'Attack',
+            damage: profile.damage || '1d4',
+            damageType: profile.damageType || 'bludgeoning',
+            stat: profile.stat || 'STR',
+            attackBonus: profile.toHit || 2,
+            rangeFeet: profile.rangeFeet || null,
+            reachFeet: profile.reachFeet || 5,
+            isRanged: !!profile.rangeFeet
+        };
+    }
+
+    const weaponId = actor.equipped?.weapon;
+    const weapon = weaponId && items[weaponId] ? items[weaponId] : null;
+    const cls = classes[actor.classId] || {};
+
+    if (!weapon) {
+        return {
+            name: 'Unarmed Strike',
+            damage: '1d2',
+            damageType: 'bludgeoning',
+            stat: 'STR',
+            proficiency: 0,
+            rangeFeet: null,
+            reachFeet: 5,
+            isRanged: false,
+            qualifiesForSneakAttack: false
+        };
+    }
+
+    const proficiencyBonus = actor.proficiencyBonus || getProficiencyBonus(actor.level);
+    const proficient = weapon.subtype && cls.weaponProficiencies && cls.weaponProficiencies.includes(weapon.subtype);
+    const stat = weapon.modifier || 'STR';
+
+    return {
+        name: weapon.name,
+        weapon,
+        damage: weapon.damage || '1d4',
+        damageType: weapon.damageType || 'bludgeoning',
+        stat,
+        proficiency: proficient ? proficiencyBonus : 0,
+        attackBonus: (actor.modifiers?.[stat] || 0) + (proficient ? proficiencyBonus : 0) + (weapon.modifiers?.toHit || 0),
+        rangeFeet: weapon.rangeFeet || weapon.thrownRangeFeet || null,
+        reachFeet: weapon.reachFeet || 5,
+        isRanged: !!weapon.rangeFeet || !!weapon.thrownRangeFeet,
+        qualifiesForSneakAttack: stat === 'DEX' || !!weapon.rangeFeet
+    };
+}
+
+function syncGridToken(actorId) {
+    const token = getToken(gameState.combat.grid, actorId);
+    const actor = getCombatActor(actorId);
+    if (!token || !actor) return;
+
+    const snapshot = getDerivedActorState(actor);
+    token.hp = actor.hp;
+    token.speed = snapshot.speed;
+    token.reach = Math.max(1, Math.floor((getAttackProfile(actorId)?.reachFeet || 5) / gameState.combat.grid.tileSize));
+}
+
+function syncAllGridTokens() {
+    if (!gameState.combat.grid) return;
+    ['player', ...gameState.party, ...gameState.combat.enemies.map(enemy => enemy.uniqueId)].forEach(syncGridToken);
+}
+
+function getAvailableAdjacentTiles(targetId) {
+    const grid = gameState.combat.grid;
+    const target = getToken(grid, targetId);
+    if (!target) return [];
+
+    const candidates = [
+        { x: target.x - 1, y: target.y },
+        { x: target.x + 1, y: target.y },
+        { x: target.x, y: target.y - 1 },
+        { x: target.x, y: target.y + 1 }
+    ];
+
+    return candidates.filter(tile => {
+        if (tile.x < 0 || tile.x >= grid.width || tile.y < 0 || tile.y >= grid.height) return false;
+        return !Object.values(grid.occupied).some(occupant => occupant.id !== targetId && occupant.x === tile.x && occupant.y === tile.y && occupant.hp > 0);
+    });
+}
+
+function buildPath(from, to) {
+    const path = [{ x: from.x, y: from.y }];
+    let x = from.x;
+    let y = from.y;
+
+    while (x !== to.x) {
+        x += Math.sign(to.x - x);
+        path.push({ x, y });
+    }
+    while (y !== to.y) {
+        y += Math.sign(to.y - y);
+        path.push({ x, y });
+    }
+
+    return path;
+}
+
+function applyOpportunityAttacks(moverId, path) {
+    const mover = getCombatActor(moverId);
+    if (!mover || mover.combatFlags?.disengage) return;
+
+    const triggers = getOpportunityAttackTriggers(gameState.combat.grid, moverId, path);
+    triggers.forEach(trigger => {
+        resolveWeaponHit(trigger.hostileId, moverId, {
+            opportunityAttack: true,
+            consumeAction: false
+        });
+    });
+}
+
+function moveActorAlongPath(actorId, path) {
+    if (!path || path.length < 2) return true;
+    const actor = getCombatActor(actorId);
+    if (!actor) return false;
+
+    let totalCost = 0;
+    for (let i = 1; i < path.length; i++) {
+        totalCost += getMovementCost(gameState.combat.grid, path[i].x, path[i].y);
+    }
+
+    if (totalCost > gameState.combat.movementRemaining) {
+        return false;
+    }
+
+    applyOpportunityAttacks(actorId, path);
+    const destination = path[path.length - 1];
+    moveToken(gameState.combat.grid, actorId, destination.x, destination.y);
+    gameState.combat.movementRemaining -= totalCost;
+    syncGridToken(actorId);
+    uiHooks.logToBattle(`${actor.name} moves ${totalCost} feet.`, 'system');
+    return true;
+}
+
+function closeDistanceToTarget(actorId, targetId, reachFeet = 5) {
+    const grid = gameState.combat.grid;
+    const actorToken = getToken(grid, actorId);
+    const targetToken = getToken(grid, targetId);
+    if (!actorToken || !targetToken) return false;
+
+    const reachTiles = Math.max(1, Math.floor(reachFeet / grid.tileSize));
+    if (getGridDistance(actorToken, targetToken) <= reachTiles) {
+        return true;
+    }
+
+    const options = getAvailableAdjacentTiles(targetId)
+        .map(tile => ({ tile, distance: getGridDistance(actorToken, tile) }))
+        .sort((a, b) => a.distance - b.distance);
+    const best = options[0];
+    if (!best) return false;
+
+    return moveActorAlongPath(actorId, buildPath(actorToken, best.tile));
+}
+
+function ensureTargetInRange(actorId, targetId, profile, options = {}) {
+    const grid = gameState.combat.grid;
+    const rangeFeet = options.rangeFeet ?? profile.rangeFeet ?? null;
+    const reachFeet = options.reachFeet ?? profile.reachFeet ?? 5;
+
+    if (rangeFeet && rangeFeet > grid.tileSize) {
+        return canTargetToken(grid, actorId, targetId, rangeFeet);
+    }
+
+    if (isAdjacent(grid, actorId, targetId, Math.max(1, Math.floor(reachFeet / grid.tileSize)))) {
+        return true;
+    }
+
+    return closeDistanceToTarget(actorId, targetId, reachFeet);
+}
+
+function getHostileIds(actorId) {
+    if (isEnemyId(actorId)) {
+        return ['player', ...gameState.party].filter(id => {
+            const actor = getCombatActor(id);
+            return actor && actor.hp > 0;
+        });
+    }
+
+    return gameState.combat.enemies.filter(enemy => enemy.hp > 0).map(enemy => enemy.uniqueId);
+}
+
+function hasHostileAdjacent(actorId) {
+    return getHostileIds(actorId).some(hostileId => isAdjacent(gameState.combat.grid, actorId, hostileId));
+}
+
+function hasAdjacentAllyNearTarget(attackerId, targetId) {
+    if (isEnemyId(attackerId)) return false;
+    const allyIds = ['player', ...gameState.party].filter(id => id !== attackerId);
+    return allyIds.some(allyId => {
+        const ally = getCombatActor(allyId);
+        return ally && ally.hp > 0 && isAdjacent(gameState.combat.grid, allyId, targetId);
+    });
+}
+
+function beginTurn(actorId) {
+    const actor = getCombatActor(actorId);
+    if (!actor || actor.hp <= 0) return false;
+
+    tickActorEffects(actor, 'turn_start');
+    syncActorState(actor);
+    syncGridToken(actorId);
+
+    gameState.combat.activeActorId = actorId;
+    gameState.combat.actionsRemaining = 1;
+    gameState.combat.bonusActionsRemaining = 1;
+    gameState.combat.reactionsRemaining = 1;
+    gameState.combat.movementRemaining = getDerivedActorState(actor).speed;
+    gameState.combat.sneakAttackUsedThisTurn = false;
+    actor.combatFlags = {};
+    return true;
+}
+
+function endActorTurn(actorId) {
+    const actor = getCombatActor(actorId);
+    if (!actor) return;
+
+    tickActorEffects(actor, 'turn_end');
+    syncActorState(actor);
+    syncGridToken(actorId);
+}
+
+function getNextTurnIndex(startIndex) {
+    if (!gameState.combat.turnOrder.length) return 0;
+
+    for (let offset = 1; offset <= gameState.combat.turnOrder.length; offset++) {
+        const index = (startIndex + offset) % gameState.combat.turnOrder.length;
+        const actor = getCombatActor(gameState.combat.turnOrder[index]);
+        if (actor && actor.hp > 0) return index;
+    }
+
+    return 0;
+}
+
+function cleanupTurnOrder() {
+    const livingIds = new Set([
+        ...(gameState.player.hp > 0 ? ['player'] : []),
+        ...gameState.party.filter(id => getCombatActor(id)?.hp > 0),
+        ...gameState.combat.enemies.filter(enemy => enemy.hp > 0).map(enemy => enemy.uniqueId)
+    ]);
+    gameState.combat.turnOrder = gameState.combat.turnOrder.filter(id => livingIds.has(id));
+}
+
+function resolveDamage(target, amount, damageType = 'bludgeoning') {
+    const targetStats = target.fullStats || enemies[target.id] || target;
+    const { finalDamage, message } = calculateDamageReduction(amount, damageType, targetStats);
+    if (message) uiHooks.logToBattle(message, 'system');
+
+    target.hp -= Math.max(1, finalDamage);
+    if (target.hp < 0) target.hp = 0;
+    syncActorState(target);
+    syncGridToken(target.uniqueId || target.id || 'player');
+    return finalDamage;
+}
+
+function resolveWeaponHit(attackerId, targetId, options = {}) {
+    const attacker = getCombatActor(attackerId);
+    const target = getCombatActor(targetId);
+    if (!attacker || !target) return false;
+
+    const profile = getAttackProfile(attackerId);
+    if (!profile || !ensureTargetInRange(attackerId, targetId, profile)) {
+        return false;
+    }
+
+    if (options.consumeAction !== false) {
+        if (gameState.combat.actionsRemaining <= 0) {
+            uiHooks.logToBattle('No Action remaining!', 'check-fail');
+            return false;
+        }
+        gameState.combat.actionsRemaining--;
+    }
+
+    const rangedInMelee = profile.isRanged && hasHostileAdjacent(attackerId);
+    const attackResult = isEnemyId(attackerId)
+        ? (() => {
+            const enemyResult = rollAttack(attacker, profile.stat, 0, {
+                disadvantage: rangedInMelee,
+                tags: [profile.isRanged ? 'ranged' : 'melee']
+            });
+            const delta = profile.attackBonus - (attacker.modifiers?.[profile.stat] || 0);
+            enemyResult.total += delta;
+            enemyResult.modifier += delta;
+            return enemyResult;
+        })()
+        : rollAttack(attacker, profile.stat, profile.proficiency, {
+            disadvantage: rangedInMelee,
+            tags: [profile.isRanged ? 'ranged' : 'melee']
+        });
+
+    const critThreshold = attacker.subclassId === 'champion' ? 19 : 20;
+    const isCritical = attackResult.roll >= critThreshold || attackResult.isCritical;
+    const hit = attackResult.total >= target.ac || attackResult.roll === 20;
+
+    uiHooks.logToBattle(`${attacker.name} attacks ${target.name} with ${profile.name}: ${attackResult.total} (vs AC ${target.ac}).`, 'system');
+
+    if (!hit) {
+        uiHooks.logToBattle('Miss!', 'system');
+        uiHooks.showBattleEventText('Miss!');
+        return false;
+    }
+
+    let damageModifier = isEnemyId(attackerId) ? 0 : (attacker.modifiers?.[profile.stat] || 0);
+    let damage = calculateDamageRoll(profile.damage, damageModifier, isCritical).total;
+
+    if (!isEnemyId(attackerId) && attacker.classId === 'rogue' && profile.qualifiesForSneakAttack && !gameState.combat.sneakAttackUsedThisTurn) {
+        const attackHadDisadvantage = !!attackResult.advantageState?.disadvantage;
+        const attackHadAdvantage = !!attackResult.advantageState?.advantage && !attackHadDisadvantage;
+        if (!attackHadDisadvantage && (attackHadAdvantage || hasAdjacentAllyNearTarget(attackerId, targetId))) {
+            const sneakDice = Math.ceil((attacker.level || 1) / 2);
+            const sneakDamage = rollDiceExpression(`${sneakDice}d6`).total;
+            damage += sneakDamage;
+            gameState.combat.sneakAttackUsedThisTurn = true;
+            uiHooks.logToBattle(`Sneak Attack! +${sneakDamage} damage.`, 'gain');
+        }
+    }
+
+    if (target.combatFlags?.defending) {
+        damage = Math.floor(damage / 2);
+        uiHooks.logToBattle(`${target.name} braces and halves the blow.`, 'gain');
+    }
+
+    const finalDamage = resolveDamage(target, damage, profile.damageType);
+    uiHooks.logToBattle(`Hit! Dealt ${finalDamage} damage.`, 'combat');
+    uiHooks.showBattleEventText(`${finalDamage}`);
+
+    if (attackerId !== 'player' && attacker.id === 'fungal_beast' && rollDie(100) <= 25) {
+        applyStatusEffect('poisoned');
+        uiHooks.showBattleEventText('Poisoned!');
+    }
+
+    return true;
+}
+
+function getPreferredEnemyTarget(enemyId) {
+    const hostileIds = getHostileIds(enemyId);
+    const source = getToken(gameState.combat.grid, enemyId);
+    return hostileIds
+        .map(id => ({ id, actor: getCombatActor(id), distance: getGridDistance(source, getToken(gameState.combat.grid, id)) }))
+        .filter(entry => entry.actor && entry.actor.hp > 0)
+        .sort((a, b) => a.distance - b.distance)[0]?.id || 'player';
+}
+
 export function startCombat(combatantIds, winScene, loseScene) {
     const sceneContainer = document.getElementById('scene-container');
     if (sceneContainer) sceneContainer.classList.add('hidden');
@@ -35,79 +525,51 @@ export function startCombat(combatantIds, winScene, loseScene) {
 
     const currentScene = scenes[gameState.currentSceneId];
 
-    const enemiesList = combatantIds.map((id, index) => {
-        let combatantData;
-        let isNpc = false;
+    const enemiesList = combatantIds
+        .map((id, index) => buildEnemyCombatant(id, index))
+        .filter(Boolean);
 
-        if (npcs[id] && npcs[id].combatStats) {
-            combatantData = generateScaledStats(npcs[id].combatStats, gameState.player.level);
-            combatantData.name = npcs[id].name;
-            combatantData.portrait = npcs[id].portrait;
-            isNpc = true;
-        } else {
-            combatantData = enemies[id];
-        }
-
-        if (!combatantData) {
-            console.error(`Combatant data for ID "${id}" not found.`);
-            return null;
-        }
-
-        const primaryAttack = combatantData.actions ? combatantData.actions.find(a => a.type === 'attack') : null;
-
-        return {
-            id: id,
-            name: combatantData.name,
-            hp: combatantData.hp,
-            maxHp: combatantData.hp,
-            ac: combatantData.ac,
-            attackBonus: isNpc ? (primaryAttack ? primaryAttack.toHit : 0) : combatantData.attackBonus,
-            damage: isNpc ? (primaryAttack ? primaryAttack.damage : "1d4") : combatantData.damage,
-            portrait: combatantData.portrait || 'portraits/placeholder.png',
-            initiative: 0,
-            statusEffects: [],
-            uniqueId: `${id}_${index}`,
-            intent: "",
-            fullStats: isNpc ? combatantData : null
-        };
-    }).filter(c => c !== null);
+    const grid = createBattlefieldLayout('player', gameState.party, enemiesList.map(enemy => enemy.uniqueId));
 
     gameState.combat = {
         active: true,
         enemies: enemiesList,
+        grid,
         turnOrder: [],
         turnIndex: 0,
         round: 1,
         winSceneId: winScene,
         loseSceneId: loseScene,
         playerDefending: false,
-        sceneText: currentScene.text,
-        actionsRemaining: 1,      // Init for player
-        bonusActionsRemaining: 1
+        sceneText: currentScene?.text || 'Battle begins.',
+        actionsRemaining: 1,
+        bonusActionsRemaining: 1,
+        reactionsRemaining: 1,
+        movementRemaining: 30,
+        activeActorId: 'player',
+        sneakAttackUsedThisTurn: false
     };
+
+    syncAllGridTokens();
 
     uiHooks.logToBattle(`Combat started!`, "combat");
 
     const initiatives = [];
-    // Player
-    const playerInit = rollInitiative(gameState, 'player');
+
+    const playerInit = rollInitiative(gameState.player);
     initiatives.push({ type: 'player', id: 'player', initiative: playerInit.total });
     uiHooks.logToBattle(`You rolled ${playerInit.total} for initiative.`, "system");
 
-    // Companions
     gameState.party.forEach(compId => {
-        // Simplify companion initiative (use player's roll or just flat d20 + dex)
         const char = gameState.roster[compId];
-        const dexMod = char.modifiers.DEX;
-        const roll = rollDie(20) + dexMod;
-        initiatives.push({ type: 'companion', id: compId, initiative: roll });
-        uiHooks.logToBattle(`${char.name} rolled ${roll} for initiative.`, "system");
+        if (!char) return;
+        const init = rollInitiative(char);
+        initiatives.push({ type: 'companion', id: compId, initiative: init.total });
+        uiHooks.logToBattle(`${char.name} rolled ${init.total} for initiative.`, "system");
     });
 
-    // Enemies
     gameState.combat.enemies.forEach(enemy => {
-        const init = rollInitiative(gameState, 'enemy', enemy.attackBonus);
-        enemy.initiative = init.total;
+        const init = rollInitiative(enemy);
         initiatives.push({ type: 'enemy', id: enemy.uniqueId, initiative: init.total });
         uiHooks.logToBattle(`${enemy.name} rolled ${init.total} for initiative.`, "system");
     });
@@ -121,53 +583,68 @@ export function startCombat(combatantIds, winScene, loseScene) {
 export function combatTurnLoop() {
     if (!gameState.combat.active) return;
 
+    cleanupTurnOrder();
+    if (!gameState.combat.turnOrder.length) {
+        checkWinCondition();
+        return;
+    }
+
     const currentTurnId = gameState.combat.turnOrder[gameState.combat.turnIndex];
+    const currentActor = getCombatActor(currentTurnId);
+
+    if (!currentActor || currentActor.hp <= 0) {
+        gameState.combat.turnIndex = getNextTurnIndex(gameState.combat.turnIndex);
+        combatTurnLoop();
+        return;
+    }
+
+    beginTurn(currentTurnId);
 
     if (currentTurnId === 'player') {
-        // Reset Player Action Economy at start of their turn
-        gameState.combat.actionsRemaining = 1;
-        gameState.combat.bonusActionsRemaining = 1;
-
         uiHooks.logToBattle(`Round ${gameState.combat.round} - Your Turn`, "system");
         uiHooks.updateCombatUI();
     } else if (gameState.party.includes(currentTurnId)) {
-        // Companion Turn
-        const comp = gameState.roster[currentTurnId];
-        uiHooks.logToBattle(`Round ${gameState.combat.round} - ${comp.name}'s Turn`, "system");
+        uiHooks.logToBattle(`Round ${gameState.combat.round} - ${currentActor.name}'s Turn`, "system");
 
-        if (gameState.settings.companionAI) {
-            // AI Control
-            setTimeout(() => companionTurnAI(comp), 1000);
+        if (gameState.settings?.companionAI !== false) {
+            setTimeout(() => companionTurnAI(currentActor), 600);
         } else {
-            // Manual Control
-            // We treat it like player turn but acting as companion
-            gameState.combat.actionsRemaining = 1;
-            gameState.combat.bonusActionsRemaining = 1;
             uiHooks.updateCombatUI(currentTurnId); // Pass active character ID
         }
     } else {
-        // Enemy Turn
-        const enemy = gameState.combat.enemies.find(e => e.uniqueId === currentTurnId);
-        uiHooks.logToBattle(`Round ${gameState.combat.round} - ${enemy.name}'s Turn`, "system");
+        uiHooks.logToBattle(`Round ${gameState.combat.round} - ${currentActor.name}'s Turn`, "system");
         uiHooks.updateCombatUI();
-        setTimeout(() => enemyTurn(enemy), 1000);
+        setTimeout(() => enemyTurn(currentActor), 700);
     }
 }
 
-export function performCunningAction(type) {
+export function performCunningAction(type, actorId = 'player') {
     if (gameState.combat.bonusActionsRemaining <= 0) {
         uiHooks.logToBattle("No Bonus Action remaining!", "check-fail");
         return;
     }
+    const actor = getCombatActor(actorId);
+    if (!actor) return;
+
     gameState.combat.bonusActionsRemaining--;
-    uiHooks.logToBattle(`Cunning Action: You used ${type}.`, "gain");
-    uiHooks.updateCombatUI();
+
+    if (type === 'dash') {
+        gameState.combat.movementRemaining += getDerivedActorState(actor).speed;
+        uiHooks.logToBattle(`${actor.name} uses Cunning Action to Dash.`, "gain");
+    } else if (type === 'disengage') {
+        actor.combatFlags = { ...(actor.combatFlags || {}), disengage: true };
+        uiHooks.logToBattle(`${actor.name} disengages and avoids opportunity attacks this turn.`, "gain");
+    } else {
+        uiHooks.logToBattle(`${actor.name} uses Cunning Action: ${type}.`, "gain");
+    }
+
+    uiHooks.updateCombatUI(actorId);
 }
 
 export function performActionSurge(actorId = 'player') {
-    const actor = (actorId === 'player') ? gameState.player : gameState.roster[actorId];
-    const res = actor.resources['action_surge'];
-    if (!res || res.current <= 0) return;
+    const actor = getCombatActor(actorId);
+    const res = actor?.resources?.['action_surge'];
+    if (!actor || !res || res.current <= 0) return;
 
     res.current--;
     gameState.combat.actionsRemaining++;
@@ -180,87 +657,43 @@ export function performEndTurn() {
 }
 
 export function performAttack(targetId, actorId = 'player') {
-    if (gameState.combat.actionsRemaining <= 0) {
-        uiHooks.logToBattle("No Action remaining!", "check-fail");
-        return;
-    }
+    const target = getCombatActor(targetId);
+    const actor = getCombatActor(actorId);
+    if (!target || !actor) return;
 
-    const target = gameState.combat.enemies.find(e => e.uniqueId === targetId);
-    const actor = (actorId === 'player') ? gameState.player : gameState.roster[actorId];
-
-    if (!target) {
-        console.error("Target not found:", targetId);
-        return;
-    }
-
-    gameState.combat.actionsRemaining--;
-
-    const weaponId = actor.equipped.weapon;
-    const weapon = items[weaponId] || { name: "Unarmed", damage: "1d2", modifier: "STR", damageType: "bludgeoning", subtype: "simple" };
-    const stat = weapon.modifier || "STR";
-
-    const cls = classes[actor.classId];
-    // Calculate proficiency properly using helper if not available on actor
-    const proficiencyBonus = actor.proficiencyBonus || getProficiencyBonus(actor.level);
-    const isProficient = weapon.subtype && cls.weaponProficiencies && cls.weaponProficiencies.includes(weapon.subtype);
-    const profToAdd = isProficient ? proficiencyBonus : 0;
-
-    const advantage = false; // Status effects handled inside rollAttack now, but situational adv can go here
-
-    const result = rollAttack(actor, stat, profToAdd, advantage);
-
-    let critThreshold = 20;
-    if (actor.subclassId === 'champion') critThreshold = 19;
-
-    const isCritical = result.roll >= critThreshold;
-
-    let msg = `${actor.name} attacks ${target.name} with ${weapon.name}: ${result.total} (vs AC ${target.ac}).`;
-    if (isCritical) {
-        msg += " CRITICAL HIT!";
-        uiHooks.showBattleEventText("Critical Hit!");
-    }
-    uiHooks.logToBattle(msg, "system");
-
-    if (result.total >= target.ac || isCritical) {
-        let modifier = actor.modifiers[stat];
-        let dmgResult = calculateDamageRoll(weapon.damage, modifier, isCritical);
-        let dmg = dmgResult.total;
-
-        if (actor.classId === 'rogue') {
-            const sneakDice = Math.ceil(actor.level / 2);
-            const sneakDmg = rollDiceExpression(`${sneakDice}d6`).total;
-            dmg += sneakDmg;
-            uiHooks.logToBattle(`Sneak Attack! +${sneakDmg} damage.`, "gain");
-        }
-
-        const targetStats = target.fullStats || enemies[target.id] || target;
-        const { finalDamage, message } = calculateDamageReduction(dmg, weapon.damageType, targetStats);
-        if (message) uiHooks.logToBattle(message, "system");
-
-        target.hp -= Math.max(1, finalDamage);
-        uiHooks.logToBattle(`Hit! Dealt ${finalDamage} damage.`, "combat");
-        uiHooks.showBattleEventText(`${finalDamage}`);
-    } else {
-        uiHooks.logToBattle("Miss!", "system");
-        uiHooks.showBattleEventText("Miss!");
+    const resolved = resolveWeaponHit(actorId, targetId, { consumeAction: true });
+    if (!resolved) {
+        uiHooks.logToBattle(`${actor.name} cannot reach ${target.name}.`, "check-fail");
     }
 
     if (!checkWinCondition()) {
-        uiHooks.updateCombatUI();
+        uiHooks.updateCombatUI(actorId);
     }
 }
 
 export function performCastSpell(spellId, targetId, actorId = 'player') {
     const spell = spells[spellId];
-    if (!spell) {
+    const actor = getCombatActor(actorId);
+    if (!spell || !actor) {
         console.error("Spell not found:", spellId);
         return;
     }
+    if (gameState.combat.actionsRemaining <= 0) {
+        uiHooks.logToBattle("No Action remaining!", "check-fail");
+        return;
+    }
 
-    const actor = (actorId === 'player') ? gameState.player : gameState.roster[actorId];
-    
-    // Check Resources
-    const level = spell.level;
+    const target = getCombatActor(targetId);
+    if (!target) return;
+
+    const rangeFeet = spell.rangeFeet || 5;
+    const targetInRange = ensureTargetInRange(actorId, targetId, { rangeFeet, reachFeet: rangeFeet }, { rangeFeet });
+    if (!targetInRange) {
+        uiHooks.logToBattle(`${target.name} is out of range for ${spell.name}.`, "check-fail");
+        return;
+    }
+
+    const level = spell.level || 0;
     if (level > 0) {
         if (!actor.currentSlots || !actor.currentSlots[level] || actor.currentSlots[level] <= 0) {
             uiHooks.logToBattle("Not enough spell slots!", "check-fail");
@@ -269,101 +702,68 @@ export function performCastSpell(spellId, targetId, actorId = 'player') {
         actor.currentSlots[level]--;
     }
 
-    // Action Economy (simplified: mostly Actions)
-    if (gameState.combat.actionsRemaining <= 0) {
-        uiHooks.logToBattle("No Action remaining!", "check-fail");
-        return; // In real game, undo slot usage? For now, assume button disabled if no action
-    }
     gameState.combat.actionsRemaining--;
-
     uiHooks.logToBattle(`${actor.name} casts ${spell.name}.`, "system");
 
-    if (spell.type === 'heal') {
-        let target;
-        if (targetId === 'player') target = gameState.player;
-        else if (gameState.roster[targetId]) target = gameState.roster[targetId];
-        else target = gameState.combat.enemies.find(e => e.uniqueId === targetId);
+    const snapshot = getDerivedActorState(actor);
+    const spellcastingAbility = getSpellcastingAbility(actor.classId);
 
-        if (target) {
-             const healRoll = rollDiceExpression(spell.amount);
-             const healAmount = healRoll.total; // + spell casting mod?
-             target.hp = Math.min(target.maxHp, target.hp + healAmount);
-             uiHooks.logToBattle(`${target.name} recovers ${healAmount} HP.`, "gain");
-             uiHooks.showBattleEventText(`+${healAmount} HP`);
+    if (spell.type === 'heal') {
+        let healAmount = rollDiceExpression(spell.amount).total;
+        if (actor.classId === 'cleric' && actor.subclassId === 'life' && level > 0) {
+            healAmount += 2 + level;
         }
+        target.hp = Math.min(target.maxHp, target.hp + healAmount);
+        syncActorState(target);
+        syncGridToken(targetId);
+        uiHooks.logToBattle(`${target.name} recovers ${healAmount} HP.`, "gain");
+        uiHooks.showBattleEventText(`+${healAmount} HP`);
+    } else if (spell.type === 'auto') {
+        const damage = calculateDamageRoll(spell.damage, 0, false).total;
+        const finalDamage = resolveDamage(target, damage, spell.damageType);
+        uiHooks.logToBattle(`${spell.name} hits unerringly for ${finalDamage} ${spell.damageType} damage.`, "combat");
+        uiHooks.showBattleEventText(`${finalDamage}`);
     } else if (spell.type === 'attack') {
-        const target = gameState.combat.enemies.find(e => e.uniqueId === targetId);
-        if (target) {
-            const stat = "INT"; // Wizard default, need class mapping
-            const proficiencyBonus = actor.proficiencyBonus || getProficiencyBonus(actor.level);
-            const profToAdd = proficiencyBonus; // Spells usually proficient
-            const result = rollAttack(actor, stat, profToAdd);
-            
-            uiHooks.logToBattle(`Spell Attack: ${result.total} (vs AC ${target.ac})`, "system");
-            
-            if (result.total >= target.ac || result.isCritical) {
-                 const dmgResult = calculateDamageRoll(spell.damage, 0, result.isCritical);
-                 const targetStats = target.fullStats || enemies[target.id] || target;
-                 const { finalDamage, message } = calculateDamageReduction(dmgResult.total, spell.damageType, targetStats);
-                 if (message) uiHooks.logToBattle(message, "system");
-                 
-                 target.hp -= Math.max(1, finalDamage);
-                 uiHooks.logToBattle(`Hit! Dealt ${finalDamage} ${spell.damageType} damage.`, "combat");
-                 uiHooks.showBattleEventText(`${finalDamage}`);
-            } else {
-                 uiHooks.logToBattle("Miss!", "system");
-                 uiHooks.showBattleEventText("Miss!");
-            }
+        const result = rollAttack(actor, spellcastingAbility, snapshot.proficiencyBonus, {
+            tags: ['spell', 'ranged']
+        });
+        uiHooks.logToBattle(`Spell Attack: ${result.total} (vs AC ${target.ac})`, "system");
+
+        if (result.total >= target.ac || result.roll === 20) {
+            const damage = calculateDamageRoll(spell.damage, snapshot.modifiers[spellcastingAbility] || 0, result.roll === 20).total;
+            const finalDamage = resolveDamage(target, damage, spell.damageType);
+            uiHooks.logToBattle(`Hit! Dealt ${finalDamage} ${spell.damageType} damage.`, "combat");
+            uiHooks.showBattleEventText(`${finalDamage}`);
+        } else {
+            uiHooks.logToBattle("Miss!", "system");
+            uiHooks.showBattleEventText("Miss!");
         }
     } else if (spell.type === 'save') {
-        const target = gameState.combat.enemies.find(e => e.uniqueId === targetId);
-        if (target) {
-             // Target rolls save
-             // We need a helper to roll save for enemy. `rollSavingThrow` expects a character object with abilities.
-             // Enemies might not have full abilities object in `combat.enemies` unless fully generated.
-             // `generateScaledStats` creates a full object? Let's check rules.js.
-             // Yes, `generateScaledStats` copies base stats. If base has abilities, we are good.
-             // If not, we need a fallback.
-             
-             let saveTotal = 0;
-             if (target.fullStats && target.fullStats.abilities) {
-                 const saveRes = rollSavingThrow(target.fullStats, spell.saveAbility);
-                 saveTotal = saveRes.total;
-             } else {
-                 // Simple enemy fallback
-                 saveTotal = rollDie(20); // + 0
-             }
-             
-             const dc = 8 + (actor.proficiencyBonus || 2) + (actor.modifiers.INT || 0); // Simplified DC
-             
-             uiHooks.logToBattle(`${target.name} Save (${spell.saveAbility}): ${saveTotal} (DC ${dc})`, "system");
-             
-             const dmgResult = rollDiceExpression(spell.damage);
-             let damage = dmgResult.total;
-             
-             if (saveTotal >= dc) {
-                 damage = Math.floor(damage / 2);
-                 uiHooks.logToBattle("Save successful! Damage halved.", "gain");
-             } else {
-                 uiHooks.logToBattle("Save failed!", "combat");
-             }
-             
-             const targetStats = target.fullStats || enemies[target.id] || target;
-             const { finalDamage, message } = calculateDamageReduction(damage, spell.damageType, targetStats);
-             if (message) uiHooks.logToBattle(message, "system");
-             
-             target.hp -= Math.max(1, finalDamage);
-             uiHooks.logToBattle(`Dealt ${finalDamage} ${spell.damageType} damage.`, "combat");
-             uiHooks.showBattleEventText(`${finalDamage}`);
+        const save = rollSavingThrow(target, spell.saveAbility);
+        uiHooks.logToBattle(`${target.name} Save (${spell.saveAbility}): ${save.total} (DC ${snapshot.spellSaveDC})`, "system");
+
+        let damage = rollDiceExpression(spell.damage).total;
+        if (save.total >= snapshot.spellSaveDC) {
+            damage = Math.floor(damage / 2);
+            uiHooks.logToBattle("Save successful! Damage halved.", "gain");
+        } else {
+            uiHooks.logToBattle("Save failed!", "combat");
         }
+
+        const finalDamage = resolveDamage(target, damage, spell.damageType);
+        uiHooks.logToBattle(`Dealt ${finalDamage} ${spell.damageType} damage.`, "combat");
+        uiHooks.showBattleEventText(`${finalDamage}`);
     }
 
     if (!checkWinCondition()) {
-        uiHooks.updateCombatUI();
+        uiHooks.updateCombatUI(actorId);
     }
 }
 
 export function performAbility(abilityId, actorId = 'player') {
+    const actor = getCombatActor(actorId);
+    if (!actor) return;
+
     let cost = 'action';
     if (abilityId === 'second_wind') cost = 'bonus';
 
@@ -376,7 +776,6 @@ export function performAbility(abilityId, actorId = 'player') {
         return;
     }
 
-    const actor = (actorId === 'player') ? gameState.player : gameState.roster[actorId];
     const resource = actor.resources[abilityId];
     if (!resource || resource.current <= 0) {
         uiHooks.logToBattle("No uses left for that ability.", "check-fail");
@@ -390,23 +789,30 @@ export function performAbility(abilityId, actorId = 'player') {
         resource.current--;
         const healed = rollDie(10) + actor.level;
         actor.hp = Math.min(actor.maxHp, actor.hp + healed);
+        syncActorState(actor);
+        syncGridToken(actorId);
         uiHooks.logToBattle(`Used Second Wind and recovered ${healed} HP.`, "gain");
     } else {
         uiHooks.logToBattle(`Ability '${abilityId}' is not implemented yet.`, "system");
     }
 
     if (!checkWinCondition()) {
-        uiHooks.updateCombatUI();
+        uiHooks.updateCombatUI(actorId);
     }
 }
 
 
-export function performDefend() {
-    if (gameState.combat.actionsRemaining <= 0) return;
+export function performDefend(actorId = 'player') {
+    const actor = getCombatActor(actorId);
+    if (!actor || gameState.combat.actionsRemaining <= 0) return;
+
     gameState.combat.actionsRemaining--;
-    gameState.combat.playerDefending = true;
-    uiHooks.logToBattle("You brace yourself for the next attack.", "system");
-    uiHooks.updateCombatUI();
+    actor.combatFlags = { ...(actor.combatFlags || {}), defending: true };
+    if (actorId === 'player') {
+        gameState.combat.playerDefending = true;
+    }
+    uiHooks.logToBattle(`${actor.name} braces for the next attack.`, "system");
+    uiHooks.updateCombatUI(actorId);
 }
 
 export function performShortRest() {
@@ -425,7 +831,7 @@ export function performFlee() {
     if (gameState.combat.actionsRemaining <= 0) return;
     gameState.combat.actionsRemaining--;
 
-    const roll = rollDie(20) + gameState.player.modifiers.DEX;
+    const roll = rollDie(20) + (gameState.player.modifiers?.DEX || 0);
     if (roll >= 12) {
         uiHooks.logToBattle("You escaped!", "gain");
         gameState.combat.active = false;
@@ -437,81 +843,74 @@ export function performFlee() {
 }
 
 export function endCurrentTurn() {
-    gameState.combat.playerDefending = false;
-    gameState.combat.turnIndex = (gameState.combat.turnIndex + 1) % gameState.combat.turnOrder.length;
-    if (gameState.combat.turnIndex === 0) {
-        gameState.combat.round++;
-    }
-    combatTurnLoop();
-}
+    if (!gameState.combat.active) return;
 
-export function enemyTurn(enemy) {
-    if (!gameState.combat.active || enemy.hp <= 0) {
-        endEnemyTurn(enemy);
-        return;
+    const currentTurnId = gameState.combat.turnOrder[gameState.combat.turnIndex];
+    if (currentTurnId) {
+        endActorTurn(currentTurnId);
     }
 
-    enemy.intent = "is preparing to attack!";
-    uiHooks.updateCombatUI();
-
-    setTimeout(() => {
-        uiHooks.logToBattle(`${enemy.name} attacks!`, "combat");
-        const totalHit = rollDie(20) + enemy.attackBonus;
-    const ac = getPlayerAC(gameState.player);
-
-    if (totalHit >= ac) {
-        let dmg = rollDiceExpression(enemy.damage).total;
-        if (gameState.combat.playerDefending) {
-            dmg = Math.floor(dmg / 2);
-            uiHooks.logToBattle("Defended! Damage halved.", "gain");
-        }
-        gameState.player.hp -= dmg;
-        uiHooks.logToBattle(`You took ${dmg} damage.`, "combat");
-        uiHooks.showBattleEventText(`${dmg}`);
-
-        if (enemy.id === 'fungal_beast' && rollDie(100) <= 25) {
-            applyStatusEffect('poisoned');
-            uiHooks.showBattleEventText("Poisoned!");
-        }
-
-        if (gameState.player.hp <= 0) {
-            gameState.combat.active = false;
-            uiHooks.goToScene(gameState.combat.loseSceneId);
-            return;
-        }
-    } else {
-        uiHooks.logToBattle(`${enemy.name} missed!`, "system");
-        uiHooks.showBattleEventText("Miss!");
-    }
-
-    endEnemyTurn(enemy);
-    }, 1000);
-}
-
-function endEnemyTurn(enemy) {
-    enemy.intent = "";
-
-    const deadEnemies = gameState.combat.enemies.filter(e => e.hp <= 0).map(e => e.uniqueId);
-    if (deadEnemies.length > 0) {
-        gameState.combat.turnOrder = gameState.combat.turnOrder.filter(id => !deadEnemies.includes(id));
-    }
-
-    const currentIndex = gameState.combat.turnOrder.indexOf(enemy.uniqueId);
-    gameState.combat.turnIndex = (currentIndex + 1) % gameState.combat.turnOrder.length;
-
-    if (gameState.combat.turnIndex === 0 && gameState.combat.turnOrder.includes('player')) {
-        gameState.combat.round++;
-    } else if (!gameState.combat.turnOrder.includes('player')) {
+    cleanupTurnOrder();
+    if (!gameState.combat.turnOrder.length) {
         checkWinCondition();
         return;
     }
 
+    const nextIndex = getNextTurnIndex(gameState.combat.turnIndex);
+    if (nextIndex <= gameState.combat.turnIndex) {
+        gameState.combat.round++;
+    }
+    gameState.combat.turnIndex = nextIndex;
+    gameState.combat.playerDefending = false;
     combatTurnLoop();
 }
 
-export function companionTurnAI(actor) {
-    uiHooks.logToBattle(`${actor.name} acts (AI).`, "system");
+export function enemyTurn(enemy) {
+    if (!gameState.combat.active || !enemy || enemy.hp <= 0) {
+        endCurrentTurn();
+        return;
+    }
+
+    const targetId = getPreferredEnemyTarget(enemy.uniqueId);
+    const target = getCombatActor(targetId);
+    if (!target) {
+        endCurrentTurn();
+        return;
+    }
+
+    enemy.intent = `is pressing ${target.name}!`;
+    uiHooks.updateCombatUI();
+
+    enemy.intent = "";
+    const attackResolved = resolveWeaponHit(enemy.uniqueId, targetId, { consumeAction: false });
+    if (!attackResolved) {
+        uiHooks.logToBattle(`${enemy.name} closes for a better angle.`, "system");
+    }
+
+    if (gameState.player.hp <= 0) {
+        gameState.combat.active = false;
+        uiHooks.goToScene(gameState.combat.loseSceneId);
+        return;
+    }
+
     endCurrentTurn();
+}
+
+export function companionTurnAI(actor) {
+    if (!actor || actor.hp <= 0) {
+        endCurrentTurn();
+        return;
+    }
+
+    uiHooks.logToBattle(`${actor.name} acts.`, "system");
+    const targetId = getPreferredEnemyTarget(actor.id);
+    if (targetId) {
+        resolveWeaponHit(actor.id, targetId, { consumeAction: true });
+    }
+
+    if (!checkWinCondition()) {
+        endCurrentTurn();
+    }
 }
 
 export function checkWinCondition() {

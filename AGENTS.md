@@ -115,17 +115,31 @@ Start here before editing:
   - scene runtime
   - menu/options flow
   - Silverthorn runtime scene variants
+- `combat.js`
+  - turn flow
+  - battle action resolution
+  - grid-backed combat state
 - `data/gameState.js`
   - persistent state
   - save/load
   - timeline
   - scene memory
+- `data/mechanics.js`
+  - unified effect/modifier engine
+  - layered stats
+  - derived combat and narrative values
+- `battlegrid.js`
+  - positional combat model
+  - targeting, adjacency, and movement helpers
 - `data/scenes.js`
   - authored scene definitions
   - canonical story text and choices
 - `data/storyTimeline.js`
   - act/event progression model
   - scene-triggered story advancement
+- `notes/combat_grid_model.md`
+  - current positional combat assumptions
+  - battlegrid guardrails
 - `data/shops.js`
   - city store inventories
 - `index.html`

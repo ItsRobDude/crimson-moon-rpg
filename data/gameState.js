@@ -3,12 +3,12 @@ import { classes } from './classes.js';
 import { items } from './items.js';
 import { quests } from './quests.js';
 import { scenes } from './scenes.js';
-import { statusEffects } from './statusEffects.js';
 import { npcs } from './npcs.js';
 import { companions } from './companions.js';
 import { factions } from './factions.js';
-import { rollDiceExpression } from '../rules.js';
+import { rollDiceExpression, rollDie } from '../rules.js';
 import { CANONICAL_START_SCENE, createDefaultStoryState, ensureStoryState } from './storyTimeline.js';
+import { addEffectToActor, applyDerivedState, createDefaultMechanicsState, ensureActorMechanics, getDerivedActorState, getAbilityMod, removeEffectFromActor, syncLegacyStatusEffects, tickActorEffects } from './mechanics.js';
 
 // This object serves as a blueprint for a clean game state.
 const defaultGameState = {
@@ -37,7 +37,8 @@ const defaultGameState = {
         inventory: [],
         gold: 0,
         statusEffects: [],
-        classResources: {}
+        classResources: {},
+        mechanics: createDefaultMechanicsState()
     },
     pendingLevelUp: false,
     currentSceneId: CANONICAL_START_SCENE,
@@ -83,15 +84,19 @@ const defaultGameState = {
     combat: {
         active: false,
         enemies: [],
+        grid: null,
         turnOrder: [],
         turnIndex: 0,
         round: 1,
         winSceneId: null,
         loseSceneId: null,
         defending: false,
+        reactionsRemaining: 1,
         actionsRemaining: 1,
         bonusActionsRemaining: 1,
-        movementRemaining: 30
+        movementRemaining: 30,
+        activeActorId: null,
+        sneakAttackUsedThisTurn: false
     }
 };
 
@@ -127,9 +132,25 @@ export function resetGameState() {
     Object.assign(gameState.combat, JSON.parse(JSON.stringify(defaultGameState.combat)));
 }
 
+export function syncActorState(actor) {
+    ensureActorMechanics(actor);
+    return applyDerivedState(actor);
+}
 
-function calcMod(score) {
-    return Math.floor((score - 10) / 2);
+export function syncAllActorStates() {
+    syncActorState(gameState.player);
+    Object.values(gameState.roster).forEach(actor => syncActorState(actor));
+    if (Array.isArray(gameState.combat?.enemies)) {
+        gameState.combat.enemies.forEach(actor => syncActorState(actor));
+    }
+}
+
+export function syncCharacterState(characterId = 'player') {
+    if (characterId === 'player') return syncActorState(gameState.player);
+    if (gameState.roster[characterId]) return syncActorState(gameState.roster[characterId]);
+    const enemy = gameState.combat.enemies.find(actor => actor.uniqueId === characterId);
+    if (enemy) return syncActorState(enemy);
+    return null;
 }
 
 export function initializeNewGame(name, raceId, classId, baseStats, chosenSkills, chosenSpells) {
@@ -139,11 +160,16 @@ export function initializeNewGame(name, raceId, classId, baseStats, chosenSkills
     const cls = classes[classId];
 
     const abilities = { ...baseStats };
+    const mechanics = createDefaultMechanicsState(baseStats, {
+        saveProficiencies: cls ? (cls.saveProficiencies || []) : [],
+        baseSpeed: 30
+    });
 
     if (race && race.abilityBonuses) {
         for (const [stat, bonus] of Object.entries(race.abilityBonuses)) {
             if (abilities[stat] !== undefined) {
                 abilities[stat] += bonus;
+                mechanics.permanentAbilityBonuses[stat] = (mechanics.permanentAbilityBonuses[stat] || 0) + bonus;
             }
         }
     }
@@ -153,8 +179,9 @@ export function initializeNewGame(name, raceId, classId, baseStats, chosenSkills
     gameState.player.classId = classId;
     gameState.player.subclassId = null;
     gameState.player.abilities = abilities;
+    gameState.player.mechanics = mechanics;
     for (const stat of Object.keys(abilities)) {
-        gameState.player.modifiers[stat] = calcMod(abilities[stat]);
+        gameState.player.modifiers[stat] = getAbilityMod(abilities[stat]);
     }
     gameState.player.level = 1;
     gameState.player.xp = 0;
@@ -218,6 +245,7 @@ export function initializeNewGame(name, raceId, classId, baseStats, chosenSkills
     gameState.visitedScenes = [];
     initNpcRelationships();
     gameState.mapPins = [];
+    syncActorState(gameState.player);
 }
 
 // --- Companion Management ---
@@ -239,7 +267,7 @@ export function addCompanion(companionId) {
             }
         }
 
-        const conMod = calcMod(stats.CON);
+        const conMod = getAbilityMod(stats.CON);
         const hp = cls.hitDie + conMod; // Level 1 HP
 
         gameState.roster[companionId] = {
@@ -260,12 +288,16 @@ export function addCompanion(companionId) {
             currentSlots: {},
             knownSpells: [], // Needs definition
             portrait: compDef.portrait,
-            subclassId: null
+            subclassId: null,
+            statusEffects: [],
+            mechanics: createDefaultMechanicsState(compDef.baseStats, {
+                saveProficiencies: cls ? (cls.saveProficiencies || []) : [],
+                baseSpeed: 30
+            })
         };
 
-        // Calc Modifiers
-        for (const stat of Object.keys(stats)) {
-            gameState.roster[companionId].modifiers[stat] = calcMod(stats[stat]);
+        for (const stat of Object.keys(race.abilityBonuses || {})) {
+            gameState.roster[companionId].mechanics.permanentAbilityBonuses[stat] = race.abilityBonuses[stat];
         }
 
         // Default Equipment
@@ -282,6 +314,7 @@ export function addCompanion(companionId) {
 
         // Sync Level immediately
         syncCompanionLevel(companionId);
+        syncActorState(gameState.roster[companionId]);
     }
 
     gameState.party.push(companionId);
@@ -372,11 +405,19 @@ export function performShortRest() {
         gameState.player.resources['action_surge'].current = gameState.player.resources['action_surge'].max;
     }
 
+    tickActorEffects(gameState.player, 'short_rest');
+    gameState.party.forEach(id => {
+        if (gameState.roster[id]) tickActorEffects(gameState.roster[id], 'short_rest');
+    });
+    syncAllActorStates();
     return healed;
 }
 
 export function performLongRest() {
     gameState.player.hp = gameState.player.maxHp;
+    if (gameState.player.mechanics) {
+        gameState.player.mechanics.temporaryHp = 0;
+    }
     if (gameState.player.spellSlots) {
         gameState.player.currentSlots = { ...gameState.player.spellSlots };
     }
@@ -386,6 +427,17 @@ export function performLongRest() {
     if (gameState.player.resources['action_surge']) {
         gameState.player.resources['action_surge'].current = gameState.player.resources['action_surge'].max;
     }
+    tickActorEffects(gameState.player, 'long_rest');
+    gameState.party.forEach(id => {
+        if (gameState.roster[id]) {
+            gameState.roster[id].hp = gameState.roster[id].maxHp;
+            if (gameState.roster[id].mechanics) {
+                gameState.roster[id].mechanics.temporaryHp = 0;
+            }
+            tickActorEffects(gameState.roster[id], 'long_rest');
+        }
+    });
+    syncAllActorStates();
     return true;
 }
 
@@ -395,7 +447,11 @@ export function gainXp(amount) {
     if (gameState.player.xp >= gameState.player.xpNext) {
         // We do NOT auto-level up anymore. We set a pending state.
         gameState.pendingLevelUp = true;
-    logMessage(`You have enough XP to reach Level ${gameState.player.level + 1}! Rest or check your character sheet to level up.`, "gain");
+        if (typeof window !== 'undefined' && typeof window.logMessage === 'function') {
+            window.logMessage(`You have enough XP to reach Level ${gameState.player.level + 1}! Rest or check your character sheet to level up.`, "gain");
+        } else {
+            console.log(`[LEVEL] You have enough XP to reach Level ${gameState.player.level + 1}.`);
+        }
         return true; // Return true to indicate level up is available
     }
     return false;
@@ -445,11 +501,13 @@ export function equipItem(itemId, characterId = 'player') {
             return { success: false, reason: 'reqStr', value: item.reqStr };
         }
         char.equipped.armor = itemId;
+        syncActorState(char);
         return { success: true, slot: 'armor' };
     }
 
     if (item.type === 'weapon') {
         char.equipped.weapon = itemId;
+        syncActorState(char);
         return { success: true, slot: 'weapon' };
     }
 
@@ -465,6 +523,7 @@ export function unequipItem(slot, characterId = 'player') {
     } else if (slot === 'armor') {
         char.equipped.armor = null;
     }
+    syncActorState(char);
     return { success: true, slot };
 }
 
@@ -481,17 +540,13 @@ export function useConsumable(itemId, characterId = 'player') {
         const healed = roll.total;
         char.hp = Math.min(char.hp + healed, char.maxHp);
         removeItem(itemId, characterId);
+        syncActorState(char);
         return { success: true, msg: `Used ${item.name} and healed ${healed} HP.` };
     }
 
     if (item.effect === 'cure_poison') {
-        // Only player tracks status effects in array currently.
-        // Need to add statusEffects to roster chars if not present.
-        if (!char.statusEffects) char.statusEffects = [];
-
-        const idx = char.statusEffects.findIndex(e => e.id === 'poisoned');
-        if (idx > -1) {
-            char.statusEffects.splice(idx, 1);
+        if (hasStatusEffect('poisoned', characterId)) {
+            removeEffectFromActor(char, 'poisoned');
             removeItem(itemId, characterId);
             return { success: true, msg: `Used ${item.name}. No longer poisoned.` };
         } else {
@@ -504,27 +559,18 @@ export function useConsumable(itemId, characterId = 'player') {
 
 // Status Effect Helpers (Currently mostly Player focused, need to generalize for combat loop)
 export function applyStatusEffect(effectId, durationOverride, characterId = 'player') {
-    if (!statusEffects[effectId]) return;
-
     let char = (characterId === 'player') ? gameState.player : gameState.roster[characterId];
     if (!char) return; // Or handle Enemy?
-
-    if (!char.statusEffects) char.statusEffects = [];
-
-    const effect = statusEffects[effectId];
-    const duration = durationOverride || effect.duration;
-    const existing = char.statusEffects.find(e => e.id === effectId);
-    if (existing) {
-        existing.remaining = Math.max(existing.remaining, duration);
-    } else {
-        char.statusEffects.push({ id: effectId, remaining: duration });
-    }
+    addEffectToActor(char, effectId, {
+        remaining: durationOverride
+    });
 }
 
 export function hasStatusEffect(effectId, characterId = 'player') {
     let char = (characterId === 'player') ? gameState.player : gameState.roster[characterId];
-    if (!char || !char.statusEffects) return false;
-    return char.statusEffects.some(e => e.id === effectId);
+    if (!char) return false;
+    ensureActorMechanics(char);
+    return char.mechanics.activeEffects.some(effect => effect.id === effectId);
 }
 
 export function tickStatusEffects() {
@@ -537,17 +583,7 @@ export function tickStatusEffects() {
 }
 
 function tickCharEffects(char) {
-    if (!char.statusEffects) return;
-    const active = [];
-    char.statusEffects.forEach(e => {
-        e.remaining--;
-        if (e.remaining > 0) {
-            active.push(e);
-        } else {
-            const def = statusEffects[e.id];
-        }
-    });
-    char.statusEffects = active;
+    tickActorEffects(char, 'turn_end');
 }
 
 // Location & Threat Helpers (Unchanged)
@@ -692,6 +728,12 @@ export function getSceneMemory(key) {
     return gameState.sceneMemory[key];
 }
 
+export function getActorSnapshot(characterId = 'player') {
+    const actor = characterId === 'player' ? gameState.player : gameState.roster[characterId];
+    if (!actor) return null;
+    return getDerivedActorState(actor);
+}
+
 export function saveGame() {
     localStorage.setItem('crimson_moon_save', JSON.stringify(gameState));
     // We can't use logMessage here directly as it creates a circular dependency
@@ -724,6 +766,7 @@ export function loadGame() {
         if (!gameState.currentSceneId) {
             gameState.currentSceneId = CANONICAL_START_SCENE;
         }
+        syncAllActorStates();
         console.log("[LOAD] Game loaded from localStorage.");
         return true;
     }

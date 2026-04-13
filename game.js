@@ -5,15 +5,15 @@ import { quests } from './data/quests.js';
 import { scenes } from './data/scenes.js';
 import { enemies } from './data/enemies.js';
 import { spells } from './data/spells.js';
-import { statusEffects } from './data/statusEffects.js';
 import { locations } from './data/locations.js';
 import { travelEvents } from './data/travelEvents.js';
 import { shops } from './data/shops.js';
 import { npcs } from './data/npcs.js';
 import { companions } from './data/companions.js';
 import { factions } from './data/factions.js';
-import { gameState, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, unequipItem, syncPartyLevels, saveGame, loadGame as loadGameData, removeItem, advanceTime, getTimelineLabel, getTimeSlotLabel, getSceneMemory, setSceneMemory } from './data/gameState.js';
+import { gameState, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, unequipItem, syncPartyLevels, saveGame, loadGame as loadGameData, removeItem, advanceTime, getTimelineLabel, getTimeSlotLabel, getSceneMemory, setSceneMemory, performShortRest as gsPerformShortRest, performLongRest as gsPerformLongRest, syncCharacterState } from './data/gameState.js';
 import { CANONICAL_START_SCENE, ensureStoryState, getLocationStoryRequirement, getLocationUnlockHint, meetsStoryRequirement, storyActs, storyEvents, syncStoryStateForScene } from './data/storyTimeline.js';
+import { addEffectToActor, removeEffectFromActor } from './data/mechanics.js';
 import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod, generateScaledStats, getPlayerAC } from './rules.js';
 import { initCombatSystem, startCombat, performAttack, performCastSpell, performAbility, performDefend, performFlee, performEndTurn, performActionSurge, performCunningAction, uiHooks } from './combat.js';
 
@@ -649,6 +649,37 @@ function applySceneEffect(effect, source = 'scene') {
 
     if (effect.type === 'flag' && effect.flagId) {
         gameState.flags[effect.flagId] = effect.value !== undefined ? effect.value : true;
+        return;
+    }
+
+    if (effect.type === 'status' && effect.id) {
+        applyStatusEffect(effect.id, effect.duration, effect.characterId || 'player');
+        logMessage(`${source === 'choice' ? 'Effect applied' : 'Condition gained'}: ${effect.id}.`, 'system');
+        return;
+    }
+
+    if (effect.type === 'removeStatus' && effect.id) {
+        const characterId = effect.characterId || 'player';
+        const actor = characterId === 'player' ? gameState.player : gameState.roster[characterId];
+        if (actor?.mechanics?.activeEffects) {
+            removeEffectFromActor(actor, effect.id);
+            logMessage(`Condition removed: ${effect.id}.`, 'gain');
+        }
+        return;
+    }
+
+    if (effect.type === 'customEffect' && effect.id && effect.modifiers) {
+        const characterId = effect.characterId || 'player';
+        const actor = characterId === 'player' ? gameState.player : gameState.roster[characterId];
+        if (!actor) return;
+        addEffectToActor(actor, effect.id, {
+            name: effect.name || effect.id,
+            source,
+            remaining: effect.duration ?? null,
+            durationType: effect.durationType || 'scenes',
+            modifiers: effect.modifiers
+        });
+        logMessage(`Effect applied: ${effect.name || effect.id}.`, 'system');
     }
 }
 
@@ -987,7 +1018,8 @@ function goToScene(sceneId) {
 
     if (scene.type === 'combat') {
         document.getElementById('shop-panel').classList.add('hidden');
-        startCombat(scene.enemies, scene.winScene, scene.loseScene);
+        const combatants = scene.enemies || (scene.enemyId ? [scene.enemyId] : []);
+        startCombat(combatants, scene.winScene, scene.loseScene);
     } else if (scene.type === 'shop') {
         renderShop(scene.shopId);
         gameState.combat.active = false;
@@ -1468,6 +1500,8 @@ function updateCombatUI(activeCharacterId = 'player') {
         const enemyCard = document.createElement('div');
         enemyCard.className = 'enemy-card';
         const enemyHpPct = Math.max(0, (enemy.hp / enemy.maxHp) * 100);
+        const enemyToken = gameState.combat.grid?.occupied?.[enemy.uniqueId];
+        const positionLabel = enemyToken ? `Pos ${enemyToken.x},${enemyToken.y}` : '';
 
         enemyCard.innerHTML = `
             <div class="enemy-portrait" style='background-image: url("${enemy.portrait}");'></div>
@@ -1476,6 +1510,7 @@ function updateCombatUI(activeCharacterId = 'player') {
                 <div class="enemy-bar-background">
                     <div class="enemy-bar-fill" style="width: ${enemyHpPct}%;"></div>
                 </div>
+                <div class="enemy-status">${positionLabel}</div>
                 <div class="enemy-status">${enemy.intent || ''}</div>
             </div>
         `;
@@ -1493,7 +1528,7 @@ function updateCombatUI(activeCharacterId = 'player') {
     if (activeCharacterId === 'player' || gameState.party.includes(activeCharacterId)) {
         const isTurn = gameState.combat.turnOrder[gameState.combat.turnIndex] === activeCharacterId;
         if (isTurn) {
-            turnIndicator.textContent = `${activeName}'s Turn`;
+            turnIndicator.textContent = `${activeName}'s Turn - ${gameState.combat.movementRemaining} ft move`;
             renderPlayerActions(actionsContainer, null, activeCharacterId);
         } else {
             turnIndicator.textContent = "Waiting...";
@@ -1576,8 +1611,8 @@ function renderPlayerActions(container, subMenu = null, actingId = 'player') {
         // Render Class Features
         // Cunning Action (Rogue)
         if (actor.level >= 2 && actor.classId === 'rogue') {
-             grid.appendChild(createActionButton('Dash (Bonus)', 'directions_run', () => performCunningAction('dash'), '', !hasBonus));
-             grid.appendChild(createActionButton('Disengage (Bonus)', 'do_not_step', () => performCunningAction('disengage'), '', !hasBonus));
+             grid.appendChild(createActionButton('Dash (Bonus)', 'directions_run', () => performCunningAction('dash', actingId), '', !hasBonus));
+             grid.appendChild(createActionButton('Disengage (Bonus)', 'do_not_step', () => performCunningAction('disengage', actingId), '', !hasBonus));
         }
 
         // Action Surge (Fighter)
@@ -1602,7 +1637,7 @@ function renderPlayerActions(container, subMenu = null, actingId = 'player') {
         grid.appendChild(createActionButton('Attack', 'swords', () => renderPlayerActions(container, 'attack', actingId), 'primary', !hasAction));
         grid.appendChild(createActionButton('Spells', 'auto_stories', () => renderPlayerActions(container, 'spells', actingId), '', !hasSpells || !hasAction)); // Assume spells need action
         grid.appendChild(createActionButton('Abilities', 'star', () => renderPlayerActions(container, 'abilities', actingId)));
-        grid.appendChild(createActionButton('Defend', 'shield', performDefend, '', !hasAction));
+        grid.appendChild(createActionButton('Defend', 'shield', () => performDefend(actingId), '', !hasAction));
         grid.appendChild(createActionButton('Items', 'local_drink', () => toggleInventory(true, actingId), '', !hasAction)); // Using Item is usually an Action (unless Thief)
         grid.appendChild(createActionButton('End Turn', 'hourglass_bottom', performEndTurn, 'flee')); // Manual End Turn
         // Flee is special, uses Action
@@ -1615,6 +1650,8 @@ function renderPlayerActions(container, subMenu = null, actingId = 'player') {
 // Helper to render party card (needed for updateCombatUI)
 function renderPartyCard(p, id, activeId) {
     const isPlayerTurn = (gameState.combat.turnOrder[gameState.combat.turnIndex] === id);
+    const token = gameState.combat.grid?.occupied?.[id];
+    const positionLabel = token ? `Pos ${token.x},${token.y}` : 'Off-grid';
     const card = document.createElement('div');
     card.className = `party-card ${isPlayerTurn ? 'active-turn' : ''}`;
     
@@ -1642,13 +1679,13 @@ function renderPartyCard(p, id, activeId) {
             <div class="party-bar-background"><div class="party-bar-fill mana-fill" style="width: ${manaPct}%;"></div></div>
         </div>` : ''}
         <div class="party-status">
-            ${isPlayerTurn ? `<span class="turn-indicator-text">Your Turn</span>` : ''}
-            ${p.hp <= 0 ? `<span class="status-down">Down</span>` : ''}
-            <div style="font-size:0.8em; margin-top:4px;">
-                Act: ${gameState.combat.actionsRemaining} | Bns: ${gameState.combat.bonusActionsRemaining}
-            </div>
-        </div>
-    `;
+              ${isPlayerTurn ? `<span class="turn-indicator-text">Your Turn</span>` : ''}
+              ${p.hp <= 0 ? `<span class="status-down">Down</span>` : ''}
+              <div style="font-size:0.8em; margin-top:4px;">
+                  ${positionLabel} | Act: ${gameState.combat.actionsRemaining} | Bns: ${gameState.combat.bonusActionsRemaining} | Move: ${gameState.combat.movementRemaining}
+              </div>
+          </div>
+      `;
     
     // Attach click listener for selection?
     // card.onclick = () => ...
@@ -1703,22 +1740,7 @@ function performLongRest() {
         logMessage("Cannot rest during combat!", "check-fail");
         return;
     }
-
-    gameState.player.hp = gameState.player.maxHp;
-    // Reset slots
-    if (gameState.player.spellSlots) {
-        gameState.player.currentSlots = { ...gameState.player.spellSlots };
-    }
-    // Reset class resources
-    if (gameState.player.resources['second_wind']) {
-        gameState.player.resources['second_wind'].current = gameState.player.resources['second_wind'].max;
-    }
-    if (gameState.player.resources['action_surge']) {
-        gameState.player.resources['action_surge'].current = gameState.player.resources['action_surge'].max;
-    }
-    // Add reset for other resources
-
-    return true;
+    return gsPerformLongRest();
 }
 
 function performShortRest() {
@@ -1726,17 +1748,7 @@ function performShortRest() {
         logMessage("Cannot rest during combat!", "check-fail");
         return 0;
     }
-
-    const cls = classes[gameState.player.classId];
-    const roll = rollDie(cls.hitDie) + gameState.player.modifiers.CON;
-    const healed = Math.max(1, roll);
-    gameState.player.hp = Math.min(gameState.player.maxHp, gameState.player.hp + healed);
-
-    if (gameState.player.resources['action_surge']) {
-        gameState.player.resources['action_surge'].current = gameState.player.resources['action_surge'].max;
-    }
-
-    return healed;
+    return gsPerformShortRest();
 }
 
 // ... (Standard helper functions remain) ...
@@ -2115,11 +2127,8 @@ function showLevelUpModal() {
         if (nextLevel % 4 === 0) {
             const s1 = document.getElementById('asi-stat-1').value;
             const s2 = document.getElementById('asi-stat-2').value;
-            gameState.player.abilities[s1]++;
-            gameState.player.abilities[s2]++;
-            // Recalculate mods
-            gameState.player.modifiers[s1] = getAbilityMod(gameState.player.abilities[s1]);
-            gameState.player.modifiers[s2] = getAbilityMod(gameState.player.abilities[s2]);
+            gameState.player.mechanics.permanentAbilityBonuses[s1] = (gameState.player.mechanics.permanentAbilityBonuses[s1] || 0) + 1;
+            gameState.player.mechanics.permanentAbilityBonuses[s2] = (gameState.player.mechanics.permanentAbilityBonuses[s2] || 0) + 1;
             logMessage(`Increased ${s1} and ${s2} by 1.`, "gain");
         }
 
@@ -2137,6 +2146,7 @@ function showLevelUpModal() {
              gameState.player.currentSlots = { ...levelData.spellSlots }; // Refresh on level up
         }
 
+        syncCharacterState('player');
         gameState.pendingLevelUp = false;
         modal.classList.add('hidden');
         logMessage(`You are now Level ${nextLevel}!`, "gain");

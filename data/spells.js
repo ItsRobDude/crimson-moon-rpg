@@ -3,6 +3,7 @@ export const spells = {
         name: "Fire Bolt",
         level: 0,
         type: "attack",
+        rangeFeet: 120,
         damage: "1d10",
         damageType: "fire",
         description: "You hurl a mote of fire at a creature or object."
@@ -11,13 +12,15 @@ export const spells = {
         name: "Cure Wounds",
         level: 1,
         type: "heal",
+        rangeFeet: 5,
         amount: "1d8+3",
         description: "A creature you touch regains hit points."
     },
     "magic_missile": {
         name: "Magic Missile",
         level: 1,
-        type: "attack", // Auto-hit usually, but we keep as attack for simplicity or make 'auto'
+        type: "auto",
+        rangeFeet: 120,
         damage: "3d4+3", // 3 darts
         damageType: "force",
         description: "You create three glowing darts of magical force. They hit unerringly."
@@ -26,6 +29,7 @@ export const spells = {
         name: "Burning Hands",
         level: 1,
         type: "save",
+        rangeFeet: 15,
         saveAbility: "DEX",
         damage: "3d6",
         damageType: "fire",
