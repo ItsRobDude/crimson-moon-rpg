@@ -6,12 +6,13 @@ This repo now treats the Silverthorn opening as canon:
 2. Character creation
 3. `SCENE_BRIEFING` in Alderic's chamber
 
-The project goal is a sandbox visual novel first, with tactical 5e-style battles as an important secondary mode. That means the runtime should prioritize:
+The project goal is a sandbox visual novel first, with deep 5e combat and rules support as an important secondary mode. That means the runtime should prioritize:
 
 * Scene presentation and dialogue choices
 * Story-event availability and timing
 * Smooth transitions into combat
 * Lightweight travel/map support rather than map-first exploration
+* Rules consistency between combat and non-combat scenes
 
 ## Canonical Route
 
@@ -47,6 +48,17 @@ Use story events as the main gate, not the map:
 * Important scenes should check story-event availability or completion before exposing the next branch.
 * Missing a beat should usually adapt the route rather than dead-end the story.
 * Combat should resolve local stakes, while the timeline system decides when global stakes move forward.
+* Status effects, injuries, blessings, curses, and other modifiers should eventually be able to influence dialogue and skill scenes, not just combat.
+
+## Combat Direction
+
+The intended combat destination is:
+
+* true positional combat
+* battlegrid scenes rather than permanently abstract menu combat
+* avatar placeholders are acceptable until final art exists
+* flat ground can be assumed by default unless a scene introduces terrain deliberately
+* the rules layer should move toward near-tabletop 5e fidelity where practical
 
 ## Current Runtime Direction
 

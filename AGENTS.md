@@ -19,7 +19,8 @@ Treat it as:
 
 - a sandbox visual novel first
 - a time- and event-sensitive narrative game
-- a tactical RPG second
+- a deep 5e-inspired RPG with near-tabletop ambitions
+- a true positional combat game during battle scenes
 
 That means the runtime should prioritize:
 
@@ -28,8 +29,15 @@ That means the runtime should prioritize:
 - time progression
 - event windows and story gating
 - smooth transitions into combat when events demand it
+- systemic consistency between narrative play and combat rules
 
 Do not optimize the game toward map-first exploration, filler traversal, or static town menus unless explicitly asked.
+
+Do not assume "VN-first" means "rules-light." The intended direction is:
+
+- narrative-first structure
+- but as close to tabletop 5e mechanics as is reasonably practical in implementation
+- with battle scenes eventually using a battlegrid and positional logic rather than abstract menu combat
 
 ## Canonical Opening
 
@@ -79,6 +87,7 @@ When adding or editing story content:
 - ask whether the scene should vary by time-of-day
 - ask whether the scene should be one-time, repeatable, or degrade into a shorter revisit version
 - ask whether missing the scene should adapt the story instead of dead-ending it
+- ask whether statuses, injuries, blessings, curses, intoxication, fear, or fatigue should affect non-combat rolls in the scene
 
 ## Lore Sources To Read First
 
@@ -178,11 +187,39 @@ Prefer:
 
 - combat as consequence, interruption, or payoff
 - story/event state deciding global progression
+- battle scenes that honor 5e logic as closely as practical
+- one shared effect/status model for combat and narrative rolls
+- true positional combat direction, not permanently abstract combat
+
+Current intended combat direction:
+
+- battle screens will use a battlegrid
+- avatar placeholders are acceptable early while art is incomplete
+- assume flat ground by default unless a scene explicitly introduces terrain
+- positioning, movement, reach, adjacency, and targeting should eventually be real mechanics
 
 Avoid:
 
 - adding combat just to make a scene feel game-like
 - letting combat logic replace narrative gating
+- treating combat as permanently abstract if the change would block battlegrid goals
+- implementing combat-only buffs/debuffs that cannot also function in dialogue, travel, or social checks
+
+## Rules Fidelity
+
+The project is not targeting a vague "5e flavor."
+
+Target:
+
+- as close to tabletop 5e as reasonably possible for a digital VN/RPG hybrid
+
+That means future work should generally move toward:
+
+- proper temporary vs permanent stat handling
+- reusable effect and condition systems
+- action, bonus action, reaction, and movement support
+- class/race features with real mechanical impact
+- spell and condition logic that works both in battle and outside it
 
 ## Testing and Verification
 

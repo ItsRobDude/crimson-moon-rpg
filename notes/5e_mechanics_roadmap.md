@@ -2,7 +2,7 @@
 
 ## Goal
 
-Evolve `Prophecies: Crimson Moon` from a 5e-flavored prototype into a deeper `5e-lite to near-full-5e` rules implementation without losing the project's core identity as a sandbox visual novel with RPG elements.
+Evolve `Prophecies: Crimson Moon` from a 5e-flavored prototype into a near-tabletop 5e implementation where practical, without losing the project's core identity as a sandbox visual novel with RPG elements.
 
 This roadmap assumes:
 
@@ -10,6 +10,8 @@ This roadmap assumes:
 - event/timeline flow remains the main progression driver
 - combat depth is increased for players who want real system mastery
 - rules improvements should be systemic, not one-off patches
+- battle scenes are expected to use a true positional battlegrid
+- status/effect logic must work in narrative and non-combat scenes too
 
 ## Design Principle
 
@@ -25,7 +27,7 @@ Instead:
 The long-term target should feel like:
 
 - authored VN scenes
-- tactical 5e-lite or deep 5e combat layer
+- deep 5e combat layer with true positioning
 - reusable status/effect engine
 - save-stable character state
 
@@ -337,23 +339,28 @@ Priority: medium-high
 
 ### 14. Positioning and Range
 
-Decide how deep tactical combat should go:
+This direction is now decided:
 
-- abstract front/back/ranged lanes
-- or gridless distance bands
-- or true grid later
+- true battlegrid combat
+- flat ground by default
+- terrain as an explicit scene-level addition later
 
-A lane/band model is probably the best fit for this project because it preserves VN flow while still supporting:
+Needed systems:
 
-- melee lock
-- ranged penalties
-- disengage
-- movement decisions
+- tile occupancy
+- movement cost
+- adjacency
+- melee reach
+- ranged targeting
+- line of sight
 - opportunity attacks
+- melee lock
+- disengage
+- cover hooks
 
 ### 15. Cover and Terrain
 
-Support simple terrain tags:
+Support terrain and map tags after the flat-ground baseline is working:
 
 - light cover
 - heavy cover
@@ -405,6 +412,22 @@ Target outcome:
 
 - mechanics and narrative state stop fighting each other
 
+### 18. Narrative Roll Integration
+
+Non-combat scenes must be able to consult the same mechanical state as battle scenes.
+
+Examples:
+
+- poison affecting deception or performance
+- fear affecting persuasion or intimidation
+- bless-like effects helping social or exploration rolls when appropriate
+- exhaustion affecting travel, skill checks, and dialogue branches
+- injuries or curses shaping scene outcomes outside combat
+
+Target outcome:
+
+- the game no longer treats "battle mechanics" and "story mechanics" as separate worlds
+
 ## Recommended Implementation Order
 
 If doing this incrementally, the best order is:
@@ -418,7 +441,8 @@ If doing this incrementally, the best order is:
 7. class feature audit and implementation
 8. spell taxonomy expansion
 9. temporary HP, concentration, and resource polish
-10. tactical range/positioning improvements
+10. battlegrid and positional combat implementation
+11. narrative roll integration on the shared effect engine
 
 ## Suggested Milestones
 
@@ -432,7 +456,7 @@ Definition:
 - spell DCs and attacks are reliable
 - basic class fantasy works
 
-This is the best near-term target.
+This is the best near-term target before battlegrid rollout.
 
 ## Milestone B: "System-Deep VN Combat"
 
