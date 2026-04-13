@@ -13,6 +13,7 @@ import { npcs } from './data/npcs.js';
 import { companions } from './data/companions.js';
 import { factions } from './data/factions.js';
 import { gameState, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, unequipItem, syncPartyLevels, saveGame, loadGame as loadGameData, removeItem } from './data/gameState.js';
+import { CANONICAL_START_SCENE, ensureStoryState, meetsStoryRequirement, storyActs, storyEvents, syncStoryStateForScene } from './data/storyTimeline.js';
 import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod, generateScaledStats, getPlayerAC } from './rules.js';
 import { initCombatSystem, startCombat, performAttack, performCastSpell, performAbility, performDefend, performFlee, performEndTurn, performActionSurge, performCunningAction, uiHooks } from './combat.js';
 
@@ -89,17 +90,17 @@ export function initUI() {
             logMessage('No existing save found. Start a New Game to begin.', 'system');
             return;
         }
-        startMenu.classList.add('hidden');
         loadGame();
     };
 
     startNewBtn.onclick = () => {
-        startMenu.classList.add('hidden');
-        localStorage.removeItem('crimson_moon_save');
-        showCharacterCreation();
+        beginNewGameFlow();
     };
 
     document.getElementById('btn-start-game').onclick = finishCharacterCreation;
+    document.getElementById('btn-start-options').onclick = () => {
+        document.getElementById('tutorial-overlay').classList.remove('hidden');
+    };
 
     document.getElementById('btn-debug-toggle').onclick = () => {
         logMessage("Debug mode toggled.", "system");
@@ -119,8 +120,81 @@ let ccState = {
     chosenSpells: []
 };
 
+function resetCharacterCreationState() {
+    ccState = {
+        baseStats: { STR: 15, DEX: 14, CON: 13, INT: 12, WIS: 10, CHA: 8 },
+        chosenSkills: [],
+        chosenSpells: []
+    };
+}
+
+function showStartMenu() {
+    document.getElementById('char-creation-modal').classList.add('hidden');
+    document.getElementById('start-menu').classList.remove('hidden');
+}
+
+function beginNewGameFlow() {
+    localStorage.removeItem('crimson_moon_save');
+    resetCharacterCreationState();
+    showCharacterCreation();
+}
+
+function getStoryLabel(collection, id) {
+    return collection[id] ? collection[id].title : id;
+}
+
+function logStoryProgress(changes) {
+    changes.unlocked.forEach((eventId) => {
+        logMessage(`Story Thread Unlocked: ${getStoryLabel(storyEvents, eventId)}`, 'system');
+    });
+
+    changes.completed.forEach((eventId) => {
+        logMessage(`Story Thread Advanced: ${getStoryLabel(storyEvents, eventId)}`, 'gain');
+    });
+
+    if (changes.actChanged) {
+        const currentAct = storyActs.find((act) => act.id === gameState.story.currentActId);
+        if (currentAct) {
+            logMessage(`Story Arc: ${currentAct.title}`, 'system');
+        }
+    }
+}
+
+function applySceneEffect(effect, source = 'scene') {
+    if (!effect || !effect.type) return;
+
+    if (effect.type === 'relationship') {
+        changeRelationship(effect.npcId, effect.amount);
+        return;
+    }
+
+    if (effect.type === 'reputation') {
+        changeReputation(effect.factionId, effect.amount);
+        return;
+    }
+
+    if (effect.type === 'addItem') {
+        addItem(effect.itemId, effect.characterId || 'player');
+        const item = items[effect.itemId];
+        if (item) {
+            logMessage(`${source === 'choice' ? 'Received' : 'Found'} ${item.name}.`, 'gain');
+        }
+        return;
+    }
+
+    if (effect.type === 'flag' && effect.flagId) {
+        gameState.flags[effect.flagId] = effect.value !== undefined ? effect.value : true;
+    }
+}
+
+function applyEffectList(effects, source = 'scene') {
+    if (!Array.isArray(effects)) return;
+    effects.forEach((effect) => applySceneEffect(effect, source));
+}
+
 export function showCharacterCreation() {
     document.getElementById('start-menu').classList.add('hidden');
+    resetCharacterCreationState();
     const raceSelect = document.getElementById('cc-race');
     const classSelect = document.getElementById('cc-class');
     raceSelect.innerHTML = "";
@@ -352,8 +426,7 @@ function finishCharacterCreation() {
     saveGame();
 
     // 7) Jump to explicit starting scene
-    const startSceneId = 'SCENE_BRIEFING';
-    goToScene(startSceneId);
+    goToScene(CANONICAL_START_SCENE);
 
     logMessage(`Character ${name} created. Welcome to Silverthorn.`, "system");
 }
@@ -361,6 +434,9 @@ function finishCharacterCreation() {
 function goToScene(sceneId) {
     const scene = scenes[sceneId];
     if (!scene) { console.error("Scene not found:", sceneId); return; }
+
+    gameState.story = ensureStoryState(gameState.story);
+    const storyChanges = syncStoryStateForScene(gameState.story, sceneId);
 
     const battleScreen = document.getElementById('battle-screen');
     if (battleScreen) battleScreen.classList.add('hidden');
@@ -408,14 +484,26 @@ function goToScene(sceneId) {
                 addGold(scene.onEnter.addGold);
                 logMessage(`Gained ${scene.onEnter.addGold} gold.`, "gain");
             }
+            if (scene.onEnter.addItem) {
+                addItem(scene.onEnter.addItem);
+                const item = items[scene.onEnter.addItem];
+                if (item) {
+                    logMessage(`Received ${item.name}.`, "gain");
+                }
+            }
             if (scene.onEnter.setFlag) {
                 gameState.flags[scene.onEnter.setFlag] = true;
                 if (scene.onEnter.setFlag === 'aodhan_dead') {
                     setNpcStatus('aodhan', 'dead');
                 }
             }
+            if (scene.onEnter.effects) {
+                applyEffectList(scene.onEnter.effects);
+            }
         }
     }
+
+    logStoryProgress(storyChanges);
 
     triggerAmbientByThreat(scene.location);
 
@@ -457,6 +545,17 @@ function renderChoices(choices) {
                     const { id, status } = choice.requires.npcState;
                     if (getNpcStatus(id) !== status) return;
                 }
+                if (choice.requires.storyEvent) {
+                    if (!meetsStoryRequirement(gameState.story, choice.requires.storyEvent)) return;
+                }
+                if (choice.requires.storyAct) {
+                    const currentActId = gameState.story && gameState.story.currentActId;
+                    if (Array.isArray(choice.requires.storyAct)) {
+                        if (!choice.requires.storyAct.includes(currentActId)) return;
+                    } else if (currentActId !== choice.requires.storyAct) {
+                        return;
+                    }
+                }
             }
             const btn = document.createElement('button');
             btn.innerText = choice.text + (choice.cost ? ` (${choice.cost}g)` : "");
@@ -467,6 +566,14 @@ function renderChoices(choices) {
 }
 
 function handleChoice(choice) {
+    if (choice.cost) {
+        if (!spendGold(choice.cost)) {
+            logMessage('Not enough gold.', 'check-fail');
+            return;
+        }
+        logMessage(`Spent ${choice.cost} gold.`, 'system');
+    }
+
     if (choice.action === 'loadGame') {
         loadGame();
         return;
@@ -483,10 +590,7 @@ function handleChoice(choice) {
         return;
     }
     if (choice.effects) {
-        choice.effects.forEach(effect => {
-            if (effect.type === 'relationship') changeRelationship(effect.npcId, effect.amount);
-            if (effect.type === 'reputation') changeReputation(effect.factionId, effect.amount);
-        });
+        applyEffectList(choice.effects, 'choice');
     }
     if (!choice.type) { if (choice.nextScene) goToScene(choice.nextScene); return; }
 
@@ -503,12 +607,19 @@ function handleChoice(choice) {
             }
             if (choice.onSuccess && choice.onSuccess.addGold) {
                 addGold(choice.onSuccess.addGold);
+                logMessage(`Gained ${choice.onSuccess.addGold} gold.`, "gain");
+            }
+            if (choice.onSuccess && choice.onSuccess.effects) {
+                applyEffectList(choice.onSuccess.effects, 'choice');
             }
             document.getElementById('narrative-text').innerText = choice.successText;
             if (choice.nextSceneSuccess) renderContinueButton(choice.nextSceneSuccess);
         } else {
             if (choice.skill === 'stealth' || choice.skill === 'acrobatics') {
                 adjustThreat(5, 'noise draws attention');
+            }
+            if (choice.onFail && choice.onFail.effects) {
+                applyEffectList(choice.onFail.effects, 'choice');
             }
             document.getElementById('narrative-text').innerText = choice.failText;
             if (choice.nextSceneFail) renderContinueButton(choice.nextSceneFail);
@@ -1134,6 +1245,7 @@ function performShortRest() {
 // ... (Standard helper functions remain) ...
 export function loadGame() {
     if (loadGameData()) {
+        gameState.story = ensureStoryState(gameState.story);
         logMessage("Game Loaded.", "system");
         updateStatsUI();
         goToScene(gameState.currentSceneId);
@@ -1142,7 +1254,7 @@ export function loadGame() {
         document.getElementById('start-menu').classList.add('hidden');
     } else {
         // No save file, go to character creation
-        document.getElementById('start-menu').classList.remove('hidden');
+        showStartMenu();
     }
 }
 
@@ -1585,12 +1697,12 @@ export function bootstrapGame() {
     initUI();
 
     try {
-        document.getElementById('start-menu').classList.remove('hidden');
-        document.getElementById('char-creation-modal').classList.add('hidden');
+        gameState.story = ensureStoryState(gameState.story);
+        showStartMenu();
     } catch (e) {
         console.error("Error during bootstrap/load, starting new game:", e);
         localStorage.removeItem('crimson_moon_save');
-        document.getElementById('start-menu').classList.remove('hidden');
+        showStartMenu();
     }
 
     // Signal ready for Playwright tests

@@ -8,6 +8,7 @@ import { npcs } from './npcs.js';
 import { companions } from './companions.js';
 import { factions } from './factions.js';
 import { rollDiceExpression } from '../rules.js';
+import { CANONICAL_START_SCENE, createDefaultStoryState, ensureStoryState } from './storyTimeline.js';
 
 // This object serves as a blueprint for a clean game state.
 const defaultGameState = {
@@ -39,9 +40,10 @@ const defaultGameState = {
         classResources: {}
     },
     pendingLevelUp: false,
-    currentSceneId: "SCENE_BRIEFING",
+    currentSceneId: CANONICAL_START_SCENE,
     quests: {}, // Populated from quests.js on reset
     flags: {},
+    story: createDefaultStoryState(),
     threat: {
         level: 0,
         recentNoise: 0,
@@ -56,8 +58,8 @@ const defaultGameState = {
     },
     relationships: {},
     discoveredLocations: {
-        hushbriar: true,
-        silverthorn: false,
+        hushbriar: false,
+        silverthorn: true,
         shadowmire: false,
         whisperwood: false,
         durnhelm: false,
@@ -102,6 +104,7 @@ export function resetGameState() {
     gameState.currentSceneId = defaultGameState.currentSceneId;
     gameState.quests = JSON.parse(JSON.stringify(quests)); // Re-initialize from source
     gameState.flags = {};
+    gameState.story = createDefaultStoryState();
     Object.assign(gameState.threat, JSON.parse(JSON.stringify(defaultGameState.threat)));
     gameState.worldPhase = defaultGameState.worldPhase;
     Object.assign(gameState.reputation, JSON.parse(JSON.stringify(defaultGameState.reputation)));
@@ -195,10 +198,12 @@ export function initializeNewGame(name, raceId, classId, baseStats, chosenSkills
     // Example: Add Aodhan immediately for testing if desired, or wait for narrative
     // addCompanion('aodhan'); // Uncomment to start with Aodhan for testing
 
-    gameState.currentSceneId = "SCENE_BRIEFING";
+    gameState.currentSceneId = CANONICAL_START_SCENE;
+    gameState.story = createDefaultStoryState();
     gameState.combat.active = false;
     gameState.threat = { level: 0, recentNoise: 0, recentStealth: 0, ambient: [] };
-    gameState.discoveredLocations.hushbriar = true;
+    gameState.discoveredLocations.silverthorn = true;
+    gameState.discoveredLocations.hushbriar = false;
     gameState.visitedScenes = [];
     initNpcRelationships();
     gameState.mapPins = [];
@@ -646,6 +651,10 @@ export function loadGame() {
                 }
             }
         });
+        gameState.story = ensureStoryState(gameState.story);
+        if (!gameState.currentSceneId) {
+            gameState.currentSceneId = CANONICAL_START_SCENE;
+        }
         console.log("[LOAD] Game loaded from localStorage.");
         return true;
     }

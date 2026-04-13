@@ -11,3 +11,4 @@ This demo is a narrative-forward tactical RPG set in the infected forests and ou
   * World references: Silverthorn, Whisperwood, Viridian Forest, Thorne Guild, the Druids, the Blackened King, Ciara.
 
 See `notes/salvage_pitch.md` for a concrete gameplay loop and story structure that ties these pieces together.
+See `notes/story_timeline_model.md` for the canonical Silverthorn opening and the new event-driven timeline model.

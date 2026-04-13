@@ -12,6 +12,10 @@
     "jest": "^29.7.0"
   },
   "jest": {
-    "transform": {}
+    "transform": {},
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/e2e/"
+    ]
   }
 }
