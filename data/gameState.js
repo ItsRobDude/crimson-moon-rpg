@@ -1238,6 +1238,65 @@ export function getActorSnapshot(characterId = 'player') {
     return getDerivedActorState(actor);
 }
 
+function normalizeQuestState(rawQuests = {}) {
+    const normalized = JSON.parse(JSON.stringify(quests));
+
+    Object.keys(normalized).forEach((questId) => {
+        const savedQuest = rawQuests?.[questId];
+        if (!savedQuest || typeof savedQuest !== 'object') return;
+
+        normalized[questId] = {
+            ...normalized[questId],
+            currentStage: savedQuest.currentStage ?? normalized[questId].currentStage,
+            completed: savedQuest.completed ?? normalized[questId].completed
+        };
+    });
+
+    return normalized;
+}
+
+function normalizeLoadedState() {
+    gameState.currentSceneId = gameState.currentSceneId || CANONICAL_START_SCENE;
+    gameState.flags = gameState.flags && typeof gameState.flags === 'object' ? gameState.flags : {};
+    gameState.sceneMemory = gameState.sceneMemory && typeof gameState.sceneMemory === 'object' ? gameState.sceneMemory : {};
+    gameState.story = ensureStoryState(gameState.story);
+    gameState.quests = normalizeQuestState(gameState.quests);
+    gameState.timeline = {
+        ...defaultGameState.timeline,
+        ...(gameState.timeline || {})
+    };
+    gameState.threat = {
+        ...defaultGameState.threat,
+        ...(gameState.threat || {}),
+        ambient: Array.isArray(gameState.threat?.ambient) ? [...gameState.threat.ambient] : []
+    };
+    gameState.reputation = {
+        ...defaultGameState.reputation,
+        ...(gameState.reputation || {})
+    };
+    gameState.discoveredLocations = {
+        ...defaultGameState.discoveredLocations,
+        ...(gameState.discoveredLocations || {})
+    };
+    gameState.relationships = gameState.relationships && typeof gameState.relationships === 'object' ? gameState.relationships : {};
+    gameState.npcStates = gameState.npcStates && typeof gameState.npcStates === 'object' ? gameState.npcStates : {};
+    gameState.visitedScenes = Array.isArray(gameState.visitedScenes) ? gameState.visitedScenes : [];
+    gameState.mapPins = Array.isArray(gameState.mapPins) ? gameState.mapPins : [];
+    gameState.party = Array.isArray(gameState.party) ? gameState.party : [];
+    gameState.roster = gameState.roster && typeof gameState.roster === 'object' ? gameState.roster : {};
+    gameState.combat = {
+        ...defaultGameState.combat,
+        ...(gameState.combat || {})
+    };
+
+    ensureActorInventory(gameState.player);
+    ensureActorSelections(gameState.player);
+    Object.values(gameState.roster).forEach((actor) => {
+        ensureActorInventory(actor);
+        ensureActorSelections(actor);
+    });
+}
+
 export function saveGame() {
     localStorage.setItem('crimson_moon_save', JSON.stringify(gameState));
     // We can't use logMessage here directly as it creates a circular dependency
@@ -1266,12 +1325,7 @@ export function loadGame() {
                 }
             }
         });
-        gameState.story = ensureStoryState(gameState.story);
-        if (!gameState.currentSceneId) {
-            gameState.currentSceneId = CANONICAL_START_SCENE;
-        }
-        ensureActorInventory(gameState.player);
-        Object.values(gameState.roster).forEach((actor) => ensureActorInventory(actor));
+        normalizeLoadedState();
         syncAllActorStates();
         console.log("[LOAD] Game loaded from localStorage.");
         return true;

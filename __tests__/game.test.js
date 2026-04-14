@@ -211,6 +211,56 @@ test('save and load preserves mechanics-heavy player state', () => {
   expect(gameState.timeline.slot).toBe('dusk');
 });
 
+test('load normalizes partial legacy saves while preserving newer Sporefall and timeline progress', () => {
+  initializeNewGame(
+    'Kest',
+    'human',
+    'fighter',
+    'soldier',
+    { STR: 15, DEX: 12, CON: 14, INT: 10, WIS: 10, CHA: 8 },
+    ['athletics', 'survival'],
+    []
+  );
+
+  gameState.flags.sporefall_eoin_met = true;
+  gameState.flags.sporefall_cathedral_letter_found = true;
+  gameState.sceneMemory.sporefall_street_search_seen = true;
+  gameState.timeline.day = 3;
+  gameState.timeline.slot = 'night';
+  gameState.timeline.actionCount = 9;
+  gameState.currentSceneId = 'SCENE_HUB_SPOREFALL';
+  gameState.quests.investigate_whisperwood.currentStage = 4;
+
+  saveGame();
+
+  const saved = JSON.parse(localStorage.getItem('crimson_moon_save'));
+  delete saved.timeline.silverthornActionCount;
+  delete saved.reputation.whisperwood_survivors;
+  delete saved.discoveredLocations.whisperwood;
+  delete saved.story;
+  saved.quests.investigate_whisperwood = {
+    currentStage: 4,
+    completed: false
+  };
+  localStorage.setItem('crimson_moon_save', JSON.stringify(saved));
+
+  resetGameState();
+
+  expect(loadGame()).toBe(true);
+  expect(gameState.currentSceneId).toBe('SCENE_HUB_SPOREFALL');
+  expect(gameState.flags.sporefall_eoin_met).toBe(true);
+  expect(gameState.flags.sporefall_cathedral_letter_found).toBe(true);
+  expect(gameState.sceneMemory.sporefall_street_search_seen).toBe(true);
+  expect(gameState.timeline.day).toBe(3);
+  expect(gameState.timeline.slot).toBe('night');
+  expect(gameState.timeline.silverthornActionCount).toBe(0);
+  expect(gameState.reputation.whisperwood_survivors).toBe(0);
+  expect(gameState.discoveredLocations.whisperwood).toBe(false);
+  expect(gameState.story.canonicalStartScene).toBe('SCENE_BRIEFING');
+  expect(gameState.quests.investigate_whisperwood.currentStage).toBe(4);
+  expect(Array.isArray(gameState.quests.investigate_whisperwood.stages)).toBe(true);
+});
+
 test('long rest clears long-rest effects and restores spell resources after load-safe state changes', () => {
   initializeNewGame(
     'Mira',
