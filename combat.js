@@ -1,6 +1,6 @@
 // combat.js - All combat-related logic and actions
 
-import { gameState, gainXp, applyStatusEffect, getActorCastableSpells, performShortRest as gsPerformShortRest, performLongRest as gsPerformLongRest, syncActorState } from './data/gameState.js';
+import { gameState, gainXp, applyStatusEffect, getActorCastableSpells, handleCombatNarrativeTransition, performShortRest as gsPerformShortRest, performLongRest as gsPerformLongRest, syncActorState } from './data/gameState.js';
 import { scenes } from './data/scenes.js';
 import { npcs } from './data/npcs.js';
 import { enemies } from './data/enemies.js';
@@ -263,8 +263,16 @@ function getAttackProfile(actorId) {
 
     const proficiencyBonus = actor.proficiencyBonus || getProficiencyBonus(actor.level);
     const weaponProficiencies = actor.proficiencies?.weapons || [];
-    const proficient = weapon.subtype && weaponProficiencies.includes(weapon.subtype);
+    const proficient = (weapon.subtype && weaponProficiencies.includes(weapon.subtype))
+        || (weapon.weaponCategory && weaponProficiencies.includes(weapon.weaponCategory));
     const stat = weapon.modifier || 'STR';
+    const isRanged = !!weapon.rangeFeet || !!weapon.thrownRangeFeet || weapon.properties?.includes('ranged');
+    const tags = [
+        isRanged ? 'ranged_weapon' : 'melee_weapon'
+    ];
+    if (!weapon.properties || !weapon.properties.includes('two_handed')) {
+        tags.push('one_handed');
+    }
 
     return {
         name: weapon.name,
@@ -276,12 +284,9 @@ function getAttackProfile(actorId) {
         attackBonus: (actor.modifiers?.[stat] || 0) + (proficient ? proficiencyBonus : 0) + (weapon.modifiers?.toHit || 0),
         rangeFeet: weapon.rangeFeet || weapon.thrownRangeFeet || null,
         reachFeet: weapon.reachFeet || 5,
-        isRanged: !!weapon.rangeFeet || !!weapon.thrownRangeFeet,
+        isRanged,
         qualifiesForSneakAttack: stat === 'DEX' || !!weapon.rangeFeet,
-        tags: [
-            (weapon.rangeFeet || weapon.thrownRangeFeet) ? 'ranged_weapon' : 'melee_weapon',
-            'one_handed'
-        ]
+        tags
     };
 }
 
@@ -830,6 +835,7 @@ export function startCombat(combatantIds, winScene, loseScene) {
     };
 
     syncAllGridTokens();
+    handleCombatNarrativeTransition('combat_start');
     ['player', ...gameState.party, ...gameState.combat.enemies.map(enemy => enemy.uniqueId)].forEach(actorId => {
         refreshReaction(actorId);
         reconcileTileEffects(actorId, 'enter');
@@ -1167,6 +1173,7 @@ export function performFlee() {
     if (roll >= 12) {
         uiHooks.logToBattle("You escaped!", "gain");
         gameState.combat.active = false;
+        handleCombatNarrativeTransition('combat_end');
         uiHooks.goToScene(gameState.combat.loseSceneId);
     } else {
         uiHooks.logToBattle("Failed to escape!", "combat");
@@ -1221,6 +1228,7 @@ export function enemyTurn(enemy) {
 
     if (gameState.player.hp <= 0) {
         gameState.combat.active = false;
+        handleCombatNarrativeTransition('combat_end');
         uiHooks.goToScene(gameState.combat.loseSceneId);
         return;
     }
@@ -1249,6 +1257,7 @@ export function checkWinCondition() {
     const allEnemiesDefeated = gameState.combat.enemies.every(e => e.hp <= 0);
     if (allEnemiesDefeated) {
         gameState.combat.active = false;
+        handleCombatNarrativeTransition('combat_end');
         uiHooks.logToBattle(`Victory!`, "gain");
 
         const totalXp = gameState.combat.enemies.reduce((sum, e) => sum + (enemies[e.id].xp || 0), 0);

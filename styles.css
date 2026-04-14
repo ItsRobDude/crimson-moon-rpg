@@ -436,6 +436,125 @@ button:hover {
     text-align: center;
 }
 
+.inventory-modal-content {
+    width: 960px;
+    max-width: 96%;
+}
+
+.inventory-character-select,
+.inventory-category-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.inventory-layout {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.inventory-main-column {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.inventory-panel {
+    background: #1a1a1a;
+    border: 1px solid #444;
+    border-radius: 8px;
+    padding: 14px;
+}
+
+.inventory-panel h3 {
+    color: var(--accent-color);
+    margin-bottom: 10px;
+}
+
+.equipment-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.equipment-slot,
+.inventory-entry,
+.shop-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 1px solid #353535;
+    border-radius: 8px;
+    background: #141414;
+}
+
+.inventory-entry {
+    margin-bottom: 10px;
+    cursor: pointer;
+}
+
+.inventory-entry:hover,
+.shop-entry:hover {
+    border-color: var(--accent-color);
+}
+
+.inventory-details,
+.shop-entry-info {
+    flex: 1;
+}
+
+.inventory-meta {
+    color: #cbc190;
+    font-size: 0.82rem;
+    margin: 4px 0;
+}
+
+.inventory-desc {
+    color: #aaa;
+    font-size: 0.88rem;
+}
+
+.inventory-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.inventory-warning {
+    color: #f39c7a;
+    font-size: 0.82rem;
+    margin-top: 6px;
+}
+
+.tag {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: rgba(201, 164, 69, 0.18);
+    border: 1px solid rgba(201, 164, 69, 0.35);
+    color: var(--accent-color);
+    font-size: 0.72rem;
+}
+
+.inventory-filter-btn.active,
+.inventory-char-btn.active {
+    background: var(--accent-color);
+    color: #111;
+    border-color: var(--accent-color);
+}
+
+.inventory-detail-panel p {
+    color: #bbb;
+    line-height: 1.5;
+}
+
 .options-section {
     background: #1a1a1a;
     border: 1px solid #444;
@@ -546,6 +665,10 @@ button:hover {
     }
 
     .cc-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .inventory-layout {
         grid-template-columns: 1fr;
     }
 }

@@ -287,7 +287,7 @@
     <!-- Shop Panel (Overlay) -->
     <div id="shop-panel" class="modal hidden">
         <div class="modal-content">
-            <h2>Shop</h2>
+            <h2 id="shop-title">Shop</h2>
             <div id="shop-gold-display" style="text-align:right; color: gold; font-weight:bold; margin-bottom:10px;"></div>
             <div id="shop-items-container"></div>
             <button class="close-modal">Leave Shop</button>
@@ -296,12 +296,28 @@
 
     <!-- Inventory Modal -->
     <div id="inventory-modal" class="modal hidden">
-        <div class="modal-content">
+        <div class="modal-content inventory-modal-content">
             <h2>Inventory</h2>
-            <div id="inventory-character-select" style="margin-bottom: 10px;">
+            <div id="inventory-character-select" class="inventory-character-select">
                 <!-- Buttons/Tabs for characters will be injected here -->
             </div>
-            <div id="inventory-list"></div>
+            <div id="inventory-category-tabs" class="inventory-category-tabs"></div>
+            <div class="inventory-layout">
+                <div class="inventory-main-column">
+                    <div class="inventory-panel">
+                        <h3>Equipped</h3>
+                        <div id="inventory-equipment-panel" class="equipment-panel"></div>
+                    </div>
+                    <div class="inventory-panel">
+                        <h3>Items</h3>
+                        <div id="inventory-list"></div>
+                    </div>
+                </div>
+                <div class="inventory-panel inventory-detail-panel">
+                    <h3>Details</h3>
+                    <div id="inventory-detail">Select an item to inspect it.</div>
+                </div>
+            </div>
             <button class="close-modal">Close</button>
         </div>
     </div>

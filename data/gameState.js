@@ -7,7 +7,7 @@ import { scenes } from './scenes.js';
 import { npcs } from './npcs.js';
 import { companions } from './companions.js';
 import { factions } from './factions.js';
-import { getSpellIdsForClass } from './spells.js';
+import { getSpell, getSpellIdsForClass } from './spells.js';
 import { rollDiceExpression, rollDie } from '../rules.js';
 import { CANONICAL_START_SCENE, createDefaultStoryState, ensureStoryState } from './storyTimeline.js';
 import { addEffectToActor, applyDerivedState, createDefaultMechanicsState, createProficiencyState, ensureActorMechanics, getAbilityMod, getDerivedActorState, mergeProficiencyStates, removeEffectFromActor, setProficiencyMultiplier, syncLegacyStatusEffects, tickActorEffects } from './mechanics.js';
@@ -40,7 +40,8 @@ const defaultGameState = {
         expertiseSkills: [],
         equipped: {
             weapon: null,
-            armor: null
+            armor: null,
+            shield: null
         },
         inventory: [],
         gold: 0,
@@ -144,6 +145,7 @@ export function resetGameState() {
 export function syncActorState(actor) {
     ensureActorSelections(actor);
     ensureActorSpellcasting(actor);
+    ensureActorInventory(actor);
     ensureActorMechanics(actor);
     return applyDerivedState(actor);
 }
@@ -199,6 +201,132 @@ function ensureActorSelections(actor) {
         }
     }
     actor.expertiseSkills.forEach((skill) => setProficiencyMultiplier(actor, 'skills', skill, 2));
+}
+
+function ensureItemEntry(entry) {
+    if (!entry) return null;
+    if (typeof entry === 'string') {
+        const item = items[entry];
+        if (!item) return null;
+        return {
+            itemId: entry,
+            quantity: Math.max(1, item.quantityPerAdd || 1)
+        };
+    }
+    if (!items[entry.itemId]) return null;
+    return {
+        itemId: entry.itemId,
+        quantity: Math.max(1, Number(entry.quantity) || 1)
+    };
+}
+
+function ensureActorInventory(actor) {
+    if (!actor) return;
+    if (!Array.isArray(actor.inventory)) {
+        actor.inventory = [];
+        return;
+    }
+
+    const normalized = [];
+    actor.inventory.forEach((entry) => {
+        const normalizedEntry = ensureItemEntry(entry);
+        if (!normalizedEntry) return;
+        const item = items[normalizedEntry.itemId];
+        if (item?.stackable) {
+            const existing = normalized.find((candidate) => candidate.itemId === normalizedEntry.itemId);
+            if (existing) {
+                existing.quantity += normalizedEntry.quantity;
+                return;
+            }
+        }
+        normalized.push(normalizedEntry);
+    });
+    actor.inventory = normalized;
+    if (!actor.equipped) {
+        actor.equipped = { weapon: null, armor: null, shield: null };
+    }
+    if (actor.equipped.shield === undefined) {
+        actor.equipped.shield = null;
+    }
+}
+
+function getActorByCharacterId(characterId = 'player') {
+    if (characterId === 'player') return gameState.player;
+    if (gameState.roster[characterId]) return gameState.roster[characterId];
+    return gameState.combat.enemies.find((actor) => actor.uniqueId === characterId) || null;
+}
+
+function getAllPersistentActors() {
+    return [gameState.player, ...gameState.party.map((id) => gameState.roster[id]).filter(Boolean)];
+}
+
+export function getInventoryEntries(characterId = 'player') {
+    const actor = getActorByCharacterId(characterId);
+    if (!actor) return [];
+    ensureActorInventory(actor);
+    return actor.inventory.map((entry) => ({ ...entry }));
+}
+
+export function getItemCount(itemId, characterId = 'player') {
+    const actor = getActorByCharacterId(characterId);
+    if (!actor) return 0;
+    ensureActorInventory(actor);
+    return actor.inventory
+        .filter((entry) => entry.itemId === itemId)
+        .reduce((sum, entry) => sum + entry.quantity, 0);
+}
+
+function hasInventoryItem(actor, itemId) {
+    ensureActorInventory(actor);
+    return actor.inventory.some((entry) => entry.itemId === itemId && entry.quantity > 0);
+}
+
+function consumeInventoryItem(actor, itemId, quantity = 1) {
+    ensureActorInventory(actor);
+    const entry = actor.inventory.find((candidate) => candidate.itemId === itemId && candidate.quantity > 0);
+    if (!entry) return false;
+    entry.quantity -= Math.max(1, quantity);
+    if (entry.quantity <= 0) {
+        actor.inventory = actor.inventory.filter((candidate) => candidate !== entry);
+    }
+    return true;
+}
+
+function getEquipFailure(item, actor) {
+    if (!item || !actor) return 'not_found';
+    const proficiencies = actor.proficiencies || createProficiencyState();
+
+    if (item.type === 'weapon') {
+        const weaponProficiencies = proficiencies.weapons || [];
+        const proficient = weaponProficiencies.includes(item.subtype) || weaponProficiencies.includes(item.weaponCategory);
+        if (!proficient) return 'proficiency';
+        return null;
+    }
+
+    if (item.type === 'armor') {
+        if (item.reqStr && (actor.abilities?.STR || 0) < item.reqStr) {
+            return 'reqStr';
+        }
+        const armorProficiencies = proficiencies.armor || [];
+        if (!armorProficiencies.includes(item.armorType)) return 'proficiency';
+        return null;
+    }
+
+    if (item.type === 'shield') {
+        const armorProficiencies = proficiencies.armor || [];
+        if (!armorProficiencies.includes('shields')) return 'proficiency';
+        return null;
+    }
+
+    return 'invalid_type';
+}
+
+export function getItemEquipFailure(itemId, characterId = 'player') {
+    const actor = getActorByCharacterId(characterId);
+    if (!actor) return 'char_not_found';
+    const item = items[itemId];
+    if (!item) return 'not_found';
+    return getEquipFailure(item, actor);
 }
 
 export function getPreparedSpellLimit(actor) {
@@ -430,11 +558,13 @@ export function initializeNewGame(name, raceId, classId, backgroundId, baseStats
 
     // Equip default items logic (same as before)
     if (classId === 'fighter') {
-        addItem('longsword'); addItem('chainmail'); equipItem('longsword'); equipItem('chainmail');
+        addItem('longsword'); addItem('chainmail'); addItem('shield'); equipItem('longsword'); equipItem('chainmail'); equipItem('shield');
     } else if (classId === 'rogue') {
-        addItem('dagger'); addItem('shortbow'); addItem('leather_armor'); equipItem('dagger'); equipItem('leather_armor');
+        addItem('dagger'); addItem('shortbow'); addItem('leather_armor'); addItem('thieves_tools'); equipItem('dagger'); equipItem('leather_armor');
     } else if (classId === 'wizard') {
-        addItem('dagger'); addItem('potion_healing'); equipItem('dagger');
+        addItem('dagger'); addItem('quarterstaff'); addItem('scroll_magic_missile'); equipItem('dagger');
+    } else if (classId === 'cleric') {
+        addItem('mace'); addItem('shield'); addItem('hide_armor'); equipItem('mace'); equipItem('shield'); equipItem('hide_armor');
     } else {
         addItem('longsword'); equipItem('longsword');
     }
@@ -499,7 +629,7 @@ export function addCompanion(companionId) {
             abilities: stats,
             modifiers: {}, // Calculated below
             inventory: [],
-            equipped: { weapon: null, armor: null },
+            equipped: { weapon: null, armor: null, shield: null },
             resources: {}, // Initialize like player
             spellSlots: {},
             currentSlots: {},
@@ -536,12 +666,16 @@ export function addCompanion(companionId) {
         // Default Equipment
         if (compDef.defaultEquipment) {
             if (compDef.defaultEquipment.weapon) {
-                gameState.roster[companionId].inventory.push(compDef.defaultEquipment.weapon);
+                addItem(compDef.defaultEquipment.weapon, companionId);
                 gameState.roster[companionId].equipped.weapon = compDef.defaultEquipment.weapon;
             }
             if (compDef.defaultEquipment.armor) {
-                gameState.roster[companionId].inventory.push(compDef.defaultEquipment.armor);
+                addItem(compDef.defaultEquipment.armor, companionId);
                 gameState.roster[companionId].equipped.armor = compDef.defaultEquipment.armor;
+            }
+            if (compDef.defaultEquipment.shield) {
+                addItem(compDef.defaultEquipment.shield, companionId);
+                gameState.roster[companionId].equipped.shield = compDef.defaultEquipment.shield;
             }
         }
 
@@ -654,6 +788,23 @@ function applyAutomaticArcaneRecovery(actor) {
     return true;
 }
 
+export function processNarrativeTrigger(trigger, options = {}) {
+    const expired = [];
+    getAllPersistentActors().forEach((actor) => {
+        const actorExpired = tickActorEffects(actor, trigger, options) || [];
+        actorExpired.forEach((effect) => {
+            expired.push({
+                actorId: actor.id || (actor === gameState.player ? 'player' : null),
+                actorName: actor.name || 'Unknown',
+                effectId: effect.id,
+                effectName: effect.name
+            });
+        });
+    });
+    syncAllActorStates();
+    return expired;
+}
+
 export function performShortRest() {
     const cls = classes[gameState.player.classId];
     const roll = rollDie(cls.hitDie) + gameState.player.modifiers.CON;
@@ -661,16 +812,13 @@ export function performShortRest() {
     gameState.player.hp = Math.min(gameState.player.maxHp, gameState.player.hp + healed);
     refreshRestResources(gameState.player, 'short_rest');
     applyAutomaticArcaneRecovery(gameState.player);
-
-    tickActorEffects(gameState.player, 'short_rest');
     gameState.party.forEach(id => {
         if (gameState.roster[id]) {
             refreshRestResources(gameState.roster[id], 'short_rest');
             applyAutomaticArcaneRecovery(gameState.roster[id]);
-            tickActorEffects(gameState.roster[id], 'short_rest');
         }
     });
-    syncAllActorStates();
+    processNarrativeTrigger('short_rest');
     return healed;
 }
 
@@ -683,7 +831,6 @@ export function performLongRest() {
         gameState.player.currentSlots = { ...gameState.player.spellSlots };
     }
     refreshRestResources(gameState.player, 'long_rest');
-    tickActorEffects(gameState.player, 'long_rest');
     gameState.party.forEach(id => {
         if (gameState.roster[id]) {
             gameState.roster[id].hp = gameState.roster[id].maxHp;
@@ -694,10 +841,9 @@ export function performLongRest() {
                 gameState.roster[id].currentSlots = { ...gameState.roster[id].spellSlots };
             }
             refreshRestResources(gameState.roster[id], 'long_rest');
-            tickActorEffects(gameState.roster[id], 'long_rest');
         }
     });
-    syncAllActorStates();
+    processNarrativeTrigger('long_rest');
     return true;
 }
 
@@ -718,108 +864,185 @@ export function gainXp(amount) {
 }
 
 // Inventory Helpers - Updated for characterId
-export function addItem(itemId, characterId = 'player') {
-    if (!items[itemId]) return;
+export function addItem(itemId, characterId = 'player', quantity = null) {
+    const item = items[itemId];
+    const actor = getActorByCharacterId(characterId);
+    if (!item || !actor) return;
 
-    let inv;
-    if (characterId === 'player') {
-        inv = gameState.player.inventory;
-    } else {
-        if (gameState.roster[characterId]) inv = gameState.roster[characterId].inventory;
+    ensureActorInventory(actor);
+    const amount = Math.max(1, quantity ?? item.quantityPerAdd ?? 1);
+    if (item.stackable) {
+        const existing = actor.inventory.find((entry) => entry.itemId === itemId);
+        if (existing) {
+            existing.quantity += amount;
+        } else {
+            actor.inventory.push({ itemId, quantity: amount });
+        }
+        return;
     }
 
-    if (inv) inv.push(itemId);
+    for (let index = 0; index < amount; index += 1) {
+        actor.inventory.push({ itemId, quantity: 1 });
+    }
 }
 
-export function removeItem(itemId, characterId = 'player') {
-    let inv;
-    if (characterId === 'player') {
-        inv = gameState.player.inventory;
-    } else {
-        if (gameState.roster[characterId]) inv = gameState.roster[characterId].inventory;
-    }
-
-    if (inv) {
-        const idx = inv.indexOf(itemId);
-        if (idx > -1) inv.splice(idx, 1);
-    }
+export function removeItem(itemId, characterId = 'player', quantity = 1) {
+    const actor = getActorByCharacterId(characterId);
+    if (!actor) return false;
+    return consumeInventoryItem(actor, itemId, quantity);
 }
 
 export function equipItem(itemId, characterId = 'player') {
     const item = items[itemId];
+    const char = getActorByCharacterId(characterId);
     if (!item) return { success: false, reason: 'not_found' };
-
-    let char = (characterId === 'player') ? gameState.player : gameState.roster[characterId];
     if (!char) return { success: false, reason: 'char_not_found' };
+    ensureActorInventory(char);
 
-    if (!char.inventory.includes(itemId)) {
+    if (!hasInventoryItem(char, itemId)) {
         return { success: false, reason: 'missing' };
     }
 
-    if (item.type === 'armor') {
-        if (item.reqStr && char.abilities.STR < item.reqStr) {
-            return { success: false, reason: 'reqStr', value: item.reqStr };
-        }
+    const failure = getEquipFailure(item, char);
+    if (failure === 'reqStr') {
+        return { success: false, reason: 'reqStr', value: item.reqStr };
+    }
+    if (failure) return { success: false, reason: failure };
+
+    if (item.equipmentSlot === 'armor') {
         char.equipped.armor = itemId;
-        syncActorState(char);
-        return { success: true, slot: 'armor' };
-    }
-
-    if (item.type === 'weapon') {
+    } else if (item.equipmentSlot === 'weapon') {
         char.equipped.weapon = itemId;
-        syncActorState(char);
-        return { success: true, slot: 'weapon' };
+    } else if (item.equipmentSlot === 'shield') {
+        char.equipped.shield = itemId;
+    } else {
+        return { success: false, reason: 'invalid_type' };
     }
 
-    return { success: false, reason: 'invalid_type' };
+    syncActorState(char);
+    return { success: true, slot: item.equipmentSlot };
 }
 
 export function unequipItem(slot, characterId = 'player') {
-    let char = (characterId === 'player') ? gameState.player : gameState.roster[characterId];
+    const char = getActorByCharacterId(characterId);
     if (!char) return { success: false, reason: 'char_not_found' };
 
     if (slot === 'weapon') {
         char.equipped.weapon = null;
     } else if (slot === 'armor') {
         char.equipped.armor = null;
+    } else if (slot === 'shield') {
+        char.equipped.shield = null;
     }
     syncActorState(char);
     return { success: true, slot };
 }
 
-export function useConsumable(itemId, characterId = 'player') {
-    const item = items[itemId];
-    if (!item || item.type !== 'consumable') return { success: false, msg: "Not usable." };
-
-    let char = (characterId === 'player') ? gameState.player : gameState.roster[characterId];
-    if (!char) return { success: false, msg: "Character not found." };
-
-    // Effect application
-    if (item.effect === 'heal') {
-        const roll = rollDiceExpression(item.amount);
-        const healed = roll.total;
-        char.hp = Math.min(char.hp + healed, char.maxHp);
-        removeItem(itemId, characterId);
-        syncActorState(char);
+function applyItemEffectToActor(target, item, usage, sourceId) {
+    if (usage.kind === 'heal') {
+        const healed = rollDiceExpression(usage.amount).total;
+        target.hp = Math.min(target.maxHp, target.hp + healed);
+        if (target.hp > 0) {
+            removeEffectFromActor(target, 'unconscious');
+        }
+        syncActorState(target);
         return { success: true, msg: `Used ${item.name} and healed ${healed} HP.` };
     }
 
-    if (item.effect === 'cure_poison') {
-        if (hasStatusEffect('poisoned', characterId)) {
-            removeEffectFromActor(char, 'poisoned');
-            removeItem(itemId, characterId);
-            return { success: true, msg: `Used ${item.name}. No longer poisoned.` };
-        } else {
-            return { success: false, msg: "Not poisoned." };
+    if (usage.kind === 'remove_or_apply') {
+        let applied = false;
+        if (usage.removeEffectId && target.mechanics?.activeEffects?.some((effect) => effect.id === usage.removeEffectId)) {
+            removeEffectFromActor(target, usage.removeEffectId);
+            applied = true;
         }
+        if (usage.applyEffectId) {
+            addEffectToActor(target, usage.applyEffectId, {
+                source: sourceId,
+                durationType: usage.durationType,
+                remaining: usage.durationAmount
+            });
+            applied = true;
+        }
+        return applied
+            ? { success: true, msg: `Used ${item.name}.` }
+            : { success: false, msg: `${item.name} would have no effect right now.` };
     }
 
-    return { success: false, msg: "Effect not implemented." };
+    if (usage.kind === 'apply_effect') {
+        addEffectToActor(target, usage.effectId, {
+            id: usage.effectId,
+            name: usage.name || item.name,
+            source: sourceId,
+            durationType: usage.durationType || 'scenes',
+            remaining: usage.durationAmount ?? 1,
+            modifiers: usage.modifiers || []
+        });
+        return { success: true, msg: `Used ${item.name}.` };
+    }
+
+    return { success: false, msg: 'Effect not implemented.' };
+}
+
+function castScrollSpell(item, caster, target) {
+    const spell = getSpell(item.spellId || item.usage?.spellId);
+    if (!spell) return { success: false, msg: 'The scroll fizzles without effect.' };
+
+    if (spell.type === 'heal') {
+        const healed = rollDiceExpression(spell.amount).total;
+        target.hp = Math.min(target.maxHp, target.hp + healed);
+        if (target.hp > 0) removeEffectFromActor(target, 'unconscious');
+        syncActorState(target);
+        return { success: true, msg: `${item.name} restores ${healed} HP to ${target.name}.` };
+    }
+
+    if (spell.type === 'buff' && spell.effect) {
+        addEffectToActor(target, spell.effect.id, {
+            id: spell.effect.id,
+            name: spell.effect.name || spell.name,
+            source: `scroll:${item.id}:${caster.name}`,
+            durationType: spell.effect.durationType || spell.durationType || 'turns',
+            remaining: spell.effect.remaining ?? 1,
+            modifiers: spell.effect.modifiers || [],
+            concentration: !!spell.concentration
+        });
+        return { success: true, msg: `${target.name} gains ${spell.name}.` };
+    }
+
+    if (spell.type === 'auto') {
+        const damage = rollDiceExpression(spell.damage).total;
+        target.hp = Math.max(0, target.hp - damage);
+        syncActorState(target);
+        return { success: true, msg: `${item.name} strikes ${target.name} for ${damage} ${spell.damageType} damage.` };
+    }
+
+    return { success: false, msg: `${item.name} needs a combat targeting flow we have not wired yet.` };
+}
+
+export function useConsumable(itemId, characterId = 'player', targetId = characterId) {
+    const item = items[itemId];
+    const char = getActorByCharacterId(characterId);
+    const target = getActorByCharacterId(targetId) || char;
+    if (!item || !['consumable', 'scroll'].includes(item.type)) return { success: false, msg: 'Not usable.' };
+    if (!char || !target) return { success: false, msg: 'Character not found.' };
+    if (!hasInventoryItem(char, itemId)) return { success: false, msg: `No ${item.name} available.` };
+
+    let result = { success: false, msg: 'Effect not implemented.' };
+    if (item.type === 'scroll') {
+        result = castScrollSpell(item, char, target);
+    } else {
+        result = applyItemEffectToActor(target, item, item.usage || {}, `item:${item.id}:${characterId}`);
+    }
+
+    if (result.success) {
+        consumeInventoryItem(char, itemId, 1);
+        syncActorState(char);
+    }
+    return result;
 }
 
 // Status Effect Helpers (Currently mostly Player focused, need to generalize for combat loop)
 export function applyStatusEffect(effectId, durationOverride, characterId = 'player') {
-    let char = (characterId === 'player') ? gameState.player : gameState.roster[characterId];
+    const char = getActorByCharacterId(characterId);
     if (!char) return; // Or handle Enemy?
     addEffectToActor(char, effectId, {
         remaining: durationOverride
@@ -827,7 +1050,7 @@ export function applyStatusEffect(effectId, durationOverride, characterId = 'pla
 }
 
 export function hasStatusEffect(effectId, characterId = 'player') {
-    let char = (characterId === 'player') ? gameState.player : gameState.roster[characterId];
+    const char = getActorByCharacterId(characterId);
     if (!char) return false;
     ensureActorMechanics(char);
     return char.mechanics.activeEffects.some(effect => effect.id === effectId);
@@ -952,6 +1175,7 @@ export function advanceTime(steps = 1, context = {}) {
     if (slotIndex < 0) slotIndex = TIME_SLOTS.indexOf('midday');
 
     const previous = getTimelineLabel();
+    const previousDay = gameState.timeline.day;
 
     for (let i = 0; i < steps; i++) {
         slotIndex += 1;
@@ -966,18 +1190,28 @@ export function advanceTime(steps = 1, context = {}) {
     }
 
     gameState.timeline.slot = TIME_SLOTS[slotIndex];
+    const expired = processNarrativeTrigger('time_passed', { amount: steps });
+    if (gameState.timeline.day > previousDay) {
+        expired.push(...processNarrativeTrigger('day_rollover'));
+    }
 
     return {
         previous,
         current: getTimelineLabel(),
         day: gameState.timeline.day,
-        slot: gameState.timeline.slot
+        slot: gameState.timeline.slot,
+        expiredEffects: expired
     };
 }
 
 export function setTimeline(day, slot) {
     gameState.timeline.day = Math.max(1, day || 1);
     gameState.timeline.slot = TIME_SLOTS.includes(slot) ? slot : 'midday';
+}
+
+export function handleCombatNarrativeTransition(trigger) {
+    if (!['combat_start', 'combat_end'].includes(trigger)) return [];
+    return processNarrativeTrigger(trigger);
 }
 
 export function setSceneMemory(key, value = true) {
@@ -989,7 +1223,7 @@ export function getSceneMemory(key) {
 }
 
 export function getActorSnapshot(characterId = 'player') {
-    const actor = characterId === 'player' ? gameState.player : gameState.roster[characterId];
+    const actor = getActorByCharacterId(characterId);
     if (!actor) return null;
     return getDerivedActorState(actor);
 }
@@ -1026,6 +1260,8 @@ export function loadGame() {
         if (!gameState.currentSceneId) {
             gameState.currentSceneId = CANONICAL_START_SCENE;
         }
+        ensureActorInventory(gameState.player);
+        Object.values(gameState.roster).forEach((actor) => ensureActorInventory(actor));
         syncAllActorStates();
         console.log("[LOAD] Game loaded from localStorage.");
         return true;

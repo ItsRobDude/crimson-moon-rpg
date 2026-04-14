@@ -12,7 +12,7 @@ import { shops } from './data/shops.js';
 import { npcs } from './data/npcs.js';
 import { companions } from './data/companions.js';
 import { factions } from './data/factions.js';
-import { gameState, getActorCastableSpells, getPreparedSpellLimit, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, unequipItem, syncPartyLevels, saveGame, loadGame as loadGameData, removeItem, advanceTime, getTimelineLabel, getTimeSlotLabel, getSceneMemory, setSceneMemory, performShortRest as gsPerformShortRest, performLongRest as gsPerformLongRest, syncCharacterState } from './data/gameState.js';
+import { gameState, getActorCastableSpells, getInventoryEntries, getItemCount, getItemEquipFailure, getPreparedSpellLimit, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, processNarrativeTrigger, unequipItem, syncPartyLevels, saveGame, loadGame as loadGameData, removeItem, advanceTime, getTimelineLabel, getTimeSlotLabel, getSceneMemory, setSceneMemory, performShortRest as gsPerformShortRest, performLongRest as gsPerformLongRest, syncCharacterState } from './data/gameState.js';
 import { CANONICAL_START_SCENE, ensureStoryState, getLocationStoryRequirement, getLocationUnlockHint, meetsStoryRequirement, storyActs, storyEvents, syncStoryStateForScene } from './data/storyTimeline.js';
 import { addEffectToActor, getBonusSkillChoiceCount, getBonusToolChoiceCount, getBonusToolChoiceOptions, getRaceTraitDefinitions, removeEffectFromActor } from './data/mechanics.js';
 import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod, generateScaledStats, getPlayerAC } from './rules.js';
@@ -351,10 +351,18 @@ function getTimeAdvanceText(result, reason = '') {
     return `${prefix}Time passes. ${result.current}.`;
 }
 
+function logExpiredNarrativeEffects(expiredEffects = []) {
+    expiredEffects.forEach((expired) => {
+        if (!expired?.effectName) return;
+        logMessage(`${expired.actorName}'s ${expired.effectName} wears off.`, 'system');
+    });
+}
+
 function advanceNarrativeTime(steps = 1, reason = '', context = {}) {
     if (!steps || steps < 1) return;
     const result = advanceTime(steps, context);
     logMessage(getTimeAdvanceText(result, reason), 'system');
+    logExpiredNarrativeEffects(result.expiredEffects || []);
     updateStatsUI();
 }
 
@@ -634,6 +642,9 @@ function logStoryProgress(changes) {
 
 function applySceneEffect(effect, source = 'scene') {
     if (!effect || !effect.type) return;
+    const targetId = effect.targetActorId || effect.characterId || 'player';
+    const targetActor = getCharacterById(targetId) || gameState.player;
+    const logText = effect.logText || null;
 
     if (effect.type === 'relationship') {
         changeRelationship(effect.npcId, effect.amount);
@@ -646,17 +657,32 @@ function applySceneEffect(effect, source = 'scene') {
     }
 
     if (effect.type === 'addItem') {
-        addItem(effect.itemId, effect.characterId || 'player');
+        addItem(effect.itemId, targetId, effect.quantity);
         const item = items[effect.itemId];
         if (item) {
-            logMessage(`${source === 'choice' ? 'Received' : 'Found'} ${item.name}.`, 'gain');
+            const qty = effect.quantity ? ` x${effect.quantity}` : '';
+            logMessage(logText || `${source === 'choice' ? 'Received' : 'Found'} ${item.name}${qty}.`, 'gain');
+        }
+        return;
+    }
+
+    if (effect.type === 'removeItem') {
+        if (removeItem(effect.itemId, targetId, effect.quantity || 1)) {
+            const item = items[effect.itemId];
+            logMessage(logText || `Lost ${item?.name || effect.itemId}.`, 'system');
         }
         return;
     }
 
     if (effect.type === 'addGold') {
         addGold(effect.amount || 0);
-        logMessage(`Gained ${effect.amount || 0} gold.`, 'gain');
+        logMessage(logText || `Gained ${effect.amount || 0} gold.`, 'gain');
+        return;
+    }
+
+    if (effect.type === 'removeGold') {
+        spendGold(effect.amount || 0);
+        logMessage(logText || `Lost ${effect.amount || 0} gold.`, 'system');
         return;
     }
 
@@ -666,33 +692,43 @@ function applySceneEffect(effect, source = 'scene') {
     }
 
     if (effect.type === 'status' && effect.id) {
-        applyStatusEffect(effect.id, effect.duration, effect.characterId || 'player');
-        logMessage(`${source === 'choice' ? 'Effect applied' : 'Condition gained'}: ${effect.id}.`, 'system');
+        applyStatusEffect(effect.id, effect.duration, targetId);
+        logMessage(logText || `${targetActor.name} gains ${effect.id}.`, 'system');
         return;
     }
 
     if (effect.type === 'removeStatus' && effect.id) {
-        const characterId = effect.characterId || 'player';
-        const actor = characterId === 'player' ? gameState.player : gameState.roster[characterId];
-        if (actor?.mechanics?.activeEffects) {
-            removeEffectFromActor(actor, effect.id);
-            logMessage(`Condition removed: ${effect.id}.`, 'gain');
+        if (targetActor?.mechanics?.activeEffects) {
+            removeEffectFromActor(targetActor, effect.id);
+            logMessage(logText || `${targetActor.name} is no longer ${effect.id}.`, 'gain');
         }
         return;
     }
 
     if (effect.type === 'customEffect' && effect.id && effect.modifiers) {
-        const characterId = effect.characterId || 'player';
-        const actor = characterId === 'player' ? gameState.player : gameState.roster[characterId];
-        if (!actor) return;
-        addEffectToActor(actor, effect.id, {
+        if (!targetActor) return;
+        addEffectToActor(targetActor, effect.id, {
             name: effect.name || effect.id,
-            source,
-            remaining: effect.duration ?? null,
+            source: effect.sourceId || source,
+            remaining: effect.duration ?? effect.durationAmount ?? null,
             durationType: effect.durationType || 'scenes',
-            modifiers: effect.modifiers
+            modifiers: effect.modifiers,
+            concentration: !!effect.concentration
         });
-        logMessage(`Effect applied: ${effect.name || effect.id}.`, 'system');
+        logMessage(logText || `Effect applied: ${effect.name || effect.id}.`, 'system');
+        return;
+    }
+
+    if (effect.type === 'damage') {
+        const amount = typeof effect.amount === 'string' ? rollDiceExpression(effect.amount).total : Math.max(0, effect.amount || 0);
+        targetActor.hp = Math.max(0, targetActor.hp - amount);
+        updateStatsUI();
+        logMessage(logText || `${targetActor.name} takes ${amount} damage.`, 'combat');
+        return;
+    }
+
+    if (effect.type === 'reputationBundle' && Array.isArray(effect.entries)) {
+        effect.entries.forEach((entry) => changeReputation(entry.factionId, entry.amount || 0));
     }
 }
 
@@ -1337,6 +1373,7 @@ function finishCharacterCreation() {
 function goToScene(sceneId) {
     const scene = getRuntimeScene(sceneId);
     if (!scene) { console.error("Scene not found:", sceneId); return; }
+    const previousSceneId = gameState.currentSceneId;
 
     gameState.story = ensureStoryState(gameState.story);
     const storyChanges = syncStoryStateForScene(gameState.story, sceneId);
@@ -1356,6 +1393,10 @@ function goToScene(sceneId) {
 
     gameState.currentSceneId = sceneId;
     if (scene.location) discoverLocation(scene.location);
+    if (previousSceneId && previousSceneId !== sceneId) {
+        const expired = processNarrativeTrigger('scene_change', { previousSceneId, sceneId });
+        logExpiredNarrativeEffects(expired);
+    }
 
     if (scene.type !== 'combat' && scene.location === 'silverthorn') {
         if (getReputation('silverthorn') <= -50) {
@@ -1575,6 +1616,54 @@ function triggerAmbientByThreat(locationId) {
 }
 
 // --- Shop System --- (Omitted similar to before, unchanged)
+const ITEM_CATEGORY_LABELS = {
+    weapon: 'Weapons',
+    armor: 'Armor',
+    shield: 'Shields',
+    consumable: 'Consumables',
+    scroll: 'Scrolls',
+    tool: 'Tools',
+    adventuring_gear: 'Gear',
+    quest_item: 'Quest Items'
+};
+
+function getInventoryCategory(item) {
+    return item?.type || 'adventuring_gear';
+}
+
+function getItemRulesText(item) {
+    if (!item) return '';
+    if (item.type === 'weapon') {
+        const rangeText = item.rangeFeet ? `Range ${item.rangeFeet}/${item.longRangeFeet || item.rangeFeet}` : '';
+        const thrownText = item.thrownRangeFeet ? `Thrown ${item.thrownRangeFeet}/${item.longRangeFeet || item.thrownRangeFeet}` : '';
+        const propsText = item.properties?.length ? item.properties.join(', ') : '';
+        return [item.weaponCategory, `${item.damage} ${item.damageType}`, rangeText || thrownText, propsText].filter(Boolean).join(' · ');
+    }
+    if (item.type === 'armor') {
+        const dexText = item.dexCap === null || item.dexCap === undefined ? 'DEX to AC' : `DEX cap ${item.dexCap}`;
+        const strText = item.reqStr ? `STR ${item.reqStr}` : '';
+        return [item.armorType, `AC ${item.acBase}`, dexText, strText].filter(Boolean).join(' · ');
+    }
+    if (item.type === 'shield') {
+        return `Shield · +${item.acBonus || 0} AC`;
+    }
+    if (item.type === 'scroll') {
+        return `Scroll · ${spells[item.spellId]?.name || item.spellId}`;
+    }
+    return ITEM_CATEGORY_LABELS[item.type] || 'Gear';
+}
+
+function getShopInventory(shopDef) {
+    if (!shopDef) return [];
+    const itemIds = new Set([...(shopDef.featuredItems || []), ...(shopDef.items || [])]);
+    if (Array.isArray(shopDef.categories)) {
+        Object.values(items)
+            .filter((item) => shopDef.categories.includes(item.type))
+            .forEach((item) => itemIds.add(item.id));
+    }
+    return [...itemIds].filter((itemId) => !!items[itemId]);
+}
+
 function getShopPrice(item, shopId) {
     let price = item.price;
     if (shops[shopId] && shops[shopId].location === 'silverthorn') {
@@ -1592,28 +1681,27 @@ function renderShop(shopId) {
     const panel = document.getElementById('shop-panel');
     const container = document.getElementById('shop-items-container');
     const goldDisplay = document.getElementById('shop-gold-display');
+    const title = document.getElementById('shop-title');
 
     container.innerHTML = '';
     goldDisplay.innerText = `Gold: ${gameState.player.gold}`;
+    if (title) title.innerText = shopDef.name || 'Shop';
 
-    shopDef.items.forEach(itemId => {
+    getShopInventory(shopDef).forEach(itemId => {
         const item = items[itemId];
         if (!item) return;
 
         const price = getShopPrice(item, shopId);
 
         const row = document.createElement('div');
-        row.style.display = "flex";
-        row.style.justifyContent = "space-between";
-        row.style.alignItems = "center";
-        row.style.padding = "8px";
-        row.style.borderBottom = "1px solid #444";
+        row.className = 'shop-entry';
 
         const info = document.createElement('div');
-        info.innerHTML = `<strong>${item.name}</strong> (${price}g)<br><small>${item.description}</small>`;
+        info.className = 'shop-entry-info';
+        info.innerHTML = `<strong>${item.name}</strong><div class="inventory-meta">${getItemRulesText(item)}</div><small>${item.description}</small>`;
 
         const btn = document.createElement('button');
-        btn.innerText = "Buy";
+        btn.innerText = `Buy (${price}g)`;
         btn.onclick = () => {
             if (spendGold(price)) {
                 addItem(itemId);
@@ -1719,6 +1807,7 @@ function travelTo(locationId) {
     }
 
     logMessage(`Traveling to ${locations[locationId].name}...`, "system");
+    advanceNarrativeTime(1, 'The road eats up time.', { inSilverthorn: false });
 
     if (rollDie(100) <= 20) {
         const event = travelEvents[Math.floor(Math.random() * travelEvents.length)];
@@ -1735,6 +1824,22 @@ function travelTo(locationId) {
                 enemyId: event.enemyId,
                 winScene: destSceneId,
                 loseScene: "SCENE_DEFEAT"
+            };
+            goToScene(eventSceneId);
+            return;
+        } else if (event.type === 'discovery' || event.effects) {
+            scenes[eventSceneId] = {
+                id: eventSceneId,
+                location: 'travel',
+                background: event.background || 'landscapes/forest_walk_alt.png',
+                text: event.text,
+                onEnter: event.effects ? { effects: event.effects } : undefined,
+                choices: [
+                    {
+                        text: 'Continue on',
+                        nextScene: destSceneId
+                    }
+                ]
             };
             goToScene(eventSceneId);
             return;
@@ -2124,8 +2229,11 @@ function updateStatsUI() {
 
     const weapon = p.equipped.weapon ? items[p.equipped.weapon] : null;
     const armor = p.equipped.armor ? items[p.equipped.armor] : null;
+    const shield = p.equipped.shield ? items[p.equipped.shield] : null;
     const weaponDetail = weapon ? `${weapon.damage} ${weapon.modifier ? `(${weapon.modifier})` : ''}`.trim() : '1d2 (STR)';
-    const armorDetail = armor ? `${armor.armorType || 'armor'} AC ${armor.acBase}` : 'base 10 + DEX';
+    const armorDetail = armor
+        ? `${armor.armorType || 'armor'} AC ${armor.acBase}${shield ? ` + ${shield.name}` : ''}`
+        : (shield ? `Unarmored + ${shield.name}` : 'base 10 + DEX');
     document.getElementById('char-weapon').innerText = `Weapon: ${weapon ? weapon.name : 'Unarmed'} · ${weaponDetail}`;
     document.getElementById('char-armor').innerText = `Armor: ${armor ? armor.name : 'None'} · ${armorDetail}`;
 
@@ -2179,6 +2287,9 @@ function toggleInventory(forceOpen = null, characterId = 'player') {
     const modal = document.getElementById('inventory-modal');
     const list = document.getElementById('inventory-list');
     const charSelect = document.getElementById('inventory-character-select');
+    const categoryTabs = document.getElementById('inventory-category-tabs');
+    const equipmentPanel = document.getElementById('inventory-equipment-panel');
+    const detailPanel = document.getElementById('inventory-detail');
 
     const isOpen = !modal.classList.contains('hidden');
 
@@ -2186,7 +2297,12 @@ function toggleInventory(forceOpen = null, characterId = 'player') {
         modal.classList.add('hidden');
         list.innerHTML = '';
         charSelect.innerHTML = '';
+        categoryTabs.innerHTML = '';
+        equipmentPanel.innerHTML = '';
+        detailPanel.innerHTML = '<p>Select an item to inspect it.</p>';
         modal.dataset.activeCharacter = '';
+        modal.dataset.activeCategory = 'all';
+        modal.dataset.activeItemId = '';
         return;
     }
 
@@ -2227,6 +2343,7 @@ function toggleInventory(forceOpen = null, characterId = 'player') {
     const renderInventory = (targetId) => {
         characterId = targetId;
         modal.dataset.activeCharacter = targetId;
+        const activeCategory = modal.dataset.activeCategory || 'all';
 
         // Highlight active character tab
         charSelect.querySelectorAll('button').forEach(btn => {
@@ -2235,77 +2352,146 @@ function toggleInventory(forceOpen = null, characterId = 'player') {
 
         const character = getCharacterById(targetId);
         list.innerHTML = '';
+        equipmentPanel.innerHTML = '';
 
         if (!character) {
             list.innerHTML = '<p>No character selected.</p>';
             return;
         }
 
-        if (!character.inventory || character.inventory.length === 0) {
-            list.innerHTML = '<p>No items.</p>';
+        const renderDetail = (itemId, quantity = null) => {
+            if (!itemId || !items[itemId]) {
+                detailPanel.innerHTML = '<p>Select an item to inspect it.</p>';
+                return;
+            }
+            const item = items[itemId];
+            const equipFailure = ['weapon', 'armor', 'shield'].includes(item.type) ? getItemEquipFailure(itemId, characterId) : null;
+            const failureText = equipFailure === 'proficiency'
+                ? 'Not proficient with this item.'
+                : equipFailure === 'reqStr'
+                    ? `Needs STR ${item.reqStr}.`
+                    : '';
+            detailPanel.innerHTML = `
+                <h3>${item.name}${quantity && quantity > 1 ? ` x${quantity}` : ''}</h3>
+                <div class="inventory-meta">${getItemRulesText(item)}</div>
+                <p>${item.description || 'No description available.'}</p>
+                ${failureText ? `<p class="inventory-warning">${failureText}</p>` : ''}
+            `;
+            modal.dataset.activeItemId = itemId;
+        };
+
+        const equippedSlots = [
+            { slot: 'weapon', label: 'Weapon' },
+            { slot: 'armor', label: 'Armor' },
+            { slot: 'shield', label: 'Shield' }
+        ];
+
+        equippedSlots.forEach(({ slot, label }) => {
+            const slotItemId = character.equipped?.[slot] || null;
+            const slotItem = slotItemId ? items[slotItemId] : null;
+            const row = document.createElement('div');
+            row.className = 'equipment-slot';
+            row.innerHTML = `<strong>${label}</strong><span>${slotItem ? slotItem.name : 'Empty'}</span>`;
+            if (slotItemId) {
+                const unequipBtn = document.createElement('button');
+                unequipBtn.innerText = 'Unequip';
+                unequipBtn.onclick = () => {
+                    if (!hasActionAvailable()) return;
+                    unequipItem(slot, targetId);
+                    spendAction();
+                    logInventoryMessage(`Unequipped ${slotItem.name}.`, 'system');
+                    updateStatsUI();
+                    renderInventory(targetId);
+                    renderDetail(slotItemId);
+                };
+                row.appendChild(unequipBtn);
+            }
+            equipmentPanel.appendChild(row);
+        });
+
+        const entries = getInventoryEntries(targetId)
+            .map((entry) => ({ ...entry, item: items[entry.itemId] }))
+            .filter((entry) => !!entry.item)
+            .sort((left, right) => left.item.name.localeCompare(right.item.name));
+
+        const presentCategories = ['all', ...new Set(entries.map((entry) => getInventoryCategory(entry.item)))];
+        categoryTabs.innerHTML = '';
+        presentCategories.forEach((category) => {
+            const btn = document.createElement('button');
+            btn.innerText = category === 'all' ? 'All' : (ITEM_CATEGORY_LABELS[category] || category);
+            btn.className = 'inventory-filter-btn';
+            if (category === activeCategory) btn.classList.add('active');
+            btn.onclick = () => {
+                modal.dataset.activeCategory = category;
+                renderInventory(targetId);
+            };
+            categoryTabs.appendChild(btn);
+        });
+
+        const filteredEntries = entries.filter((entry) => activeCategory === 'all' || getInventoryCategory(entry.item) === activeCategory);
+        if (!filteredEntries.length) {
+            list.innerHTML = '<p>No items in this category.</p>';
+            renderDetail(modal.dataset.activeItemId);
             return;
         }
 
-        character.inventory.forEach(itemId => {
-            const item = items[itemId];
-            if (!item) return;
-
+        filteredEntries.forEach(({ itemId, quantity, item }) => {
             const entry = document.createElement('div');
             entry.className = 'inventory-entry';
+            const equippedSlot = item.equipmentSlot || null;
+            const isEquipped = equippedSlot && character.equipped?.[equippedSlot] === itemId;
+            const equipFailure = ['weapon', 'armor', 'shield'].includes(item.type) ? getItemEquipFailure(itemId, targetId) : null;
+            const failureText = equipFailure === 'proficiency'
+                ? 'Not proficient'
+                : equipFailure === 'reqStr'
+                    ? `Needs STR ${item.reqStr}`
+                    : '';
 
-            const equippedSlot = item.type === 'weapon' ? 'weapon' : (item.type === 'armor' ? 'armor' : null);
-            const isEquipped = equippedSlot && character.equipped && character.equipped[equippedSlot] === itemId;
+            entry.onclick = () => renderDetail(itemId, quantity);
 
             const details = document.createElement('div');
             details.className = 'inventory-details';
             details.innerHTML = `
                 <strong>${item.name}</strong>
+                ${quantity > 1 ? `<span class="tag">x${quantity}</span>` : ''}
                 ${isEquipped ? '<span class="tag">Equipped</span>' : ''}
+                <div class="inventory-meta">${getItemRulesText(item)}</div>
                 <div class="inventory-desc">${item.description || ''}</div>
+                ${failureText ? `<div class="inventory-warning">${failureText}</div>` : ''}
             `;
 
             const actions = document.createElement('div');
             actions.className = 'inventory-actions';
 
-            if (item.type === 'weapon' || item.type === 'armor') {
+            if (equippedSlot) {
                 const equipBtn = document.createElement('button');
                 equipBtn.innerText = isEquipped ? 'Unequip' : 'Equip';
-                equipBtn.disabled = gameState.combat.active && gameState.combat.actionsRemaining <= 0;
-                equipBtn.onclick = () => {
-                    const char = getCharacterById(characterId);
-                    const slot = item.type === 'weapon' ? 'weapon' : 'armor';
-                    const currentlyEquipped = char && char.equipped && char.equipped[slot] === itemId;
-
+                equipBtn.disabled = (!isEquipped && !!equipFailure) || (gameState.combat.active && gameState.combat.actionsRemaining <= 0);
+                equipBtn.onclick = (event) => {
+                    event.stopPropagation();
                     if (!hasActionAvailable()) return;
-
-                    let result;
-                    if (currentlyEquipped) {
-                        result = unequipItem(slot, characterId);
-                    } else {
-                        result = equipItem(itemId, characterId);
-                    }
-
-                    if (!result || !result.success) {
-                        const reason = result && result.reason === 'reqStr' ? `Requires STR ${result.value}.` : 'Cannot equip right now.';
-                        logInventoryMessage(reason, 'check-fail');
+                    const result = isEquipped ? unequipItem(equippedSlot, targetId) : equipItem(itemId, targetId);
+                    if (!result?.success) {
+                        logInventoryMessage(result?.reason === 'reqStr' ? `Requires STR ${result.value}.` : 'Cannot equip right now.', 'check-fail');
                         return;
                     }
-
                     spendAction();
-                    logInventoryMessage(`${currentlyEquipped ? 'Unequipped' : 'Equipped'} ${item.name}.`, 'system');
+                    logInventoryMessage(`${isEquipped ? 'Unequipped' : 'Equipped'} ${item.name}.`, 'system');
                     updateStatsUI();
-                    renderInventory(characterId);
+                    renderInventory(targetId);
+                    renderDetail(itemId, quantity);
                 };
                 actions.appendChild(equipBtn);
             }
 
-            if (item.type === 'consumable') {
+            if (item.type === 'consumable' || item.type === 'scroll') {
                 const useBtn = document.createElement('button');
-                useBtn.innerText = 'Use';
+                useBtn.innerText = item.type === 'scroll' ? 'Invoke' : 'Use';
                 useBtn.disabled = gameState.combat.active && gameState.combat.actionsRemaining <= 0;
-                useBtn.onclick = () => {
+                useBtn.onclick = (event) => {
+                    event.stopPropagation();
                     if (!hasActionAvailable()) return;
-                    const result = useConsumable(itemId, characterId);
+                    const result = useConsumable(itemId, targetId);
                     if (!result.success) {
                         logInventoryMessage(result.msg || `Cannot use ${item.name}.`, 'check-fail');
                         return;
@@ -2313,26 +2499,26 @@ function toggleInventory(forceOpen = null, characterId = 'player') {
                     spendAction();
                     logInventoryMessage(result.msg || `Used ${item.name}.`, 'gain');
                     updateStatsUI();
-                    renderInventory(characterId);
+                    renderInventory(targetId);
+                    renderDetail(itemId, Math.max(0, quantity - 1));
                 };
                 actions.appendChild(useBtn);
             }
 
             const dropBtn = document.createElement('button');
-            dropBtn.innerText = 'Drop';
+            dropBtn.innerText = quantity > 1 ? 'Drop 1' : 'Drop';
             dropBtn.disabled = gameState.combat.active && gameState.combat.actionsRemaining <= 0;
-            dropBtn.onclick = () => {
+            dropBtn.onclick = (event) => {
+                event.stopPropagation();
                 if (!hasActionAvailable()) return;
-
-                // If equipped, unequip first to avoid dangling references
-                if (equippedSlot && character.equipped && character.equipped[equippedSlot] === itemId) {
-                    unequipItem(equippedSlot, characterId);
+                if (equippedSlot && character.equipped?.[equippedSlot] === itemId) {
+                    unequipItem(equippedSlot, targetId);
                 }
-
-                removeItem(itemId, characterId);
+                removeItem(itemId, targetId, 1);
                 spendAction();
                 logInventoryMessage(`Dropped ${item.name}.`, 'system');
-                renderInventory(characterId);
+                renderInventory(targetId);
+                renderDetail(itemId, Math.max(0, quantity - 1));
             };
             actions.appendChild(dropBtn);
 
@@ -2340,6 +2526,9 @@ function toggleInventory(forceOpen = null, characterId = 'player') {
             entry.appendChild(actions);
             list.appendChild(entry);
         });
+
+        const preferredItem = entries.find((entry) => entry.itemId === modal.dataset.activeItemId) || filteredEntries[0];
+        renderDetail(preferredItem?.itemId, preferredItem?.quantity || null);
     };
 
     // Build character selection tabs

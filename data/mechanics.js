@@ -250,6 +250,48 @@ export const effectDefinitions = {
         defaultDuration: 1,
         modifiers: []
     },
+    restrained: {
+        id: 'restrained',
+        name: 'Restrained',
+        description: 'The actor is bound or hindered and struggles to move.',
+        durationType: 'turns',
+        defaultDuration: 2,
+        modifiers: [
+            { type: 'disadvantage', target: 'attack_roll' },
+            { type: 'flat_bonus', target: 'speed', value: -10 }
+        ]
+    },
+    grappled: {
+        id: 'grappled',
+        name: 'Grappled',
+        description: 'The actor is held in place and movement is reduced to zero.',
+        durationType: 'turns',
+        defaultDuration: 2,
+        modifiers: [
+            { type: 'multiplier', target: 'speed', value: 0 }
+        ]
+    },
+    blinded: {
+        id: 'blinded',
+        name: 'Blinded',
+        description: 'The actor cannot see and struggles to aim or react.',
+        durationType: 'turns',
+        defaultDuration: 2,
+        modifiers: [
+            { type: 'disadvantage', target: 'attack_roll' },
+            { type: 'disadvantage', target: 'ability_check', tags: ['awareness'] }
+        ]
+    },
+    deafened: {
+        id: 'deafened',
+        name: 'Deafened',
+        description: 'The actor cannot hear and has trouble reacting to warnings.',
+        durationType: 'scenes',
+        defaultDuration: 1,
+        modifiers: [
+            { type: 'disadvantage', target: 'ability_check', tags: ['awareness'] }
+        ]
+    },
     unconscious: {
         id: 'unconscious',
         name: 'Unconscious',
@@ -277,6 +319,28 @@ export const effectDefinitions = {
         modifiers: [
             { type: 'disadvantage', target: 'ability_check' },
             { type: 'multiplier', target: 'speed', value: 0.5 }
+        ]
+    },
+    exhausted_3: {
+        id: 'exhausted_3',
+        name: 'Exhaustion III',
+        description: 'Movement is sluggish and attacks feel leaden.',
+        durationType: 'long_rest',
+        defaultDuration: 1,
+        modifiers: [
+            { type: 'disadvantage', target: 'ability_check' },
+            { type: 'disadvantage', target: 'attack_roll' },
+            { type: 'multiplier', target: 'speed', value: 0.5 }
+        ]
+    },
+    antitoxin_guard: {
+        id: 'antitoxin_guard',
+        name: 'Antitoxin',
+        description: 'The actor steels their body against poisonous agents for the rest of the day.',
+        durationType: 'rest_of_day',
+        defaultDuration: 1,
+        modifiers: [
+            { type: 'advantage', target: 'saving_throw', tags: ['poison'] }
         ]
     }
 };
@@ -424,6 +488,7 @@ export function createEffectInstance(effectId, overrides = {}) {
         concentration: overrides.concentration ?? !!definition?.concentration,
         modifiers: overrides.modifiers || definition?.modifiers || [],
         data: overrides.data || {},
+        onExpire: overrides.onExpire || definition?.onExpire || null,
         name: overrides.name || definition?.name || 'Custom Effect'
     };
 }
@@ -514,28 +579,84 @@ export function removeEffectsFromActorBySource(actor, source, exact = true) {
     applyDerivedState(actor);
 }
 
-export function tickActorEffects(actor, trigger = 'turn_end') {
+function shouldDecrementEffect(effect, trigger, options = {}) {
+    const stepAmount = Math.max(1, Number(options.amount) || 1);
+
+    switch (effect.durationType) {
+    case 'turns':
+        return (trigger === 'turn_end' || trigger === 'turn_start') ? stepAmount : 0;
+    case 'rounds':
+        return trigger === 'round_end' ? stepAmount : 0;
+    case 'scenes':
+        return trigger === 'scene_change' ? stepAmount : 0;
+    case 'time_slots':
+        return trigger === 'time_passed' ? stepAmount : 0;
+    case 'rests':
+        return (trigger === 'short_rest' || trigger === 'long_rest') ? stepAmount : 0;
+    case 'short_rest':
+        return trigger === 'short_rest' ? stepAmount : 0;
+    case 'long_rest':
+        return trigger === 'long_rest' ? stepAmount : 0;
+    case 'rest_of_day':
+        return trigger === 'day_rollover' ? stepAmount : 0;
+    case 'until_next_combat':
+        return trigger === 'combat_start' ? stepAmount : 0;
+    case 'permanent':
+        return 0;
+    default:
+        return 0;
+    }
+}
+
+function shouldRemoveOnTrigger(effect, trigger) {
+    if (trigger === 'combat_end' && ['turns', 'rounds'].includes(effect.durationType)) {
+        return true;
+    }
+    if (trigger === 'scene_change' && effect.concentration && effect.durationType !== 'scenes') {
+        return true;
+    }
+    return false;
+}
+
+function runEffectExpire(actor, effect) {
+    if (!effect?.onExpire) return;
+    if (effect.onExpire.removeSource) {
+        removeEffectsFromActorBySource(actor, effect.onExpire.removeSource, effect.onExpire.exact !== false);
+    }
+    if (effect.onExpire.clearTemporaryHp) {
+        actor.mechanics.temporaryHp = 0;
+    }
+}
+
+export function tickActorEffects(actor, trigger = 'turn_end', options = {}) {
     ensureActorMechanics(actor);
+    const expiredEffects = [];
 
     actor.mechanics.activeEffects = actor.mechanics.activeEffects.filter(effect => {
-        if (effect.remaining === null || effect.remaining === undefined) return true;
-
-        if (effect.durationType === 'turns' && (trigger === 'turn_end' || trigger === 'turn_start')) {
-            effect.remaining -= 1;
-        } else if (effect.durationType === 'scenes' && trigger === 'scene_change') {
-            effect.remaining -= 1;
-        } else if (effect.durationType === 'rests' && (trigger === 'short_rest' || trigger === 'long_rest')) {
-            effect.remaining -= 1;
+        if (shouldRemoveOnTrigger(effect, trigger)) {
+            expiredEffects.push(effect);
+            return false;
         }
 
-        return effect.remaining > 0;
+        if (effect.remaining === null || effect.remaining === undefined) return true;
+        const decrement = shouldDecrementEffect(effect, trigger, options);
+        if (decrement > 0) {
+            effect.remaining -= decrement;
+        }
+        if (effect.remaining > 0) {
+            return true;
+        }
+        expiredEffects.push(effect);
+        return false;
     });
 
+    expiredEffects.forEach((effect) => runEffectExpire(actor, effect));
     syncLegacyStatusEffects(actor);
     if (actor.mechanics.concentrationEffectId && !actor.mechanics.activeEffects.some(effect => getEffectKey(effect) === actor.mechanics.concentrationEffectId)) {
         actor.mechanics.concentrationEffectId = null;
     }
     applyDerivedState(actor);
+    return expiredEffects;
 }
 
 function modifierApplies(modifier, context) {
@@ -664,14 +785,24 @@ export function getDerivedActorState(actor) {
 
     let ac = 10 + modifiers.DEX;
     const armor = actor.equipped?.armor ? items[actor.equipped.armor] : null;
+    const shield = actor.equipped?.shield ? items[actor.equipped.shield] : null;
     if (armor) {
-        ac = armor.acBase;
+        const dexContribution = armor.armorType === 'heavy'
+            ? 0
+            : (armor.dexCap === null || armor.dexCap === undefined
+                ? modifiers.DEX
+                : Math.min(modifiers.DEX, armor.dexCap));
+        ac = armor.acBase + dexContribution;
         if (armor.modifiers?.ac) {
             ac += armor.modifiers.ac;
         }
     }
+    if (shield?.acBonus) {
+        ac += shield.acBonus;
+    }
     const acTags = [];
     if (armor) acTags.push('armored');
+    if (shield) acTags.push('shielded');
     const acContext = getEffectModifiers(actor, { target: 'ac', tags: acTags });
     ac += (actor.mechanics.permanentStatBonuses.ac || 0) + acContext.flat;
 
@@ -721,6 +852,7 @@ export function getDerivedActorState(actor) {
             abilities: abilityBreakdown,
             ac: {
                 armor: armor ? armor.name : 'Unarmored',
+                shield: shield ? shield.name : null,
                 total: ac
             },
             speed: {
