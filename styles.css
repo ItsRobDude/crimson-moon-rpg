@@ -329,6 +329,10 @@ button:hover {
     z-index: 100;
 }
 
+.hidden {
+    display: none !important;
+}
+
 .modal.hidden {
     display: none;
 }

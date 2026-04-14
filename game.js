@@ -803,12 +803,27 @@ function renderAbilityScoreUI() {
     const standardArray = [15, 14, 13, 12, 10, 8];
     const stats = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
     ccState.baseStats = { STR: 15, DEX: 14, CON: 13, INT: 12, WIS: 10, CHA: 8 };
+
+    const syncAbilityScoreOptions = () => {
+        const selectedValues = { ...ccState.baseStats };
+        container.querySelectorAll('select[data-stat]').forEach((select) => {
+            const stat = select.dataset.stat;
+            Array.from(select.options).forEach((option) => {
+                const value = parseInt(option.value, 10);
+                const usedElsewhere = Object.entries(selectedValues).some(([otherStat, otherValue]) => otherStat !== stat && otherValue === value);
+                option.disabled = usedElsewhere;
+            });
+            select.value = String(ccState.baseStats[stat]);
+        });
+    };
+
     stats.forEach((stat, index) => {
         const row = document.createElement('div');
         row.className = 'stat-row';
         const label = document.createElement('label');
         label.innerText = stat;
         const select = document.createElement('select');
+        select.dataset.stat = stat;
         standardArray.forEach(val => {
             const opt = document.createElement('option');
             opt.value = val;
@@ -818,12 +833,14 @@ function renderAbilityScoreUI() {
         });
         select.onchange = (e) => {
             ccState.baseStats[stat] = parseInt(e.target.value);
+            syncAbilityScoreOptions();
             updateCCPreview();
         };
         row.appendChild(label);
         row.appendChild(select);
         container.appendChild(row);
     });
+    syncAbilityScoreOptions();
 }
 
 function formatChoiceLabel(value) {
@@ -1472,6 +1489,7 @@ function goToScene(sceneId) {
 function renderChoices(choices) {
     const choiceContainer = document.getElementById('choice-container');
     choiceContainer.innerHTML = '';
+    let renderedCount = 0;
     if (choices) {
         choices.forEach((choice) => {
             if (choice.requires) {
@@ -1506,7 +1524,20 @@ function renderChoices(choices) {
             btn.innerText = choice.text + (choice.cost ? ` (${choice.cost}g)` : "");
             btn.onclick = () => handleChoice(choice);
             choiceContainer.appendChild(btn);
+            renderedCount += 1;
         });
+    }
+
+    if (renderedCount === 0) {
+        const fallback = document.createElement('button');
+        const currentScene = scenes[gameState.currentSceneId];
+        const fallbackScene = currentScene?.location === 'silverthorn'
+            ? 'SCENE_HUB_SILVERTHORN'
+            : CANONICAL_START_SCENE;
+        fallback.innerText = currentScene?.location === 'silverthorn' ? 'Return to City Center' : 'Continue';
+        fallback.onclick = () => goToScene(fallbackScene);
+        choiceContainer.appendChild(fallback);
+        logMessage(`No valid choices were available in ${gameState.currentSceneId}, so a fallback route was opened.`, 'system');
     }
 }
 
