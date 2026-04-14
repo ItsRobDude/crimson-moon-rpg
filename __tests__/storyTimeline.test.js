@@ -45,11 +45,39 @@ test('late-game locations stay locked until their story threads open', () => {
 
   syncStoryStateForScene(storyState, 'SCENE_BRIEFING');
   syncStoryStateForScene(storyState, 'SCENE_HUB_SILVERTHORN');
-  syncStoryStateForScene(storyState, 'SCENE_SHADOWMIRE_ROAD');
+  syncStoryStateForScene(storyState, 'SCENE_TRAVEL_SHADOWMIRE');
   syncStoryStateForScene(storyState, 'SCENE_ARRIVAL_WHISPERWOOD');
+  syncStoryStateForScene(storyState, 'SCENE_MEET_EOIN');
   syncStoryStateForScene(storyState, 'SCENE_EOIN_TALK');
+  syncStoryStateForScene(storyState, 'SCENE_HUB_SPOREFALL');
+  syncStoryStateForScene(storyState, 'SCENE_SPOREFALL_CATHEDRAL_VISION');
   syncStoryStateForScene(storyState, 'SCENE_AODHAN_TALK');
 
   expect(meetsStoryRequirement(storyState, getLocationStoryRequirement('durnhelm'))).toBe(true);
   expect(meetsStoryRequirement(storyState, getLocationStoryRequirement('hushbriar'))).toBe(false);
+});
+
+test('sporefall investigation now sits between meeting eoin and unlocking the broader aodhan thread', () => {
+  const storyState = createDefaultStoryState();
+
+  syncStoryStateForScene(storyState, 'SCENE_BRIEFING');
+  syncStoryStateForScene(storyState, 'SCENE_HUB_SILVERTHORN');
+  syncStoryStateForScene(storyState, 'SCENE_TRAVEL_SHADOWMIRE');
+  syncStoryStateForScene(storyState, 'SCENE_ARRIVAL_WHISPERWOOD');
+  syncStoryStateForScene(storyState, 'SCENE_MEET_EOIN');
+
+  expect(getStoryEventStatus(storyState, 'eoin_thread')).toBe(STORY_EVENT_STATUS.ACTIVE);
+  expect(getStoryEventStatus(storyState, 'sporefall_investigation')).toBe(STORY_EVENT_STATUS.LOCKED);
+
+  syncStoryStateForScene(storyState, 'SCENE_EOIN_TALK');
+  syncStoryStateForScene(storyState, 'SCENE_HUB_SPOREFALL');
+
+  expect(getStoryEventStatus(storyState, 'eoin_thread')).toBe(STORY_EVENT_STATUS.COMPLETED);
+  expect(getStoryEventStatus(storyState, 'sporefall_investigation')).toBe(STORY_EVENT_STATUS.ACTIVE);
+  expect(getStoryEventStatus(storyState, 'aodhan_thread')).toBe(STORY_EVENT_STATUS.LOCKED);
+
+  syncStoryStateForScene(storyState, 'SCENE_SPOREFALL_OVERSEER_JOURNAL');
+
+  expect(getStoryEventStatus(storyState, 'sporefall_investigation')).toBe(STORY_EVENT_STATUS.COMPLETED);
+  expect(getStoryEventStatus(storyState, 'aodhan_thread')).toBe(STORY_EVENT_STATUS.AVAILABLE);
 });

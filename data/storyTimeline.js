@@ -61,6 +61,12 @@ export const storyEvents = {
         title: 'Find Eoin',
         summary: 'Eoin becomes the first strong witness to what happened in Whisperwood.'
     },
+    sporefall_investigation: {
+        id: 'sporefall_investigation',
+        actId: 'act_2_sporefall_revelations',
+        title: 'Survey Sporefall',
+        summary: 'After finding Eoin, the party begins investigating Sporefall through its cathedral quarter, overseer\'s row, and northern streets.'
+    },
     aodhan_thread: {
         id: 'aodhan_thread',
         actId: 'act_2_sporefall_revelations',
@@ -157,7 +163,6 @@ export const storySceneTriggers = {
     },
     SCENE_ARRIVAL_WHISPERWOOD: {
         complete: ['sporefall_arrival'],
-        unlock: ['eoin_thread'],
         actId: 'act_2_sporefall_revelations'
     },
     SCENE_MEET_EOIN: {
@@ -166,11 +171,34 @@ export const storySceneTriggers = {
     },
     SCENE_EOIN_TALK: {
         complete: ['eoin_thread'],
-        unlock: ['aodhan_thread'],
+        unlock: ['sporefall_investigation'],
         actId: 'act_2_sporefall_revelations'
     },
     SCENE_ALONE_AGAIN: {
-        complete: ['eoin_thread'],
+        activate: ['eoin_thread'],
+        actId: 'act_2_sporefall_revelations'
+    },
+    SCENE_HUB_SPOREFALL: {
+        activate: ['sporefall_investigation'],
+        actId: 'act_2_sporefall_revelations'
+    },
+    SCENE_SPOREFALL_CATHEDRAL_VISION: {
+        complete: ['sporefall_investigation'],
+        unlock: ['aodhan_thread'],
+        actId: 'act_2_sporefall_revelations'
+    },
+    SCENE_SPOREFALL_OVERSEER_JOURNAL: {
+        complete: ['sporefall_investigation'],
+        unlock: ['aodhan_thread'],
+        actId: 'act_2_sporefall_revelations'
+    },
+    SCENE_SPOREFALL_OVERSEER_CORRESPONDENCE: {
+        complete: ['sporefall_investigation'],
+        unlock: ['aodhan_thread'],
+        actId: 'act_2_sporefall_revelations'
+    },
+    SCENE_SPOREFALL_NORTH_ROUTE_DISCOVERED: {
+        complete: ['sporefall_investigation'],
         unlock: ['aodhan_thread'],
         actId: 'act_2_sporefall_revelations'
     },

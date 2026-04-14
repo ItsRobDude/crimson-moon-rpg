@@ -750,6 +750,28 @@ export const scenes = {
                 successText: "You clamp a sleeve over your face and stay on your feet a little longer, but the world is already starting to tilt.",
                 failText: "Your lungs seize on the first breath you take. You cough violently as the haze floods your senses and the world folds into darkness.",
                 failEffect: { type: "status", id: "spore_sickness" },
+                nextScene: "SCENE_SHADOWMIRE_ROADSIDE_CORPSE"
+            }
+        ]
+    },
+    "SCENE_SHADOWMIRE_ROADSIDE_CORPSE": {
+        id: "SCENE_SHADOWMIRE_ROADSIDE_CORPSE",
+        location: "shadowmire",
+        background: "landscapes/foggy_forest.png",
+        text: "Two more hard hours pass beneath a forest that no longer feels alive. Near sunset you find a body in the middle of the road, black mold slick around the eyes, nose, and mouth. From the brush nearby comes a ragged cough, then another, then the wet sweetness of the spores rolling over everything at once.",
+        choices: [
+            {
+                text: "Examine the body before the haze closes in (Medicine)",
+                type: "skillCheck",
+                skill: "medicine",
+                dc: 11,
+                successText: "There are no wounds, no sign of struggle, only the mold spreading from every place breath once passed. Whatever killed him was already in the air.",
+                failText: "Your stomach turns before you can learn much beyond the mold and the wrong sweetness in the air.",
+                nextSceneSuccess: "SCENE_SPOREFALL_WAKE",
+                nextSceneFail: "SCENE_SPOREFALL_WAKE"
+            },
+            {
+                text: "Call toward the coughing in the brush",
                 nextScene: "SCENE_SPOREFALL_WAKE"
             }
         ]
@@ -758,9 +780,10 @@ export const scenes = {
         id: "SCENE_SPOREFALL_WAKE",
         location: "whisperwood",
         background: "landscapes/sporefall_crimson_frontier.png",
-        text: "When your eyes snap open, the sky above you is black and a swollen crimson moon hangs where daylight should be. Dead birds and small animals lie scattered around the road. Otherworldly plants glow blue and violet through the drifting spores, and the memory of healthy Shadowmire already feels impossibly far away.",
+        text: "When your eyes snap open, the sky above you is black and a swollen crimson moon hangs where daylight should be. Dead birds and small animals lie scattered around the road. Strange blue-violet plants glow through the drifting spores, and the memory of healthy Shadowmire already feels impossibly far away.",
         onEnter: {
-            once: true
+            once: true,
+            questUpdate: { id: "investigate_whisperwood", stage: 2 }
         },
         choices: [
             {
@@ -789,40 +812,51 @@ export const scenes = {
         id: "SCENE_ARRIVAL_WHISPERWOOD",
         location: "whisperwood",
         background: "landscapes/sporefall_crimson_frontier.png",
-        text: "You rise and push through low branches into Whisperwood proper. The trees sag beneath crimson spore-growth, the ground glistens like wet embers, and the haze ahead shifts around shapes too large to be deer. Shadowmire is gone. Sporefall has taken its place.",
+        text: "You follow the ruined road until the borough opens beneath the crimson moon. Abandoned carts choke the street, roofs sag beneath wild growth, and every window stares back like a blind eye. This was once Whisperwood Borough. What survives of it now can only be called Sporefall.",
         choices: [
             {
-                text: "Investigate the glowing plants.",
-                type: "skillCheck",
-                skill: "investigation",
-                dc: 13,
-                successText: "You find a strange residue on the leaves. It's not natural; it's magical corruption. A low growl rumbles behind you as you disturb the patch.",
-                failText: "The plants are gross and slimy. Your fingers come away sticky—and something stirs nearby.",
-                nextScene: "SCENE_COMBAT_ENCOUNTER"
-            },
-            {
-                text: "Move cautiously deeper.",
-                nextScene: "SCENE_COMBAT_ENCOUNTER"
-            },
-            {
-                text: "Circle around the movement (Stealth)",
-                type: "skillCheck",
-                skill: "stealth",
-                dc: 13,
-                successText: "You slip between roots and climb a fallen log, keeping the rustling to your left.",
-                failText: "A twig snaps underfoot. The rustling becomes a charge.",
-                nextSceneSuccess: "SCENE_SKIRT_BEAST",
-                nextSceneFail: "SCENE_COMBAT_ENCOUNTER"
-            },
-            {
-                text: "Scout the area (Perception)",
+                text: "Search the nearest street for survivors (Perception)",
                 type: "skillCheck",
                 skill: "perception",
-                dc: 12,
-                successText: "You spot tracks leading away from the beast's path, suggesting a safer route.",
-                failText: "The haze plays tricks on your eyes. You see nothing.",
-                nextSceneSuccess: "SCENE_SKIRT_BEAST",
-                nextSceneFail: "SCENE_COMBAT_ENCOUNTER"
+                dc: 10,
+                successText: "Out of the corner of your eye, something pale and human slips behind a nearby house. It is too careful to be a beast.",
+                failText: "The plants are gross and slimy. Your fingers come away sticky—and something stirs nearby.",
+                onSuccess: {
+                    effects: [
+                        { type: "flag", flagId: "sporefall_eoin_glimpsed", value: true }
+                    ]
+                },
+                onFail: {
+                    effects: [
+                        { type: "flag", flagId: "sporefall_eoin_delayed", value: true }
+                    ]
+                },
+                nextSceneSuccess: "SCENE_MEET_EOIN",
+                nextSceneFail: "SCENE_SPOREFALL_STREET_SEARCH"
+            },
+            {
+                text: "Move between the ruined homes",
+                nextScene: "SCENE_SPOREFALL_STREET_SEARCH"
+            },
+            {
+                text: "Pause and listen for anyone still alive",
+                nextScene: "SCENE_SPOREFALL_STREET_SEARCH"
+            }
+        ]
+    },
+    "SCENE_SPOREFALL_STREET_SEARCH": {
+        id: "SCENE_SPOREFALL_STREET_SEARCH",
+        location: "whisperwood",
+        background: "landscapes/sporefall_crimson_frontier.png",
+        text: "You press a little deeper into the borough before the silence breaks into something smaller and sadder than fear: a scuffed footstep, then a cough, then the scrape of someone trying not to be found. It comes from behind a ruined home whose door still hangs open on one hinge.",
+        choices: [
+            {
+                text: "Follow the coughing behind the house",
+                nextScene: "SCENE_MEET_EOIN"
+            },
+            {
+                text: "Circle wide and cut off whoever is hiding",
+                nextScene: "SCENE_MEET_EOIN"
             }
         ]
     },
@@ -898,17 +932,18 @@ export const scenes = {
         location: "whisperwood",
         background: "landscapes/sporefall_crimson_frontier.png",
         npcPortrait: "portraits/npc_male_placeholder_portrait.png",
-        text: "A ragged man stumbles from the treeline. He is covered in scratches and spore-dust. 'Stay back!' he warns, brandishing a broken spear. 'Are you real, or another trick of the moon?'",
+        text: "A young man steps out from behind the ruined house, half visible in the red-dark like he cannot decide whether he belongs to it. His face is pale, his clothes are ragged, and the broken spear in his hands looks more like a habit than a weapon. 'Stay back,' he says, voice shaking. 'Are you real, or another trick of the moon?'",
         choices: [
             {
-                text: "Calm him down (Persuasion Check).",
+                text: "Speak gently and calm him down (Persuasion)",
                 type: "skillCheck",
                 skill: "persuasion",
                 dc: 12,
-                successText: "'I am real,' you say softly. 'I was sent by Alderic.' The man lowers his weapon. 'Alderic? Then there is hope. I am Eoin. We were ambushed...'",
-                failText: "He doesn't trust you. 'Get back!' he shouts, backing away into the shadows before you can stop him.",
+                successText: "'I am real,' you tell him. 'Silverthorn sent me.' The spear lowers by inches. 'Silverthorn?' he whispers. 'Then maybe I am not alone after all. I am Eoin. Something terrible happened here.'",
+                failText: "He recoils as if the words hurt him. 'No. No, you sound too calm to be real.' He backs away into the ruin-shadow, but not far enough to vanish.",
                 onSuccess: {
                     effects: [
+                        { type: "flag", flagId: "sporefall_eoin_met", value: true },
                         { type: "relationship", npcId: "eoin", amount: 15 },
                         { type: "reputation", factionId: "whisperwood_survivors", amount: 10 }
                     ]
@@ -919,6 +954,7 @@ export const scenes = {
             {
                 text: "Demand answers.",
                 effects: [
+                    { type: "flag", flagId: "sporefall_eoin_met", value: true },
                     { type: "relationship", npcId: "eoin", amount: -10 }
                 ],
                 nextScene: "SCENE_ALONE_AGAIN"
@@ -930,21 +966,69 @@ export const scenes = {
         location: "whisperwood",
         background: "landscapes/sporefall_crimson_frontier.png",
         npcPortrait: "portraits/npc_male_placeholder_portrait.png",
-        text: "Eoin explains that a massive creature, a 'Spore Walker', is raising the dead further in. 'It guards the old ruins. If you go there, you go to your grave.'",
+        text: "Once Eoin believes you are real, the words spill out all at once. He says the darkness came during a ritual in the cathedral, that something huge now roams the streets, and that before all this he and his mother sheltered under a footbridge on the north side of town. He does not believe he is dead. He also cannot explain why the moonlight catches him wrong, or why his skin looks almost transparent when he stops moving.",
         choices: [
             {
-                text: "Ask for help (Requires 20 Eoin Relationship)",
-                requires: {
-                    relationship: { npcId: "eoin", min: 20 }
-                },
-                nextScene: "SCENE_EOIN_ASSISTANCE"
+                text: "Ask what happened in the cathedral",
+                effects: [
+                    { type: "flag", flagId: "sporefall_eoin_talked", value: true }
+                ],
+                nextScene: "SCENE_EOIN_RITUAL_TALK"
             },
             {
-                text: "I must face it.",
+                text: "Ask about the north side and his mother",
                 effects: [
+                    { type: "flag", flagId: "sporefall_eoin_talked", value: true },
                     { type: "relationship", npcId: "eoin", amount: 5 }
                 ],
-                nextScene: "SCENE_RUINS_APPROACH"
+                nextScene: "SCENE_EOIN_MOTHER_TALK"
+            },
+            {
+                text: "Step back into the streets of Sporefall",
+                effects: [
+                    { type: "flag", flagId: "sporefall_eoin_talked", value: true }
+                ],
+                nextScene: "SCENE_HUB_SPOREFALL"
+            }
+        ]
+    },
+    "SCENE_EOIN_RITUAL_TALK": {
+        id: "SCENE_EOIN_RITUAL_TALK",
+        location: "whisperwood",
+        background: "landscapes/sporefall_crimson_frontier.png",
+        npcPortrait: "portraits/npc_male_placeholder_portrait.png",
+        text: "Eoin hugs his arms tight against himself. 'The Overseer was in the cathedral before it happened. People said it was some kind of ritual. Then the dark came all at once. After that, the streets were full of things wearing people wrong. If you want answers, the cathedral is where I'd start.'",
+        choices: [
+            {
+                text: "Ask about the north side instead",
+                nextScene: "SCENE_EOIN_MOTHER_TALK"
+            },
+            {
+                text: "Step back into the streets of Sporefall",
+                effects: [
+                    { type: "flag", flagId: "sporefall_eoin_talked", value: true }
+                ],
+                nextScene: "SCENE_HUB_SPOREFALL"
+            }
+        ]
+    },
+    "SCENE_EOIN_MOTHER_TALK": {
+        id: "SCENE_EOIN_MOTHER_TALK",
+        location: "whisperwood",
+        background: "landscapes/sporefall_crimson_frontier.png",
+        npcPortrait: "portraits/npc_male_placeholder_portrait.png",
+        text: "At the mention of his mother, Eoin's voice turns small. 'We stayed under the footbridge on the north side. I was looking for her when the darkness came. I keep thinking if I could just find the bridge again, I'd know what to do next.' He glances toward the northern streets, then quickly away.",
+        choices: [
+            {
+                text: "Ask what happened in the cathedral",
+                nextScene: "SCENE_EOIN_RITUAL_TALK"
+            },
+            {
+                text: "Step back into the streets of Sporefall",
+                effects: [
+                    { type: "flag", flagId: "sporefall_eoin_talked", value: true }
+                ],
+                nextScene: "SCENE_HUB_SPOREFALL"
             }
         ]
     },
@@ -968,11 +1052,333 @@ export const scenes = {
         id: "SCENE_ALONE_AGAIN",
         location: "whisperwood",
         background: "landscapes/sporefall_crimson_frontier.png",
-        text: "The survivor vanishes into the gloom. You are alone again, but you see tracks leading deeper into the woods towards some ruins.",
+        text: "The survivor retreats into the ruin-shadow, but not far. A pale outline lingers near a collapsed cellar door as if desperation keeps dragging him back toward you despite the fear. If you want answers, you can still follow.",
         choices: [
             {
-                text: "Follow the tracks.",
-                nextScene: "SCENE_RUINS_APPROACH"
+                text: "Follow him carefully",
+                effects: [
+                    { type: "flag", flagId: "sporefall_eoin_met", value: true }
+                ],
+                nextScene: "SCENE_EOIN_TALK"
+            }
+        ]
+    },
+    "SCENE_HUB_SPOREFALL": {
+        id: "SCENE_HUB_SPOREFALL",
+        location: "whisperwood",
+        background: "landscapes/sporefall_crimson_frontier.png",
+        onEnter: {
+            questUpdate: { id: "investigate_whisperwood", stage: 3 },
+            once: true
+        },
+        text: "You step back into Sporefall's streets with Eoin's words still clinging to you. The borough lies broken in three promising directions: a western rise where the cathedral bells once carried, an eastern row of larger homes where the overseer once lived, and the northern streets where the homeless slept beneath the bridge.",
+        choices: [
+            {
+                text: "Head west through the cathedral quarter",
+                nextScene: "SCENE_SPOREFALL_CATHEDRAL_APPROACH"
+            },
+            {
+                text: "Head east toward the overseer's row",
+                nextScene: "SCENE_SPOREFALL_OVERSEER_APPROACH"
+            },
+            {
+                text: "Head north through the broken market road",
+                nextScene: "SCENE_SPOREFALL_NORTH_APPROACH"
+            },
+            {
+                text: "Return to Eoin's hiding place",
+                nextScene: "SCENE_EOIN_TALK"
+            }
+        ]
+    },
+    "SCENE_SPOREFALL_CATHEDRAL_APPROACH": {
+        id: "SCENE_SPOREFALL_CATHEDRAL_APPROACH",
+        location: "whisperwood",
+        background: "landscapes/sporefall_whisperwood_reveal.png",
+        text: "The western avenue climbs toward the Cathedral of Bone. Before the stairs, a blackened corpse lies slumped beside a torn courier's bag, its contents scattered across stone dust and spore-moss.",
+        choices: [
+            {
+                text: "Search the courier's bag",
+                nextScene: "SCENE_SPOREFALL_CATHEDRAL_APPROACH"
+            },
+            {
+                text: "Climb toward the cathedral doors",
+                nextScene: "SCENE_SPOREFALL_CATHEDRAL_ENTRY"
+            },
+            {
+                text: "Return to the central street",
+                nextScene: "SCENE_HUB_SPOREFALL"
+            }
+        ]
+    },
+    "SCENE_SPOREFALL_CATHEDRAL_ENTRY": {
+        id: "SCENE_SPOREFALL_CATHEDRAL_ENTRY",
+        location: "whisperwood",
+        background: "landscapes/sporefall_whisperwood_reveal.png",
+        text: "In the heart of Sporefall looms the Cathedral of Bone, marble and giant-bone architecture made profane by silence. Inside, the nave is strewn with the dead. Where pews should stand, bones lie in rows like the town tried to bury itself and failed.",
+        choices: [
+            {
+                text: "Listen to the whispering dead (Perception)",
+                type: "skillCheck",
+                skill: "perception",
+                dc: 12,
+                successText: "The whispers do not mourn you. They warn someone deeper inside that you have arrived.",
+                failText: "The whispering overlaps until grief itself becomes a language you cannot quite understand.",
+                nextSceneSuccess: "SCENE_SPOREFALL_CATHEDRAL_VISION",
+                nextSceneFail: "SCENE_SPOREFALL_CATHEDRAL_VISION"
+            },
+            {
+                text: "Withdraw to the cathedral steps",
+                nextScene: "SCENE_SPOREFALL_CATHEDRAL_APPROACH"
+            }
+        ]
+    },
+    "SCENE_SPOREFALL_CATHEDRAL_VISION": {
+        id: "SCENE_SPOREFALL_CATHEDRAL_VISION",
+        location: "whisperwood",
+        background: "landscapes/sporefall_whisperwood_reveal.png",
+        onEnter: {
+            once: true,
+            effects: [
+                { type: "flag", flagId: "sporefall_cathedral_vision_seen", value: true }
+            ]
+        },
+        text: "Sorrow hits like a physical blow. For one impossible instant you see a ritual chamber, a man on an altar, and darkness exploding from him as the rite breaks wrong. When the vision tears away, a chained specter stands in the aisle only long enough to point down a corridor before vanishing.",
+        choices: [
+            {
+                text: "Carry that omen back into the street",
+                nextScene: "SCENE_HUB_SPOREFALL"
+            }
+        ]
+    },
+    "SCENE_SPOREFALL_OVERSEER_APPROACH": {
+        id: "SCENE_SPOREFALL_OVERSEER_APPROACH",
+        location: "whisperwood",
+        background: "landscapes/sporefall_crimson_frontier.png",
+        text: "The eastern row was once the wealthy quarter. One house still announces itself even in ruin: a locked front door marked by a blue handprint, each finger painted over a rune-animal like part of a warning that expected only the living to read it.",
+        choices: [
+            {
+                text: "Inspect the marked door",
+                nextScene: "SCENE_SPOREFALL_OVERSEER_DOOR"
+            },
+            {
+                text: "Return to the central street",
+                nextScene: "SCENE_HUB_SPOREFALL"
+            }
+        ]
+    },
+    "SCENE_SPOREFALL_OVERSEER_DOOR": {
+        id: "SCENE_SPOREFALL_OVERSEER_DOOR",
+        location: "whisperwood",
+        background: "landscapes/sporefall_crimson_frontier.png",
+        text: "The blue handprint resolves into an arcane circuit spread through five rune-animals: Crow, Stag, Bear, Wolf, and Serpent. The magic hums low through the wood like the door is waiting for one wrong answer.",
+        choices: [
+            {
+                text: "Study the runes (Arcana)",
+                type: "skillCheck",
+                skill: "arcana",
+                dc: 14,
+                successText: "The trap is intricate, but not impossible. Three runes carry divine weight here: Crow, Stag, and Bear. Wolf and Serpent feel like impostors forced into the circuit.",
+                failText: "You can feel the spell's edges, but not enough to trust yourself with them yet.",
+                onSuccess: {
+                    effects: [
+                        { type: "flag", flagId: "sporefall_home_trap_hint", value: true }
+                    ]
+                },
+                nextSceneSuccess: "SCENE_SPOREFALL_OVERSEER_DOOR",
+                nextSceneFail: "SCENE_SPOREFALL_OVERSEER_DOOR"
+            },
+            {
+                text: "Trace the carved grooves (Investigation)",
+                type: "skillCheck",
+                skill: "investigation",
+                dc: 14,
+                successText: "Faint cuts in the wood reveal how the magic flows. Some of the animals belong. Two are only there to punish the impatient.",
+                failText: "You find the grooves but not the pattern that would let you break it safely.",
+                onSuccess: {
+                    effects: [
+                        { type: "flag", flagId: "sporefall_home_trap_hint", value: true }
+                    ]
+                },
+                nextSceneSuccess: "SCENE_SPOREFALL_OVERSEER_DOOR",
+                nextSceneFail: "SCENE_SPOREFALL_OVERSEER_DOOR"
+            },
+            {
+                text: "Scratch out the Wolf and Serpent runes",
+                nextScene: "SCENE_SPOREFALL_OVERSEER_STUDY"
+            },
+            {
+                text: "Force the door and risk the trap",
+                nextScene: "SCENE_SPOREFALL_OVERSEER_DOOR"
+            },
+            {
+                text: "Return to overseer's row",
+                nextScene: "SCENE_SPOREFALL_OVERSEER_APPROACH"
+            }
+        ]
+    },
+    "SCENE_SPOREFALL_OVERSEER_STUDY": {
+        id: "SCENE_SPOREFALL_OVERSEER_STUDY",
+        location: "whisperwood",
+        background: "landscapes/sporefall_crimson_frontier.png",
+        onEnter: {
+            once: true,
+            questUpdate: { id: "investigate_whisperwood", stage: 4 },
+            effects: [
+                { type: "flag", flagId: "sporefall_home_unlocked", value: true }
+            ]
+        },
+        text: "Inside, the overseer's home looks half ransacked and half abandoned in haste. Desk drawers hang open. Shelves have been stripped unevenly. In the study, only the things too important to carry or too painful to destroy seem to remain.",
+        choices: [
+            {
+                text: "Read the surviving journal leaves",
+                nextScene: "SCENE_SPOREFALL_OVERSEER_JOURNAL"
+            },
+            {
+                text: "Search the scattered correspondence",
+                nextScene: "SCENE_SPOREFALL_OVERSEER_CORRESPONDENCE"
+            },
+            {
+                text: "Open the desk drawer",
+                nextScene: "SCENE_SPOREFALL_OVERSEER_DRAWER"
+            },
+            {
+                text: "Leave the house for the central street",
+                nextScene: "SCENE_HUB_SPOREFALL"
+            }
+        ]
+    },
+    "SCENE_SPOREFALL_OVERSEER_JOURNAL": {
+        id: "SCENE_SPOREFALL_OVERSEER_JOURNAL",
+        location: "whisperwood",
+        background: "landscapes/sporefall_crimson_frontier.png",
+        onEnter: {
+            once: true,
+            effects: [
+                { type: "addItem", itemId: "aodhan_journal_leaf" },
+                { type: "flag", flagId: "sporefall_journal_found", value: true }
+            ]
+        },
+        text: "Most of the journal has been torn away. The surviving leaves tell two stories: one of Aodhan's warmth toward Fiona and the court he once believed in, and one of pure fury at Alderic for corrupting the ritual that should have protected Liam and the borough. The final surviving line is clear enough to wound: he will begin the real work in the cathedral.",
+        choices: [
+            {
+                text: "Return to the study",
+                nextScene: "SCENE_SPOREFALL_OVERSEER_STUDY"
+            }
+        ]
+    },
+    "SCENE_SPOREFALL_OVERSEER_CORRESPONDENCE": {
+        id: "SCENE_SPOREFALL_OVERSEER_CORRESPONDENCE",
+        location: "whisperwood",
+        background: "landscapes/sporefall_crimson_frontier.png",
+        onEnter: {
+            once: true,
+            effects: [
+                { type: "addItem", itemId: "liam_letter" },
+                { type: "flag", flagId: "sporefall_letter_found", value: true }
+            ]
+        },
+        text: "One letter survives the rot better than the others. Liam writes to Aodhan about a powerful relic the dwarves uncovered, Alderic's concern, and the need for ritual support to protect their people. The letter does not read like a warning. It reads like trust waiting to be betrayed.",
+        choices: [
+            {
+                text: "Return to the study",
+                nextScene: "SCENE_SPOREFALL_OVERSEER_STUDY"
+            }
+        ]
+    },
+    "SCENE_SPOREFALL_OVERSEER_DRAWER": {
+        id: "SCENE_SPOREFALL_OVERSEER_DRAWER",
+        location: "whisperwood",
+        background: "landscapes/sporefall_crimson_frontier.png",
+        onEnter: {
+            once: true,
+            effects: [
+                { type: "addItem", itemId: "wayward_compass" },
+                { type: "flag", flagId: "sporefall_compass_found", value: true }
+            ]
+        },
+        text: "In the desk drawer you find a compass that refuses every honest north. The needle shudders, then fixes hard toward some distant grief-laden place outside the borough. Whatever Aodhan left behind, he expected to need help finding his way back to it.",
+        choices: [
+            {
+                text: "Return to the study",
+                nextScene: "SCENE_SPOREFALL_OVERSEER_STUDY"
+            }
+        ]
+    },
+    "SCENE_SPOREFALL_NORTH_APPROACH": {
+        id: "SCENE_SPOREFALL_NORTH_APPROACH",
+        location: "whisperwood",
+        background: "landscapes/sporefall_crimson_frontier.png",
+        text: "The northern streets feel barer than the rest of Sporefall. Wind pushes ash and spores between abandoned stalls, and somewhere ahead the road widens toward the footbridge Eoin mentioned. It is also the fastest way to keep moving without ever touching the cathedral or the overseer's house.",
+        choices: [
+            {
+                text: "Cross the open street toward the north road (Perception)",
+                type: "skillCheck",
+                skill: "perception",
+                dc: 11,
+                successText: "You catch the ambush before it closes and pick your way through the dead ground without giving it your throat.",
+                failText: "Something lunges from behind an overturned cart before you can choose your footing.",
+                nextSceneSuccess: "SCENE_SPOREFALL_NORTH_ROUTE_DISCOVERED",
+                nextSceneFail: "SCENE_SPOREFALL_NORTH_AMBUSH"
+            },
+            {
+                text: "Check the ruined footbridge first",
+                nextScene: "SCENE_SPOREFALL_NORTH_BRIDGE"
+            },
+            {
+                text: "Return to the central street",
+                nextScene: "SCENE_HUB_SPOREFALL"
+            }
+        ]
+    },
+    "SCENE_SPOREFALL_NORTH_BRIDGE": {
+        id: "SCENE_SPOREFALL_NORTH_BRIDGE",
+        location: "whisperwood",
+        background: "landscapes/sporefall_crimson_frontier.png",
+        onEnter: {
+            once: true,
+            effects: [
+                { type: "flag", flagId: "sporefall_bridge_seen", value: true }
+            ]
+        },
+        text: "The footbridge sags over a sluggish black stream. Beneath it lie scraps of bedding, a cracked bowl, and the outline of a life lived one bad season at a time. Whatever warmth once sheltered here is gone. The place feels abandoned in a way that makes Eoin's fear hurt more, not less.",
+        choices: [
+            {
+                text: "Push on toward the north road",
+                nextScene: "SCENE_SPOREFALL_NORTH_ROUTE_DISCOVERED"
+            },
+            {
+                text: "Return to the central street",
+                nextScene: "SCENE_HUB_SPOREFALL"
+            }
+        ]
+    },
+    "SCENE_SPOREFALL_NORTH_AMBUSH": {
+        id: "SCENE_SPOREFALL_NORTH_AMBUSH",
+        location: "whisperwood",
+        background: "landscapes/sporefall_outskirt_encounter.png",
+        text: "Fungal dead spill from the shadows of the carts and market stalls, fast enough to prove that Sporefall still knows how to punish haste.",
+        type: "combat",
+        enemies: ["spore_zombie", "spore_zombie"],
+        winScene: "SCENE_SPOREFALL_NORTH_ROUTE_DISCOVERED",
+        loseScene: "SCENE_DEFEAT"
+    },
+    "SCENE_SPOREFALL_NORTH_ROUTE_DISCOVERED": {
+        id: "SCENE_SPOREFALL_NORTH_ROUTE_DISCOVERED",
+        location: "whisperwood",
+        background: "landscapes/sporefall_crimson_frontier.png",
+        onEnter: {
+            once: true,
+            questUpdate: { id: "investigate_whisperwood", stage: 4 },
+            effects: [
+                { type: "flag", flagId: "sporefall_north_route_open", value: true }
+            ]
+        },
+        text: "Beyond the ambush, the northern road opens deeper into the ruined borough. You could keep moving this way and skip the cathedral quarter and overseer's row entirely, but you would be trading understanding for speed. The route is viable. It is not generous.",
+        choices: [
+            {
+                text: "Mark the northern route and return to the central street",
+                nextScene: "SCENE_HUB_SPOREFALL"
             }
         ]
     },

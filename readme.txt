@@ -9,7 +9,7 @@ This project is a sandbox visual novel with deep RPG ambitions, set in the infec
 * **Current Components:**
   * Narrative and battle UI (index.html, styles.css).
   * Character creation, combat rules, and game state management (game.js, rules.js, data/*).
-  * World references: Silverthorn, Whisperwood, Viridian Forest, Thorne Guild, the Druids, the Blackened King, Ciara.
+  * World references: Silverthorn, Shadowmire, Sporefall (formerly Whisperwood Borough), Viridian Forest, Thorne Guild, the Druids, the Blackened King, Ciara.
 
 For narrative pacing, event windows, and "what a typical campaign route looks like if certain choices are made," check `dnd-original-campaign-draft`. Treat that file as the best current lore reference when adjusting story timing, Silverthorn sandbox beats, or major event flow.
 
@@ -17,6 +17,7 @@ Statuses and mechanical effects should not be treated as combat-only. Long-term 
 
 See `notes/salvage_pitch.md` for a concrete gameplay loop and story structure that ties these pieces together.
 See `notes/story_timeline_model.md` for the canonical Silverthorn opening and the new event-driven timeline model.
+The current Act II recovery slice assumes: Alderic briefing -> Silverthorn prep -> Shadowmire road -> blackout -> early Sporefall -> early Eoin -> directional borough investigation.
 See `notes/5e_mechanics_roadmap.md` for the rules-depth plan.
 See `notes/trustworthy_5e_lite_status.md` for the current near-term milestone target.
 See `notes/implementation_matrix.md` for the current shipped-state audit of exposed 5e-lite mechanics.

@@ -8,8 +8,8 @@ export const locations = {
         description: "A dark, twisting forest that separates Silverthorn from the wild lands."
     },
     "whisperwood": {
-        name: "Whisperwood",
-        description: "A corrupted woodland where the Sporefall plague runs rampant."
+        name: "Sporefall",
+        description: "Formerly Whisperwood Borough, now a crimson-lit ruin where the Sporefall plague has swallowed streets, homes, and memory alike."
     },
     "hushbriar": {
         name: "Hushbriar Cove",

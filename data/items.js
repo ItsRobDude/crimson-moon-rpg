@@ -529,5 +529,37 @@ export const items = {
         stackable: false,
         price: 0,
         description: 'A dark stone pulsing with ominous energy. Retrieved from Aodhan.'
+    },
+    urgent_letter_overseer: {
+        id: 'urgent_letter_overseer',
+        name: 'Urgent Letter to Overseer O Duibh',
+        type: 'quest_item',
+        stackable: false,
+        price: 0,
+        description: 'A rot-stained dispatch hinting at a dwarven relic, failed negotiations, and something hidden in the overseer\'s manor.'
+    },
+    aodhan_journal_leaf: {
+        id: 'aodhan_journal_leaf',
+        name: "Aodhan's Journal Leaves",
+        type: 'quest_item',
+        stackable: false,
+        price: 0,
+        description: 'Two surviving journal pages: one full of warmth for Fiona, the other rage at Alderic, grief for Liam, and a vow to begin the ritual in the cathedral.'
+    },
+    liam_letter: {
+        id: 'liam_letter',
+        name: "Liam's Letter",
+        type: 'quest_item',
+        stackable: false,
+        price: 0,
+        description: 'A letter from Liam to Aodhan about a powerful relic, Alderic\'s concern, and the need for ritual support.'
+    },
+    wayward_compass: {
+        id: 'wayward_compass',
+        name: 'Wayward Compass',
+        type: 'quest_item',
+        stackable: false,
+        price: 0,
+        description: 'A magical compass that refuses the honest north and trembles toward some distant, grief-soaked hill.'
     }
 };

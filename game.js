@@ -324,6 +324,31 @@ function isSceneInSilverthorn(sceneId) {
     ].includes(sceneId);
 }
 
+function isSceneInSporefall(sceneId) {
+    return [
+        'SCENE_ARRIVAL_WHISPERWOOD',
+        'SCENE_SPOREFALL_STREET_SEARCH',
+        'SCENE_MEET_EOIN',
+        'SCENE_EOIN_TALK',
+        'SCENE_EOIN_RITUAL_TALK',
+        'SCENE_EOIN_MOTHER_TALK',
+        'SCENE_ALONE_AGAIN',
+        'SCENE_HUB_SPOREFALL',
+        'SCENE_SPOREFALL_CATHEDRAL_APPROACH',
+        'SCENE_SPOREFALL_CATHEDRAL_ENTRY',
+        'SCENE_SPOREFALL_CATHEDRAL_VISION',
+        'SCENE_SPOREFALL_OVERSEER_APPROACH',
+        'SCENE_SPOREFALL_OVERSEER_DOOR',
+        'SCENE_SPOREFALL_OVERSEER_STUDY',
+        'SCENE_SPOREFALL_OVERSEER_JOURNAL',
+        'SCENE_SPOREFALL_OVERSEER_CORRESPONDENCE',
+        'SCENE_SPOREFALL_OVERSEER_DRAWER',
+        'SCENE_SPOREFALL_NORTH_APPROACH',
+        'SCENE_SPOREFALL_NORTH_BRIDGE',
+        'SCENE_SPOREFALL_NORTH_ROUTE_DISCOVERED'
+    ].includes(sceneId);
+}
+
 function getSilverthornTimeState() {
     const slot = gameState.timeline.slot;
     return {
@@ -698,11 +723,270 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
     return scene;
 }
 
+function buildSporefallRuntimeScene(sceneId, baseScene) {
+    const scene = cloneScene(sceneId);
+    const state = getSporefallState();
+
+    if (sceneId === 'SCENE_ARRIVAL_WHISPERWOOD') {
+        if (state.eoinMet) {
+            scene.text = "You stand once more in Sporefall's central street, where the silence feels less empty now that you know at least one frightened soul still haunts it. The borough still opens west toward the cathedral quarter, east toward the overseer's row, and north toward the bridge Eoin named.";
+            scene.choices = [
+                createChoice('Step back into the central street', 'SCENE_HUB_SPOREFALL'),
+                createChoice("Return to Eoin's hiding place", 'SCENE_EOIN_TALK')
+            ];
+            return scene;
+        }
+
+        scene.text = baseScene.text;
+        scene.choices = [
+            createChoice('Search the nearest street for survivors (Perception)', null, {
+                type: 'skillCheck',
+                skill: 'perception',
+                dc: 10,
+                successText: 'Out of the corner of your eye, something pale and human slips behind a nearby house. It is too careful to be a beast.',
+                failText: 'The street looks dead until the silence starts feeling staged rather than empty.',
+                onSuccess: {
+                    effects: [
+                        { type: 'flag', flagId: 'sporefall_eoin_glimpsed', value: true }
+                    ]
+                },
+                onFail: {
+                    effects: [
+                        { type: 'flag', flagId: 'sporefall_eoin_delayed', value: true }
+                    ]
+                },
+                nextSceneSuccess: 'SCENE_MEET_EOIN',
+                nextSceneFail: 'SCENE_SPOREFALL_STREET_SEARCH'
+            }),
+            createChoice('Move between the ruined homes', 'SCENE_SPOREFALL_STREET_SEARCH'),
+            createChoice('Pause and listen for anyone still alive', 'SCENE_SPOREFALL_STREET_SEARCH')
+        ];
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_SPOREFALL_STREET_SEARCH') {
+        const searchedBefore = !!getSceneMemory('sporefall_street_search_seen');
+        setSceneMemory('sporefall_street_search_seen', true);
+        scene.text = searchedBefore
+            ? "The nearby houses remain empty of life and full of evidence that something still hides here by choice, not instinct. The same faint cough betrays a human presence behind the ruined home."
+            : baseScene.text;
+        scene.choices = [
+            createChoice('Follow the coughing behind the house', 'SCENE_MEET_EOIN'),
+            createChoice('Circle wide and cut off whoever is hiding', 'SCENE_MEET_EOIN')
+        ];
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_MEET_EOIN') {
+        if (state.eoinGlimpsed) {
+            scene.text = "The pale figure you glimpsed behind the house finally shows himself. A young man steps into the moon-glow with a broken spear in trembling hands, looking more haunted than living. 'Stay back,' he says. 'Are you real, or another trick of the moon?'";
+        }
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_EOIN_TALK') {
+        scene.text = state.eoinTalked
+            ? "Eoin is calmer now, though never fully steady. He keeps watching the empty streets between words, as if expecting the town itself to overhear him. The same three threads still matter most to him: the cathedral, the north-side bridge, and the impossible fact that he feels present and absent all at once."
+            : baseScene.text;
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_HUB_SPOREFALL') {
+        const clueBeat = [];
+        if (state.cathedralLetterFound) clueBeat.push('the courier letter has already tied the cathedral quarter to the overseer');
+        if (state.journalFound || state.letterFound || state.compassFound) clueBeat.push("Aodhan's house has begun giving up its secrets");
+        if (state.northRouteOpen) clueBeat.push('the north road is open if speed matters more than certainty');
+        const suffix = clueBeat.length > 0 ? ` Already, ${clueBeat.join(', and ')}.` : '';
+
+        scene.text = `${baseScene.text}${suffix}`;
+        scene.choices = [
+            createChoice(state.cathedralVisionSeen ? 'Return west to the Cathedral of Bone' : 'Head west through the cathedral quarter', 'SCENE_SPOREFALL_CATHEDRAL_APPROACH'),
+            createChoice(state.homeUnlocked ? "Return east to Aodhan's house" : "Head east toward the overseer's row", 'SCENE_SPOREFALL_OVERSEER_APPROACH'),
+            createChoice(state.northRouteOpen ? 'Take the northern skip route again' : 'Head north through the broken market road', 'SCENE_SPOREFALL_NORTH_APPROACH'),
+            createChoice("Return to Eoin's hiding place", 'SCENE_EOIN_TALK')
+        ];
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_SPOREFALL_CATHEDRAL_APPROACH') {
+        scene.text = state.cathedralLetterFound
+            ? `${baseScene.text} The courier's bag now hangs open and empty where you left it, but the cathedral still waits above it like a threat dressed as architecture.`
+            : baseScene.text;
+        scene.choices = [];
+        if (!state.cathedralLetterFound) {
+            scene.choices.push(createChoice("Search the courier's bag", 'SCENE_SPOREFALL_CATHEDRAL_APPROACH', {
+                effects: [
+                    { type: 'addItem', itemId: 'urgent_letter_overseer' },
+                    { type: 'flag', flagId: 'sporefall_cathedral_letter_found', value: true }
+                ]
+            }));
+        }
+        scene.choices.push(
+            createChoice(state.cathedralVisionSeen ? 'Enter the cathedral again' : 'Climb toward the cathedral doors', 'SCENE_SPOREFALL_CATHEDRAL_ENTRY'),
+            createChoice('Return to the central street', 'SCENE_HUB_SPOREFALL')
+        );
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_SPOREFALL_CATHEDRAL_ENTRY') {
+        scene.text = state.cathedralVisionSeen
+            ? "The Cathedral of Bone is no less oppressive on return. The dead still lie in ordered rows, and the corridor the chained specter indicated now feels less like a mystery than a deferred command."
+            : baseScene.text;
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_SPOREFALL_CATHEDRAL_VISION') {
+        if (!scene.onEnter) scene.onEnter = {};
+        scene.onEnter.questUpdate = { id: 'investigate_whisperwood', stage: 4 };
+        scene.text = state.cathedralVisionSeen
+            ? "The memory of the broken ritual still clings to the cathedral like incense that never clears. You already know enough to carry the omen back into the streets."
+            : scene.text;
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_SPOREFALL_OVERSEER_APPROACH') {
+        scene.text = state.homeUnlocked
+            ? "The marked house stands open now, its blue handprint broken where the trap failed to hold. Even with the door unsealed, the eastern row feels like it expects witnesses to apologize before entering."
+            : baseScene.text;
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_SPOREFALL_OVERSEER_DOOR') {
+        if (state.homeUnlocked) {
+            scene.text = "The ruined door hangs ajar where the arcane circuit finally failed. Whatever answer the trap demanded, it cannot keep you out anymore.";
+            scene.choices = [
+                createChoice('Enter the overseer house', 'SCENE_SPOREFALL_OVERSEER_STUDY'),
+                createChoice("Return to the overseer's row", 'SCENE_SPOREFALL_OVERSEER_APPROACH')
+            ];
+            return scene;
+        }
+
+        scene.text = state.homeTrapHint
+            ? `${baseScene.text} Now that you understand the pattern, the false notes are obvious: Wolf and Serpent were never meant to stand with the sacred three.`
+            : baseScene.text;
+        scene.choices = [
+            createChoice('Study the runes (Arcana)', 'SCENE_SPOREFALL_OVERSEER_DOOR', {
+                type: 'skillCheck',
+                skill: 'arcana',
+                dc: 14,
+                successText: "The trap is intricate, but not impossible. Crow, Stag, and Bear carry the divine weight here. Wolf and Serpent are the impostors.",
+                failText: "You can feel the spell's edges, but not enough to trust yourself with them yet.",
+                onSuccess: {
+                    effects: [
+                        { type: 'flag', flagId: 'sporefall_home_trap_hint', value: true }
+                    ]
+                },
+                nextSceneSuccess: 'SCENE_SPOREFALL_OVERSEER_DOOR',
+                nextSceneFail: 'SCENE_SPOREFALL_OVERSEER_DOOR'
+            }),
+            createChoice('Trace the carved grooves (Investigation)', 'SCENE_SPOREFALL_OVERSEER_DOOR', {
+                type: 'skillCheck',
+                skill: 'investigation',
+                dc: 14,
+                successText: 'The cuts in the wood reveal how the circuit flows. Two of the runes are only there to punish the impatient.',
+                failText: "You find the grooves, but not the logic that would let you break them safely.",
+                onSuccess: {
+                    effects: [
+                        { type: 'flag', flagId: 'sporefall_home_trap_hint', value: true }
+                    ]
+                },
+                nextSceneSuccess: 'SCENE_SPOREFALL_OVERSEER_DOOR',
+                nextSceneFail: 'SCENE_SPOREFALL_OVERSEER_DOOR'
+            })
+        ];
+
+        if (state.homeTrapHint) {
+            scene.choices.push(
+                createChoice('Scratch out the Wolf and Serpent runes', 'SCENE_SPOREFALL_OVERSEER_STUDY', {
+                    effects: [
+                        { type: 'flag', flagId: 'sporefall_home_unlocked', value: true }
+                    ]
+                }),
+                createChoice('Mar the Crow and Bear runes instead', 'SCENE_SPOREFALL_OVERSEER_DOOR', {
+                    effects: [
+                        { type: 'damage', amount: '2d8' },
+                        {
+                            type: 'customEffect',
+                            id: 'manor_trap_lag',
+                            name: 'Trap-Lagged',
+                            durationType: 'scenes',
+                            duration: 2,
+                            modifiers: [
+                                { type: 'flat_bonus', target: 'speed', value: -10 },
+                                { type: 'disadvantage', target: 'ability_check', ability: 'DEX' }
+                            ]
+                        }
+                    ]
+                })
+            );
+        }
+
+        scene.choices.push(
+            createChoice('Force the door and risk the trap', 'SCENE_SPOREFALL_OVERSEER_DOOR', {
+                effects: [
+                    { type: 'damage', amount: '2d8' },
+                    {
+                        type: 'customEffect',
+                        id: 'manor_trap_lag',
+                        name: 'Trap-Lagged',
+                        durationType: 'scenes',
+                        duration: 2,
+                        modifiers: [
+                            { type: 'flat_bonus', target: 'speed', value: -10 },
+                            { type: 'disadvantage', target: 'ability_check', ability: 'DEX' }
+                        ]
+                    }
+                ]
+            }),
+            createChoice("Return to the overseer's row", 'SCENE_SPOREFALL_OVERSEER_APPROACH')
+        );
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_SPOREFALL_OVERSEER_STUDY') {
+        const foundCount = [state.journalFound, state.letterFound, state.compassFound].filter(Boolean).length;
+        scene.text = foundCount >= 3
+            ? "The study is all but exhausted now. The surviving journal leaves, Liam's letter, and the false-north compass are gone from the room and safely in your keeping. What remains is the shape of Aodhan's desperation."
+            : baseScene.text;
+        scene.choices = [];
+        if (!state.journalFound) {
+            scene.choices.push(createChoice('Read the surviving journal leaves', 'SCENE_SPOREFALL_OVERSEER_JOURNAL'));
+        }
+        if (!state.letterFound) {
+            scene.choices.push(createChoice('Search the scattered correspondence', 'SCENE_SPOREFALL_OVERSEER_CORRESPONDENCE'));
+        }
+        if (!state.compassFound) {
+            scene.choices.push(createChoice('Open the desk drawer', 'SCENE_SPOREFALL_OVERSEER_DRAWER'));
+        }
+        scene.choices.push(createChoice('Leave the house for the central street', 'SCENE_HUB_SPOREFALL'));
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_SPOREFALL_NORTH_APPROACH') {
+        scene.text = state.bridgeSeen
+            ? `${baseScene.text} The bridge you checked earlier still tugs at the back of your mind, but the outer road remains the fastest way to keep moving without first understanding what the cathedral and manor know.`
+            : baseScene.text;
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_SPOREFALL_NORTH_ROUTE_DISCOVERED') {
+        scene.text = state.northRouteOpen
+            ? "The northern road still offers the same hard bargain: speed, momentum, and a way deeper into the borough without first earning the richer clues of the cathedral quarter or overseer's row."
+            : scene.text;
+        return scene;
+    }
+
+    return scene;
+}
+
 export function getRuntimeScene(sceneId) {
     const baseScene = scenes[sceneId];
     if (!baseScene) return null;
     if (isSceneInSilverthorn(sceneId)) {
         return buildSilverthornRuntimeScene(sceneId, baseScene);
+    }
+    if (isSceneInSporefall(sceneId)) {
+        return buildSporefallRuntimeScene(sceneId, baseScene);
     }
     return cloneScene(sceneId);
 }
@@ -2909,6 +3193,23 @@ function logToBattle(msg, type) {
 
 if (typeof window !== 'undefined') {
     window.logMessage = logToMain;
+}
+
+function getSporefallState() {
+    return {
+        eoinMet: !!gameState.flags.sporefall_eoin_met,
+        eoinTalked: !!gameState.flags.sporefall_eoin_talked,
+        eoinGlimpsed: !!gameState.flags.sporefall_eoin_glimpsed,
+        cathedralLetterFound: !!gameState.flags.sporefall_cathedral_letter_found,
+        cathedralVisionSeen: !!gameState.flags.sporefall_cathedral_vision_seen,
+        homeTrapHint: !!gameState.flags.sporefall_home_trap_hint,
+        homeUnlocked: !!gameState.flags.sporefall_home_unlocked,
+        journalFound: !!gameState.flags.sporefall_journal_found,
+        letterFound: !!gameState.flags.sporefall_letter_found,
+        compassFound: !!gameState.flags.sporefall_compass_found,
+        bridgeSeen: !!gameState.flags.sporefall_bridge_seen,
+        northRouteOpen: !!gameState.flags.sporefall_north_route_open
+    };
 }
 
 let eventTextTimeoutRef;

@@ -99,6 +99,7 @@ Statuses:
   - `__tests__/combat.test.js`
   - `__tests__/game.test.js`
   - `__tests__/silverthorn_runtime.test.js`
+  - `__tests__/sporefall_runtime.test.js`
   - `__tests__/timeline.test.js`
   - `__tests__/storyTimeline.test.js`
 - E2E suites that matter most for bootstrap/canonical opening:
