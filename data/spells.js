@@ -211,6 +211,7 @@ export const spells = {
             modifiers: [
                 { type: "flat_bonus", target: "ac", value: 5 }
             ],
+            blockedSpellIds: ["magic_missile"],
             remaining: 1,
             durationType: "turns"
         },
@@ -233,10 +234,10 @@ export const spells = {
             id: "mage_armor",
             name: "Mage Armor",
             modifiers: [
-                { type: "flat_bonus", target: "ac", value: 3 }
+                { type: "ac_formula", target: "ac", base: 13, dexCap: null, requiresUnarmored: true }
             ],
-            remaining: null,
-            durationType: "scenes"
+            remaining: 1,
+            durationType: "long_rest"
         },
         scaling: "No upcast scaling.",
         description: "Protective magical force surrounds a willing creature who is not wearing armor."
@@ -255,6 +256,7 @@ export const spells = {
         type: "auto_status",
         amount: "5d8",
         appliedEffectId: "unconscious",
+        applicationTags: ["magical_sleep"],
         effectDuration: 2,
         scaling: "A higher slot affects 2d8 additional hit points.",
         description: "This spell sends creatures into a magical slumber."

@@ -969,14 +969,19 @@ function applyItemEffectToActor(target, item, usage, sourceId) {
     }
 
     if (usage.kind === 'apply_effect') {
-        addEffectToActor(target, usage.effectId, {
+        const appliedEffect = addEffectToActor(target, usage.effectId, {
             id: usage.effectId,
             name: usage.name || item.name,
             source: sourceId,
             durationType: usage.durationType || 'scenes',
             remaining: usage.durationAmount ?? 1,
-            modifiers: usage.modifiers || []
+            modifiers: usage.modifiers || [],
+            blockedSpellIds: usage.blockedSpellIds || [],
+            applicationTags: usage.applicationTags || []
         });
+        if (!appliedEffect) {
+            return { success: false, msg: `${item.name} has no effect on ${target.name} right now.` };
+        }
         return { success: true, msg: `Used ${item.name}.` };
     }
 
@@ -996,15 +1001,20 @@ function castScrollSpell(item, caster, target) {
     }
 
     if (spell.type === 'buff' && spell.effect) {
-        addEffectToActor(target, spell.effect.id, {
+        const appliedEffect = addEffectToActor(target, spell.effect.id, {
             id: spell.effect.id,
             name: spell.effect.name || spell.name,
             source: `scroll:${item.id}:${caster.name}`,
             durationType: spell.effect.durationType || spell.durationType || 'turns',
             remaining: spell.effect.remaining ?? 1,
             modifiers: spell.effect.modifiers || [],
+            blockedSpellIds: spell.effect.blockedSpellIds || [],
+            applicationTags: spell.effect.applicationTags || [],
             concentration: !!spell.concentration
         });
+        if (!appliedEffect) {
+            return { success: false, msg: `${spell.name} has no effect on ${target.name}.` };
+        }
         return { success: true, msg: `${target.name} gains ${spell.name}.` };
     }
 
@@ -1044,7 +1054,7 @@ export function useConsumable(itemId, characterId = 'player', targetId = charact
 export function applyStatusEffect(effectId, durationOverride, characterId = 'player') {
     const char = getActorByCharacterId(characterId);
     if (!char) return; // Or handle Enemy?
-    addEffectToActor(char, effectId, {
+    return !!addEffectToActor(char, effectId, {
         remaining: durationOverride
     });
 }

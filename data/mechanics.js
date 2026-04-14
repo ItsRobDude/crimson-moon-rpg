@@ -487,6 +487,8 @@ export function createEffectInstance(effectId, overrides = {}) {
         durationType: overrides.durationType || definition?.durationType || 'turns',
         concentration: overrides.concentration ?? !!definition?.concentration,
         modifiers: overrides.modifiers || definition?.modifiers || [],
+        blockedSpellIds: [...new Set([...(overrides.blockedSpellIds || []), ...(definition?.blockedSpellIds || [])])],
+        applicationTags: [...new Set([...(overrides.applicationTags || []), ...(definition?.applicationTags || [])])],
         data: overrides.data || {},
         onExpire: overrides.onExpire || definition?.onExpire || null,
         name: overrides.name || definition?.name || 'Custom Effect'
@@ -526,10 +528,40 @@ export function dropConcentration(actor) {
     applyDerivedState(actor);
 }
 
+function getEffectApplicationFailure(actor, instance) {
+    if (!actor || !instance) return 'invalid_effect';
+
+    const snapshot = getDerivedActorState(actor);
+    if ((instance.applicationTags || []).some((tag) => snapshot.conditionImmunities.includes(tag))) {
+        return 'immunity';
+    }
+
+    const requiresUnarmored = (instance.modifiers || []).some((modifier) => modifier.type === 'ac_formula' && modifier.requiresUnarmored);
+    if (requiresUnarmored && actor.equipped?.armor) {
+        return 'requires_unarmored';
+    }
+
+    return null;
+}
+
+export function canApplyEffectToActor(actor, effectId, overrides = {}) {
+    ensureActorMechanics(actor);
+    const instance = createEffectInstance(effectId, overrides);
+    if (!instance) return false;
+    return !getEffectApplicationFailure(actor, instance);
+}
+
+export function effectBlocksSpell(actor, spellId) {
+    ensureActorMechanics(actor);
+    if (!spellId) return false;
+    return actor.mechanics.activeEffects.some((effect) => (effect.blockedSpellIds || []).includes(spellId));
+}
+
 export function addEffectToActor(actor, effectId, overrides = {}) {
     ensureActorMechanics(actor);
     const instance = createEffectInstance(effectId, overrides);
     if (!instance) return null;
+    if (getEffectApplicationFailure(actor, instance)) return null;
 
     const existing = actor.mechanics.activeEffects.find(effect => getEffectKey(effect) === getEffectKey(instance));
     if (existing) {
@@ -783,20 +815,33 @@ export function getDerivedActorState(actor) {
         speed = Math.max(0, Math.floor(speed * multiplier));
     });
 
-    let ac = 10 + modifiers.DEX;
     const armor = actor.equipped?.armor ? items[actor.equipped.armor] : null;
     const shield = actor.equipped?.shield ? items[actor.equipped.shield] : null;
+    let acBase = 10 + modifiers.DEX;
     if (armor) {
         const dexContribution = armor.armorType === 'heavy'
             ? 0
             : (armor.dexCap === null || armor.dexCap === undefined
                 ? modifiers.DEX
                 : Math.min(modifiers.DEX, armor.dexCap));
-        ac = armor.acBase + dexContribution;
+        acBase = armor.acBase + dexContribution;
         if (armor.modifiers?.ac) {
-            ac += armor.modifiers.ac;
+            acBase += armor.modifiers.ac;
         }
     }
+
+    actor.mechanics.activeEffects.forEach((effect) => {
+        (effect.modifiers || []).forEach((modifier) => {
+            if (modifier.type !== 'ac_formula') return;
+            if (modifier.requiresUnarmored && armor) return;
+            const dexContribution = modifier.dexCap === null || modifier.dexCap === undefined
+                ? modifiers.DEX
+                : Math.min(modifiers.DEX, modifier.dexCap);
+            acBase = Math.max(acBase, (modifier.base || 10) + dexContribution);
+        });
+    });
+
+    let ac = acBase;
     if (shield?.acBonus) {
         ac += shield.acBonus;
     }

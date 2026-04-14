@@ -1,4 +1,5 @@
-import { addEffectToActor, createDefaultMechanicsState, getBonusSkillChoiceCount, getBonusToolChoiceCount, getDerivedActorState, getEffectModifiers, removeEffectsFromActorBySource, setProficiencyMultiplier } from '../data/mechanics.js';
+import { addEffectToActor, canApplyEffectToActor, createDefaultMechanicsState, getBonusSkillChoiceCount, getBonusToolChoiceCount, getDerivedActorState, getEffectModifiers, removeEffectsFromActorBySource, setProficiencyMultiplier, tickActorEffects } from '../data/mechanics.js';
+import { spells } from '../data/spells.js';
 import { getSkillBonus } from '../rules.js';
 
 function createActor(overrides = {}) {
@@ -135,4 +136,62 @@ test('versatile humans expose an extra skill choice hook', () => {
 
 test('stonecunning exposes a dwarf tool choice hook', () => {
   expect(getBonusToolChoiceCount('dwarf')).toBe(1);
+});
+
+test('mage armor uses an AC formula, allows shields, and expires on long rest', () => {
+  const actor = createActor({
+    classId: 'wizard',
+    equipped: { armor: null, shield: 'shield', weapon: null }
+  });
+
+  const applied = addEffectToActor(actor, spells.mage_armor.effect.id, {
+    id: spells.mage_armor.effect.id,
+    name: spells.mage_armor.effect.name,
+    durationType: spells.mage_armor.effect.durationType,
+    remaining: spells.mage_armor.effect.remaining,
+    modifiers: spells.mage_armor.effect.modifiers
+  });
+
+  expect(applied).not.toBeNull();
+  expect(getDerivedActorState(actor).ac).toBe(17);
+
+  tickActorEffects(actor, 'scene_change');
+  expect(actor.mechanics.activeEffects.some((effect) => effect.id === 'mage_armor')).toBe(true);
+
+  tickActorEffects(actor, 'long_rest');
+  expect(actor.mechanics.activeEffects.some((effect) => effect.id === 'mage_armor')).toBe(false);
+});
+
+test('mage armor cannot apply to an armored target', () => {
+  const actor = createActor({
+    classId: 'wizard',
+    equipped: { armor: 'leather_armor', shield: null, weapon: null }
+  });
+
+  expect(canApplyEffectToActor(actor, spells.mage_armor.effect.id, {
+    id: spells.mage_armor.effect.id,
+    name: spells.mage_armor.effect.name,
+    durationType: spells.mage_armor.effect.durationType,
+    remaining: spells.mage_armor.effect.remaining,
+    modifiers: spells.mage_armor.effect.modifiers
+  })).toBe(false);
+
+  expect(addEffectToActor(actor, spells.mage_armor.effect.id, {
+    id: spells.mage_armor.effect.id,
+    name: spells.mage_armor.effect.name,
+    durationType: spells.mage_armor.effect.durationType,
+    remaining: spells.mage_armor.effect.remaining,
+    modifiers: spells.mage_armor.effect.modifiers
+  })).toBeNull();
+});
+
+test('magical sleep immunity is enforced through shared effect eligibility', () => {
+  const elf = createActor({ raceId: 'elf' });
+  const human = createActor({ raceId: 'human' });
+
+  expect(canApplyEffectToActor(elf, 'unconscious', { applicationTags: ['magical_sleep'] })).toBe(false);
+  expect(addEffectToActor(elf, 'unconscious', { applicationTags: ['magical_sleep'] })).toBeNull();
+
+  expect(canApplyEffectToActor(human, 'unconscious', { applicationTags: ['magical_sleep'] })).toBe(true);
+  expect(addEffectToActor(human, 'unconscious', { applicationTags: ['magical_sleep'] })).not.toBeNull();
 });

@@ -6,7 +6,7 @@ import { npcs } from './data/npcs.js';
 import { enemies } from './data/enemies.js';
 import { items } from './data/items.js';
 import { spells } from './data/spells.js';
-import { addEffectToActor, createDefaultMechanicsState, dropConcentration, getDerivedActorState, getEffectModifiers, getSpellcastingAbility, removeEffectFromActor, removeEffectsFromActorBySource, tickActorEffects } from './data/mechanics.js';
+import { addEffectToActor, canApplyEffectToActor, createDefaultMechanicsState, dropConcentration, effectBlocksSpell, getDerivedActorState, getEffectModifiers, getSpellcastingAbility, removeEffectFromActor, removeEffectsFromActorBySource, tickActorEffects } from './data/mechanics.js';
 import { rollInitiative, rollDie, rollAttack, rollDiceExpression, rollSavingThrow, calculateDamageRoll, calculateDamageReduction, getProficiencyBonus } from './rules.js';
 import { generateScaledStats } from './rules.js';
 import { canTargetToken, createBattlefieldLayout, feetToTiles, getGridDistance, getMovementCost, getOpportunityAttackTriggers, getTileEffects, getTileKey, getToken, isAdjacent, moveToken, setTerrain, setTileEffect } from './battlegrid.js';
@@ -596,8 +596,14 @@ function tryUseShieldReaction(actorId, incomingAttackTotal) {
     const actor = getCombatActor(actorId);
     if (!canUseShieldReaction(actor)) return false;
 
+    const incoming = typeof incomingAttackTotal === 'object' && incomingAttackTotal !== null
+        ? incomingAttackTotal
+        : { attackTotal: incomingAttackTotal, spellId: null, autoHit: false };
     const currentAc = getDerivedActorState(actor).ac;
-    if (incomingAttackTotal < currentAc || incomingAttackTotal >= currentAc + 5) {
+    if (!incoming.autoHit && (incoming.attackTotal < currentAc || incoming.attackTotal >= currentAc + 5)) {
+        return false;
+    }
+    if (incoming.autoHit && !spells.shield.effect.blockedSpellIds?.includes(incoming.spellId)) {
         return false;
     }
 
@@ -609,7 +615,8 @@ function tryUseShieldReaction(actorId, incomingAttackTotal) {
         name: 'Shield',
         remaining: spells.shield.effect.remaining,
         durationType: spells.shield.effect.durationType,
-        modifiers: spells.shield.effect.modifiers
+        modifiers: spells.shield.effect.modifiers,
+        blockedSpellIds: spells.shield.effect.blockedSpellIds || []
     });
     uiHooks.logToBattle(`${actor.name} throws up a Shield reaction.`, 'gain');
     return true;
@@ -627,12 +634,21 @@ function applySpellBuff(casterId, targetId, spell) {
         name: spell.effect.name || spell.name,
         remaining: spell.effect.remaining ?? 5,
         durationType: spell.effect.durationType || 'turns',
-        modifiers: spell.effect.modifiers || []
+        modifiers: spell.effect.modifiers || [],
+        blockedSpellIds: spell.effect.blockedSpellIds || [],
+        applicationTags: spell.effect.applicationTags || []
     };
 
     if (spell.concentration) {
         const concentrationSource = getSpellEffectSource(casterId, spell.id);
         breakConcentration(caster);
+        const appliedEffect = addEffectToActor(target, effectId, {
+            ...baseOverrides,
+            source: concentrationSource
+        });
+        if (!appliedEffect) {
+            return false;
+        }
         addEffectToActor(caster, `${spell.id}_concentration`, {
             id: `${spell.id}_concentration`,
             source: concentrationSource,
@@ -642,15 +658,10 @@ function applySpellBuff(casterId, targetId, spell) {
             concentration: true,
             modifiers: []
         });
-        addEffectToActor(target, effectId, {
-            ...baseOverrides,
-            source: concentrationSource
-        });
-        return true;
+        return !!appliedEffect;
     }
 
-    addEffectToActor(target, effectId, baseOverrides);
-    return true;
+    return !!addEffectToActor(target, effectId, baseOverrides);
 }
 
 function getDamageRollBonus(actor, profile) {
@@ -997,6 +1008,18 @@ export function performCastSpell(spellId, targetId, actorId = 'player') {
         uiHooks.logToBattle(`${target.name} is out of range for ${spell.name}.`, "check-fail");
         return;
     }
+    if (spell.type === 'buff' && spell.effect && !canApplyEffectToActor(target, spell.effect.id, {
+        id: spell.effect.id,
+        name: spell.effect.name || spell.name,
+        durationType: spell.effect.durationType || spell.durationType || 'turns',
+        remaining: spell.effect.remaining ?? 1,
+        modifiers: spell.effect.modifiers || [],
+        blockedSpellIds: spell.effect.blockedSpellIds || [],
+        applicationTags: spell.effect.applicationTags || []
+    })) {
+        uiHooks.logToBattle(`${spell.name} cannot affect ${target.name} right now.`, 'check-fail');
+        return;
+    }
 
     const level = spell.level || 0;
     if (level > 0) {
@@ -1015,7 +1038,10 @@ export function performCastSpell(spellId, targetId, actorId = 'player') {
     const spellcastingAbility = getSpellcastingAbility(actor.classId);
 
     if (spell.type === 'heal') {
-        let healAmount = rollDiceExpression(spell.amount).total + (snapshot.modifiers[spellcastingAbility] || 0);
+        let healAmount = rollDiceExpression(spell.amount).total;
+        if (spell.addCastingAbilityModifierToHealing) {
+            healAmount += snapshot.modifiers[spellcastingAbility] || 0;
+        }
         if (actor.classId === 'cleric' && actor.subclassId === 'life' && level > 0) {
             healAmount += 2 + level;
         }
@@ -1028,18 +1054,28 @@ export function performCastSpell(spellId, targetId, actorId = 'player') {
         uiHooks.logToBattle(`${target.name} recovers ${healAmount} HP.`, "gain");
         uiHooks.showBattleEventText(`+${healAmount} HP`);
     } else if (spell.type === 'auto') {
-        const damage = calculateDamageRoll(spell.damage, 0, false).total;
-        const finalDamage = resolveDamage(target, damage, spell.damageType);
-        uiHooks.logToBattle(`${spell.name} hits unerringly for ${finalDamage} ${spell.damageType} damage.`, "combat");
-        uiHooks.showBattleEventText(`${finalDamage}`);
+        tryUseShieldReaction(targetId, { spellId, autoHit: true });
+        syncActorState(target);
+        if (effectBlocksSpell(target, spellId)) {
+            uiHooks.logToBattle(`${target.name} turns aside ${spell.name} with Shield.`, 'gain');
+            uiHooks.showBattleEventText('Blocked!');
+        } else {
+            const damage = calculateDamageRoll(spell.damage, 0, false).total;
+            const finalDamage = resolveDamage(target, damage, spell.damageType);
+            uiHooks.logToBattle(`${spell.name} hits unerringly for ${finalDamage} ${spell.damageType} damage.`, "combat");
+            uiHooks.showBattleEventText(`${finalDamage}`);
+        }
     } else if (spell.type === 'attack') {
         const result = rollAttack(actor, spellcastingAbility, snapshot.proficiencyBonus, {
             tags: ['spell', 'ranged']
         });
-        uiHooks.logToBattle(`Spell Attack: ${result.total} (vs AC ${target.ac})`, "system");
+        tryUseShieldReaction(targetId, { attackTotal: result.total, spellId, autoHit: false });
+        syncActorState(target);
+        const targetSnapshot = getDerivedActorState(target);
+        uiHooks.logToBattle(`Spell Attack: ${result.total} (vs AC ${targetSnapshot.ac})`, "system");
 
-        if (result.total >= target.ac || result.roll === 20) {
-            const damage = calculateDamageRoll(spell.damage, snapshot.modifiers[spellcastingAbility] || 0, result.roll === 20).total;
+        if (result.total >= targetSnapshot.ac || result.roll === 20) {
+            const damage = calculateDamageRoll(spell.damage, 0, result.roll === 20).total;
             const finalDamage = resolveDamage(target, damage, spell.damageType);
             uiHooks.logToBattle(`Hit! Dealt ${finalDamage} ${spell.damageType} damage.`, "combat");
             uiHooks.showBattleEventText(`${finalDamage}`);
@@ -1065,21 +1101,30 @@ export function performCastSpell(spellId, targetId, actorId = 'player') {
             uiHooks.showBattleEventText(`${finalDamage}`);
         }
     } else if (spell.type === 'buff') {
-        applySpellBuff(actorId, targetId || actorId, spell);
+        const applied = applySpellBuff(actorId, targetId || actorId, spell);
         syncActorState(actor);
         syncActorState(target);
         syncGridToken(targetId || actorId);
-        uiHooks.logToBattle(`${target.name} is bolstered by ${spell.name}.`, 'gain');
+        if (applied) {
+            uiHooks.logToBattle(`${target.name} is bolstered by ${spell.name}.`, 'gain');
+        } else {
+            uiHooks.logToBattle(`${spell.name} has no effect on ${target.name}.`, 'system');
+        }
     } else if (spell.type === 'auto_status') {
         const affectedHp = rollDiceExpression(spell.amount).total;
         if (target.hp <= affectedHp) {
-            addEffectToActor(target, spell.appliedEffectId, {
+            const appliedEffect = addEffectToActor(target, spell.appliedEffectId, {
                 remaining: spell.effectDuration || 2,
                 durationType: spell.durationType || 'turns',
-                source: `${spell.id}:${actorId}`
+                source: `${spell.id}:${actorId}`,
+                applicationTags: spell.applicationTags || []
             });
-            uiHooks.logToBattle(`${target.name} falls under ${spell.name}.`, 'gain');
-            uiHooks.showBattleEventText('Asleep!');
+            if (appliedEffect) {
+                uiHooks.logToBattle(`${target.name} falls under ${spell.name}.`, 'gain');
+                uiHooks.showBattleEventText('Asleep!');
+            } else {
+                uiHooks.logToBattle(`${target.name} resists ${spell.name}.`, 'system');
+            }
         } else {
             uiHooks.logToBattle(`${target.name} resists the worst of ${spell.name}.`, 'system');
         }
