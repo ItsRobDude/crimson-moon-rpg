@@ -203,11 +203,12 @@ export const effectDefinitions = {
     frightened: {
         id: 'frightened',
         name: 'Frightened',
-        description: 'Disadvantage on attacks and social rolls while fear grips the actor.',
+        description: 'Disadvantage on attacks and key checks while fear grips the actor.',
         durationType: 'turns',
         defaultDuration: 3,
         modifiers: [
             { type: 'disadvantage', target: 'attack_roll' },
+            { type: 'disadvantage', target: 'ability_check', tags: ['awareness'] },
             { type: 'disadvantage', target: 'skill_check', tags: ['social'] }
         ]
     },
@@ -218,7 +219,8 @@ export const effectDefinitions = {
         durationType: 'turns',
         defaultDuration: 3,
         modifiers: [
-            { type: 'disadvantage', target: 'skill_check', tags: ['social'] }
+            { type: 'disadvantage', target: 'skill_check', tags: ['social'] },
+            { type: 'disadvantage', target: 'skill_check', skill: 'insight' }
         ]
     },
     burning: {
@@ -239,8 +241,14 @@ export const effectDefinitions = {
         durationType: 'turns',
         defaultDuration: 1,
         modifiers: [
-            { type: 'disadvantage', target: 'attack_roll', tags: ['ranged_weapon'] }
-        ]
+            { type: 'disadvantage', target: 'attack_roll' },
+            { type: 'multiplier', target: 'speed', value: 0 },
+            { type: 'advantage', target: 'incoming_attack_roll', tags: ['melee_attack'] },
+            { type: 'disadvantage', target: 'incoming_attack_roll', tags: ['ranged_attack'] }
+        ],
+        data: {
+            combatLocked: false
+        }
     },
     incapacitated: {
         id: 'incapacitated',
@@ -248,7 +256,11 @@ export const effectDefinitions = {
         description: 'The actor cannot take actions or reactions.',
         durationType: 'turns',
         defaultDuration: 1,
-        modifiers: []
+        modifiers: [],
+        data: {
+            actionLocked: true,
+            reactionLocked: true
+        }
     },
     restrained: {
         id: 'restrained',
@@ -258,7 +270,9 @@ export const effectDefinitions = {
         defaultDuration: 2,
         modifiers: [
             { type: 'disadvantage', target: 'attack_roll' },
-            { type: 'flat_bonus', target: 'speed', value: -10 }
+            { type: 'multiplier', target: 'speed', value: 0 },
+            { type: 'disadvantage', target: 'saving_throw', ability: 'DEX' },
+            { type: 'advantage', target: 'incoming_attack_roll' }
         ]
     },
     grappled: {
@@ -279,7 +293,8 @@ export const effectDefinitions = {
         defaultDuration: 2,
         modifiers: [
             { type: 'disadvantage', target: 'attack_roll' },
-            { type: 'disadvantage', target: 'ability_check', tags: ['awareness'] }
+            { type: 'disadvantage', target: 'ability_check', tags: ['awareness'] },
+            { type: 'advantage', target: 'incoming_attack_roll' }
         ]
     },
     deafened: {
@@ -298,7 +313,17 @@ export const effectDefinitions = {
         description: 'The actor is unconscious and unable to act.',
         durationType: 'turns',
         defaultDuration: 2,
-        modifiers: []
+        modifiers: [
+            { type: 'multiplier', target: 'speed', value: 0 },
+            { type: 'advantage', target: 'incoming_attack_roll' },
+            { type: 'disadvantage', target: 'saving_throw', ability: 'STR' },
+            { type: 'disadvantage', target: 'saving_throw', ability: 'DEX' }
+        ],
+        data: {
+            actionLocked: true,
+            reactionLocked: true,
+            incomingMeleeAttacksCritical: true
+        }
     },
     exhausted_1: {
         id: 'exhausted_1',
@@ -330,6 +355,7 @@ export const effectDefinitions = {
         modifiers: [
             { type: 'disadvantage', target: 'ability_check' },
             { type: 'disadvantage', target: 'attack_roll' },
+            { type: 'disadvantage', target: 'saving_throw' },
             { type: 'multiplier', target: 'speed', value: 0.5 }
         ]
     },
@@ -489,7 +515,10 @@ export function createEffectInstance(effectId, overrides = {}) {
         modifiers: overrides.modifiers || definition?.modifiers || [],
         blockedSpellIds: [...new Set([...(overrides.blockedSpellIds || []), ...(definition?.blockedSpellIds || [])])],
         applicationTags: [...new Set([...(overrides.applicationTags || []), ...(definition?.applicationTags || [])])],
-        data: overrides.data || {},
+        data: {
+            ...(definition?.data || {}),
+            ...(overrides.data || {})
+        },
         onExpire: overrides.onExpire || definition?.onExpire || null,
         name: overrides.name || definition?.name || 'Custom Effect'
     };
@@ -549,6 +578,16 @@ export function canApplyEffectToActor(actor, effectId, overrides = {}) {
     const instance = createEffectInstance(effectId, overrides);
     if (!instance) return false;
     return !getEffectApplicationFailure(actor, instance);
+}
+
+export function hasActiveEffect(actor, effectId) {
+    ensureActorMechanics(actor);
+    return actor.mechanics.activeEffects.some((effect) => effect.id === effectId);
+}
+
+export function effectHasDataFlag(actor, flagName) {
+    ensureActorMechanics(actor);
+    return actor.mechanics.activeEffects.some((effect) => effect.data?.[flagName]);
 }
 
 export function effectBlocksSpell(actor, spellId) {
@@ -616,7 +655,7 @@ function shouldDecrementEffect(effect, trigger, options = {}) {
 
     switch (effect.durationType) {
     case 'turns':
-        return (trigger === 'turn_end' || trigger === 'turn_start') ? stepAmount : 0;
+        return trigger === 'turn_end' ? stepAmount : 0;
     case 'rounds':
         return trigger === 'round_end' ? stepAmount : 0;
     case 'scenes':
@@ -765,6 +804,29 @@ export function getEffectModifiers(actor, context = {}) {
     });
 
     return result;
+}
+
+export function consumeIncomingHitEffects(actor, context = {}) {
+    ensureActorMechanics(actor);
+    const consumedSources = [];
+
+    actor.mechanics.activeEffects = actor.mechanics.activeEffects.filter((effect) => {
+        if (!effect.data?.consumeOnIncomingHit) return true;
+        const applies = (effect.modifiers || []).some((modifier) => modifierApplies(modifier, {
+            target: 'incoming_attack_roll',
+            ...context
+        }));
+        if (!applies) return true;
+        consumedSources.push(effect.id);
+        return false;
+    });
+
+    if (actor.mechanics.concentrationEffectId && !actor.mechanics.activeEffects.some((effect) => getEffectKey(effect) === actor.mechanics.concentrationEffectId)) {
+        actor.mechanics.concentrationEffectId = null;
+    }
+    syncLegacyStatusEffects(actor);
+    applyDerivedState(actor);
+    return consumedSources;
 }
 
 export function getAbilityScore(actor, ability) {

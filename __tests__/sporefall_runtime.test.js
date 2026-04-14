@@ -104,3 +104,19 @@ test('north route discovery keeps the directional sandbox viable instead of dead
   const scene = getRuntimeScene('SCENE_HUB_SPOREFALL');
   expect(scene.choices.some((choice) => choice.text.includes('northern skip route'))).toBe(true);
 });
+
+test('Eoin dialogue reacts to discovered cathedral and north-side clues', () => {
+  gameState.flags.sporefall_eoin_met = true;
+  gameState.flags.sporefall_eoin_talked = true;
+  gameState.flags.sporefall_cathedral_vision_seen = true;
+  gameState.flags.sporefall_bridge_seen = true;
+
+  const scene = getRuntimeScene('SCENE_EOIN_TALK');
+
+  expect(scene.text).toContain("grip tightens");
+  expect(scene.text).toContain("relieved and guilty");
+});
+
+test('legacy Eoin assistance no longer routes back into the old ruins prototype', () => {
+  expect(scenes.SCENE_EOIN_ASSISTANCE.choices[0].nextScene).toBe('SCENE_HUB_SPOREFALL');
+});

@@ -261,6 +261,42 @@ test('load normalizes partial legacy saves while preserving newer Sporefall and 
   expect(Array.isArray(gameState.quests.investigate_whisperwood.stages)).toBe(true);
 });
 
+test('save and load preserves concentration markers and Sporefall route flags', () => {
+  initializeNewGame(
+    'Lys',
+    'elf',
+    'wizard',
+    'sage',
+    { STR: 8, DEX: 14, CON: 12, INT: 15, WIS: 13, CHA: 10 },
+    ['investigation', 'arcana'],
+    ['firebolt', 'magic_missile']
+  );
+
+  addEffectToActor(gameState.player, 'blessed', {
+    source: 'concentration:player:bless',
+    concentration: true,
+    remaining: 5,
+    durationType: 'turns'
+  });
+  gameState.flags.sporefall_eoin_met = true;
+  gameState.flags.sporefall_home_trap_hint = true;
+  gameState.flags.sporefall_home_unlocked = true;
+  gameState.sceneMemory.sporefall_street_search_seen = true;
+  gameState.currentSceneId = 'SCENE_SPOREFALL_OVERSEER_STUDY';
+
+  saveGame();
+  resetGameState();
+
+  expect(loadGame()).toBe(true);
+  expect(gameState.player.mechanics.concentrationEffectId).toContain('concentration:player:bless');
+  expect(gameState.player.mechanics.activeEffects.some((effect) => effect.id === 'blessed')).toBe(true);
+  expect(gameState.flags.sporefall_eoin_met).toBe(true);
+  expect(gameState.flags.sporefall_home_trap_hint).toBe(true);
+  expect(gameState.flags.sporefall_home_unlocked).toBe(true);
+  expect(gameState.sceneMemory.sporefall_street_search_seen).toBe(true);
+  expect(gameState.currentSceneId).toBe('SCENE_SPOREFALL_OVERSEER_STUDY');
+});
+
 test('long rest clears long-rest effects and restores spell resources after load-safe state changes', () => {
   initializeNewGame(
     'Mira',

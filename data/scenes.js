@@ -1037,14 +1037,14 @@ export const scenes = {
         location: "whisperwood",
         background: "landscapes/sporefall_crimson_frontier.png",
         npcPortrait: "portraits/npc_male_placeholder_portrait.png",
-        text: "'You are brave, but not foolish,' Eoin says, pressing a small vial into your hand. 'Take this. It may be the only thing that sees you through.'",
+        text: "'You are brave, but not foolish,' Eoin says, pressing a small vial into your hand. 'Take this. It may be the only thing that sees you through. Then go back to the streets. The answers are still out there, not in some clean ending.'",
         onEnter: {
             addItem: "potion_healing"
         },
         choices: [
             {
-                text: "Thank him and proceed to the ruins.",
-                nextScene: "SCENE_RUINS_APPROACH"
+                text: "Thank him and return to the streets of Sporefall.",
+                nextScene: "SCENE_HUB_SPOREFALL"
             }
         ]
     },

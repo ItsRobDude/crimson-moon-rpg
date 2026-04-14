@@ -195,3 +195,35 @@ test('magical sleep immunity is enforced through shared effect eligibility', () 
   expect(canApplyEffectToActor(human, 'unconscious', { applicationTags: ['magical_sleep'] })).toBe(true);
   expect(addEffectToActor(human, 'unconscious', { applicationTags: ['magical_sleep'] })).not.toBeNull();
 });
+
+test('turn-based effects decrement on turn end rather than turn start and end', () => {
+  const actor = createActor();
+
+  addEffectToActor(actor, 'burning', {
+    remaining: 2,
+    durationType: 'turns'
+  });
+
+  tickActorEffects(actor, 'turn_start');
+  expect(actor.mechanics.activeEffects.find((effect) => effect.id === 'burning')?.remaining).toBe(2);
+
+  tickActorEffects(actor, 'turn_end');
+  expect(actor.mechanics.activeEffects.find((effect) => effect.id === 'burning')?.remaining).toBe(1);
+});
+
+test('prone exposes incoming melee advantage and incoming ranged disadvantage through the shared effect layer', () => {
+  const actor = createActor();
+  addEffectToActor(actor, 'prone');
+
+  const meleeIncoming = getEffectModifiers(actor, {
+    target: 'incoming_attack_roll',
+    tags: ['melee_attack']
+  });
+  const rangedIncoming = getEffectModifiers(actor, {
+    target: 'incoming_attack_roll',
+    tags: ['ranged_attack']
+  });
+
+  expect(meleeIncoming.advantage).toBe(true);
+  expect(rangedIncoming.disadvantage).toBe(true);
+});

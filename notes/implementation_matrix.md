@@ -35,8 +35,8 @@ Statuses:
 | Champion `Improved Critical` | implemented | Crit range check uses 19-20 for champion weapon attacks. |
 | Rogue base shell | implemented | Hit die, proficiencies, creation, and combat shell are present. |
 | Rogue `Expertise` | implemented | Doubled proficiency multipliers are stored and used in rules math. |
-| Rogue `Sneak Attack` | partial | Turn gating and adjacency/finesse checks exist; full 5e edge-case coverage is not complete. |
-| Rogue `Cunning Action` | partial | Dash/disengage hooks exist; hide/object interactions are not fully realized. |
+| Rogue `Sneak Attack` | partial | Per-attacker turn gating, adjacency, finesse/ranged checks, and hidden/advantage support exist; fuller 5e edge cases are still incomplete. |
+| Rogue `Cunning Action` | partial | Dash, disengage, and hide hooks exist; broader hide/object interaction depth is still incomplete. |
 | Thief `Fast Hands` | data-only | Feature exists in data but object-use bonus-action depth is not complete. |
 | Thief `Second-Story Work` | data-only | Defined in data only. |
 | Wizard base shell | implemented | Spellbook/prepared flow, slots, and Arcane Recovery shell are present. |
@@ -51,18 +51,18 @@ Statuses:
 | Spell | Status | Notes |
 | --- | --- | --- |
 | `firebolt` | implemented | Attack-roll spell, range, and damage are wired. |
-| `ray_of_frost` | partial | Attack-roll damage is wired; movement rider is not yet implemented. |
+| `ray_of_frost` | implemented | Attack-roll damage and the temporary speed rider are wired. |
 | `guidance` | partial | Buff effect exists; combat-disabled and scene use depends on authored hooks. |
 | `sacred_flame` | implemented | Save-for-no-damage spell path is wired. |
 | `cure_wounds` | implemented | Healing spell path is wired with Life bonus support. |
-| `guiding_bolt` | partial | Attack-roll damage is wired; next-attack advantage rider is missing. |
-| `bless` | partial | Concentration buff works for attacks/saves; multi-target breadth is not implemented. |
-| `shield_of_faith` | partial | Concentration AC buff works; broader concentration edge-case coverage still limited. |
+| `guiding_bolt` | implemented | Attack-roll damage and the next-hit advantage mark are wired. |
+| `bless` | implemented | Concentration buff and current multi-target ally application are wired. |
+| `shield_of_faith` | implemented | Concentration AC buff and recast concentration handoff are wired. |
 | `magic_missile` | implemented | Auto-hit damage is wired and `Shield` now blocks it. |
 | `burning_hands` | partial | Save-based damage works; cone/template targeting is still abstracted. |
 | `shield` | implemented | Reaction-only, AC boost, and `Magic Missile` block are wired. |
 | `mage_armor` | implemented | Unarmored AC formula and long-rest duration are wired. |
-| `sleep` | partial | Auto-status and magical-sleep immunity work; multi-target ordering is still simplified. |
+| `sleep` | implemented | Auto-status, magical-sleep immunity, and current HP-ordered cluster targeting are wired. |
 
 ## Conditions and Statuses
 
@@ -74,14 +74,14 @@ Statuses:
 | `frightened` | partial | Attack/social penalties exist; full position-based fear behavior is not implemented. |
 | `charmed` | partial | Social penalty exists; broader hostile-targeting behavior is not implemented. |
 | `burning` | partial | Tile/status integration exists; ongoing fire ecosystem is still small. |
-| `prone` | partial | Ranged-attack penalty exists; melee advantage/disadvantage depth is incomplete. |
-| `incapacitated` | partial | Effect exists and drops concentration; full action-lock enforcement is incomplete. |
-| `restrained` | partial | Attack/speed penalties exist; attacker advantage/save interactions are incomplete. |
+| `prone` | partial | Own attacks, movement lock, and incoming melee/ranged attack modifiers are wired; standing and fuller battlefield nuance are still incomplete. |
+| `incapacitated` | implemented | Effect exists, drops concentration, and locks actions/reactions in combat. |
+| `restrained` | partial | Attack lock, speed zero, incoming-attack advantage, and DEX-save disadvantage are wired; escape flow is still incomplete. |
 | `grappled` | partial | Speed-zero effect exists; escape contest flow is not implemented. |
-| `blinded` | partial | Attack/awareness penalties exist; wider combat targeting implications are incomplete. |
+| `blinded` | partial | Attack and awareness penalties plus incoming-attack advantage are wired; wider combat targeting implications are incomplete. |
 | `deafened` | partial | Awareness penalty exists; broader spell/audio interactions are not implemented. |
-| `unconscious` | partial | Applied/removed in combat and sleep flow; full death-save/downed-state model is not implemented. |
-| Exhaustion 1-3 | partial | Current tiers exist; full 5e exhaustion ladder is not complete. |
+| `unconscious` | partial | Applied/removed in combat and sleep flow, locks actions/reactions, and grants incoming advantage/melee crits; full death-save/downed-state model is not implemented. |
+| Exhaustion 1-3 | partial | Current tiers exist, including attack/save penalties at tier 3; full 5e exhaustion ladder is not complete. |
 | `antitoxin_guard` | implemented | Rest-of-day poison-save advantage is wired. |
 
 ## Reactions

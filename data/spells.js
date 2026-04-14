@@ -32,6 +32,15 @@ export const spells = {
         attack: true,
         damage: "1d8",
         damageType: "cold",
+        onHitEffect: {
+            id: "ray_of_frost_slow",
+            name: "Ray of Frost",
+            durationType: "turns",
+            remaining: 1,
+            modifiers: [
+                { type: "flat_bonus", target: "speed", value: -10 }
+            ]
+        },
         scaling: "Damage improves with character level.",
         description: "A frigid beam of blue-white light streaks toward a creature."
     },
@@ -110,6 +119,18 @@ export const spells = {
         attack: true,
         damage: "4d6",
         damageType: "radiant",
+        onHitEffect: {
+            id: "guiding_bolt_mark",
+            name: "Guiding Bolt",
+            durationType: "turns",
+            remaining: 1,
+            modifiers: [
+                { type: "advantage", target: "incoming_attack_roll" }
+            ],
+            data: {
+                consumeOnIncomingHit: true
+            }
+        },
         scaling: "Damage increases by 1d6 for each slot level above 1st.",
         description: "A flash of light streaks toward a creature of your choice."
     },
@@ -124,6 +145,7 @@ export const spells = {
         durationType: "concentration",
         concentration: true,
         targeting: "ally",
+        maxTargets: 3,
         type: "buff",
         effect: {
             id: "blessed",
@@ -190,6 +212,8 @@ export const spells = {
         saveAbility: "DEX",
         damage: "3d6",
         damageType: "fire",
+        areaShape: "cone_cluster",
+        areaRadiusFeet: 5,
         scaling: "Damage increases by 1d6 for each slot level above 1st.",
         description: "A thin sheet of flames shoots forth from your fingertips."
     },
@@ -258,6 +282,7 @@ export const spells = {
         appliedEffectId: "unconscious",
         applicationTags: ["magical_sleep"],
         effectDuration: 2,
+        areaRadiusFeet: 20,
         scaling: "A higher slot affects 2d8 additional hit points.",
         description: "This spell sends creatures into a magical slumber."
     }

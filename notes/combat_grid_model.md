@@ -83,6 +83,19 @@ The intended direction remains:
 - true positional combat, not permanently abstract menu combat
 - one effect/status system shared by combat and narrative play
 
+## Non-Visual Spell Assumptions
+
+Until the battlegrid UI exposes facing and area templates directly, current combat uses two temporary authored approximations:
+
+- `Burning Hands`
+  - the chosen target anchors the cone
+  - the spell affects that target plus nearby hostiles clustered within 5 feet of it, so long as they remain within the caster's 15-foot reach
+- `Sleep`
+  - the chosen target anchors the point of origin
+  - the spell then affects creatures in that 20-foot local cluster in ascending current-HP order
+
+These are temporary implementation assumptions, not the long-term substitute for true template targeting.
+
 ## Guardrails
 
 When extending combat:

@@ -726,6 +726,10 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
 function buildSporefallRuntimeScene(sceneId, baseScene) {
     const scene = cloneScene(sceneId);
     const state = getSporefallState();
+    const clueNotes = [];
+    if (state.cathedralLetterFound || state.cathedralVisionSeen) clueNotes.push('cathedral');
+    if (state.homeUnlocked || state.journalFound || state.letterFound || state.compassFound) clueNotes.push('overseer_house');
+    if (state.bridgeSeen || state.northRouteOpen) clueNotes.push('north_side');
 
     if (sceneId === 'SCENE_ARRIVAL_WHISPERWOOD') {
         if (state.eoinMet) {
@@ -785,9 +789,36 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
     }
 
     if (sceneId === 'SCENE_EOIN_TALK') {
-        scene.text = state.eoinTalked
-            ? "Eoin is calmer now, though never fully steady. He keeps watching the empty streets between words, as if expecting the town itself to overhear him. The same three threads still matter most to him: the cathedral, the north-side bridge, and the impossible fact that he feels present and absent all at once."
-            : baseScene.text;
+        if (state.eoinTalked) {
+            const reactions = [];
+            if (clueNotes.includes('cathedral')) {
+                reactions.push("When you mention the cathedral, Eoin's grip tightens on the broken spear. He keeps insisting that whatever happened there began before the moon turned wrong.");
+            }
+            if (clueNotes.includes('overseer_house')) {
+                reactions.push("The overseer's house clearly means something to him now. He watches your face closely, as if afraid of what Aodhan's papers might prove.");
+            }
+            if (clueNotes.includes('north_side')) {
+                reactions.push("Any mention of the north-side bridge makes him look relieved and guilty at once, like he still hopes the answer to his mother lies there.");
+            }
+            const suffix = reactions.length > 0 ? ` ${reactions.join(' ')}` : '';
+            scene.text = `Eoin is calmer now, though never fully steady. He keeps watching the empty streets between words, as if expecting the town itself to overhear him. The same three threads still matter most to him: the cathedral, the north-side bridge, and the impossible fact that he feels present and absent all at once.${suffix}`;
+        } else {
+            scene.text = baseScene.text;
+        }
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_EOIN_RITUAL_TALK') {
+        if (state.cathedralVisionSeen || state.cathedralLetterFound) {
+            scene.text = "Eoin listens hard when you tell him what the cathedral has already given up. 'Then it was real,' he whispers. 'The ritual. The overseer. The dark coming all at once.' He still points you back toward the Cathedral of Bone, but now with the dread of someone hearing his worst memory confirmed aloud.";
+        }
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_EOIN_MOTHER_TALK') {
+        if (state.bridgeSeen || state.northRouteOpen) {
+            scene.text = "When you mention the north-side bridge, Eoin goes still. 'Then you saw where we stayed,' he says softly. 'Good. I kept thinking if someone else saw it too, maybe I didn't imagine her there.' The north still matters to him, but now it feels less like rumor and more like grief with a street name.";
+        }
         return scene;
     }
 
