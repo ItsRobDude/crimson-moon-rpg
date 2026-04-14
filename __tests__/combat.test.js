@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 import { createBattleGrid, placeToken } from '../battlegrid.js';
-import { applyOpportunityAttacks, hasReactionAvailable, performAttack, performCastSpell } from '../combat.js';
+import { applyOpportunityAttacks, hasReactionAvailable, performActionSurge, performAttack, performCastSpell, performCunningAction, performAbility } from '../combat.js';
 import { gameState, resetGameState, syncActorState } from '../data/gameState.js';
 import { createDefaultMechanicsState } from '../data/mechanics.js';
 
@@ -307,4 +307,96 @@ test('shield negates magic missile explicitly', () => {
   expect(gameState.player.currentSlots[1]).toBe(0);
   expect(hasReactionAvailable('player')).toBe(false);
   expect(gameState.player.hp).toBe(gameState.player.maxHp);
+});
+
+test('action surge grants one additional action and spends its resource', () => {
+  gameState.player = createActor({
+    name: 'Fighter',
+    classId: 'fighter',
+    resources: {
+      action_surge: { current: 1, max: 1 }
+    }
+  });
+  syncActorState(gameState.player);
+
+  gameState.combat = {
+    ...gameState.combat,
+    active: true,
+    activeActorId: 'player',
+    actionsRemaining: 0,
+    bonusActionsRemaining: 1,
+    grid: createBattleGrid(8, 6, 5),
+    enemies: [],
+    turnOrder: ['player']
+  };
+
+  performActionSurge('player');
+
+  expect(gameState.player.resources.action_surge.current).toBe(0);
+  expect(gameState.combat.actionsRemaining).toBe(1);
+});
+
+test('cunning action dash and disengage consume bonus action and set combat state', () => {
+  gameState.player = createActor({
+    name: 'Rogue',
+    classId: 'rogue',
+    mechanics: createDefaultMechanicsState(
+      { STR: 10, DEX: 16, CON: 10, INT: 12, WIS: 10, CHA: 10 },
+      { baseSpeed: 30 }
+    )
+  });
+  syncActorState(gameState.player);
+
+  gameState.combat = {
+    ...gameState.combat,
+    active: true,
+    activeActorId: 'player',
+    actionsRemaining: 1,
+    bonusActionsRemaining: 1,
+    movementRemaining: 30,
+    grid: createBattleGrid(8, 6, 5),
+    enemies: [],
+    turnOrder: ['player']
+  };
+
+  performCunningAction('dash', 'player');
+
+  expect(gameState.combat.bonusActionsRemaining).toBe(0);
+  expect(gameState.combat.movementRemaining).toBe(60);
+
+  gameState.combat.bonusActionsRemaining = 1;
+  performCunningAction('disengage', 'player');
+
+  expect(gameState.combat.bonusActionsRemaining).toBe(0);
+  expect(gameState.player.combatFlags.disengage).toBe(true);
+});
+
+test('channel divinity heals without exceeding half health', () => {
+  gameState.player = createActor({
+    name: 'Cleric',
+    classId: 'cleric',
+    level: 2,
+    hp: 4,
+    maxHp: 20,
+    resources: {
+      channel_divinity: { current: 1, max: 1 }
+    }
+  });
+  syncActorState(gameState.player);
+
+  gameState.combat = {
+    ...gameState.combat,
+    active: true,
+    activeActorId: 'player',
+    actionsRemaining: 1,
+    bonusActionsRemaining: 1,
+    grid: createBattleGrid(8, 6, 5),
+    enemies: [],
+    turnOrder: ['player']
+  };
+
+  performAbility('channel_divinity', 'player');
+
+  expect(gameState.player.resources.channel_divinity.current).toBe(0);
+  expect(gameState.player.hp).toBe(10);
 });

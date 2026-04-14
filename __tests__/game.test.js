@@ -1,8 +1,11 @@
-import { addItem, advanceTime, equipItem, gameState, getInventoryEntries, initializeNewGame, performShortRest, resetGameState, useConsumable } from '../data/gameState.js';
+import { addItem, advanceTime, equipItem, gameState, getInventoryEntries, initializeNewGame, loadGame, performLongRest, performShortRest, resetGameState, saveGame, useConsumable } from '../data/gameState.js';
 import { addEffectToActor } from '../data/mechanics.js';
 
 beforeEach(() => {
   resetGameState();
+  if (typeof localStorage !== 'undefined') {
+    localStorage.clear();
+  }
 });
 
 test('initial threat meter exists', () => {
@@ -153,4 +156,83 @@ test('shield proficiency is enforced for equipment legality', () => {
 
   expect(equipItem('shield').success).toBe(false);
   expect(gameState.player.equipped.shield).toBe(null);
+});
+
+test('save and load preserves mechanics-heavy player state', () => {
+  initializeNewGame(
+    'Lys',
+    'elf',
+    'wizard',
+    'sage',
+    { STR: 8, DEX: 14, CON: 12, INT: 15, WIS: 13, CHA: 10 },
+    ['investigation', 'arcana'],
+    {
+      spellSelection: {
+        cantrips: ['firebolt', 'ray_of_frost'],
+        preparedSpells: ['magic_missile', 'mage_armor'],
+        spellbook: ['magic_missile', 'mage_armor', 'shield']
+      }
+    }
+  );
+
+  gameState.player.currentSlots[1] = 1;
+  gameState.player.resources.arcane_recovery.current = 0;
+  addEffectToActor(gameState.player, 'mage_armor', {
+    id: 'mage_armor',
+    name: 'Mage Armor',
+    durationType: 'long_rest',
+    remaining: 1,
+    modifiers: [{ type: 'ac_formula', target: 'ac', base: 13, dexCap: null, requiresUnarmored: true }]
+  });
+  addEffectToActor(gameState.player, 'camp_focus', {
+    name: 'Camp Focus',
+    durationType: 'scenes',
+    remaining: 2,
+    modifiers: [{ type: 'flat_bonus', target: 'ability_check', value: 1 }]
+  });
+  gameState.player.mechanics.proficiencyMultipliers.skills.arcana = 2;
+  gameState.sceneMemory.test_marker = true;
+  gameState.timeline.day = 2;
+  gameState.timeline.slot = 'dusk';
+
+  saveGame();
+  resetGameState();
+
+  expect(loadGame()).toBe(true);
+  expect(gameState.player.name).toBe('Lys');
+  expect(gameState.player.spellcastingMode).toBe('spellbook');
+  expect(gameState.player.currentSlots[1]).toBe(1);
+  expect(gameState.player.resources.arcane_recovery.current).toBe(0);
+  expect(gameState.player.mechanics.activeEffects.some((effect) => effect.id === 'mage_armor')).toBe(true);
+  expect(gameState.player.mechanics.activeEffects.some((effect) => effect.id === 'camp_focus')).toBe(true);
+  expect(gameState.player.mechanics.proficiencyMultipliers.skills.arcana).toBe(2);
+  expect(gameState.sceneMemory.test_marker).toBe(true);
+  expect(gameState.timeline.day).toBe(2);
+  expect(gameState.timeline.slot).toBe('dusk');
+});
+
+test('long rest clears long-rest effects and restores spell resources after load-safe state changes', () => {
+  initializeNewGame(
+    'Mira',
+    'human',
+    'cleric',
+    'acolyte',
+    { STR: 12, DEX: 10, CON: 14, INT: 10, WIS: 15, CHA: 13 },
+    ['medicine', 'religion'],
+    []
+  );
+
+  gameState.player.currentSlots[1] = 0;
+  addEffectToActor(gameState.player, 'mage_armor', {
+    id: 'mage_armor',
+    name: 'Mage Armor',
+    durationType: 'long_rest',
+    remaining: 1,
+    modifiers: [{ type: 'ac_formula', target: 'ac', base: 13, dexCap: null, requiresUnarmored: true }]
+  });
+
+  performLongRest();
+
+  expect(gameState.player.currentSlots[1]).toBe(gameState.player.spellSlots[1]);
+  expect(gameState.player.mechanics.activeEffects.some((effect) => effect.id === 'mage_armor')).toBe(false);
 });

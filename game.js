@@ -550,6 +550,53 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
 
     if (sceneId === 'SCENE_SILVERTHORN_TEMPLE_COUNSEL') {
         setSceneMemory('silverthorn_temple_counsel', true);
+        const hasTempleWard = !!gameState.flags.silverthorn_temple_ward_taken;
+        scene.text = hasTempleWard
+            ? `${baseScene.text} One of the healers recognizes the juniper-and-ash ward already drying on your gloves and tells you not to waste the blessing before the road truly turns cruel.`
+            : `${baseScene.text} One of the senior healers lingers over a brazier of juniper, ash, and bitter herbs, offering a ward to travelers willing to take the warning seriously.`;
+        scene.choices = [];
+
+        if (!hasTempleWard) {
+            scene.choices.push(createChoice('Submit to the road ward (Religion)', null, {
+                type: 'skillCheck',
+                skill: 'religion',
+                dc: 11,
+                timeAdvance: 1,
+                timeReason: 'You stay while the healers prepare a proper road ward.',
+                inSilverthorn: true,
+                successText: 'You match the healer prayer for prayer. Juniper smoke stings your eyes, but the ward settles into memory and breath alike. The temple sends you toward the road better braced for poison and panic.',
+                failText: 'The words catch and fray before they can settle. The healer finishes the rite anyway, but only presses a small vial of antitoxin into your hand and tells you not to mistake good intent for preparedness.',
+                onSuccess: {
+                    effects: [
+                        {
+                            type: 'customEffect',
+                            id: 'dawnroad_ward',
+                            name: 'Dawnroad Ward',
+                            durationType: 'rest_of_day',
+                            remaining: 1,
+                            modifiers: [
+                                { type: 'flat_bonus', target: 'skill_check', skill: 'survival', value: 2 },
+                                { type: 'advantage', target: 'saving_throw', tags: ['poison'] }
+                            ]
+                        },
+                        { type: 'flag', flagId: 'silverthorn_temple_ward_taken', value: true }
+                    ]
+                },
+                onFail: {
+                    effects: [
+                        { type: 'addItem', itemId: 'antitoxin' },
+                        { type: 'flag', flagId: 'silverthorn_temple_ward_taken', value: true }
+                    ]
+                },
+                nextSceneSuccess: 'SCENE_SILVERTHORN_TEMPLE_COUNSEL',
+                nextSceneFail: 'SCENE_SILVERTHORN_TEMPLE_COUNSEL'
+            }));
+        }
+
+        scene.choices.push(
+            createChoice('Remain in the temple a while longer', 'SCENE_SILVERTHORN_TEMPLE'),
+            createChoice('Return to City Center', 'SCENE_HUB_SILVERTHORN')
+        );
         return scene;
     }
 
@@ -596,21 +643,62 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
 
     if (sceneId === 'SCENE_SILVERTHORN_GATE_CAPTAIN') {
         const warnedAlready = !!getSceneMemory('silverthorn_gate_captain_seen');
+        const hasRouteBriefing = !!gameState.flags.silverthorn_gate_route_briefed;
         setSceneMemory('silverthorn_gate_captain_seen', true);
         scene.text = warnedAlready
-            ? "The captain recognizes you at once. 'Same road, same warning: keep your faces covered if the spores darken, trust your footing more than your sight, and if the forest goes too quiet, do not mistake that for mercy.'"
+            ? hasRouteBriefing
+                ? "The captain recognizes you at once and taps the same route marks you already copied into memory. 'Then keep them straight in your head,' he says. 'Out there, one bad landmark costs more than pride.'"
+                : "The captain recognizes you at once. 'Same road, same warning: keep your faces covered if the spores darken, trust your footing more than your sight, and if the forest goes too quiet, do not mistake that for mercy.'"
             : baseScene.text;
-        scene.choices = [
+        scene.choices = [];
+
+        if (!hasRouteBriefing) {
+            scene.choices.push(createChoice('Study the route marks with him (Survival)', null, {
+                type: 'skillCheck',
+                skill: 'survival',
+                dc: 12,
+                timeAdvance: 1,
+                timeReason: 'You spend time memorizing landmarks and danger signs beyond the eastern gate.',
+                inSilverthorn: true,
+                successText: "You force the landmarks into order: the split ash at the old mile-stone, the washout where carts drift south, the bend where the spores start riding the wind. When you step away from the map, the road feels less unknown.",
+                failText: "The landmarks refuse to stay orderly in your head. The captain eventually rolls the map shut and tells you not to trust memory alone once the forest starts lying.",
+                onSuccess: {
+                    effects: [
+                        {
+                            type: 'customEffect',
+                            id: 'roadwise_briefing',
+                            name: 'Roadwise Briefing',
+                            durationType: 'until_next_combat',
+                            remaining: 1,
+                            modifiers: [
+                                { type: 'flat_bonus', target: 'skill_check', skill: 'perception', value: 2 },
+                                { type: 'flat_bonus', target: 'initiative', value: 1 }
+                            ]
+                        },
+                        { type: 'flag', flagId: 'silverthorn_gate_route_briefed', value: true }
+                    ]
+                },
+                onFail: {
+                    effects: [
+                        { type: 'flag', flagId: 'silverthorn_gate_route_briefed', value: true }
+                    ]
+                },
+                nextSceneSuccess: 'SCENE_SILVERTHORN_GATE_CAPTAIN',
+                nextSceneFail: 'SCENE_SILVERTHORN_GATE_CAPTAIN'
+            }));
+        }
+
+        scene.choices.push(
             createChoice('Leave Silverthorn now', 'SCENE_TRAVEL_SHADOWMIRE', { timeAdvance: 1, timeReason: 'You leave before the city can hold you any longer.', inSilverthorn: true }),
             createChoice('Return to the gate plaza', 'SCENE_SILVERTHORN_GATES')
-        ];
+        );
         return scene;
     }
 
     return scene;
 }
 
-function getRuntimeScene(sceneId) {
+export function getRuntimeScene(sceneId) {
     const baseScene = scenes[sceneId];
     if (!baseScene) return null;
     if (isSceneInSilverthorn(sceneId)) {
@@ -692,8 +780,12 @@ function applySceneEffect(effect, source = 'scene') {
     }
 
     if (effect.type === 'status' && effect.id) {
-        applyStatusEffect(effect.id, effect.duration, targetId);
-        logMessage(logText || `${targetActor.name} gains ${effect.id}.`, 'system');
+        const applied = applyStatusEffect(effect.id, effect.duration, targetId);
+        if (applied) {
+            logMessage(logText || `${targetActor.name} gains ${effect.id}.`, 'system');
+        } else {
+            logMessage(logText || `${effect.id} has no effect on ${targetActor.name} right now.`, 'system');
+        }
         return;
     }
 
@@ -707,15 +799,21 @@ function applySceneEffect(effect, source = 'scene') {
 
     if (effect.type === 'customEffect' && effect.id && effect.modifiers) {
         if (!targetActor) return;
-        addEffectToActor(targetActor, effect.id, {
+        const applied = addEffectToActor(targetActor, effect.id, {
             name: effect.name || effect.id,
             source: effect.sourceId || source,
             remaining: effect.duration ?? effect.durationAmount ?? null,
             durationType: effect.durationType || 'scenes',
             modifiers: effect.modifiers,
+            blockedSpellIds: effect.blockedSpellIds || [],
+            applicationTags: effect.applicationTags || [],
             concentration: !!effect.concentration
         });
-        logMessage(logText || `Effect applied: ${effect.name || effect.id}.`, 'system');
+        if (applied) {
+            logMessage(logText || `Effect applied: ${effect.name || effect.id}.`, 'system');
+        } else {
+            logMessage(logText || `${effect.name || effect.id} has no effect on ${targetActor.name} right now.`, 'system');
+        }
         return;
     }
 
@@ -2809,7 +2907,9 @@ function logToBattle(msg, type) {
      console.log(`[Battle Log - ${type}] ${msg}`);
 }
 
-window.logMessage = logToMain;
+if (typeof window !== 'undefined') {
+    window.logMessage = logToMain;
+}
 
 let eventTextTimeoutRef;
 function showBattleEventText(message, duration = 1500) {

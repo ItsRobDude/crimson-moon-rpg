@@ -458,6 +458,11 @@ Definition:
 
 This is the best near-term target before battlegrid rollout.
 
+Current tracking for this milestone now lives in:
+
+- `notes/trustworthy_5e_lite_status.md`
+- `notes/implementation_matrix.md`
+
 ## Milestone B: "System-Deep VN Combat"
 
 Definition:

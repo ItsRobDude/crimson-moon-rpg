@@ -18,4 +18,7 @@ Statuses and mechanical effects should not be treated as combat-only. Long-term 
 See `notes/salvage_pitch.md` for a concrete gameplay loop and story structure that ties these pieces together.
 See `notes/story_timeline_model.md` for the canonical Silverthorn opening and the new event-driven timeline model.
 See `notes/5e_mechanics_roadmap.md` for the rules-depth plan.
+See `notes/trustworthy_5e_lite_status.md` for the current near-term milestone target.
+See `notes/implementation_matrix.md` for the current shipped-state audit of exposed 5e-lite mechanics.
+See `notes/test_run_tonight_checklist.md` for the recommended Node/Jest/Playwright verification order.
 See `AGENTS.md` for repo-specific guardrails before making major changes.
