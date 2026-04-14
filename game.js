@@ -388,92 +388,92 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
 
     if (sceneId === 'SCENE_HUB_SILVERTHORN') {
         const curfewBeat = time.isDusk
-            ? 'Lanterns are being lit and the watch has started calling the evening curfew.'
+            ? 'Lanterns are being lit along the square, and the watch has begun calling the evening curfew in clipped, weary voices.'
             : time.isNight
-                ? 'Most respectable shutters are closed, and the city watch has taken over the streets.'
-                : 'Silverthorn still feels ordered, but the mood under the surface is tight and watchful.';
+                ? 'Most shutters are barred now, and the watch owns the streets with the grim patience of people expecting bad news before dawn.'
+                : 'Silverthorn remains orderly, but every patrol, lowered voice, and hurried prayer suggests the order is being held in place by effort alone.';
 
         scene.text = `${baseScene.text} It is ${time.timelineLabel}. ${curfewBeat}`;
         scene.choices = [
-            createChoice(time.isNight ? 'See if Alderic still receives visitors' : "Return to Alderic's chamber", 'SCENE_ALDERIC_CHAMBER_RETURN'),
-            createChoice('Walk to the market district', 'SCENE_SILVERTHORN_MARKET', { timeAdvance: 1, timeReason: 'You make your way across the city.', inSilverthorn: true }),
-            createChoice('Visit the General Store', 'SCENE_SILVERTHORN_GENERAL_STORE', { timeAdvance: 1, timeReason: 'You stop to resupply.', inSilverthorn: true }),
-            createChoice('Enter The Rusty Blade', 'SCENE_RUSTY_BLADE_INN', { timeAdvance: 1, timeReason: 'You spend time in the inn.', inSilverthorn: true }),
-            createChoice('Stop at the Temple of Dawn', 'SCENE_SILVERTHORN_TEMPLE', { timeAdvance: 1, timeReason: 'You make a detour to the temple.', inSilverthorn: true }),
-            createChoice('Read the notice board', 'SCENE_SILVERTHORN_NOTICE_BOARD', { timeAdvance: 1, timeReason: 'You spend a while reading the latest postings.', inSilverthorn: true }),
-            createChoice('Head for the city gates', 'SCENE_SILVERTHORN_GATES', { timeAdvance: 1, timeReason: 'You cross Silverthorn toward the eastern gate.', inSilverthorn: true })
+            createChoice(time.isNight ? 'See whether Alderic still receives visitors' : "Present yourself at Alderic's chamber again", 'SCENE_ALDERIC_CHAMBER_RETURN'),
+            createChoice('Cross into the market quarter', 'SCENE_SILVERTHORN_MARKET', { timeAdvance: 1, timeReason: 'You make your way across the city.', inSilverthorn: true }),
+            createChoice('Seek supplies at the General Store', 'SCENE_SILVERTHORN_GENERAL_STORE', { timeAdvance: 1, timeReason: 'You stop to resupply.', inSilverthorn: true }),
+            createChoice('Step inside The Rusty Blade', 'SCENE_RUSTY_BLADE_INN', { timeAdvance: 1, timeReason: 'You spend time in the inn.', inSilverthorn: true }),
+            createChoice('Take the temple road', 'SCENE_SILVERTHORN_TEMPLE', { timeAdvance: 1, timeReason: 'You make a detour to the temple.', inSilverthorn: true }),
+            createChoice('Read what fear has posted', 'SCENE_SILVERTHORN_NOTICE_BOARD', { timeAdvance: 1, timeReason: 'You spend a while reading the latest postings.', inSilverthorn: true }),
+            createChoice('Make for the eastern gate', 'SCENE_SILVERTHORN_GATES', { timeAdvance: 1, timeReason: 'You cross Silverthorn toward the eastern gate.', inSilverthorn: true })
         ];
         return scene;
     }
 
     if (sceneId === 'SCENE_ALDERIC_CHAMBER_RETURN') {
         if (time.isNight) {
-            scene.text = "A chamberlain meets you outside Alderic's rooms and bows with practiced restraint. 'The prince has retired and will not receive visitors tonight. If the matter can wait, return in the morning. If it cannot, take it to the gate or to the watch.'";
+            scene.text = "A chamberlain waits outside Alderic's rooms as though he has not moved in an hour. He bows with perfect restraint. 'The prince has withdrawn for the night and will receive no one. If your concern can wait, return at first light. If it cannot, the watch will bear it in his stead.'";
             scene.choices = [
                 createChoice('Return to the city center', 'SCENE_HUB_SILVERTHORN')
             ];
             return scene;
         }
 
-        scene.text = `${baseScene.text} It is ${time.timelineLabel}, and he seems more interested in dispatches than conversation.`;
+        scene.text = `${baseScene.text} It is ${time.timelineLabel}, and the chamber feels colder than before. Alderic gives you only a glance before returning to the dispatches spread before him.`;
         scene.choices = [
-            createChoice('Ask him to restate the mission.', 'SCENE_ALDERIC_MISSION_REMINDER'),
-            createChoice('Leave the chamber again.', 'SCENE_HUB_SILVERTHORN')
+            createChoice('Ask him to restate the charge', 'SCENE_ALDERIC_MISSION_REMINDER'),
+            createChoice('Withdraw from the chamber', 'SCENE_HUB_SILVERTHORN')
         ];
         return scene;
     }
 
     if (sceneId === 'SCENE_ALDERIC_MISSION_REMINDER') {
-        scene.text = `Alderic's tone is clipped, as though reciting a report he has already given twice. 'Whisperwood. Learn what caused the corruption. Destroy it if you can. Use the city while you have it, then take the eastern road through Shadowmire.' It is ${time.timelineLabel}.`;
+        scene.text = `Alderic does not look up when he answers. 'Whisperwood first. Learn what befell it. End the corruption if it can be ended. Make use of Silverthorn while the gates still open for you, then take the eastern road through Shadowmire.' It is ${time.timelineLabel}. His voice carries the finality of an order already written in the dead.`;
         scene.choices = [
-            createChoice("Leave Alderic's chamber.", 'SCENE_HUB_SILVERTHORN')
+            createChoice("Leave Alderic's chamber", 'SCENE_HUB_SILVERTHORN')
         ];
         return scene;
     }
 
     if (sceneId === 'SCENE_SILVERTHORN_MARKET') {
         if (time.isNight) {
-            scene.text = "The market district is mostly shuttered for the night. A few guttering lanterns still burn, the smell of stale ale drifts from The Rusty Blade, and the last of the laborers are dragging carts under awnings before curfew tightens further.";
+            scene.text = "The market quarter is mostly shuttered for the night. A few guttering lanterns still burn above bolted stalls, laborers drag carts beneath awnings without speaking, and the smell of stale ale drifts from The Rusty Blade like the district's last concession to comfort.";
             scene.choices = [
-                createChoice('Enter The Rusty Blade', 'SCENE_RUSTY_BLADE_INN', { timeAdvance: 1, timeReason: 'You spend a while in the inn.', inSilverthorn: true }),
-                createChoice('Return to City Center', 'SCENE_HUB_SILVERTHORN')
+                createChoice('Take shelter in The Rusty Blade', 'SCENE_RUSTY_BLADE_INN', { timeAdvance: 1, timeReason: 'You spend a while in the inn.', inSilverthorn: true }),
+                createChoice('Return to the city center', 'SCENE_HUB_SILVERTHORN')
             ];
             return scene;
         }
 
         const marketMood = time.isDusk
-            ? 'Merchants are beginning to pack away their goods while buyers hurry through last-minute purchases.'
-            : 'The district is still active, with wagon wheels, shouted prices, and runners weaving between stalls.';
+            ? 'Merchants are packing away their wares with one eye on the lowering light while buyers hurry through last purchases as though supplies alone could keep dread at bay.'
+            : 'The district is busy, but not carefree. Wagon wheels, shouted prices, and the ring of hammered steel ride above the sound of people trying not to discuss the eastern road too loudly.';
         scene.text = `${baseScene.text} ${marketMood}`;
         scene.choices = [
             createChoice('Browse the General Store', 'SCENE_SILVERTHORN_GENERAL_STORE'),
-            createChoice(time.isForgeOpen ? 'Visit the blacksmith' : 'Check whether the blacksmith is still open', 'SCENE_SILVERTHORN_BLACKSMITH'),
+            createChoice(time.isForgeOpen ? 'Call at the blacksmith' : 'See whether the blacksmith is still open', 'SCENE_SILVERTHORN_BLACKSMITH'),
             createChoice('Step into The Rusty Blade', 'SCENE_RUSTY_BLADE_INN'),
-            createChoice('Return to City Center', 'SCENE_HUB_SILVERTHORN')
+            createChoice('Return to the city center', 'SCENE_HUB_SILVERTHORN')
         ];
         return scene;
     }
 
     if (sceneId === 'SCENE_SILVERTHORN_GENERAL_STORE') {
         if (time.isNight) {
-            scene.text = "The shutters are down and the general store is closed for the night. A chalkboard sign promises it will reopen at first light, but for now only the inn across the district still welcomes customers.";
+            scene.text = "The shutters are down and the general store is closed for the night. A chalkboard sign promises first light, but for now the district offers only locked doors and the inn's dim welcome.";
             scene.type = undefined;
             scene.shopId = undefined;
             scene.choices = [
-                createChoice('Return to the market district', 'SCENE_SILVERTHORN_MARKET'),
+                createChoice('Return to the market quarter', 'SCENE_SILVERTHORN_MARKET'),
                 createChoice('Go to The Rusty Blade instead', 'SCENE_RUSTY_BLADE_INN'),
-                createChoice('Return to City Center', 'SCENE_HUB_SILVERTHORN')
+                createChoice('Return to the city center', 'SCENE_HUB_SILVERTHORN')
             ];
             return scene;
         }
 
         if (!getSceneMemory('silverthorn_general_store_seen')) {
             setSceneMemory('silverthorn_general_store_seen', true);
-            scene.text = `${baseScene.text} The shopkeeper keeps one ear on the street and mutters that everyone suddenly wants bandages, lamp oil, and antitoxin.`;
+            scene.text = `${baseScene.text} The shopkeeper keeps one ear on the street and mutters that half the city has discovered a sudden need for bandages, lamp oil, clean cloth, and antitoxin.`;
         }
         scene.choices = [
-            createChoice('Step back into the market district', 'SCENE_SILVERTHORN_MARKET'),
-            createChoice('Return to City Center', 'SCENE_HUB_SILVERTHORN')
+            createChoice('Step back into the market quarter', 'SCENE_SILVERTHORN_MARKET'),
+            createChoice('Return to the city center', 'SCENE_HUB_SILVERTHORN')
         ];
         return scene;
     }
@@ -481,37 +481,37 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
     if (sceneId === 'SCENE_SILVERTHORN_BLACKSMITH') {
         if (!time.isForgeOpen) {
             scene.text = time.isDusk
-                ? 'The forge has gone quiet for the evening. Apprentices are banking the coals and refusing new commissions until morning.'
-                : 'The forge is dark. Only the smell of ash and quenched steel remains, and any serious work will have to wait for dawn.';
+                ? 'The forge has gone quiet for the evening. Apprentices bank the coals in red silence and turn away new commissions with the flat courtesy of people too tired to argue.'
+                : 'The forge is dark. Only the smell of ash, quenched steel, and spent labor remains, and any serious work will have to wait for dawn.';
             scene.type = undefined;
             scene.shopId = undefined;
             scene.choices = [
-                createChoice('Return to the market district', 'SCENE_SILVERTHORN_MARKET'),
-                createChoice('Return to City Center', 'SCENE_HUB_SILVERTHORN')
+                createChoice('Return to the market quarter', 'SCENE_SILVERTHORN_MARKET'),
+                createChoice('Return to the city center', 'SCENE_HUB_SILVERTHORN')
             ];
             return scene;
         }
 
         if (!getSceneMemory('silverthorn_blacksmith_seen')) {
             setSceneMemory('silverthorn_blacksmith_seen', true);
-            scene.text = `${baseScene.text} A smith warns that the eastern road has made buyers of everyone with coin and fear in equal measure.`;
+            scene.text = `${baseScene.text} One of the smiths barely looks up before warning that the eastern road has turned fear into its own kind of currency. Everyone wants steel. Everyone wants more than steel can promise.`;
         }
         scene.choices = [
-            createChoice('Return to the market district', 'SCENE_SILVERTHORN_MARKET'),
-            createChoice('Head back to City Center', 'SCENE_HUB_SILVERTHORN')
+            createChoice('Return to the market quarter', 'SCENE_SILVERTHORN_MARKET'),
+            createChoice('Head back to the city center', 'SCENE_HUB_SILVERTHORN')
         ];
         return scene;
     }
 
     if (sceneId === 'SCENE_RUSTY_BLADE_INN') {
         const innMood = time.isNight
-            ? 'The common room is louder now, with late-shift soldiers and nervous travelers drinking against the curfew.'
-            : 'The inn feels like a pressure valve for the whole city, full of half-finished briefings and overheard rumors.';
+            ? 'The common room is louder now, full of late-shift soldiers, caravan hands, and nervous travelers drinking against the curfew as if it might soften what waits outside the walls.'
+            : 'The inn feels like a pressure valve for the whole city, full of half-finished briefings, guarded glances, and rumors spoken into cups rather than across tables.';
         scene.text = `${baseScene.text} ${innMood}`;
         scene.choices = [
             createChoice('Take a room and rest', null, { action: 'longRest' }),
-            createChoice('Listen for rumors about Whisperwood', 'SCENE_RUSTY_BLADE_RUMORS', { timeAdvance: 1, timeReason: 'You linger over rumors and stray conversations.', inSilverthorn: true }),
-            createChoice('Return to the market district', 'SCENE_SILVERTHORN_MARKET')
+            createChoice('Listen for what the room fears to say aloud', 'SCENE_RUSTY_BLADE_RUMORS', { timeAdvance: 1, timeReason: 'You linger over rumors and stray conversations.', inSilverthorn: true }),
+            createChoice('Return to the market quarter', 'SCENE_SILVERTHORN_MARKET')
         ];
         return scene;
     }
@@ -520,30 +520,30 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
         const heardBefore = !!getSceneMemory('silverthorn_rumors_heard');
         setSceneMemory('silverthorn_rumors_heard', true);
         scene.text = heardBefore
-            ? "The rumors are worse on repetition: more travelers missing, more talk of patrols refusing to say what they saw, and more merchants insisting the road changed after sunset. The details vary, but the fear does not."
+            ? "On repetition the stories only grow heavier: more travelers missing, more patrols returning silent or fevered, and more merchants insisting the road itself felt different after sunset. The details shift. The fear does not."
             : baseScene.text;
         scene.choices = [
             createChoice('Return to the common room', 'SCENE_RUSTY_BLADE_INN'),
-            createChoice('Head for the city gates', 'SCENE_SILVERTHORN_GATES')
+            createChoice('Head for the eastern gate', 'SCENE_SILVERTHORN_GATES')
         ];
         return scene;
     }
 
     if (sceneId === 'SCENE_SILVERTHORN_TEMPLE') {
         if (!time.isTempleOpen) {
-            scene.text = "The main temple doors are barred for the night, though a side shrine remains open for private prayer. Candlelight leaks through the stonework, but the healers and priests are gone from the public hall.";
+            scene.text = "The main temple doors are barred for the night, though a side shrine remains open for private prayer. Candlelight leaks through the stonework, and the silence suggests the healers have been driven from comfort into triage.";
             scene.choices = [
                 createChoice('Offer a quiet prayer at the side shrine', 'SCENE_SILVERTHORN_TEMPLE_PRAYER', { timeAdvance: 1, timeReason: 'You spend a quiet hour in reflection.', inSilverthorn: true }),
-                createChoice('Return to City Center', 'SCENE_HUB_SILVERTHORN')
+                createChoice('Return to the city center', 'SCENE_HUB_SILVERTHORN')
             ];
             return scene;
         }
 
-        scene.text = `${baseScene.text} It is ${time.timelineLabel}, and the place feels like one of the last corners of the city not pretending everything is normal.`;
+        scene.text = `${baseScene.text} It is ${time.timelineLabel}, and the place feels like one of the last corners of Silverthorn that has stopped pretending anything is normal.`;
         scene.choices = [
-            createChoice('Speak with the healers about the road ahead', 'SCENE_SILVERTHORN_TEMPLE_COUNSEL', { timeAdvance: 1, timeReason: 'You stay to hear the temple counsel.', inSilverthorn: true }),
-            createChoice('Offer a quiet prayer before you depart', 'SCENE_SILVERTHORN_TEMPLE_PRAYER', { timeAdvance: 1, timeReason: 'You spend a quiet hour in reflection.', inSilverthorn: true }),
-            createChoice('Return to City Center', 'SCENE_HUB_SILVERTHORN')
+            createChoice('Ask the healers what waits on the road', 'SCENE_SILVERTHORN_TEMPLE_COUNSEL', { timeAdvance: 1, timeReason: 'You stay to hear the temple counsel.', inSilverthorn: true }),
+            createChoice('Kneel before you depart', 'SCENE_SILVERTHORN_TEMPLE_PRAYER', { timeAdvance: 1, timeReason: 'You spend a quiet hour in reflection.', inSilverthorn: true }),
+            createChoice('Return to the city center', 'SCENE_HUB_SILVERTHORN')
         ];
         return scene;
     }
@@ -559,13 +559,13 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
 
     if (sceneId === 'SCENE_SILVERTHORN_NOTICE_BOARD') {
         const boardMood = time.isNight
-            ? 'Most people have stopped lingering here, leaving the board to flap quietly in the night breeze.'
-            : 'Fresh ink and hastily pinned notices suggest half the city has been trying to make sense of events before the crown can control the message.';
+            ? 'Most people have stopped lingering here, leaving the board to creak softly in the night breeze beneath notices no one wants to read twice.'
+            : 'Fresh ink and hastily pinned notices suggest half the city is trying to understand events faster than the crown can contain them.';
         scene.text = `${baseScene.text} ${boardMood}`;
         scene.choices = [
-            createChoice('Read the Whisperwood notices', 'SCENE_SILVERTHORN_NOTICE_WHISPERWOOD'),
-            createChoice('Read the city contracts and bounties', 'SCENE_SILVERTHORN_NOTICE_CONTRACTS'),
-            createChoice('Return to City Center', 'SCENE_HUB_SILVERTHORN')
+            createChoice('Read the Whisperwood postings', 'SCENE_SILVERTHORN_NOTICE_WHISPERWOOD'),
+            createChoice('Read the contracts and warrants', 'SCENE_SILVERTHORN_NOTICE_CONTRACTS'),
+            createChoice('Return to the city center', 'SCENE_HUB_SILVERTHORN')
         ];
         return scene;
     }
@@ -581,15 +581,15 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
 
     if (sceneId === 'SCENE_SILVERTHORN_GATES') {
         const gateMood = time.isNight
-            ? 'The gate stands under doubled watch, with fewer departures and harsher questions.'
+            ? 'The gate stands under doubled watch, with fewer departures, harsher questions, and the unspoken expectation that anyone leaving may not return.'
             : time.isDusk
-                ? 'The last approved wagons are being hustled through before the watch locks down the night.'
-                : 'Traffic still moves, but every outbound cart is inspected twice.';
+                ? 'The last approved wagons are being hurried through before the watch seals the night.'
+                : 'Traffic still moves, but every outbound cart is inspected twice and every face is studied as if the walls themselves have learned suspicion.';
         scene.text = `${baseScene.text} ${gateMood}`;
         scene.choices = [
-            createChoice('Ask the gate captain about the road', 'SCENE_SILVERTHORN_GATE_CAPTAIN', { timeAdvance: 1, timeReason: 'You spend time getting the latest road intelligence.', inSilverthorn: true }),
-            createChoice(time.isNight ? 'Leave Silverthorn despite the hour' : 'Leave Silverthorn for Shadowmire', 'SCENE_TRAVEL_SHADOWMIRE', { timeAdvance: 1, timeReason: 'You finalize your departure and pass beyond the walls.', inSilverthorn: true }),
-            createChoice('Return to City Center', 'SCENE_HUB_SILVERTHORN')
+            createChoice('Take counsel from the gate captain', 'SCENE_SILVERTHORN_GATE_CAPTAIN', { timeAdvance: 1, timeReason: 'You spend time getting the latest road intelligence.', inSilverthorn: true }),
+            createChoice(time.isNight ? 'Pass beyond the walls despite the hour' : 'Take the eastern road into Shadowmire', 'SCENE_TRAVEL_SHADOWMIRE', { timeAdvance: 1, timeReason: 'You finalize your departure and pass beyond the walls.', inSilverthorn: true }),
+            createChoice('Return to the city center', 'SCENE_HUB_SILVERTHORN')
         ];
         return scene;
     }
@@ -598,7 +598,7 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
         const warnedAlready = !!getSceneMemory('silverthorn_gate_captain_seen');
         setSceneMemory('silverthorn_gate_captain_seen', true);
         scene.text = warnedAlready
-            ? "The captain recognizes you immediately. 'Same road, same warning: stay alert, cover your face if the spores turn red, and don't trust how long the forest thinks a mile should be.'"
+            ? "The captain recognizes you at once. 'Same road, same warning: keep your faces covered if the spores darken, trust your footing more than your sight, and if the forest goes too quiet, do not mistake that for mercy.'"
             : baseScene.text;
         scene.choices = [
             createChoice('Leave Silverthorn now', 'SCENE_TRAVEL_SHADOWMIRE', { timeAdvance: 1, timeReason: 'You leave before the city can hold you any longer.', inSilverthorn: true }),

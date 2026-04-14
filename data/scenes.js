@@ -2,7 +2,7 @@ export const scenes = {
     "SCENE_ARRIVAL_HUSHBRIAR": {
         id: "SCENE_ARRIVAL_HUSHBRIAR",
         location: "hushbriar",
-        background: "landscapes/heart_of_silverthorn.png", // Placeholder until hushbriar landscape exists
+        background: "landscapes/silverthorn_market_avenue.png", // Placeholder until hushbriar landscape exists
         text: "You arrive at Hushbriar Cove, trailing behind a squad of Silverthorn soldiers. The sun sets, and a dense fog swallows the sky. Two guards stand at the city gates, their torchlight struggling against the gloom.",
         onEnter: {
             addGold: 10 // Starting cash or adjustment
@@ -27,7 +27,7 @@ export const scenes = {
     "SCENE_HUSHBRIAR_GATES": {
         id: "SCENE_HUSHBRIAR_GATES",
         location: "hushbriar",
-        background: "landscapes/heart_of_silverthorn.png", // Placeholder
+        background: "landscapes/silverthorn_market_avenue.png", // Placeholder
         text: "'Halt travelers! State your business,' the tired guard grunts. Before you can answer, the suspicious guard steps forward, squinting at you. 'Wait. That look...'",
         choices: [
             {
@@ -55,7 +55,7 @@ export const scenes = {
     "SCENE_HUSHBRIAR_COMBAT_GUARDS": {
         id: "SCENE_HUSHBRIAR_COMBAT_GUARDS",
         location: "hushbriar",
-        background: "landscapes/heart_of_silverthorn.png",
+        background: "landscapes/silverthorn_market_avenue.png",
         text: "'Traitors! Seize them!' The guards attack. You have no choice but to defend yourself.",
         type: "combat",
         enemies: ["dwarven_captain", "neala"],
@@ -65,7 +65,7 @@ export const scenes = {
     "SCENE_PRISON_CAPTURE": {
         id: "SCENE_PRISON_CAPTURE",
         location: "hushbriar",
-        background: "landscapes/heart_of_silverthorn.png",
+        background: "landscapes/silverthorn_market_avenue.png",
         text: "You are overwhelmed by the guards. Blows rain down, and darkness takes you.",
         choices: [
             { text: "Wake up...", nextScene: "SCENE_PRISON_CELL" }
@@ -108,7 +108,7 @@ export const scenes = {
     "SCENE_PRISON_ESCAPE": {
         id: "SCENE_PRISON_ESCAPE",
         location: "hushbriar",
-        background: "landscapes/heart_of_silverthorn.png",
+        background: "landscapes/silverthorn_market_avenue.png",
         text: "You have escaped the cell. You must move quickly before the alarm is raised.",
         choices: [
             { text: "Sneak into the town shadows", nextScene: "SCENE_HUSHBRIAR_TOWN" }
@@ -117,7 +117,7 @@ export const scenes = {
     "SCENE_HUSHBRIAR_TOWN": {
         id: "SCENE_HUSHBRIAR_TOWN",
         location: "hushbriar",
-        background: "landscapes/heart_of_silverthorn.png",
+        background: "landscapes/silverthorn_market_avenue.png",
         text: "Inside, the town is quiet and fearful. Few elves roam the streets. The Briarwood Inn stands ahead, bustling with refugees.",
         choices: [
             {
@@ -144,7 +144,7 @@ export const scenes = {
     "SCENE_HUSHBRIAR_MARKET": {
         id: "SCENE_HUSHBRIAR_MARKET",
         location: "hushbriar",
-        background: "landscapes/heart_of_silverthorn.png",
+        background: "landscapes/silverthorn_market_avenue.png",
         text: "A few run-down shops are open: an herbalist tent, a library, and a provisioner.",
         type: "shop",
         shopId: "silverthorn_market", // Reuse for now
@@ -155,7 +155,7 @@ export const scenes = {
     "SCENE_HUSHBRIAR_CORRUPTED": {
         id: "SCENE_HUSHBRIAR_CORRUPTED",
         location: "hushbriar",
-        background: "landscapes/heart_of_silverthorn.png", // Placeholder: needs corrupted variant
+        background: "landscapes/silverthorn_market_avenue.png", // Placeholder: needs corrupted variant
         text: "Hushbriar has fallen to shadow. The streets are empty, save for the occasional Silverthorn patrol enforcing martial law. Strange growths cover the buildings.",
         choices: [
             {
@@ -177,7 +177,7 @@ export const scenes = {
     "SCENE_BRIARWOOD_INN": {
         id: "SCENE_BRIARWOOD_INN",
         location: "hushbriar",
-        background: "landscapes/heart_of_silverthorn.png", // Placeholder
+        background: "landscapes/silverthorn_market_avenue.png", // Placeholder
         text: "The inn is crowded.",
         onEnter: {
             questUpdate: { id: "investigate_whisperwood", stage: 0 }
@@ -197,7 +197,7 @@ export const scenes = {
     "SCENE_FIONNLAGH_HUB": {
         id: "SCENE_FIONNLAGH_HUB",
         location: "hushbriar",
-        background: "landscapes/heart_of_silverthorn.png",
+        background: "landscapes/silverthorn_market_avenue.png",
         npcPortrait: "portraits/npc_male_placeholder_portrait.png",
         text: "Fionnlagh looks weary. 'What is it, my son?'",
         choices: [
@@ -222,7 +222,7 @@ export const scenes = {
     "SCENE_FIONNLAGH_PLAGUE_INFO": {
         id: "SCENE_FIONNLAGH_PLAGUE_INFO",
         location: "hushbriar",
-        background: "landscapes/heart_of_silverthorn.png",
+        background: "landscapes/silverthorn_market_avenue.png",
         npcPortrait: "portraits/npc_male_placeholder_portrait.png",
         text: "'It's not just a sickness. It's a corruption of the soul. I've seen men turn into beasts.'",
         choices: [
@@ -232,7 +232,7 @@ export const scenes = {
     "SCENE_FIONNLAGH_CLAN_INFO": {
         id: "SCENE_FIONNLAGH_CLAN_INFO",
         location: "hushbriar",
-        background: "landscapes/heart_of_silverthorn.png",
+        background: "landscapes/silverthorn_market_avenue.png",
         npcPortrait: "portraits/npc_male_placeholder_portrait.png",
         text: "'The clan has scattered. Some blame the humans, some blame the elves. We are broken.'",
         choices: [
@@ -242,15 +242,15 @@ export const scenes = {
     "SCENE_HUSHBRIAR_SCREAMS": {
         id: "SCENE_HUSHBRIAR_SCREAMS",
         location: "hushbriar",
-        background: "landscapes/heart_of_silverthorn.png",
-        text: "Before he can explain, a child's scream pierces the air outside. Moments later, a woman's frantic cry joins it.",
+        background: "landscapes/silverthorn_market_avenue.png",
+        text: "Before he can answer, a child's scream cuts across the night outside. A heartbeat later a woman's cry follows it, higher and more terrible, the kind that turns every nearby voice to silence.",
         choices: [
             {
-                text: "Run outside to investigate.",
+                text: "Run toward the screams.",
                 nextScene: "SCENE_INVESTIGATION"
             },
             {
-                text: "Stay cautious.",
+                text: "Go carefully, hand on your weapon.",
                 nextScene: "SCENE_INVESTIGATION"
             }
         ]
@@ -258,15 +258,15 @@ export const scenes = {
     "SCENE_INVESTIGATION": {
         id: "SCENE_INVESTIGATION",
         location: "hushbriar",
-        background: "landscapes/heart_of_silverthorn.png",
-        text: "At the edge of town, an elven woman weeps by a smashed door. A severed hand clutching a wooden sword lies on the ground. Suddenly, two figures emerge from the shadows: Neala and Liobhán.",
+        background: "landscapes/silverthorn_market_avenue.png",
+        text: "At the edge of town, an elven woman kneels in the mud beside a door smashed inward hard enough to scatter splinters across the yard. Grief has stripped language from her; only one torn breath follows another. In the threshold lies a child's severed hand, still closed around a wooden sword. You barely have time to take it in before two women turn toward you from the shadows with steel already bared: Neala first, fierce and shaking with contained fury, and Liobhán behind her, composed in the way only dangerous people ever are.",
         choices: [
             {
-                text: "Draw weapons.",
+                text: "Shift your weight toward steel.",
                 nextScene: "SCENE_THIEVES_CONFRONTATION"
             },
             {
-                text: "Ask what happened.",
+                text: "Ask who did this.",
                 nextScene: "SCENE_THIEVES_CONFRONTATION"
             }
         ]
@@ -274,22 +274,22 @@ export const scenes = {
     "SCENE_THIEVES_CONFRONTATION": {
         id: "SCENE_THIEVES_CONFRONTATION",
         location: "hushbriar",
-        background: "landscapes/heart_of_silverthorn.png",
+        background: "landscapes/silverthorn_market_avenue.png",
         npcPortrait: "portraits/npc_female_placeholder_portrait.png",
-        text: "Neala points her weapon at you. 'Choldriths. They followed you here. Explain yourselves or die.' Liobhán appears behind you, dagger at your throat.",
+        text: "Neala's weapon is at your chest before anyone can settle their footing. 'Well. Now it makes sense,' she says, voice raw with anger. She jerks her chin toward the ruined doorway. 'Choldriths. They were on your trail, and this house paid for it.' Liobhán is suddenly at your back, blade cold against the throat of whoever stood nearest. When she speaks, her voice is so calm it makes the threat worse. 'You carry darkness loudly for strangers. Explain yourselves before Neala decides to bury you in it.'",
         choices: [
             {
-                text: "Explain and offer to help (Persuasion)",
+                text: "Explain yourselves and offer to hunt the creatures (Persuasion)",
                 type: "skillCheck",
                 skill: "persuasion",
                 dc: 12,
-                successText: "Neala lowers her blade. 'Fine. We have a common enemy then. Track them. Kill them.'",
-                failText: "'Lies!' Neala shouts. Combat is inevitable.",
+                successText: "Neala does not lower her blade, but the angle changes. 'Then prove it,' she says. 'Follow the blood. Find what came here. Kill it before another door breaks open tonight.' Liobhán's knife eases away by a finger's width, no more.",
+                failText: "Neala's mouth twists with disgust. 'Lies. Or worse.' Liobhán moves first, and whatever restraint was still possible dies with the motion.",
                 nextSceneSuccess: "SCENE_TRACKING_CHOLDRITHS",
                 nextSceneFail: "SCENE_THIEVES_COMBAT"
             },
             {
-                text: "Attack them.",
+                text: "Strike before they can.",
                 nextScene: "SCENE_THIEVES_COMBAT"
             }
         ]
@@ -297,8 +297,8 @@ export const scenes = {
     "SCENE_THIEVES_COMBAT": {
         id: "SCENE_THIEVES_COMBAT",
         location: "hushbriar",
-        background: "landscapes/heart_of_silverthorn.png",
-        text: "The guild members attack with deadly precision!",
+        background: "landscapes/silverthorn_market_avenue.png",
+        text: "Neala lunges with all the anger in her body, and Liobhán is already moving before the first shout leaves anyone's mouth. Her whistle snaps once, and hidden blades answer from the dark as if the whole town has turned against you.",
         type: "combat",
         enemies: ["fungal_beast", "fungal_beast"], // Placeholder for Rogue Enemy
         winScene: "SCENE_TRACKING_CHOLDRITHS",
@@ -308,10 +308,10 @@ export const scenes = {
         id: "SCENE_TRACKING_CHOLDRITHS",
         location: "hushbriar",
         background: "landscapes/forest_walk.png",
-        text: "You follow the drag marks and blood spatter out of the city and into the forest. The trail ends at the Moonwell.",
+        text: "You follow drag marks, broken brush, and dark blood worked deep into the roots beyond town. The trail runs with ugly certainty beneath the trees until even the birds know better than to sing above it. At last it leads you into the clearing of the Moonwell.",
         choices: [
             {
-                text: "Approach the Moonwell.",
+                text: "Approach the Moonwell in silence.",
                 nextScene: "SCENE_MOONWELL"
             }
         ]
@@ -320,7 +320,7 @@ export const scenes = {
         id: "SCENE_MOONWELL",
         location: "hushbriar",
         background: "landscapes/forest_walk_alt.png",
-        text: "Two small bodies hang above the well. A man stands below, tossing a stone. It is Aodhan. 'Sad, isn't it?' he says, not turning around. 'To die so young.'",
+        text: "Two small bodies wrapped in spider silk hang above the Moonwell, turning slowly in the night air. Beneath them stands Aodhan, head bowed, a dark stone rising and falling in his hand as if grief has left the motion behind after everything else. Two dead choldriths lie at his feet. He does not turn when he speaks. 'There should have been time,' he says quietly. 'For them. For all of this.'",
         choices: [
             {
                 text: "Confront Aodhan.",
@@ -333,14 +333,14 @@ export const scenes = {
         location: "hushbriar",
         background: "landscapes/forest_walk_alt.png",
         npcPortrait: "portraits/npc_male_placeholder_portrait.png",
-        text: "Aodhan pockets the Stone of Oblivion. 'The barrier I created failed moments ago. The darkness is coming.' He looks at you with hollow eyes.",
+        text: "Aodhan closes his hand around the Stone of Oblivion and finally faces you. Grief has hollowed him out so completely that fury seems to be the only thing still keeping him standing. 'Sad, isn't it?' he says, glancing once toward the hanging bodies. 'To die so young. To build a world for people and watch it fail them in a single night.' His gaze settles on you. 'The barrier failed moments ago. Not in some distant prophecy. Not in a scholar's warning. Now. The dark is already here, and every oath we were told to trust has gone to ash with it.'",
         choices: [
             {
-                text: "Attack him.",
+                text: "Raise steel against him.",
                 nextScene: "SCENE_AODHAN_COMBAT"
             },
             {
-                text: "Let him go.",
+                text: "Let him walk into the dark.",
                 nextScene: "SCENE_AFTERMATH"
             }
         ]
@@ -349,7 +349,7 @@ export const scenes = {
         id: "SCENE_AODHAN_COMBAT",
         location: "hushbriar",
         background: "landscapes/forest_walk_alt.png",
-        text: "Aodhan unleashes dark magic!",
+        text: "Something inside Aodhan gives way. Grief breaks open into violence, and dark power gathers around his arm like smoke learning how to bite.",
         type: "combat",
         enemies: ["spore_zombie"], // Placeholder for Aodhan
         winScene: "SCENE_AODHAN_DEFEAT",
@@ -359,14 +359,14 @@ export const scenes = {
         id: "SCENE_AODHAN_DEFEAT",
         location: "hushbriar",
         background: "landscapes/forest_walk_alt.png",
-        text: "Aodhan falls. You retrieve the Stone of Oblivion from his body. As he dies, the ground shakes.",
+        text: "Aodhan falls to his knees first, as though his body has only now remembered how tired it has always been. When he finally hits the earth, the Stone of Oblivion slips from his hand into the grass. The moment you take it, the ground answers with a low shudder, as if something far beneath the roots has felt the change and turned in its sleep.",
         onEnter: {
             addItem: "stone_of_oblivion",
             setFlag: "aodhan_dead" // Using generic flag system, but ideally we want explicit status logic
         },
         choices: [
             {
-                text: "Watch the sky.",
+                text: "Lift your eyes to the sky.",
                 nextScene: "SCENE_AFTERMATH"
             }
         ]
@@ -375,18 +375,18 @@ export const scenes = {
         id: "SCENE_AFTERMATH",
         location: "hushbriar",
         background: "landscapes/forest_walk.png",
-        text: "The following morning never arrives. The moon turns crimson red. The Underdark begins to consume the earth. The prophecy has begun.",
+        text: "Morning does not come. The darkness above the trees deepens until the moon bleeds red enough to stain the clouds around it, and the whole world seems to hold one terrible breath before giving way. Whatever had been buried beneath old stories and older prayers is buried no longer. It is here now, and it is not leaving quietly.",
         choices: [
             {
-                text: "Test the road back to Silverthorn",
+                text: "Turn back toward Silverthorn",
                 nextScene: "SCENE_SILVERTHORN_QUARANTINE"
             },
             {
-                text: "Head towards Lament Hill (Follow rumors)",
+                text: "Take the road toward Lament Hill",
                 nextScene: "SCENE_LAMENT_HILL_APPROACH"
             },
             {
-                text: "Seek Durnhelm (Dwarven Allies)",
+                text: "Make for Durnhelm",
                 nextScene: "SCENE_DURNHELM_GATES"
             }
         ]
@@ -428,7 +428,7 @@ export const scenes = {
         location: "silverthorn",
         background: "landscapes/alderics_chamber.webp",
         npcPortrait: "portraits/alderic_portrait.png",
-        text: "The chamber is dim and spare, lit by a single brazier. Prince Alderic stands over a map table marked with routes, blockades, and a red circle around Whisperwood. He does not waste time. 'You have come,' he says. 'Good. Silverthorn needs someone who can move before the rot reaches our walls.'",
+        text: "The chamber is dim and severe, lit by a single brazier and the red glow of wax seals melting over opened dispatches. Prince Alderic stands over a map table crowded with routes, blockades, and a red ring drawn hard around Whisperwood. He does not offer a seat. 'You have come,' he says at last. 'Good. Silverthorn has use for those who can still move before the rot reaches our walls.'",
         onEnter: {
             once: true,
             questUpdate: { id: "investigate_whisperwood", stage: 1 },
@@ -441,12 +441,12 @@ export const scenes = {
                 nextScene: "SCENE_ALDERIC_REACTION"
             },
             {
-                text: "Look around the room.",
+                text: "Study the chamber in silence.",
                 type: "skillCheck",
                 skill: "perception",
                 dc: 12,
-                successText: "You notice the room is devoid of personal touches, cold and sterile. A map on the desk has a red circle around Whisperwood.",
-                failText: "The shadows make it hard to see details, but the Prince's tension is palpable.",
+                successText: "The room is stripped of comfort. No family emblems, no keepsakes, nothing soft. Only ledgers, wax, steel, and a map scarred around Whisperwood hard enough to tear the parchment.",
+                failText: "The brazier throws more shadow than light, but even in half-darkness the prince's restraint feels less like calm than something locked down by force.",
                 onSuccess: {
                     effects: [
                         { type: "relationship", npcId: "alderic", amount: 5 }
@@ -456,7 +456,7 @@ export const scenes = {
                 nextSceneFail: "SCENE_BRIEFING_2"
             },
             {
-                text: "Ask about the mission.",
+                text: "Ask him to speak plainly.",
                 nextScene: "SCENE_BRIEFING_2"
             }
         ]
@@ -466,9 +466,9 @@ export const scenes = {
         location: "silverthorn",
         background: "landscapes/alderics_chamber.webp",
         npcPortrait: "portraits/alderic_portrait.png",
-        text: "Alderic's face hardens. 'Aodhan is dead? A pity. He was a useful tool, but weak. We must move forward.'",
+        text: "Alderic absorbs the news without visible grief. Only the set of his mouth changes. 'Aodhan is dead? Then he has spared the world whatever weakness might still have remained in him. We move forward.'",
         choices: [
-            { text: "Ask about the mission.", nextScene: "SCENE_BRIEFING_2" }
+            { text: "Tell me what you need done.", nextScene: "SCENE_BRIEFING_2" }
         ]
     },
     "SCENE_BRIEFING_2": {
@@ -476,10 +476,10 @@ export const scenes = {
         location: "silverthorn",
         background: "landscapes/alderics_chamber.webp",
         npcPortrait: "portraits/alderic_portrait.png",
-        text: "Alderic points to the map. 'You will go to Whisperwood, learn what birthed the corruption, and cut it out at the root. My quartermaster has already prepared coin for travel and whatever supplies Silverthorn can spare. Once you leave this chamber, the city is yours to use. When you are ready, depart through the eastern gates and take the Shadowmire road.'",
+        text: "Alderic lays two fingers on the map. 'You will go to Whisperwood. You will learn what birthed this corruption, and if there is a root to cut, you will cut it. My quartermaster has released coin for travel and what little surplus Silverthorn can still spare. Until you depart, the city is yours to use. When you are ready, take the eastern gates and follow the Shadowmire road.'",
         choices: [
             {
-                text: "I accept the commission.",
+                text: "I will carry out the charge.",
                 effects: [
                     { type: "relationship", npcId: "alderic", amount: 10 },
                     { type: "reputation", factionId: "silverthorn", amount: 5 }
@@ -487,7 +487,7 @@ export const scenes = {
                 nextScene: "SCENE_BRIEFING_DISMISSAL"
             },
             {
-                text: "I need more information about Aodhan.",
+                text: "Speak to me of Aodhan first.",
                 effects: [
                     { type: "relationship", npcId: "alderic", amount: 5 }
                 ],
@@ -500,17 +500,17 @@ export const scenes = {
         location: "silverthorn",
         background: "landscapes/alderics_chamber.webp",
         npcPortrait: "portraits/alderic_portrait.png",
-        text: "'Aodhan... he was once a friend. Now he is lost to the spores. Do not hesitate if you see him.'",
+        text: "'Aodhan was once counted among my trusted men,' Alderic says, and for a moment the words sound rehearsed from overuse. 'Now he is grief wearing a man's shape. If you find him, do not mistake pity for mercy.'",
         choices: [
             {
-                text: "Understood. I will take the mission.",
+                text: "Understood. I will go.",
                 effects: [
                     { type: "relationship", npcId: "alderic", amount: 5 }
                 ],
                 nextScene: "SCENE_BRIEFING_DISMISSAL"
             },
             {
-                text: "Request extra supplies (Requires 5 Alderic Relationship)",
+                text: "Ask for more than a writ and good intentions.",
                 requires: {
                     relationship: { npcId: "alderic", min: 5 }
                 },
@@ -527,10 +527,10 @@ export const scenes = {
         location: "silverthorn",
         background: "landscapes/alderics_chamber.webp",
         npcPortrait: "portraits/alderic_portrait.png",
-        text: "Alderic slides a sealed writ across the table. 'Show that to any gate sergeant or quartermaster if you are challenged. Do not return without answers.' The chamber doors stand open behind you, and beyond them you can hear the restless life of Silverthorn carrying on outside.",
+        text: "Alderic slides a sealed writ across the table without breaking eye contact. 'Show that to any gate sergeant or quartermaster who thinks fear outranks duty. Do not return to me with rumors. Bring answers.' Behind you, the chamber doors stand open to the noise of a city pretending not to listen for bad news.",
         choices: [
             {
-                text: "Leave Alderic's chamber.",
+                text: "Step back into Silverthorn.",
                 nextScene: "SCENE_HUB_SILVERTHORN"
             }
         ]
@@ -540,14 +540,14 @@ export const scenes = {
         location: "silverthorn",
         background: "landscapes/alderics_chamber.webp",
         npcPortrait: "portraits/alderic_portrait.png",
-        text: "Alderic remains in his chamber, studying reports by candlelight. He looks up only briefly. 'You already have your orders. If you need something, be quick about it.'",
+        text: "Alderic remains where you left him, framed by candlelight and stacks of reports gone soft at the corners from too many hands. He looks up only long enough to confirm it is you. 'You already have your orders. If there is something you require, speak it without ceremony.'",
         choices: [
             {
-                text: "Ask him to restate the mission.",
+                text: "Ask him to restate the charge.",
                 nextScene: "SCENE_ALDERIC_MISSION_REMINDER"
             },
             {
-                text: "Leave the chamber again.",
+                text: "Leave him to his dispatches.",
                 nextScene: "SCENE_HUB_SILVERTHORN"
             }
         ]
@@ -557,10 +557,10 @@ export const scenes = {
         location: "silverthorn",
         background: "landscapes/alderics_chamber.webp",
         npcPortrait: "portraits/alderic_portrait.png",
-        text: "Alderic's tone is clipped, as though reciting a report he has already given twice. 'Whisperwood. Learn what caused the corruption. Destroy it if you can. Use the city while you have it, then take the eastern road through Shadowmire.'",
+        text: "Alderic answers as if reading from a sentence already carved in stone. 'Whisperwood. Find the source. Sever it if it can be severed. Use the city while you still have the luxury of walls, then take the eastern road through Shadowmire.'",
         choices: [
             {
-                text: "Leave Alderic's chamber.",
+                text: "Return to the city.",
                 nextScene: "SCENE_HUB_SILVERTHORN"
             }
         ]
@@ -568,7 +568,7 @@ export const scenes = {
     "SCENE_SILVERTHORN_MARKET": {
         id: "SCENE_SILVERTHORN_MARKET",
         location: "silverthorn",
-        background: "landscapes/heart_of_silverthorn.png",
+        background: "landscapes/silverthorn_market_avenue.png",
         text: "The market district is the loudest corner of Silverthorn. Traders shout over one another, pack animals snort at loaded carts, and a dozen side streets promise food, steel, rumor, or trouble. A weathered sign for The Rusty Blade swings above a nearby lane.",
         choices: [
             { text: "Browse the General Store", nextScene: "SCENE_SILVERTHORN_GENERAL_STORE" },
@@ -580,7 +580,7 @@ export const scenes = {
     "SCENE_SILVERTHORN_GENERAL_STORE": {
         id: "SCENE_SILVERTHORN_GENERAL_STORE",
         location: "silverthorn",
-        background: "landscapes/heart_of_silverthorn.png",
+        background: "landscapes/silverthorn_market_avenue.png",
         text: "Shelves crowd the walls of the general store, laden with lamp oil, dried meat, blankets, bandages, and the sort of practical supplies adventurers always wish they had packed sooner.",
         type: "shop",
         shopId: "silverthorn_general_store",
@@ -592,7 +592,7 @@ export const scenes = {
     "SCENE_SILVERTHORN_BLACKSMITH": {
         id: "SCENE_SILVERTHORN_BLACKSMITH",
         location: "silverthorn",
-        background: "landscapes/heart_of_silverthorn.png",
+        background: "landscapes/silverthorn_market_avenue.png",
         text: "The forge glows orange behind a curtain of sparks. Racks of blades, bows, helms, and half-finished mail line the walls while apprentices hurry between bellows and anvils.",
         type: "shop",
         shopId: "silverthorn_armorer",
@@ -604,7 +604,7 @@ export const scenes = {
     "SCENE_RUSTY_BLADE_INN": {
         id: "SCENE_RUSTY_BLADE_INN",
         location: "silverthorn",
-        background: "landscapes/heart_of_silverthorn.png",
+        background: "landscapes/silverthorn_market_avenue.png",
         text: "The Rusty Blade is half tavern, half barracks overflow. Couriers, sellswords, and merchants crowd the common room while a barkeep polishes tankards with the steady calm of someone used to overhearing dangerous things.",
         choices: [
             { text: "Take a room and rest", action: "longRest" },
@@ -615,7 +615,7 @@ export const scenes = {
     "SCENE_RUSTY_BLADE_RUMORS": {
         id: "SCENE_RUSTY_BLADE_RUMORS",
         location: "silverthorn",
-        background: "landscapes/heart_of_silverthorn.png",
+        background: "landscapes/silverthorn_market_avenue.png",
         text: "Most of what you hear is frightened speculation, but the useful thread repeats itself often enough: caravans from the east have stopped arriving, and every survivor who does return speaks of drifting red spores, missing patrols, and whole glades gone silent overnight.",
         choices: [
             { text: "Return to the common room", nextScene: "SCENE_RUSTY_BLADE_INN" },
@@ -625,7 +625,7 @@ export const scenes = {
     "SCENE_SILVERTHORN_TEMPLE": {
         id: "SCENE_SILVERTHORN_TEMPLE",
         location: "silverthorn",
-        background: "landscapes/heart_of_silverthorn.png",
+        background: "landscapes/silverthorn_market_avenue.png",
         text: "The Temple of Dawn is quieter than the market, filled with low prayer, warm candlelight, and the smell of incense. A few healers move between benches offering comfort to worried families and soldiers bound for the road.",
         choices: [
             { text: "Speak with the healers about the road ahead", nextScene: "SCENE_SILVERTHORN_TEMPLE_COUNSEL" },
@@ -636,7 +636,7 @@ export const scenes = {
     "SCENE_SILVERTHORN_TEMPLE_COUNSEL": {
         id: "SCENE_SILVERTHORN_TEMPLE_COUNSEL",
         location: "silverthorn",
-        background: "landscapes/heart_of_silverthorn.png",
+        background: "landscapes/silverthorn_market_avenue.png",
         text: "The healers warn that anything tied to Whisperwood should be treated with suspicion. They urge you to keep antitoxin close, burn tainted cloth, and trust no stream that runs red beneath the moon.",
         choices: [
             { text: "Remain in the temple a while longer", nextScene: "SCENE_SILVERTHORN_TEMPLE" },
@@ -646,7 +646,7 @@ export const scenes = {
     "SCENE_SILVERTHORN_TEMPLE_PRAYER": {
         id: "SCENE_SILVERTHORN_TEMPLE_PRAYER",
         location: "silverthorn",
-        background: "landscapes/heart_of_silverthorn.png",
+        background: "landscapes/silverthorn_market_avenue.png",
         text: "You take a quiet moment beneath the stained glass and let the city's noise fall away. For a few breaths, the mission feels less like a command and more like a path you have chosen.",
         choices: [
             { text: "Step back into the temple hall", nextScene: "SCENE_SILVERTHORN_TEMPLE" },
@@ -656,7 +656,7 @@ export const scenes = {
     "SCENE_SILVERTHORN_NOTICE_BOARD": {
         id: "SCENE_SILVERTHORN_NOTICE_BOARD",
         location: "silverthorn",
-        background: "landscapes/heart_of_silverthorn.png",
+        background: "landscapes/silverthorn_market_avenue.png",
         text: "A broad notice board stands near the square, layered with militia summons, missing-person sketches, merchant warnings, and handwritten pleas from families with kin somewhere beyond the eastern road.",
         choices: [
             { text: "Read the Whisperwood notices", nextScene: "SCENE_SILVERTHORN_NOTICE_WHISPERWOOD" },
@@ -667,7 +667,7 @@ export const scenes = {
     "SCENE_SILVERTHORN_NOTICE_WHISPERWOOD": {
         id: "SCENE_SILVERTHORN_NOTICE_WHISPERWOOD",
         location: "silverthorn",
-        background: "landscapes/heart_of_silverthorn.png",
+        background: "landscapes/silverthorn_market_avenue.png",
         text: "Several notices mention the same pattern: scouts vanish near Whisperwood's edge, hunters return feverish and confused, and an entire patrol failed to report back after entering the treeline under Alderic's banner.",
         choices: [
             { text: "Keep reading the board", nextScene: "SCENE_SILVERTHORN_NOTICE_BOARD" },
@@ -677,8 +677,8 @@ export const scenes = {
     "SCENE_SILVERTHORN_NOTICE_CONTRACTS": {
         id: "SCENE_SILVERTHORN_NOTICE_CONTRACTS",
         location: "silverthorn",
-        background: "landscapes/heart_of_silverthorn.png",
-        text: "Most contracts are routine escort work or rat-clearing jobs, but a few wartime postings hint at what the fuller city game could become later: curfew enforcement, missing smugglers, suspicious alchemists, and sealed district inspections.",
+        background: "landscapes/silverthorn_market_avenue.png",
+        text: "Most postings are the ordinary labor of a strained city: escort work, cellar pests, and warehouse watches. But newer notices speak in harsher terms of curfew enforcement, vanished smugglers, suspicious alchemists, and sealed inspections no one is meant to ask about twice.",
         choices: [
             { text: "Return to the notice board", nextScene: "SCENE_SILVERTHORN_NOTICE_BOARD" },
             { text: "Return to City Center", nextScene: "SCENE_HUB_SILVERTHORN" }
@@ -687,7 +687,7 @@ export const scenes = {
     "SCENE_SILVERTHORN_GATES": {
         id: "SCENE_SILVERTHORN_GATES",
         location: "silverthorn",
-        background: "landscapes/heart_of_silverthorn.png",
+        background: "landscapes/silverthorn_market_avenue.png",
         text: "Silverthorn's eastern gate rises above the road like a fortress wall. Wagons are being inspected before departure, and a tired gate captain keeps one hand on a ledger and the other on the pommel of his sword.",
         choices: [
             { text: "Ask the gate captain about the road", nextScene: "SCENE_SILVERTHORN_GATE_CAPTAIN" },
@@ -698,7 +698,7 @@ export const scenes = {
     "SCENE_SILVERTHORN_GATE_CAPTAIN": {
         id: "SCENE_SILVERTHORN_GATE_CAPTAIN",
         location: "silverthorn",
-        background: "landscapes/heart_of_silverthorn.png",
+        background: "landscapes/silverthorn_market_avenue.png",
         text: "The captain taps the route on your writ. 'Stay on the road until the fog thickens, then trust your footing more than your eyes. If you see red drifting across the path, cover your mouth and keep moving. No patrol we sent past the old mile-stone has returned unchanged.'",
         choices: [
             { text: "Leave Silverthorn now", nextScene: "SCENE_TRAVEL_SHADOWMIRE" },
@@ -709,18 +709,46 @@ export const scenes = {
         id: "SCENE_TRAVEL_SHADOWMIRE",
         location: "shadowmire",
         background: "landscapes/forest_walk.png",
-        text: "You leave the city gates and enter Shadowmire Forest. The air grows thick and heavy. Strange spores drift on the wind.",
+        text: "You leave Silverthorn behind and follow the eastern road beneath the living canopy of Shadowmire Forest. Pine and damp earth fill the air. Songbirds trade calls overhead, and for a few miles the road almost feels ordinary again despite the weight of Alderic's mission on your back.",
         onEnter: {
             questUpdate: { id: "investigate_whisperwood", stage: 2 }
         },
         choices: [
             {
-                text: "Press on through the fog (CON Save)",
+                text: "Keep to the road and press deeper into Shadowmire",
+                nextScene: "SCENE_SHADOWMIRE_HAZE"
+            }
+        ]
+    },
+    "SCENE_SHADOWMIRE_HAZE": {
+        id: "SCENE_SHADOWMIRE_HAZE",
+        location: "shadowmire",
+        background: "landscapes/foggy_forest.png",
+        text: "Hours later the light begins to flatten. A chill breeze slides through the trees, and a strange violet haze starts gathering low between the trunks. The birds go quiet one by one. Then a whole flock bursts upward at once, beating the air in panic over the road ahead.",
+        choices: [
+            {
+                text: "Watch the treetops and listen for what scared them",
+                nextScene: "SCENE_SHADOWMIRE_DYING_BIRDS"
+            },
+            {
+                text: "Cover your mouth and hurry forward",
+                nextScene: "SCENE_SHADOWMIRE_DYING_BIRDS"
+            }
+        ]
+    },
+    "SCENE_SHADOWMIRE_DYING_BIRDS": {
+        id: "SCENE_SHADOWMIRE_DYING_BIRDS",
+        location: "shadowmire",
+        background: "landscapes/dying_bird_scene.png",
+        text: "Before anyone can speak, the flock drops out of the purple haze like stones. Birds strike branch and earth alike, dead before they land. The air suddenly tastes wrong, sweet and rotten at once, and your eyes begin to sting as the mist thickens around the road.",
+        choices: [
+            {
+                text: "Fight for one clean breath (CON Save)",
                 type: "save",
                 ability: "CON",
                 dc: 12,
-                successText: "You hold your breath and cover your face, resisting the sickening vapors.",
-                failText: "The spores fill your lungs. You cough violently and feel the sickness taking hold.",
+                successText: "You clamp a sleeve over your face and stay on your feet a little longer, but the world is already starting to tilt.",
+                failText: "Your lungs seize on the first breath you take. You cough violently as the haze floods your senses and the world folds into darkness.",
                 failEffect: { type: "status", id: "spore_sickness" },
                 nextScene: "SCENE_SPOREFALL_WAKE"
             }
@@ -729,29 +757,29 @@ export const scenes = {
     "SCENE_SPOREFALL_WAKE": {
         id: "SCENE_SPOREFALL_WAKE",
         location: "whisperwood",
-        background: "landscapes/sporefall_outskirts.png",
-        text: "Your eyes snap open to a soft red haze. Spores drift like snowflakes around you, clinging to your eyelashes. The memory of Silverthorn feels distant in this muffled world.",
+        background: "landscapes/sporefall_crimson_frontier.png",
+        text: "When your eyes snap open, the sky above you is black and a swollen crimson moon hangs where daylight should be. Dead birds and small animals lie scattered around the road. Otherworldly plants glow blue and violet through the drifting spores, and the memory of healthy Shadowmire already feels impossibly far away.",
         onEnter: {
             once: true
         },
         choices: [
             {
-                text: "Steady your breathing (WIS Check)",
+                text: "Steady your breathing and take stock (WIS Check)",
                 type: "skillCheck",
                 skill: "insight",
                 dc: 11,
-                successText: "You center yourself, matching your breath to the rhythm of the forest. The panic fades.",
-                failText: "The spores sting your throat, making you cough loudly before you can quiet down.",
+                successText: "You force yourself to count breaths and details instead of fear. The panic eases just enough for you to think.",
+                failText: "The spores catch in your throat and the sight of the dead things around you makes your stomach lurch before you can steady yourself.",
                 nextSceneSuccess: "SCENE_ARRIVAL_WHISPERWOOD",
                 nextSceneFail: "SCENE_ARRIVAL_WHISPERWOOD"
             },
             {
-                text: "Lie still and listen (Perception)",
+                text: "Lie still and listen to the new forest (Perception)",
                 type: "skillCheck",
                 skill: "perception",
                 dc: 12,
-                successText: "Something heavy is pacing nearby. Its breathing is wet, wrong. You chart a path away from it in your mind before you move.",
-                failText: "You hear only the wind and the whisper of spores, offering no guidance.",
+                successText: "Somewhere beyond the haze, something large moves with a wet, dragging rhythm. You mark the sound and plan your first steps carefully.",
+                failText: "The woods answer only with the whisper of spores and a silence that feels too attentive.",
                 nextSceneSuccess: "SCENE_ARRIVAL_WHISPERWOOD",
                 nextSceneFail: "SCENE_ARRIVAL_WHISPERWOOD"
             }
@@ -760,8 +788,8 @@ export const scenes = {
     "SCENE_ARRIVAL_WHISPERWOOD": {
         id: "SCENE_ARRIVAL_WHISPERWOOD",
         location: "whisperwood",
-        background: "landscapes/sporefall_outskirts.png",
-        text: "You push through low-hanging branches into Whisperwood proper. The trees bend under the weight of crimson spores, and the ground glistens like wet embers. Shapes move in the haze—too large to be deer.",
+        background: "landscapes/sporefall_crimson_frontier.png",
+        text: "You rise and push through low branches into Whisperwood proper. The trees sag beneath crimson spore-growth, the ground glistens like wet embers, and the haze ahead shifts around shapes too large to be deer. Shadowmire is gone. Sporefall has taken its place.",
         choices: [
             {
                 text: "Investigate the glowing plants.",
@@ -837,7 +865,7 @@ export const scenes = {
     "SCENE_SKIRT_BEAST": {
         id: "SCENE_SKIRT_BEAST",
         location: "whisperwood",
-        background: "landscapes/sporefall_outskirts.png",
+        background: "landscapes/sporefall_crimson_frontier.png",
         text: "You give the creature a wide berth, slipping between the trees while it snorts and paws at the moss. The spores glow faintly on your cloak, but the beast fades behind you.",
         onEnter: {
             questUpdate: { id: "investigate_whisperwood", stage: 3 },
@@ -853,7 +881,7 @@ export const scenes = {
     "SCENE_VICTORY": {
         id: "SCENE_VICTORY",
         location: "whisperwood",
-        background: "landscapes/sporefall_outskirts.png",
+        background: "landscapes/sporefall_crimson_frontier.png",
         text: "The beast collapses into a pile of sludge. Spores cling to your armor and weapons, and the forest goes silent. You wipe your gear clean and listen—a voice carries through the haze.",
         onEnter: {
              questUpdate: { id: "investigate_whisperwood", stage: 3 }
@@ -868,7 +896,7 @@ export const scenes = {
     "SCENE_MEET_EOIN": {
         id: "SCENE_MEET_EOIN",
         location: "whisperwood",
-        background: "landscapes/sporefall_outskirts.png",
+        background: "landscapes/sporefall_crimson_frontier.png",
         npcPortrait: "portraits/npc_male_placeholder_portrait.png",
         text: "A ragged man stumbles from the treeline. He is covered in scratches and spore-dust. 'Stay back!' he warns, brandishing a broken spear. 'Are you real, or another trick of the moon?'",
         choices: [
@@ -900,7 +928,7 @@ export const scenes = {
     "SCENE_EOIN_TALK": {
         id: "SCENE_EOIN_TALK",
         location: "whisperwood",
-        background: "landscapes/sporefall_outskirts.png",
+        background: "landscapes/sporefall_crimson_frontier.png",
         npcPortrait: "portraits/npc_male_placeholder_portrait.png",
         text: "Eoin explains that a massive creature, a 'Spore Walker', is raising the dead further in. 'It guards the old ruins. If you go there, you go to your grave.'",
         choices: [
@@ -923,7 +951,7 @@ export const scenes = {
     "SCENE_EOIN_ASSISTANCE": {
         id: "SCENE_EOIN_ASSISTANCE",
         location: "whisperwood",
-        background: "landscapes/sporefall_outskirts.png",
+        background: "landscapes/sporefall_crimson_frontier.png",
         npcPortrait: "portraits/npc_male_placeholder_portrait.png",
         text: "'You are brave, but not foolish,' Eoin says, pressing a small vial into your hand. 'Take this. It may be the only thing that sees you through.'",
         onEnter: {
@@ -939,7 +967,7 @@ export const scenes = {
     "SCENE_ALONE_AGAIN": {
         id: "SCENE_ALONE_AGAIN",
         location: "whisperwood",
-        background: "landscapes/sporefall_outskirts.png",
+        background: "landscapes/sporefall_crimson_frontier.png",
         text: "The survivor vanishes into the gloom. You are alone again, but you see tracks leading deeper into the woods towards some ruins.",
         choices: [
             {
@@ -998,7 +1026,7 @@ export const scenes = {
     "SCENE_HUB_SILVERTHORN": {
         id: "SCENE_HUB_SILVERTHORN",
         location: "silverthorn",
-        background: "landscapes/heart_of_silverthorn.png",
+        background: "landscapes/silverthorn_market_avenue.png",
         text: "You step out of Alderic's chamber and into the living heart of Silverthorn. Messengers cut through the crowd, temple bells carry over the rooftops, and every street seems to offer another lead, errand, or place to prepare before taking the eastern road.",
         choices: [
             {
@@ -1183,10 +1211,11 @@ export const scenes = {
     "SCENE_THIEVES_HIDEOUT": {
         id: "SCENE_THIEVES_HIDEOUT",
         location: "thieves_hideout",
-        background: "landscapes/heart_of_silverthorn.png", // Placeholder
+        background: "landscapes/silverthorn_market_avenue.png", // Placeholder
         text: "Beneath the bridge, behind stacked crates and river rot, you find the hidden loading dock the guild uses to move people and contraband. The rowboat is gone, but the place still feels recently used.",
         choices: [
             { text: "Enter", action: "openMap" }
         ]
     }
 };
+
