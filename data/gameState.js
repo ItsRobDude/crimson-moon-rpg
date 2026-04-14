@@ -435,6 +435,10 @@ export function performShortRest() {
     const healed = Math.max(1, roll);
     gameState.player.hp = Math.min(gameState.player.maxHp, gameState.player.hp + healed);
 
+    if (gameState.player.resources['second_wind']) {
+        gameState.player.resources['second_wind'].current = gameState.player.resources['second_wind'].max;
+    }
+
     if (gameState.player.resources['action_surge']) {
         gameState.player.resources['action_surge'].current = gameState.player.resources['action_surge'].max;
     }

@@ -49,6 +49,33 @@ function getCombatActor(actorId) {
     return gameState.combat.enemies.find(enemy => enemy.uniqueId === actorId) || null;
 }
 
+export function hasReactionAvailable(actorId) {
+    const actor = getCombatActor(actorId);
+    if (!actor) return false;
+    actor.combatFlags = actor.combatFlags || {};
+    return actor.combatFlags.reactionAvailable !== false;
+}
+
+function refreshReaction(actorId) {
+    const actor = getCombatActor(actorId);
+    if (!actor) return false;
+    actor.combatFlags = { ...(actor.combatFlags || {}), reactionAvailable: true };
+    if (gameState.combat.activeActorId === actorId) {
+        gameState.combat.reactionsRemaining = 1;
+    }
+    return true;
+}
+
+export function consumeReaction(actorId) {
+    if (!hasReactionAvailable(actorId)) return false;
+    const actor = getCombatActor(actorId);
+    actor.combatFlags.reactionAvailable = false;
+    if (gameState.combat.activeActorId === actorId) {
+        gameState.combat.reactionsRemaining = 0;
+    }
+    return true;
+}
+
 function normalizeAbilityBlock(attributes = {}, fallback = {}) {
     const base = {
         STR: fallback.STR || 10,
@@ -364,12 +391,15 @@ function buildPath(from, to) {
     return path;
 }
 
-function applyOpportunityAttacks(moverId, path) {
+export function applyOpportunityAttacks(moverId, path) {
     const mover = getCombatActor(moverId);
     if (!mover || mover.combatFlags?.disengage) return;
 
     const triggers = getOpportunityAttackTriggers(gameState.combat.grid, moverId, path);
     triggers.forEach(trigger => {
+        if (!consumeReaction(trigger.hostileId)) {
+            return;
+        }
         resolveWeaponHit(trigger.hostileId, moverId, {
             opportunityAttack: true,
             consumeAction: false
@@ -473,10 +503,10 @@ function beginTurn(actorId) {
     gameState.combat.activeActorId = actorId;
     gameState.combat.actionsRemaining = 1;
     gameState.combat.bonusActionsRemaining = 1;
-    gameState.combat.reactionsRemaining = 1;
+    refreshReaction(actorId);
     gameState.combat.movementRemaining = getDerivedActorState(actor).speed;
     gameState.combat.sneakAttackUsedThisTurn = false;
-    actor.combatFlags = {};
+    actor.combatFlags = { reactionAvailable: true };
     reconcileTileEffects(actorId, 'turn_start');
     return true;
 }
@@ -662,6 +692,7 @@ export function startCombat(combatantIds, winScene, loseScene) {
 
     syncAllGridTokens();
     ['player', ...gameState.party, ...gameState.combat.enemies.map(enemy => enemy.uniqueId)].forEach(actorId => {
+        refreshReaction(actorId);
         reconcileTileEffects(actorId, 'enter');
     });
 

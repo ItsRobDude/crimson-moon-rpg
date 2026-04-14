@@ -294,7 +294,6 @@ export function ensureActorMechanics(actor, options = {}) {
     }
 
     syncLegacyStatusEffects(actor);
-    applyDerivedState(actor);
     return actor;
 }
 
@@ -344,6 +343,8 @@ export function addEffectToActor(actor, effectId, overrides = {}) {
         if (instance.remaining !== null) {
             existing.remaining = Math.max(existing.remaining ?? 0, instance.remaining);
         }
+        syncLegacyStatusEffects(actor);
+        applyDerivedState(actor);
         return existing;
     }
 
