@@ -1,4 +1,4 @@
-import { addEffectToActor, createDefaultMechanicsState, getBonusSkillChoiceCount, getDerivedActorState, getEffectModifiers, removeEffectsFromActorBySource } from '../data/mechanics.js';
+import { addEffectToActor, createDefaultMechanicsState, getBonusSkillChoiceCount, getBonusToolChoiceCount, getDerivedActorState, getEffectModifiers, removeEffectsFromActorBySource, setProficiencyMultiplier } from '../data/mechanics.js';
 import { getSkillBonus } from '../rules.js';
 
 function createActor(overrides = {}) {
@@ -64,6 +64,25 @@ test('skill bonuses include persistent effect modifiers and social penalties', (
   expect(result.effectModifiers.disadvantage).toBe(true);
 });
 
+test('expertise doubles proficiency on trained skills', () => {
+  const actor = createActor({
+    skills: ['stealth'],
+    proficiencies: {
+      skills: ['stealth'],
+      saves: [],
+      weapons: [],
+      armor: [],
+      tools: [],
+      languages: []
+    }
+  });
+  setProficiencyMultiplier(actor, 'skills', 'stealth', 2);
+
+  const result = getSkillBonus(actor, 'stealth');
+
+  expect(result.bonus).toBe(6);
+});
+
 test('tile-bound effects can be removed cleanly when the actor leaves the tile', () => {
   const actor = createActor();
 
@@ -112,4 +131,8 @@ test('racial trait handlers feed contextual save modifiers', () => {
 
 test('versatile humans expose an extra skill choice hook', () => {
   expect(getBonusSkillChoiceCount('human')).toBe(1);
+});
+
+test('stonecunning exposes a dwarf tool choice hook', () => {
+  expect(getBonusToolChoiceCount('dwarf')).toBe(1);
 });

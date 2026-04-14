@@ -9,8 +9,10 @@ export const classes = {
         skillProficiencies: ["athletics", "survival", "intimidation", "acrobatics", "animal_handling", "history", "insight", "perception"],
         weaponProficiencies: ["simple", "martial"],
         armorProficiencies: ["light", "medium", "heavy", "shields"],
+        subclassLevel: 3,
+        fightingStyleChoices: ["defense", "dueling", "archery"],
         progression: {
-            1: { features: ["second_wind"], proficiencyBonus: 2 },
+            1: { features: ["fighting_style", "second_wind"], proficiencyBonus: 2 },
             2: { features: ["action_surge"], proficiencyBonus: 2 },
             3: { features: ["martial_archetype"], proficiencyBonus: 2 },
             4: { features: ["ability_score_improvement"], proficiencyBonus: 2 }
@@ -29,12 +31,14 @@ export const classes = {
         hitDie: 8,
         primaryStats: ["DEX", "INT"],
         saveProficiencies: ["DEX", "INT"],
-        skillChoices: 2,
+        skillChoices: 4,
         skillProficiencies: ["stealth", "perception", "investigation", "acrobatics", "athletics", "deception", "insight", "intimidation", "sleight_of_hand", "persuasion"],
         weaponProficiencies: ["simple", "hand_crossbow", "longsword", "rapier", "shortsword"],
         armorProficiencies: ["light"],
+        subclassLevel: 3,
+        expertiseChoices: 2,
         progression: {
-            1: { features: ["sneak_attack", "thieves_cant"], proficiencyBonus: 2 },
+            1: { features: ["expertise", "sneak_attack", "thieves_cant"], proficiencyBonus: 2 },
             2: { features: ["cunning_action"], proficiencyBonus: 2 },
             3: { features: ["roguish_archetype"], proficiencyBonus: 2 },
             4: { features: ["ability_score_improvement"], proficiencyBonus: 2 }
@@ -57,6 +61,14 @@ export const classes = {
         skillProficiencies: ["arcana", "history", "insight", "investigation", "medicine", "religion"],
         weaponProficiencies: ["dagger", "dart", "sling", "quarterstaff", "light_crossbow"],
         armorProficiencies: [],
+        subclassLevel: 2,
+        spellcasting: {
+            mode: "spellbook",
+            preparationAbility: "INT",
+            cantripsKnown: 2,
+            spellbookCount: 6,
+            minimumPrepared: 1
+        },
         progression: {
             1: { features: ["spellcasting", "arcane_recovery"], proficiencyBonus: 2, spellSlots: { 1: 2 } },
             2: { features: ["arcane_tradition"], proficiencyBonus: 2, spellSlots: { 1: 3 } },
@@ -81,6 +93,14 @@ export const classes = {
         skillProficiencies: ["history", "insight", "medicine", "persuasion", "religion"],
         weaponProficiencies: ["simple"],
         armorProficiencies: ["light", "medium", "shields"],
+        subclassLevel: 1,
+        defaultSubclass: "life",
+        spellcasting: {
+            mode: "prepared",
+            preparationAbility: "WIS",
+            cantripsKnown: 2,
+            minimumPrepared: 1
+        },
         progression: {
             1: { features: ["spellcasting", "divine_domain"], proficiencyBonus: 2, spellSlots: { 1: 2 } },
             2: { features: ["channel_divinity"], proficiencyBonus: 2, spellSlots: { 1: 3 } },
@@ -98,6 +118,16 @@ export const classes = {
 };
 
 export const featureDefinitions = {
+    "fighting_style": {
+        name: "Fighting Style",
+        type: "choice",
+        description: "Adopt a martial specialty such as Defense, Dueling, or Archery."
+    },
+    "expertise": {
+        name: "Expertise",
+        type: "choice",
+        description: "Double your proficiency bonus for two trained skills."
+    },
     "second_wind": {
         name: "Second Wind",
         type: "active",
@@ -147,7 +177,13 @@ export const featureDefinitions = {
         type: "active",
         actionType: "action",
         resource: "channel_divinity",
-        description: "Channel divine energy to fuel magical effects."
+        description: "Life clerics can preserve life and restore a wounded ally up to half health."
+    },
+    "arcane_recovery": {
+        name: "Arcane Recovery",
+        type: "passive",
+        resource: "arcane_recovery",
+        description: "Once per long rest, recover an expended spell slot during a short rest."
     },
     "ability_score_improvement": {
         name: "Ability Score Improvement",

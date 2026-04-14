@@ -1,5 +1,5 @@
 import { items } from './data/items.js';
-import { ensureActorMechanics, getAbilityMod as getAbilityModFromMechanics, getDerivedActorState, getEffectModifiers, getProficiencyBonus as getProficiencyBonusFromMechanics, getSkillAbility, getSkillTags } from './data/mechanics.js';
+import { ensureActorMechanics, getAbilityMod as getAbilityModFromMechanics, getDerivedActorState, getEffectModifiers, getProficiencyBonus as getProficiencyBonusFromMechanics, getProficiencyMultiplier, getSkillAbility, getSkillTags } from './data/mechanics.js';
 
 export function rollDie(sides) {
     return Math.floor(Math.random() * sides) + 1;
@@ -107,7 +107,7 @@ export function getSkillBonus(character, skillName) {
 
     const skillProficiencies = character.proficiencies?.skills || character.skills || [];
     if (skillProficiencies.includes(normalized)) {
-        bonus += snapshot.proficiencyBonus;
+        bonus += snapshot.proficiencyBonus * getProficiencyMultiplier(character, 'skills', normalized);
     }
 
     const modifiers = getEffectModifiers(character, {
@@ -169,7 +169,7 @@ export function rollSavingThrow(character, abilityName, options = {}) {
     let bonus = snapshot.modifiers[abilityName] || 0;
     const saveProficiencies = character.proficiencies?.saves || character.mechanics?.saveProficiencies || [];
     if (saveProficiencies.includes(abilityName)) {
-        bonus += snapshot.proficiencyBonus;
+        bonus += snapshot.proficiencyBonus * getProficiencyMultiplier(character, 'saves', abilityName);
     }
     const effectModifiers = getEffectModifiers(character, {
         target: 'saving_throw',

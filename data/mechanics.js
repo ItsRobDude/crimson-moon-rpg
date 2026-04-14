@@ -41,6 +41,19 @@ export const traitDefinitions = {
         description: 'Humans adapt quickly and bring an extra trained skill into danger.',
         bonusSkillChoices: 1
     },
+    keen_senses: {
+        id: 'keen_senses',
+        name: 'Keen Senses',
+        description: 'You have proficiency in the Perception skill.',
+        proficiencies: {
+            skills: ['perception']
+        }
+    },
+    trance: {
+        id: 'trance',
+        name: 'Trance',
+        description: 'Elves rest through a meditative trance rather than normal sleep.'
+    },
     darkvision: {
         id: 'darkvision',
         name: 'Darkvision',
@@ -64,6 +77,45 @@ export const traitDefinitions = {
             { type: 'advantage', target: 'saving_throw', tags: ['poison'] }
         ],
         damageResistances: ['poison']
+    },
+    dwarven_combat_training: {
+        id: 'dwarven_combat_training',
+        name: 'Dwarven Combat Training',
+        description: 'You are practiced with a few traditional dwarven weapons.',
+        proficiencies: {
+            weapons: ['battleaxe', 'handaxe', 'light_hammer', 'warhammer']
+        }
+    },
+    stonecunning: {
+        id: 'stonecunning',
+        name: 'Stonecunning',
+        description: 'You have a practiced eye for stonework and artisan tools.',
+        bonusToolChoices: 1,
+        toolChoices: ['smith_tools', 'brewer_supplies', 'mason_tools']
+    },
+    fighting_style_defense: {
+        id: 'fighting_style_defense',
+        name: 'Defense Fighting Style',
+        description: 'While you wear armor, you gain a +1 bonus to AC.',
+        modifiers: [
+            { type: 'flat_bonus', target: 'ac', value: 1, tags: ['armored'] }
+        ]
+    },
+    fighting_style_dueling: {
+        id: 'fighting_style_dueling',
+        name: 'Dueling Fighting Style',
+        description: 'You gain a +2 bonus to damage rolls with a single one-handed melee weapon.',
+        modifiers: [
+            { type: 'flat_bonus', target: 'damage_roll', value: 2, tags: ['melee_weapon', 'one_handed'] }
+        ]
+    },
+    fighting_style_archery: {
+        id: 'fighting_style_archery',
+        name: 'Archery Fighting Style',
+        description: 'You gain a +2 bonus to attack rolls you make with ranged weapons.',
+        modifiers: [
+            { type: 'flat_bonus', target: 'attack_roll', value: 2, tags: ['ranged_weapon'] }
+        ]
     }
 };
 
@@ -102,6 +154,16 @@ export function getRaceTraitDefinitions(raceId) {
 
 export function getBonusSkillChoiceCount(raceId) {
     return getRaceTraitDefinitions(raceId).reduce((sum, trait) => sum + (trait.bonusSkillChoices || 0), 0);
+}
+
+export function getBonusToolChoiceCount(raceId) {
+    return getRaceTraitDefinitions(raceId).reduce((sum, trait) => sum + (trait.bonusToolChoices || 0), 0);
+}
+
+export function getBonusToolChoiceOptions(raceId) {
+    return [...new Set(
+        getRaceTraitDefinitions(raceId).flatMap((trait) => trait.toolChoices || [])
+    )];
 }
 
 export const effectDefinitions = {
@@ -170,6 +232,32 @@ export const effectDefinitions = {
             { type: 'flat_bonus', target: 'speed', value: -5 }
         ]
     },
+    prone: {
+        id: 'prone',
+        name: 'Prone',
+        description: 'The actor is sprawled on the ground.',
+        durationType: 'turns',
+        defaultDuration: 1,
+        modifiers: [
+            { type: 'disadvantage', target: 'attack_roll', tags: ['ranged_weapon'] }
+        ]
+    },
+    incapacitated: {
+        id: 'incapacitated',
+        name: 'Incapacitated',
+        description: 'The actor cannot take actions or reactions.',
+        durationType: 'turns',
+        defaultDuration: 1,
+        modifiers: []
+    },
+    unconscious: {
+        id: 'unconscious',
+        name: 'Unconscious',
+        description: 'The actor is unconscious and unable to act.',
+        durationType: 'turns',
+        defaultDuration: 2,
+        modifiers: []
+    },
     exhausted_1: {
         id: 'exhausted_1',
         name: 'Exhaustion I',
@@ -226,6 +314,10 @@ export function createDefaultMechanicsState(baseAbilities = null, options = {}) 
         size: options.size || 'medium',
         saveProficiencies: [...(options.saveProficiencies || [])],
         proficiencies: createProficiencyState(options.proficiencies || { saves: options.saveProficiencies || [] }),
+        proficiencyMultipliers: {
+            skills: { ...(options.proficiencyMultipliers?.skills || {}) },
+            saves: { ...(options.proficiencyMultipliers?.saves || {}) }
+        },
         activeEffects: [],
         concentrationEffectId: null,
         temporaryHp: options.temporaryHp || 0,
@@ -251,6 +343,9 @@ export function ensureActorMechanics(actor, options = {}) {
     }
     if (!actor.mechanics.activeEffects) {
         actor.mechanics.activeEffects = [];
+    }
+    if (!actor.mechanics.proficiencyMultipliers) {
+        actor.mechanics.proficiencyMultipliers = { skills: {}, saves: {} };
     }
     if (!actor.mechanics.proficiencies) {
         actor.mechanics.proficiencies = createProficiencyState(actor.proficiencies || { saves: actor.mechanics.saveProficiencies || [] });
@@ -333,12 +428,45 @@ export function createEffectInstance(effectId, overrides = {}) {
     };
 }
 
+function getEffectKey(effect) {
+    return `${effect.id}:${effect.source || ''}`;
+}
+
+function normalizeProficiencyKey(category, key) {
+    if (category === 'skills') return String(key).toLowerCase();
+    if (category === 'saves') return String(key).toUpperCase();
+    return String(key);
+}
+
+export function getProficiencyMultiplier(actor, category, key) {
+    ensureActorMechanics(actor);
+    const normalized = normalizeProficiencyKey(category, key);
+    return actor.mechanics.proficiencyMultipliers?.[category]?.[normalized] || 1;
+}
+
+export function setProficiencyMultiplier(actor, category, key, multiplier = 1) {
+    ensureActorMechanics(actor);
+    const normalized = normalizeProficiencyKey(category, key);
+    if (!actor.mechanics.proficiencyMultipliers[category]) {
+        actor.mechanics.proficiencyMultipliers[category] = {};
+    }
+    actor.mechanics.proficiencyMultipliers[category][normalized] = multiplier;
+}
+
+export function dropConcentration(actor) {
+    ensureActorMechanics(actor);
+    actor.mechanics.activeEffects = actor.mechanics.activeEffects.filter((effect) => !effect.concentration);
+    actor.mechanics.concentrationEffectId = null;
+    syncLegacyStatusEffects(actor);
+    applyDerivedState(actor);
+}
+
 export function addEffectToActor(actor, effectId, overrides = {}) {
     ensureActorMechanics(actor);
     const instance = createEffectInstance(effectId, overrides);
     if (!instance) return null;
 
-    const existing = actor.mechanics.activeEffects.find(effect => effect.id === effectId && effect.source === instance.source);
+    const existing = actor.mechanics.activeEffects.find(effect => getEffectKey(effect) === getEffectKey(instance));
     if (existing) {
         if (instance.remaining !== null) {
             existing.remaining = Math.max(existing.remaining ?? 0, instance.remaining);
@@ -349,10 +477,14 @@ export function addEffectToActor(actor, effectId, overrides = {}) {
     }
 
     if (instance.concentration) {
-        actor.mechanics.concentrationEffectId = effectId;
+        dropConcentration(actor);
+        actor.mechanics.concentrationEffectId = getEffectKey(instance);
     }
 
     actor.mechanics.activeEffects.push(instance);
+    if (instance.id === 'incapacitated' || instance.id === 'unconscious') {
+        dropConcentration(actor);
+    }
     syncLegacyStatusEffects(actor);
     applyDerivedState(actor);
     return instance;
@@ -361,7 +493,7 @@ export function addEffectToActor(actor, effectId, overrides = {}) {
 export function removeEffectFromActor(actor, effectId) {
     ensureActorMechanics(actor);
     actor.mechanics.activeEffects = actor.mechanics.activeEffects.filter(effect => effect.id !== effectId);
-    if (actor.mechanics.concentrationEffectId === effectId) {
+    if (actor.mechanics.concentrationEffectId && !actor.mechanics.activeEffects.some(effect => getEffectKey(effect) === actor.mechanics.concentrationEffectId)) {
         actor.mechanics.concentrationEffectId = null;
     }
     syncLegacyStatusEffects(actor);
@@ -375,7 +507,7 @@ export function removeEffectsFromActorBySource(actor, source, exact = true) {
         if (exact) return effect.source !== source;
         return !String(effect.source).startsWith(source);
     });
-    if (actor.mechanics.concentrationEffectId && !actor.mechanics.activeEffects.some(effect => effect.id === actor.mechanics.concentrationEffectId)) {
+    if (actor.mechanics.concentrationEffectId && !actor.mechanics.activeEffects.some(effect => getEffectKey(effect) === actor.mechanics.concentrationEffectId)) {
         actor.mechanics.concentrationEffectId = null;
     }
     syncLegacyStatusEffects(actor);
@@ -400,6 +532,9 @@ export function tickActorEffects(actor, trigger = 'turn_end') {
     });
 
     syncLegacyStatusEffects(actor);
+    if (actor.mechanics.concentrationEffectId && !actor.mechanics.activeEffects.some(effect => getEffectKey(effect) === actor.mechanics.concentrationEffectId)) {
+        actor.mechanics.concentrationEffectId = null;
+    }
     applyDerivedState(actor);
 }
 
@@ -535,7 +670,9 @@ export function getDerivedActorState(actor) {
             ac += armor.modifiers.ac;
         }
     }
-    const acContext = getEffectModifiers(actor, { target: 'ac' });
+    const acTags = [];
+    if (armor) acTags.push('armored');
+    const acContext = getEffectModifiers(actor, { target: 'ac', tags: acTags });
     ac += (actor.mechanics.permanentStatBonuses.ac || 0) + acContext.flat;
 
     const initiativeContext = getEffectModifiers(actor, { target: 'initiative' });
@@ -543,11 +680,16 @@ export function getDerivedActorState(actor) {
 
     const spellcastingAbility = getSpellcastingAbility(actor.classId);
     const spellSaveDC = 8 + proficiencyBonus + modifiers[spellcastingAbility] + (actor.mechanics.permanentStatBonuses.spellSaveDC || 0);
+    const proficiencies = createProficiencyState(actor.mechanics.proficiencies);
     const senses = {};
     const damageResistances = [];
     const conditionImmunities = [];
 
     traits.forEach((trait) => {
+        const traitProficiencies = trait.proficiencies || {};
+        Object.keys(traitProficiencies).forEach((key) => {
+            proficiencies[key] = [...new Set([...(proficiencies[key] || []), ...(traitProficiencies[key] || [])])];
+        });
         Object.entries(trait.senses || {}).forEach(([sense, distance]) => {
             senses[sense] = Math.max(senses[sense] || 0, distance);
         });
@@ -563,7 +705,7 @@ export function getDerivedActorState(actor) {
         abilities,
         modifiers,
         proficiencyBonus,
-        proficiencies: createProficiencyState(actor.mechanics.proficiencies),
+        proficiencies,
         traits: traits.map((trait) => ({ id: trait.id, name: trait.name, description: trait.description })),
         senses,
         speed,
@@ -601,6 +743,9 @@ export function applyDerivedState(actor) {
     actor.resistances = [...derived.resistances];
     actor.conditionImmunities = [...derived.conditionImmunities];
     actor.speed = derived.speed;
+    actor.ac = derived.ac;
+    actor.initiativeModifier = derived.initiativeModifier;
+    actor.spellSaveDC = derived.spellSaveDC;
     return derived;
 }
 

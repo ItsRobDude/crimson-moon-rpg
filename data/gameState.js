@@ -7,9 +7,10 @@ import { scenes } from './scenes.js';
 import { npcs } from './npcs.js';
 import { companions } from './companions.js';
 import { factions } from './factions.js';
+import { getSpellIdsForClass } from './spells.js';
 import { rollDiceExpression, rollDie } from '../rules.js';
 import { CANONICAL_START_SCENE, createDefaultStoryState, ensureStoryState } from './storyTimeline.js';
-import { addEffectToActor, applyDerivedState, createDefaultMechanicsState, createProficiencyState, ensureActorMechanics, getDerivedActorState, getAbilityMod, mergeProficiencyStates, removeEffectFromActor, syncLegacyStatusEffects, tickActorEffects } from './mechanics.js';
+import { addEffectToActor, applyDerivedState, createDefaultMechanicsState, createProficiencyState, ensureActorMechanics, getAbilityMod, getDerivedActorState, mergeProficiencyStates, removeEffectFromActor, setProficiencyMultiplier, syncLegacyStatusEffects, tickActorEffects } from './mechanics.js';
 
 // This object serves as a blueprint for a clean game state.
 const defaultGameState = {
@@ -28,10 +29,15 @@ const defaultGameState = {
         modifiers: { STR: 0, DEX: 0, CON: 0, INT: 0, WIS: 0, CHA: 0 },
         skills: [],
         knownSpells: [],
+        preparedSpells: [],
+        spellbook: [],
+        spellcastingMode: null,
         spellSlots: {},
         currentSlots: {},
         resources: {},
         proficiencyBonus: 2,
+        fightingStyle: null,
+        expertiseSkills: [],
         equipped: {
             weapon: null,
             armor: null
@@ -136,6 +142,8 @@ export function resetGameState() {
 }
 
 export function syncActorState(actor) {
+    ensureActorSelections(actor);
+    ensureActorSpellcasting(actor);
     ensureActorMechanics(actor);
     return applyDerivedState(actor);
 }
@@ -156,7 +164,7 @@ export function syncCharacterState(characterId = 'player') {
     return null;
 }
 
-function buildActorProficiencies({ cls = null, background = null, chosenSkills = [], languages = [] } = {}) {
+function buildActorProficiencies({ cls = null, background = null, chosenSkills = [], chosenTools = [], languages = [] } = {}) {
     return mergeProficiencyStates(
         createProficiencyState({
             saves: cls?.saveProficiencies || [],
@@ -165,23 +173,183 @@ function buildActorProficiencies({ cls = null, background = null, chosenSkills =
         }),
         createProficiencyState({
             skills: chosenSkills.map((skill) => String(skill).toLowerCase()),
-            tools: background?.toolProficiencies || [],
+            tools: [...(background?.toolProficiencies || []), ...chosenTools],
             languages: [...(background?.languages || []), ...languages]
         })
     );
 }
 
-export function initializeNewGame(name, raceId, classId, backgroundId, baseStats, chosenSkills, chosenSpells) {
+function ensureActorSelections(actor) {
+    if (!actor) return;
+    if (!Array.isArray(actor.knownSpells)) actor.knownSpells = [];
+    if (!Array.isArray(actor.preparedSpells)) actor.preparedSpells = [];
+    if (!Array.isArray(actor.spellbook)) actor.spellbook = [];
+    if (!Array.isArray(actor.expertiseSkills)) actor.expertiseSkills = [];
+    if (!actor.resources) actor.resources = {};
+    if (actor.fightingStyle === undefined) actor.fightingStyle = null;
+    const cls = classes[actor.classId];
+    if (!actor.subclassId && cls?.subclassLevel === 1 && cls.defaultSubclass) {
+        actor.subclassId = cls.defaultSubclass;
+    }
+    ensureActorMechanics(actor);
+    if (actor.fightingStyle) {
+        const traitId = `fighting_style_${actor.fightingStyle}`;
+        if (!actor.mechanics.bonusTraits.includes(traitId)) {
+            actor.mechanics.bonusTraits.push(traitId);
+        }
+    }
+    actor.expertiseSkills.forEach((skill) => setProficiencyMultiplier(actor, 'skills', skill, 2));
+}
+
+export function getPreparedSpellLimit(actor) {
+    const cls = classes[actor?.classId];
+    const spellcasting = cls?.spellcasting;
+    if (!spellcasting?.preparationAbility) return 0;
+    const abilityScore = actor?.abilities?.[spellcasting.preparationAbility] || 10;
+    return Math.max(spellcasting.minimumPrepared || 1, getAbilityMod(abilityScore) + (actor.level || 1));
+}
+
+function fillMissingUnique(current, available, count) {
+    const next = [...current];
+    available.forEach((entry) => {
+        if (next.length >= count) return;
+        if (!next.includes(entry)) next.push(entry);
+    });
+    return next.slice(0, count);
+}
+
+function ensureActorSpellcasting(actor) {
+    if (!actor) return actor;
+    ensureActorSelections(actor);
+
+    const cls = classes[actor.classId];
+    const spellcasting = cls?.spellcasting;
+    actor.spellcastingMode = spellcasting?.mode || null;
+
+    if (!spellcasting) {
+        actor.knownSpells = [];
+        actor.preparedSpells = [];
+        actor.spellbook = [];
+        return actor;
+    }
+
+    const cantripIds = getSpellIdsForClass(actor.classId, { level: 0 });
+    const levelledIds = getSpellIdsForClass(actor.classId, { minLevel: 1 });
+    const cantripCount = Math.min(spellcasting.cantripsKnown || 0, cantripIds.length);
+
+    actor.knownSpells = fillMissingUnique(
+        actor.knownSpells.filter((spellId) => cantripIds.includes(spellId)),
+        cantripIds,
+        cantripCount
+    );
+
+    if (spellcasting.mode === 'spellbook') {
+        const spellbookCount = Math.min(spellcasting.spellbookCount || levelledIds.length, levelledIds.length);
+        actor.spellbook = fillMissingUnique(
+            actor.spellbook.filter((spellId) => levelledIds.includes(spellId)),
+            levelledIds,
+            spellbookCount
+        );
+        const preparedLimit = Math.min(getPreparedSpellLimit(actor), actor.spellbook.length);
+        actor.preparedSpells = fillMissingUnique(
+            actor.preparedSpells.filter((spellId) => actor.spellbook.includes(spellId)),
+            actor.spellbook,
+            preparedLimit
+        );
+        return actor;
+    }
+
+    const preparedLimit = Math.min(getPreparedSpellLimit(actor), levelledIds.length);
+    actor.preparedSpells = fillMissingUnique(
+        actor.preparedSpells.filter((spellId) => levelledIds.includes(spellId)),
+        levelledIds,
+        preparedLimit
+    );
+    actor.spellbook = [];
+    return actor;
+}
+
+export function getActorCastableSpells(actor, options = {}) {
+    ensureActorSpellcasting(actor);
+    const { combatOnly = false } = options;
+    const ids = [...new Set([...(actor.knownSpells || []), ...(actor.preparedSpells || [])])];
+    if (!combatOnly) return ids;
+    const combatSpellIds = new Set(getSpellIdsForClass(actor.classId, { combatOnly: true }));
+    return ids.filter((spellId) => combatSpellIds.has(spellId));
+}
+
+function buildCreationSpellState(classId, abilities, selection = []) {
+    const cls = classes[classId];
+    const spellcasting = cls?.spellcasting;
+    if (!spellcasting) {
+        return {
+            knownSpells: [],
+            preparedSpells: [],
+            spellbook: [],
+            spellcastingMode: null
+        };
+    }
+
+    const normalized = Array.isArray(selection)
+        ? { cantrips: selection, preparedSpells: selection, spellbook: selection }
+        : (selection || {});
+    const cantripIds = getSpellIdsForClass(classId, { level: 0 });
+    const levelledIds = getSpellIdsForClass(classId, { minLevel: 1 });
+    const cantrips = fillMissingUnique(
+        (normalized.cantrips || normalized.knownSpells || []).filter((spellId) => cantripIds.includes(spellId)),
+        cantripIds,
+        Math.min(spellcasting.cantripsKnown || 0, cantripIds.length)
+    );
+    const actorLike = { classId, abilities, level: 1 };
+
+    if (spellcasting.mode === 'spellbook') {
+        const spellbook = fillMissingUnique(
+            (normalized.spellbook || normalized.preparedSpells || []).filter((spellId) => levelledIds.includes(spellId)),
+            levelledIds,
+            Math.min(spellcasting.spellbookCount || levelledIds.length, levelledIds.length)
+        );
+        const prepared = fillMissingUnique(
+            (normalized.preparedSpells || []).filter((spellId) => spellbook.includes(spellId)),
+            spellbook,
+            Math.min(getPreparedSpellLimit(actorLike), spellbook.length)
+        );
+        return {
+            knownSpells: cantrips,
+            preparedSpells: prepared,
+            spellbook,
+            spellcastingMode: spellcasting.mode
+        };
+    }
+
+    const prepared = fillMissingUnique(
+        (normalized.preparedSpells || normalized.knownSpells || []).filter((spellId) => levelledIds.includes(spellId)),
+        levelledIds,
+        Math.min(getPreparedSpellLimit(actorLike), levelledIds.length)
+    );
+    return {
+        knownSpells: cantrips,
+        preparedSpells: prepared,
+        spellbook: [],
+        spellcastingMode: spellcasting.mode
+    };
+}
+
+export function initializeNewGame(name, raceId, classId, backgroundId, baseStats, chosenSkills, creationSelections = []) {
     // First, reset the game state to ensure no data from a previous game persists.
     resetGameState();
     const race = races[raceId];
     const cls = classes[classId];
     const background = backgrounds[backgroundId];
+    const normalizedSelections = Array.isArray(creationSelections)
+        ? { spellSelection: creationSelections }
+        : (creationSelections || {});
     const skillProficiencies = [...new Set([...(chosenSkills || []), ...(background?.skillProficiencies || [])].map((skill) => String(skill).toLowerCase()))];
+    const bonusTools = normalizedSelections.bonusTools || [];
     const proficiencies = buildActorProficiencies({
         cls,
         background,
-        chosenSkills: skillProficiencies
+        chosenSkills: skillProficiencies,
+        chosenTools: bonusTools
     });
 
     const abilities = { ...baseStats };
@@ -200,14 +368,27 @@ export function initializeNewGame(name, raceId, classId, backgroundId, baseStats
         }
     }
 
+    const spellState = buildCreationSpellState(classId, abilities, normalizedSelections.spellSelection || creationSelections);
+    const fightingStyle = normalizedSelections.fightingStyle || null;
+    const expertiseSkills = (normalizedSelections.expertiseSkills || []).map((skill) => String(skill).toLowerCase());
+    if (fightingStyle) {
+        mechanics.bonusTraits.push(`fighting_style_${fightingStyle}`);
+    }
+    expertiseSkills.forEach((skill) => {
+        if (!mechanics.proficiencyMultipliers.skills) mechanics.proficiencyMultipliers.skills = {};
+        mechanics.proficiencyMultipliers.skills[skill] = 2;
+    });
+
     gameState.player.name = name;
     gameState.player.raceId = raceId;
     gameState.player.classId = classId;
     gameState.player.backgroundId = backgroundId;
-    gameState.player.subclassId = null;
+    gameState.player.subclassId = cls?.subclassLevel === 1 ? (normalizedSelections.subclassId || cls.defaultSubclass || null) : null;
     gameState.player.abilities = abilities;
     gameState.player.mechanics = mechanics;
     gameState.player.proficiencies = createProficiencyState(proficiencies);
+    gameState.player.fightingStyle = fightingStyle;
+    gameState.player.expertiseSkills = [...new Set(expertiseSkills)];
     for (const stat of Object.keys(abilities)) {
         gameState.player.modifiers[stat] = getAbilityMod(abilities[stat]);
     }
@@ -221,14 +402,17 @@ export function initializeNewGame(name, raceId, classId, backgroundId, baseStats
     gameState.player.hp = gameState.player.maxHp;
 
     gameState.player.skills = skillProficiencies;
-    gameState.player.knownSpells = chosenSpells || [];
+    gameState.player.knownSpells = spellState.knownSpells;
+    gameState.player.preparedSpells = spellState.preparedSpells;
+    gameState.player.spellbook = spellState.spellbook;
+    gameState.player.spellcastingMode = spellState.spellcastingMode;
 
     // Initialize Resources
     gameState.player.resources = {};
     if (cls.progression[1] && cls.progression[1].features) {
         cls.progression[1].features.forEach(feat => {
             if (feat === 'second_wind') gameState.player.resources['second_wind'] = { current: 1, max: 1 };
-            // Add other level 1 resource inits here if needed
+            if (feat === 'arcane_recovery') gameState.player.resources['arcane_recovery'] = { current: 1, max: 1 };
         });
     }
 
@@ -301,6 +485,7 @@ export function addCompanion(companionId) {
 
         const conMod = getAbilityMod(stats.CON);
         const hp = cls.hitDie + conMod; // Level 1 HP
+        const spellState = buildCreationSpellState(compDef.classId, stats, compDef.spellSelection || []);
 
         gameState.roster[companionId] = {
             id: companionId,
@@ -318,11 +503,16 @@ export function addCompanion(companionId) {
             resources: {}, // Initialize like player
             spellSlots: {},
             currentSlots: {},
-            knownSpells: [], // Needs definition
+            knownSpells: spellState.knownSpells,
+            preparedSpells: spellState.preparedSpells,
+            spellbook: spellState.spellbook,
+            spellcastingMode: spellState.spellcastingMode,
             proficiencies: createProficiencyState(proficiencies),
             portrait: compDef.portrait,
-            subclassId: null,
+            subclassId: cls?.subclassLevel === 1 ? (cls.defaultSubclass || null) : null,
             statusEffects: [],
+            expertiseSkills: [],
+            fightingStyle: null,
             mechanics: createDefaultMechanicsState(compDef.baseStats, {
                 saveProficiencies: cls ? (cls.saveProficiencies || []) : [],
                 proficiencies,
@@ -332,6 +522,15 @@ export function addCompanion(companionId) {
 
         for (const stat of Object.keys(race.abilityBonuses || {})) {
             gameState.roster[companionId].mechanics.permanentAbilityBonuses[stat] = race.abilityBonuses[stat];
+        }
+
+        (cls?.progression?.[1]?.features || []).forEach((featureId) => {
+            if (featureId === 'second_wind') gameState.roster[companionId].resources.second_wind = { current: 1, max: 1 };
+            if (featureId === 'arcane_recovery') gameState.roster[companionId].resources.arcane_recovery = { current: 1, max: 1 };
+        });
+        if (cls?.progression?.[1]?.spellSlots) {
+            gameState.roster[companionId].spellSlots = { ...cls.progression[1].spellSlots };
+            gameState.roster[companionId].currentSlots = { ...cls.progression[1].spellSlots };
         }
 
         // Default Equipment
@@ -392,6 +591,7 @@ function syncCompanionLevel(companionId) {
                 levelData.features.forEach(f => {
                     if (f === 'second_wind') char.resources['second_wind'] = { current: 1, max: 1 };
                     if (f === 'action_surge') char.resources['action_surge'] = { current: 1, max: 1 };
+                    if (f === 'channel_divinity') char.resources['channel_divinity'] = { current: 1, max: 1 };
                 });
             }
         }
@@ -429,23 +629,46 @@ export function spendGold(amount) {
     return false;
 }
 
+function refreshRestResources(actor, restType) {
+    if (!actor?.resources) return;
+
+    if (actor.resources['second_wind']) {
+        actor.resources['second_wind'].current = actor.resources['second_wind'].max;
+    }
+    if (actor.resources['action_surge']) {
+        actor.resources['action_surge'].current = actor.resources['action_surge'].max;
+    }
+    if (actor.resources['channel_divinity']) {
+        actor.resources['channel_divinity'].current = actor.resources['channel_divinity'].max;
+    }
+    if (restType === 'long_rest' && actor.resources['arcane_recovery']) {
+        actor.resources['arcane_recovery'].current = actor.resources['arcane_recovery'].max;
+    }
+}
+
+function applyAutomaticArcaneRecovery(actor) {
+    if (!actor?.resources?.arcane_recovery || actor.resources.arcane_recovery.current <= 0) return false;
+    if ((actor.currentSlots?.[1] || 0) >= (actor.spellSlots?.[1] || 0)) return false;
+    actor.currentSlots[1] = Math.min((actor.currentSlots[1] || 0) + 1, actor.spellSlots[1] || 0);
+    actor.resources.arcane_recovery.current -= 1;
+    return true;
+}
+
 export function performShortRest() {
     const cls = classes[gameState.player.classId];
     const roll = rollDie(cls.hitDie) + gameState.player.modifiers.CON;
     const healed = Math.max(1, roll);
     gameState.player.hp = Math.min(gameState.player.maxHp, gameState.player.hp + healed);
-
-    if (gameState.player.resources['second_wind']) {
-        gameState.player.resources['second_wind'].current = gameState.player.resources['second_wind'].max;
-    }
-
-    if (gameState.player.resources['action_surge']) {
-        gameState.player.resources['action_surge'].current = gameState.player.resources['action_surge'].max;
-    }
+    refreshRestResources(gameState.player, 'short_rest');
+    applyAutomaticArcaneRecovery(gameState.player);
 
     tickActorEffects(gameState.player, 'short_rest');
     gameState.party.forEach(id => {
-        if (gameState.roster[id]) tickActorEffects(gameState.roster[id], 'short_rest');
+        if (gameState.roster[id]) {
+            refreshRestResources(gameState.roster[id], 'short_rest');
+            applyAutomaticArcaneRecovery(gameState.roster[id]);
+            tickActorEffects(gameState.roster[id], 'short_rest');
+        }
     });
     syncAllActorStates();
     return healed;
@@ -459,12 +682,7 @@ export function performLongRest() {
     if (gameState.player.spellSlots) {
         gameState.player.currentSlots = { ...gameState.player.spellSlots };
     }
-    if (gameState.player.resources['second_wind']) {
-        gameState.player.resources['second_wind'].current = gameState.player.resources['second_wind'].max;
-    }
-    if (gameState.player.resources['action_surge']) {
-        gameState.player.resources['action_surge'].current = gameState.player.resources['action_surge'].max;
-    }
+    refreshRestResources(gameState.player, 'long_rest');
     tickActorEffects(gameState.player, 'long_rest');
     gameState.party.forEach(id => {
         if (gameState.roster[id]) {
@@ -472,6 +690,10 @@ export function performLongRest() {
             if (gameState.roster[id].mechanics) {
                 gameState.roster[id].mechanics.temporaryHp = 0;
             }
+            if (gameState.roster[id].spellSlots) {
+                gameState.roster[id].currentSlots = { ...gameState.roster[id].spellSlots };
+            }
+            refreshRestResources(gameState.roster[id], 'long_rest');
             tickActorEffects(gameState.roster[id], 'long_rest');
         }
     });

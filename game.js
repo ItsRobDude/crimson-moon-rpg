@@ -5,16 +5,16 @@ import { items } from './data/items.js';
 import { quests } from './data/quests.js';
 import { scenes } from './data/scenes.js';
 import { enemies } from './data/enemies.js';
-import { spells } from './data/spells.js';
+import { getSpellIdsForClass, spells } from './data/spells.js';
 import { locations } from './data/locations.js';
 import { travelEvents } from './data/travelEvents.js';
 import { shops } from './data/shops.js';
 import { npcs } from './data/npcs.js';
 import { companions } from './data/companions.js';
 import { factions } from './data/factions.js';
-import { gameState, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, unequipItem, syncPartyLevels, saveGame, loadGame as loadGameData, removeItem, advanceTime, getTimelineLabel, getTimeSlotLabel, getSceneMemory, setSceneMemory, performShortRest as gsPerformShortRest, performLongRest as gsPerformLongRest, syncCharacterState } from './data/gameState.js';
+import { gameState, getActorCastableSpells, getPreparedSpellLimit, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, unequipItem, syncPartyLevels, saveGame, loadGame as loadGameData, removeItem, advanceTime, getTimelineLabel, getTimeSlotLabel, getSceneMemory, setSceneMemory, performShortRest as gsPerformShortRest, performLongRest as gsPerformLongRest, syncCharacterState } from './data/gameState.js';
 import { CANONICAL_START_SCENE, ensureStoryState, getLocationStoryRequirement, getLocationUnlockHint, meetsStoryRequirement, storyActs, storyEvents, syncStoryStateForScene } from './data/storyTimeline.js';
-import { addEffectToActor, getBonusSkillChoiceCount, getRaceTraitDefinitions, removeEffectFromActor } from './data/mechanics.js';
+import { addEffectToActor, getBonusSkillChoiceCount, getBonusToolChoiceCount, getBonusToolChoiceOptions, getRaceTraitDefinitions, removeEffectFromActor } from './data/mechanics.js';
 import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod, generateScaledStats, getPlayerAC } from './rules.js';
 import { initCombatSystem, startCombat, performAttack, performCastSpell, performAbility, performDefend, performFlee, performEndTurn, performActionSurge, performCunningAction, uiHooks } from './combat.js';
 
@@ -123,7 +123,12 @@ let ccState = {
     baseStats: { STR: 12, DEX: 12, CON: 12, INT: 12, WIS: 12, CHA: 12 },
     chosenSkills: [],
     chosenBonusSkills: [],
-    chosenSpells: []
+    chosenBonusTools: [],
+    chosenCantrips: [],
+    chosenPreparedSpells: [],
+    chosenSpellbook: [],
+    chosenExpertise: [],
+    chosenFightingStyle: null
 };
 
 const SETTINGS_STORAGE_KEY = 'crimson_moon_settings';
@@ -273,7 +278,12 @@ function resetCharacterCreationState() {
         baseStats: { STR: 15, DEX: 14, CON: 13, INT: 12, WIS: 10, CHA: 8 },
         chosenSkills: [],
         chosenBonusSkills: [],
-        chosenSpells: []
+        chosenBonusTools: [],
+        chosenCantrips: [],
+        chosenPreparedSpells: [],
+        chosenSpellbook: [],
+        chosenExpertise: [],
+        chosenFightingStyle: null
     };
 }
 
@@ -734,11 +744,16 @@ export function showCharacterCreation() {
     renderAbilityScoreUI();
     raceSelect.onchange = () => {
         ccState.chosenBonusSkills = [];
+        ccState.chosenBonusTools = [];
         updateCCPreview();
     };
     classSelect.onchange = () => {
         ccState.chosenSkills = [];
-        ccState.chosenSpells = [];
+        ccState.chosenCantrips = [];
+        ccState.chosenPreparedSpells = [];
+        ccState.chosenSpellbook = [];
+        ccState.chosenExpertise = [];
+        ccState.chosenFightingStyle = null;
         updateCCPreview();
     };
     backgroundSelect.onchange = updateCCPreview;
@@ -782,6 +797,45 @@ function formatChoiceLabel(value) {
         .join(' ');
 }
 
+function fillMissingSelections(current, available, count) {
+    const next = [...current];
+    available.forEach((entry) => {
+        if (next.length >= count) return;
+        if (!next.includes(entry)) next.push(entry);
+    });
+    return next.slice(0, count);
+}
+
+function getClassSpellSelectionState(classKey, finalStats) {
+    const cls = classes[classKey];
+    const spellcasting = cls?.spellcasting;
+    if (!spellcasting) {
+        return {
+            cantrips: [],
+            cantripCount: 0,
+            spellChoices: [],
+            spellCount: 0,
+            spellLabel: 'Spells',
+            mode: null
+        };
+    }
+
+    const cantrips = getSpellIdsForClass(classKey, { level: 0 });
+    const spellChoices = getSpellIdsForClass(classKey, { minLevel: 1 });
+    const spellCount = spellcasting.mode === 'spellbook'
+        ? Math.min(spellcasting.spellbookCount || spellChoices.length, spellChoices.length)
+        : Math.min(getPreparedSpellLimit({ classId: classKey, abilities: finalStats, level: 1 }), spellChoices.length);
+
+    return {
+        cantrips,
+        cantripCount: Math.min(spellcasting.cantripsKnown || 0, cantrips.length),
+        spellChoices,
+        spellCount,
+        spellLabel: spellcasting.mode === 'spellbook' ? 'Spellbook' : 'Prepared Spells',
+        mode: spellcasting.mode
+    };
+}
+
 function updateCCPreview() {
     const raceKey = document.getElementById('cc-race').value;
     const classKey = document.getElementById('cc-class').value;
@@ -800,7 +854,11 @@ function updateCCPreview() {
     }
     renderSkillChoices(cls, background);
     renderBonusSkillChoices(raceKey, background);
-    renderSpellChoices(cls);
+    renderBonusToolChoices(raceKey, background);
+    renderFightingStyleChoices(cls);
+    renderExpertiseChoices(cls, background);
+    renderCantripChoices(classKey, finalStats);
+    renderSpellChoices(classKey, finalStats);
     const preview = document.getElementById('cc-preview-content');
     preview.innerHTML = '';
     Object.entries(finalStats).forEach(([stat, val]) => {
@@ -830,9 +888,10 @@ function updateCCPreview() {
             preview.innerHTML += `<div class="preview-stat" style="padding-left:10px; font-size:0.8em;">${formatChoiceLabel(skill)}</div>`;
         });
     }
-    if ((background.toolProficiencies || []).length > 0) {
+    const allToolProficiencies = [...new Set([...(background.toolProficiencies || []), ...ccState.chosenBonusTools])];
+    if (allToolProficiencies.length > 0) {
         preview.innerHTML += `<div class="preview-stat highlight"><span>Tools</span></div>`;
-        background.toolProficiencies.forEach((tool) => {
+        allToolProficiencies.forEach((tool) => {
             preview.innerHTML += `<div class="preview-stat" style="padding-left:10px; font-size:0.8em;">${formatChoiceLabel(tool)}</div>`;
         });
     }
@@ -849,11 +908,27 @@ function updateCCPreview() {
             preview.innerHTML += `<div class="preview-stat" style="padding-left:10px; font-size:0.8em;">${trait.name}</div>`;
         });
     }
-    if (ccState.chosenSpells.length > 0) {
-        preview.innerHTML += `<div class="preview-stat highlight"><span>Spells</span></div>`;
-        ccState.chosenSpells.forEach(s => {
-             const spellName = spells[s] ? spells[s].name : s;
-             preview.innerHTML += `<div class="preview-stat" style="padding-left:10px; font-size:0.8em;">${spellName}</div>`;
+    if (ccState.chosenFightingStyle) {
+        preview.innerHTML += `<div class="preview-stat highlight"><span>Fighting Style</span> <span>${formatChoiceLabel(ccState.chosenFightingStyle)}</span></div>`;
+    }
+    if (ccState.chosenExpertise.length > 0) {
+        preview.innerHTML += `<div class="preview-stat highlight"><span>Expertise</span></div>`;
+        ccState.chosenExpertise.forEach((skill) => {
+            preview.innerHTML += `<div class="preview-stat" style="padding-left:10px; font-size:0.8em;">${formatChoiceLabel(skill)}</div>`;
+        });
+    }
+    if (ccState.chosenCantrips.length > 0) {
+        preview.innerHTML += `<div class="preview-stat highlight"><span>Cantrips</span></div>`;
+        ccState.chosenCantrips.forEach((spellId) => {
+            preview.innerHTML += `<div class="preview-stat" style="padding-left:10px; font-size:0.8em;">${spells[spellId]?.name || spellId}</div>`;
+        });
+    }
+    const selectedLevelledSpells = classKey === 'wizard' ? ccState.chosenSpellbook : ccState.chosenPreparedSpells;
+    if (selectedLevelledSpells.length > 0) {
+        const spellLabel = classKey === 'wizard' ? 'Spellbook' : 'Prepared Spells';
+        preview.innerHTML += `<div class="preview-stat highlight"><span>${spellLabel}</span></div>`;
+        selectedLevelledSpells.forEach((spellId) => {
+            preview.innerHTML += `<div class="preview-stat" style="padding-left:10px; font-size:0.8em;">${spells[spellId]?.name || spellId}</div>`;
         });
     }
 }
@@ -942,24 +1017,151 @@ function renderBonusSkillChoices(raceId, background) {
     });
 }
 
-function renderSpellChoices(cls) {
-    const section = document.getElementById('cc-spells-section');
-    const container = document.getElementById('cc-spells-container');
+function renderBonusToolChoices(raceId, background) {
+    const section = document.getElementById('cc-bonus-tools-section');
+    const container = document.getElementById('cc-bonus-tools-container');
+    const max = getBonusToolChoiceCount(raceId);
+    const availableTools = getBonusToolChoiceOptions(raceId).filter((tool) => !(background?.toolProficiencies || []).includes(tool));
+
     container.innerHTML = '';
-    let availableSpells = [];
-    if (document.getElementById('cc-class').value === 'wizard') {
-        availableSpells = ['firebolt', 'magic_missile', 'burning_hands', 'cure_wounds'];
-    } else if (document.getElementById('cc-class').value === 'cleric') {
-        availableSpells = ['cure_wounds'];
-    }
-    if (availableSpells.length === 0) {
+    document.getElementById('cc-bonus-tool-count').innerText = max;
+    if (max <= 0 || availableTools.length === 0) {
         section.classList.add('hidden');
-        ccState.chosenSpells = [];
+        ccState.chosenBonusTools = [];
         return;
     }
+
     section.classList.remove('hidden');
-    const max = 2;
-    availableSpells.forEach(spellId => {
+    ccState.chosenBonusTools = ccState.chosenBonusTools.filter((tool) => availableTools.includes(tool)).slice(0, max);
+
+    availableTools.forEach((tool) => {
+        const div = document.createElement('div');
+        div.className = 'checkbox-item';
+        const label = document.createElement('label');
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.value = tool;
+        input.checked = ccState.chosenBonusTools.includes(tool);
+        input.onchange = (e) => {
+            if (e.target.checked) {
+                if (ccState.chosenBonusTools.length < max) {
+                    ccState.chosenBonusTools.push(tool);
+                } else {
+                    e.target.checked = false;
+                }
+            } else {
+                ccState.chosenBonusTools = ccState.chosenBonusTools.filter((entry) => entry !== tool);
+            }
+            updateCCPreview();
+        };
+        label.appendChild(input);
+        label.appendChild(document.createTextNode(` ${formatChoiceLabel(tool)}`));
+        div.appendChild(label);
+        container.appendChild(div);
+    });
+}
+
+function renderFightingStyleChoices(cls) {
+    const section = document.getElementById('cc-fighting-style-section');
+    const container = document.getElementById('cc-fighting-style-container');
+    container.innerHTML = '';
+
+    if (!cls?.fightingStyleChoices?.length) {
+        section.classList.add('hidden');
+        ccState.chosenFightingStyle = null;
+        return;
+    }
+
+    section.classList.remove('hidden');
+    const currentChoice = cls.fightingStyleChoices.includes(ccState.chosenFightingStyle)
+        ? ccState.chosenFightingStyle
+        : (ccState.chosenFightingStyle = cls.fightingStyleChoices[0]);
+
+    cls.fightingStyleChoices.forEach((styleId) => {
+        const div = document.createElement('div');
+        div.className = 'checkbox-item';
+        const label = document.createElement('label');
+        const input = document.createElement('input');
+        input.type = 'radio';
+        input.name = 'cc-fighting-style';
+        input.value = styleId;
+        input.checked = currentChoice === styleId;
+        input.onchange = () => {
+            ccState.chosenFightingStyle = styleId;
+            updateCCPreview();
+        };
+        label.appendChild(input);
+        label.appendChild(document.createTextNode(` ${formatChoiceLabel(styleId)}`));
+        div.appendChild(label);
+        container.appendChild(div);
+    });
+}
+
+function renderExpertiseChoices(cls, background) {
+    const section = document.getElementById('cc-expertise-section');
+    const container = document.getElementById('cc-expertise-container');
+    container.innerHTML = '';
+
+    if (!cls?.expertiseChoices) {
+        section.classList.add('hidden');
+        ccState.chosenExpertise = [];
+        return;
+    }
+
+    const availableSkills = [...new Set([
+        ...(background?.skillProficiencies || []),
+        ...(ccState.chosenSkills || []),
+        ...(ccState.chosenBonusSkills || [])
+    ])];
+    const max = cls.expertiseChoices;
+    section.classList.remove('hidden');
+    document.getElementById('cc-expertise-count').innerText = max;
+    ccState.chosenExpertise = ccState.chosenExpertise.filter((skill) => availableSkills.includes(skill)).slice(0, max);
+
+    availableSkills.forEach((skill) => {
+        const div = document.createElement('div');
+        div.className = 'checkbox-item';
+        const label = document.createElement('label');
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.value = skill;
+        input.checked = ccState.chosenExpertise.includes(skill);
+        input.onchange = (e) => {
+            if (e.target.checked) {
+                if (ccState.chosenExpertise.length < max) {
+                    ccState.chosenExpertise.push(skill);
+                } else {
+                    e.target.checked = false;
+                }
+            } else {
+                ccState.chosenExpertise = ccState.chosenExpertise.filter((entry) => entry !== skill);
+            }
+            updateCCPreview();
+        };
+        label.appendChild(input);
+        label.appendChild(document.createTextNode(` ${formatChoiceLabel(skill)}`));
+        div.appendChild(label);
+        container.appendChild(div);
+    });
+}
+
+function renderCantripChoices(classKey, finalStats) {
+    const section = document.getElementById('cc-cantrips-section');
+    const container = document.getElementById('cc-cantrips-container');
+    const state = getClassSpellSelectionState(classKey, finalStats);
+    container.innerHTML = '';
+
+    if (!state.cantripCount || state.cantrips.length === 0) {
+        section.classList.add('hidden');
+        ccState.chosenCantrips = [];
+        return;
+    }
+
+    section.classList.remove('hidden');
+    document.getElementById('cc-cantrip-count').innerText = state.cantripCount;
+    ccState.chosenCantrips = ccState.chosenCantrips.filter((spellId) => state.cantrips.includes(spellId)).slice(0, state.cantripCount);
+
+    state.cantrips.forEach((spellId) => {
         const spell = spells[spellId];
         if (!spell) return;
         const div = document.createElement('div');
@@ -968,16 +1170,67 @@ function renderSpellChoices(cls) {
         const input = document.createElement('input');
         input.type = 'checkbox';
         input.value = spellId;
-        if (ccState.chosenSpells.includes(spellId)) input.checked = true;
+        input.checked = ccState.chosenCantrips.includes(spellId);
         input.onchange = (e) => {
             if (e.target.checked) {
-                if (ccState.chosenSpells.length < max) {
-                    ccState.chosenSpells.push(spellId);
+                if (ccState.chosenCantrips.length < state.cantripCount) {
+                    ccState.chosenCantrips.push(spellId);
                 } else {
                     e.target.checked = false;
                 }
             } else {
-                ccState.chosenSpells = ccState.chosenSpells.filter(s => s !== spellId);
+                ccState.chosenCantrips = ccState.chosenCantrips.filter((entry) => entry !== spellId);
+            }
+            updateCCPreview();
+        };
+        label.appendChild(input);
+        label.appendChild(document.createTextNode(` ${spell.name}`));
+        div.appendChild(label);
+        container.appendChild(div);
+    });
+}
+
+function renderSpellChoices(classKey, finalStats) {
+    const section = document.getElementById('cc-spells-section');
+    const container = document.getElementById('cc-spells-container');
+    const title = document.getElementById('cc-spells-title');
+    const count = document.getElementById('cc-spell-count');
+    container.innerHTML = '';
+    const state = getClassSpellSelectionState(classKey, finalStats);
+
+    if (state.spellChoices.length === 0 || state.spellCount <= 0) {
+        section.classList.add('hidden');
+        ccState.chosenPreparedSpells = [];
+        ccState.chosenSpellbook = [];
+        return;
+    }
+
+    section.classList.remove('hidden');
+    title.innerText = state.spellLabel;
+    count.innerText = state.spellCount;
+
+    const key = state.mode === 'spellbook' ? 'chosenSpellbook' : 'chosenPreparedSpells';
+    ccState[key] = ccState[key].filter((spellId) => state.spellChoices.includes(spellId)).slice(0, state.spellCount);
+
+    state.spellChoices.forEach((spellId) => {
+        const spell = spells[spellId];
+        if (!spell) return;
+        const div = document.createElement('div');
+        div.className = 'checkbox-item';
+        const label = document.createElement('label');
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.value = spellId;
+        if (ccState[key].includes(spellId)) input.checked = true;
+        input.onchange = (e) => {
+            if (e.target.checked) {
+                if (ccState[key].length < state.spellCount) {
+                    ccState[key].push(spellId);
+                } else {
+                    e.target.checked = false;
+                }
+            } else {
+                ccState[key] = ccState[key].filter((entry) => entry !== spellId);
             }
             updateCCPreview();
         };
@@ -1021,17 +1274,30 @@ function finishCharacterCreation() {
         ccState.chosenBonusSkills = fallbackSkills;
     }
 
-    // 3) Auto-pick spells for casters if none selected
-    const isCaster = (classKey === 'wizard' || classKey === 'cleric');
-    if (isCaster && ccState.chosenSpells.length === 0) {
-        let availableSpells = [];
-        if (classKey === 'wizard') {
-            availableSpells = ['firebolt', 'magic_missile', 'burning_hands', 'cure_wounds'];
-        } else if (classKey === 'cleric') {
-            availableSpells = ['cure_wounds'];
-        }
-        const max = 2;
-        ccState.chosenSpells = availableSpells.slice(0, max);
+    const bonusToolChoices = getBonusToolChoiceCount(raceKey);
+    if (bonusToolChoices > 0 && ccState.chosenBonusTools.length === 0) {
+        ccState.chosenBonusTools = getBonusToolChoiceOptions(raceKey).slice(0, bonusToolChoices);
+    }
+
+    const finalStats = { ...ccState.baseStats };
+    Object.entries(races[raceKey]?.abilityBonuses || {}).forEach(([stat, bonus]) => {
+        finalStats[stat] += bonus;
+    });
+    const spellState = getClassSpellSelectionState(classKey, finalStats);
+    ccState.chosenCantrips = fillMissingSelections(ccState.chosenCantrips, spellState.cantrips, spellState.cantripCount);
+    if (spellState.mode === 'spellbook') {
+        ccState.chosenSpellbook = fillMissingSelections(ccState.chosenSpellbook, spellState.spellChoices, spellState.spellCount);
+    } else {
+        ccState.chosenPreparedSpells = fillMissingSelections(ccState.chosenPreparedSpells, spellState.spellChoices, spellState.spellCount);
+    }
+
+    if (cls.fightingStyleChoices?.length && !ccState.chosenFightingStyle) {
+        ccState.chosenFightingStyle = cls.fightingStyleChoices[0];
+    }
+
+    if (cls.expertiseChoices) {
+        const expertisePool = [...new Set([...(background?.skillProficiencies || []), ...ccState.chosenSkills, ...ccState.chosenBonusSkills])];
+        ccState.chosenExpertise = fillMissingSelections(ccState.chosenExpertise, expertisePool, cls.expertiseChoices);
     }
 
     // 4) Initialize state
@@ -1042,7 +1308,17 @@ function finishCharacterCreation() {
         backgroundKey,
         ccState.baseStats,
         [...ccState.chosenSkills, ...ccState.chosenBonusSkills],
-        ccState.chosenSpells
+        {
+            fightingStyle: ccState.chosenFightingStyle,
+            expertiseSkills: ccState.chosenExpertise,
+            bonusTools: ccState.chosenBonusTools,
+            subclassId: cls.subclassLevel === 1 ? (cls.defaultSubclass || null) : null,
+            spellSelection: {
+                cantrips: ccState.chosenCantrips,
+                preparedSpells: ccState.chosenPreparedSpells,
+                spellbook: ccState.chosenSpellbook
+            }
+        }
     );
 
     // 5) Hide CC and update HUD
@@ -1691,13 +1967,11 @@ function renderPlayerActions(container, subMenu = null, actingId = 'player') {
         });
         grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, null, actingId), 'flee'));
     } else if (subMenu === 'spells') {
-        const spellList = actor.knownSpells || [];
+        const spellList = getActorCastableSpells(actor, { combatOnly: true }).filter((spellId) => (spells[spellId]?.castingTime || 'action') !== 'reaction');
         spellList.forEach(spellId => {
             const spell = spells[spellId];
             if (!spell) return;
-            // Check casting time (simplified: most are actions, some bonus)
-            // For now, assume all spells take an ACTION unless specified
-            const cost = 'action';
+            const cost = spell.castingTime || 'action';
             const canCast = (cost === 'action' && hasAction) || (cost === 'bonus' && hasBonus);
 
             const hasSlots = spell.level === 0 || (actor.currentSlots[spell.level] && actor.currentSlots[spell.level] > 0);
@@ -1710,7 +1984,9 @@ function renderPlayerActions(container, subMenu = null, actingId = 'player') {
         // Targets: Player + Companions + Enemies?
         // For simplicity, "Party" vs "Enemies".
         const spell = spells[subMenu.spellId];
-        if (spell.type === 'heal') {
+        if (spell.targeting === 'self') {
+            grid.appendChild(createActionButton('Self', 'shield', () => performCastSpell(subMenu.spellId, actingId, actingId), 'primary'));
+        } else if (spell.type === 'heal' || spell.targeting === 'ally') {
             // Allow targeting self or allies
             grid.appendChild(createActionButton(`Self`, 'healing', () => performCastSpell(subMenu.spellId, actingId, actingId), 'primary'));
             // Add player if actor is companion, and vice versa
@@ -1747,13 +2023,23 @@ function renderPlayerActions(container, subMenu = null, actingId = 'player') {
             grid.appendChild(createActionButton('Second Wind', 'healing', () => performAbility('second_wind', actingId), '', !available || !hasBonus));
         }
 
+        if (actor.classId === 'cleric' && actor.level >= 2) {
+            const res = actor.resources['channel_divinity'];
+            const available = res && res.current > 0;
+            grid.appendChild(createActionButton('Channel Divinity', 'flare', () => performAbility('channel_divinity', actingId), '', !available || !hasAction));
+        }
+
         grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, null, actingId), 'flee'));
     } else {
         // Main Menu
-        const hasSpells = actor.currentSlots && Object.values(actor.currentSlots).some(s => s > 0) || (actor.knownSpells.length > 0); // Include cantrips check
+        const actionSpells = getActorCastableSpells(actor, { combatOnly: true }).filter((spellId) => (spells[spellId]?.castingTime || 'action') !== 'reaction');
+        const hasSpells = actionSpells.some((spellId) => {
+            const spell = spells[spellId];
+            return spell.level === 0 || ((actor.currentSlots?.[spell.level] || 0) > 0);
+        });
 
         grid.appendChild(createActionButton('Attack', 'swords', () => renderPlayerActions(container, 'attack', actingId), 'primary', !hasAction));
-        grid.appendChild(createActionButton('Spells', 'auto_stories', () => renderPlayerActions(container, 'spells', actingId), '', !hasSpells || !hasAction)); // Assume spells need action
+        grid.appendChild(createActionButton('Spells', 'auto_stories', () => renderPlayerActions(container, 'spells', actingId), '', !hasSpells));
         grid.appendChild(createActionButton('Abilities', 'star', () => renderPlayerActions(container, 'abilities', actingId)));
         grid.appendChild(createActionButton('Defend', 'shield', () => performDefend(actingId), '', !hasAction));
         grid.appendChild(createActionButton('Items', 'local_drink', () => toggleInventory(true, actingId), '', !hasAction)); // Using Item is usually an Action (unless Thief)
@@ -2178,7 +2464,7 @@ function showLevelUpModal() {
     // Subclass Choice
     subclassSection.classList.add('hidden');
     let selectedSubclass = null;
-    if (nextLevel === 3 && cls.subclasses) {
+    if (nextLevel === cls.subclassLevel && cls.subclasses) {
         subclassSection.classList.remove('hidden');
         const optionsDiv = document.getElementById('lu-subclass-options');
         optionsDiv.innerHTML = '';
@@ -2224,7 +2510,7 @@ function showLevelUpModal() {
     modal.classList.remove('hidden');
 
     confirmBtn.onclick = () => {
-        if (nextLevel === 3 && cls.subclasses && !selectedSubclass) {
+        if (nextLevel === cls.subclassLevel && cls.subclasses && !selectedSubclass) {
             alert("You must choose a subclass.");
             return;
         }
@@ -2256,7 +2542,7 @@ function showLevelUpModal() {
         if (levelData.features) {
             levelData.features.forEach(f => {
                 if (f === 'action_surge') gameState.player.resources['action_surge'] = { current: 1, max: 1 };
-                // Add others
+                if (f === 'channel_divinity') gameState.player.resources['channel_divinity'] = { current: 1, max: 1 };
             });
         }
 

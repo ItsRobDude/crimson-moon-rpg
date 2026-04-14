@@ -9,12 +9,12 @@ export const races = {
         name: "Elf",
         description: "Graceful and long-lived, elves have a keen mind and mastery of magic.",
         abilityBonuses: { DEX: 2, INT: 1 },
-        traits: ["darkvision", "fey_ancestry"]
+        traits: ["darkvision", "fey_ancestry", "keen_senses", "trance"]
     },
     "dwarf": {
         name: "Dwarf",
         description: "Bold and hardy, dwarves are known as skilled warriors, miners, and workers of stone and metal.",
         abilityBonuses: { CON: 2, STR: 2 },
-        traits: ["darkvision", "dwarven_resilience"]
+        traits: ["darkvision", "dwarven_resilience", "dwarven_combat_training", "stonecunning"]
     }
 };
