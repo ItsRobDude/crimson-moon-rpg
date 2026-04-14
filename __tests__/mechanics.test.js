@@ -1,4 +1,4 @@
-import { addEffectToActor, canApplyEffectToActor, createDefaultMechanicsState, getBonusSkillChoiceCount, getBonusToolChoiceCount, getDerivedActorState, getEffectModifiers, removeEffectsFromActorBySource, setProficiencyMultiplier, tickActorEffects } from '../data/mechanics.js';
+import { addEffectToActor, canActorTargetActor, canApplyEffectToActor, createDefaultMechanicsState, getApproachBlockedSourceIds, getBonusSkillChoiceCount, getBonusToolChoiceCount, getDerivedActorState, getEffectModifiers, removeEffectsFromActorBySource, setProficiencyMultiplier, tickActorEffects } from '../data/mechanics.js';
 import { spells } from '../data/spells.js';
 import { getSkillBonus } from '../rules.js';
 
@@ -226,4 +226,27 @@ test('prone exposes incoming melee advantage and incoming ranged disadvantage th
 
   expect(meleeIncoming.advantage).toBe(true);
   expect(rangedIncoming.disadvantage).toBe(true);
+});
+
+test('charmed blocks hostile targeting only against the source actor', () => {
+  const actor = createActor();
+
+  addEffectToActor(actor, 'charmed', {
+    source: 'spell:tempter',
+    sourceActorId: 'tempter'
+  });
+
+  expect(canActorTargetActor(actor, 'tempter', { harmful: true })).toBe(false);
+  expect(canActorTargetActor(actor, 'someone_else', { harmful: true })).toBe(true);
+});
+
+test('frightened exposes its blocked source for movement logic', () => {
+  const actor = createActor();
+
+  addEffectToActor(actor, 'frightened', {
+    source: 'aura:shade',
+    sourceActorId: 'shade'
+  });
+
+  expect(getApproachBlockedSourceIds(actor)).toContain('shade');
 });

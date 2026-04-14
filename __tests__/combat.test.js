@@ -645,6 +645,53 @@ test('sleep applies to multiple low-hp targets in hp order within the chosen are
   randomSpy.mockRestore();
 });
 
+test('burning hands uses a forward cone instead of a target cluster approximation', () => {
+  const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.00);
+
+  gameState.player = createActor({
+    name: 'Wizard',
+    classId: 'wizard',
+    abilities: { STR: 8, DEX: 14, CON: 12, INT: 16, WIS: 12, CHA: 10 },
+    preparedSpells: ['burning_hands'],
+    spellbook: ['burning_hands'],
+    spellcastingMode: 'spellbook',
+    spellSlots: { 1: 1 },
+    currentSlots: { 1: 1 }
+  });
+  syncActorState(gameState.player);
+
+  const northA = createActor({ id: 'north_a', uniqueId: 'north_a_0', type: 'enemy', name: 'North A', hp: 8, maxHp: 8 });
+  const northB = createActor({ id: 'north_b', uniqueId: 'north_b_0', type: 'enemy', name: 'North B', hp: 8, maxHp: 8 });
+  const eastEnemy = createActor({ id: 'east_enemy', uniqueId: 'east_enemy_0', type: 'enemy', name: 'East Enemy', hp: 8, maxHp: 8 });
+  syncActorState(northA);
+  syncActorState(northB);
+  syncActorState(eastEnemy);
+
+  gameState.combat = {
+    ...gameState.combat,
+    active: true,
+    activeActorId: 'player',
+    actionsRemaining: 1,
+    bonusActionsRemaining: 1,
+    grid: createBattleGrid(8, 8, 5),
+    enemies: [northA, northB, eastEnemy],
+    turnOrder: ['player', northA.uniqueId, northB.uniqueId, eastEnemy.uniqueId]
+  };
+
+  placeToken(gameState.combat.grid, { id: 'player', x: 3, y: 4, team: 'allies', hp: gameState.player.hp, reach: 1 });
+  placeToken(gameState.combat.grid, { id: northA.uniqueId, x: 3, y: 3, team: 'enemies', hp: northA.hp, reach: 1 });
+  placeToken(gameState.combat.grid, { id: northB.uniqueId, x: 4, y: 2, team: 'enemies', hp: northB.hp, reach: 1 });
+  placeToken(gameState.combat.grid, { id: eastEnemy.uniqueId, x: 5, y: 4, team: 'enemies', hp: eastEnemy.hp, reach: 1 });
+
+  performCastSpell('burning_hands', { facing: 'north' }, 'player');
+
+  expect(gameState.combat.enemies[0].hp).toBeLessThan(8);
+  expect(gameState.combat.enemies[1].hp).toBeLessThan(8);
+  expect(gameState.combat.enemies[2].hp).toBe(8);
+
+  randomSpy.mockRestore();
+});
+
 test('sleep breaks concentration on creatures it renders unconscious', () => {
   const randomSpy = jest.spyOn(Math, 'random')
     .mockReturnValueOnce(0.99)
@@ -729,6 +776,51 @@ test('incapacitated actors cannot spend actions to attack', () => {
   performAttack(enemy.uniqueId, 'player');
 
   expect(gameState.combat.actionsRemaining).toBe(1);
+  expect(gameState.combat.enemies[0].hp).toBe(10);
+});
+
+test('charmed actors cannot target the charmer with attacks or harmful spells', () => {
+  gameState.player = createActor({
+    name: 'Hero',
+    classId: 'wizard',
+    preparedSpells: ['firebolt'],
+    spellbook: ['firebolt'],
+    spellcastingMode: 'spellbook'
+  });
+  syncActorState(gameState.player);
+  addEffectToActor(gameState.player, 'charmed', {
+    source: 'spell:enemy_0',
+    sourceActorId: 'enemy_0'
+  });
+
+  const enemy = createActor({
+    id: 'enemy',
+    uniqueId: 'enemy_0',
+    type: 'enemy',
+    name: 'Siren',
+    hp: 10,
+    maxHp: 10
+  });
+  syncActorState(enemy);
+
+  gameState.combat = {
+    ...gameState.combat,
+    active: true,
+    activeActorId: 'player',
+    actionsRemaining: 1,
+    bonusActionsRemaining: 1,
+    grid: createBattleGrid(8, 6, 5),
+    enemies: [enemy],
+    turnOrder: ['player', enemy.uniqueId]
+  };
+
+  placeToken(gameState.combat.grid, { id: 'player', x: 1, y: 2, team: 'allies', hp: gameState.player.hp, reach: 1 });
+  placeToken(gameState.combat.grid, { id: enemy.uniqueId, x: 2, y: 2, team: 'enemies', hp: enemy.hp, reach: 1 });
+
+  performAttack(enemy.uniqueId, 'player');
+  expect(gameState.combat.enemies[0].hp).toBe(10);
+
+  performCastSpell('firebolt', enemy.uniqueId, 'player');
   expect(gameState.combat.enemies[0].hp).toBe(10);
 });
 

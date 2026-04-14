@@ -203,25 +203,31 @@ export const effectDefinitions = {
     frightened: {
         id: 'frightened',
         name: 'Frightened',
-        description: 'Disadvantage on attacks and key checks while fear grips the actor.',
+        description: 'Disadvantage on attacks and checks while fear grips the actor, and the actor resists moving closer to the source of fear.',
         durationType: 'turns',
         defaultDuration: 3,
         modifiers: [
             { type: 'disadvantage', target: 'attack_roll' },
-            { type: 'disadvantage', target: 'ability_check', tags: ['awareness'] },
-            { type: 'disadvantage', target: 'skill_check', tags: ['social'] }
-        ]
+            { type: 'disadvantage', target: 'ability_check' },
+            { type: 'disadvantage', target: 'skill_check' }
+        ],
+        data: {
+            blocksApproachToSource: true
+        }
     },
     charmed: {
         id: 'charmed',
         name: 'Charmed',
-        description: 'The actor is socially compromised by magical influence.',
+        description: 'The actor is socially compromised by magical influence and cannot turn hostile intent against the charmer.',
         durationType: 'turns',
         defaultDuration: 3,
         modifiers: [
             { type: 'disadvantage', target: 'skill_check', tags: ['social'] },
             { type: 'disadvantage', target: 'skill_check', skill: 'insight' }
-        ]
+        ],
+        data: {
+            preventHostileActionsAgainstSource: true
+        }
     },
     burning: {
         id: 'burning',
@@ -283,7 +289,10 @@ export const effectDefinitions = {
         defaultDuration: 2,
         modifiers: [
             { type: 'multiplier', target: 'speed', value: 0 }
-        ]
+        ],
+        data: {
+            maintainedBySource: true
+        }
     },
     blinded: {
         id: 'blinded',
@@ -294,6 +303,7 @@ export const effectDefinitions = {
         modifiers: [
             { type: 'disadvantage', target: 'attack_roll' },
             { type: 'disadvantage', target: 'ability_check', tags: ['awareness'] },
+            { type: 'disadvantage', target: 'skill_check', tags: ['awareness'] },
             { type: 'advantage', target: 'incoming_attack_roll' }
         ]
     },
@@ -509,6 +519,7 @@ export function createEffectInstance(effectId, overrides = {}) {
     return {
         id: overrides.id || effectId || 'custom_effect',
         source: overrides.source || null,
+        sourceActorId: overrides.sourceActorId || definition?.sourceActorId || overrides.data?.sourceActorId || definition?.data?.sourceActorId || null,
         remaining: overrides.remaining ?? definition?.defaultDuration ?? null,
         durationType: overrides.durationType || definition?.durationType || 'turns',
         concentration: overrides.concentration ?? !!definition?.concentration,
@@ -526,6 +537,10 @@ export function createEffectInstance(effectId, overrides = {}) {
 
 function getEffectKey(effect) {
     return `${effect.id}:${effect.source || ''}`;
+}
+
+export function getEffectSourceActorId(effect) {
+    return effect?.sourceActorId || effect?.data?.sourceActorId || null;
 }
 
 function normalizeProficiencyKey(category, key) {
@@ -594,6 +609,30 @@ export function effectBlocksSpell(actor, spellId) {
     ensureActorMechanics(actor);
     if (!spellId) return false;
     return actor.mechanics.activeEffects.some((effect) => (effect.blockedSpellIds || []).includes(spellId));
+}
+
+export function canActorTargetActor(actor, targetActorId, options = {}) {
+    ensureActorMechanics(actor);
+    if (!options.harmful || !targetActorId) return true;
+
+    return !actor.mechanics.activeEffects.some((effect) => {
+        const sourceActorId = getEffectSourceActorId(effect);
+        if (!sourceActorId || sourceActorId !== targetActorId) return false;
+        return effect.id === 'charmed' || effect.data?.preventHostileActionsAgainstSource;
+    });
+}
+
+export function getApproachBlockedSourceIds(actor) {
+    ensureActorMechanics(actor);
+    return actor.mechanics.activeEffects
+        .filter((effect) => effect.id === 'frightened' || effect.data?.blocksApproachToSource)
+        .map(getEffectSourceActorId)
+        .filter(Boolean);
+}
+
+export function getSourceMaintainedEffects(actor) {
+    ensureActorMechanics(actor);
+    return actor.mechanics.activeEffects.filter((effect) => effect.data?.maintainedBySource && getEffectSourceActorId(effect));
 }
 
 export function addEffectToActor(actor, effectId, overrides = {}) {
@@ -730,7 +769,7 @@ export function tickActorEffects(actor, trigger = 'turn_end', options = {}) {
     return expiredEffects;
 }
 
-function modifierApplies(modifier, context) {
+function modifierApplies(modifier, context, effect = null) {
     if (!modifier) return false;
     if (modifier.target && modifier.target !== context.target) {
         if (!(modifier.target === 'ability_check' && context.target === 'skill_check')) {
@@ -743,6 +782,9 @@ function modifierApplies(modifier, context) {
         const contextTags = context.tags || [];
         if (!modifier.tags.some(tag => contextTags.includes(tag))) return false;
     }
+    const sourceActorId = getEffectSourceActorId(effect);
+    if (modifier.sourceActorOnly && sourceActorId && context.sourceActorId !== sourceActorId) return false;
+    if (modifier.excludeSourceActor && sourceActorId && context.sourceActorId === sourceActorId) return false;
     return true;
 }
 
@@ -759,7 +801,7 @@ export function getEffectModifiers(actor, context = {}) {
 
     actor.mechanics.activeEffects.forEach(effect => {
         (effect.modifiers || []).forEach(modifier => {
-            if (!modifierApplies(modifier, context)) return;
+            if (!modifierApplies(modifier, context, effect)) return;
 
             if (modifier.type === 'flat_bonus') {
                 result.flat += modifier.value || 0;
@@ -782,7 +824,7 @@ export function getEffectModifiers(actor, context = {}) {
 
     getActorTraitDefinitions(actor).forEach((trait) => {
         (trait.modifiers || []).forEach((modifier) => {
-            if (!modifierApplies(modifier, context)) return;
+            if (!modifierApplies(modifier, context, trait)) return;
 
             if (modifier.type === 'flat_bonus') {
                 result.flat += modifier.value || 0;
@@ -815,7 +857,7 @@ export function consumeIncomingHitEffects(actor, context = {}) {
         const applies = (effect.modifiers || []).some((modifier) => modifierApplies(modifier, {
             target: 'incoming_attack_roll',
             ...context
-        }));
+        }, effect));
         if (!applies) return true;
         consumedSources.push(effect.id);
         return false;

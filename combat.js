@@ -6,10 +6,10 @@ import { npcs } from './data/npcs.js';
 import { enemies } from './data/enemies.js';
 import { items } from './data/items.js';
 import { spells } from './data/spells.js';
-import { addEffectToActor, canApplyEffectToActor, consumeIncomingHitEffects, createDefaultMechanicsState, dropConcentration, effectBlocksSpell, effectHasDataFlag, getDerivedActorState, getEffectModifiers, getSpellcastingAbility, removeEffectFromActor, removeEffectsFromActorBySource, tickActorEffects } from './data/mechanics.js';
+import { addEffectToActor, canActorTargetActor, canApplyEffectToActor, consumeIncomingHitEffects, createDefaultMechanicsState, dropConcentration, effectBlocksSpell, effectHasDataFlag, getApproachBlockedSourceIds, getDerivedActorState, getEffectModifiers, getSourceMaintainedEffects, getSpellcastingAbility, removeEffectFromActor, removeEffectsFromActorBySource, tickActorEffects } from './data/mechanics.js';
 import { rollInitiative, rollDie, rollAttack, rollDiceExpression, rollSavingThrow, calculateDamageRoll, calculateDamageReduction, getProficiencyBonus } from './rules.js';
 import { generateScaledStats } from './rules.js';
-import { canTargetToken, createBattlefieldLayout, feetToTiles, getGridDistance, getMovementCost, getOpportunityAttackTriggers, getTileEffects, getTileKey, getToken, isAdjacent, moveToken, setTerrain, setTileEffect } from './battlegrid.js';
+import { canTargetToken, collectTemplateTargets, createBattlefieldLayout, feetToTiles, getCoverBetween, getFacingDirections, getMovementCost, getOpportunityAttackTriggers, getRangeDistance, getTemplateTiles, getTileEffects, getTileKey, getToken, inferFacing, isAdjacent, isWithinGrid, moveToken, setTerrain, setTileEffect } from './battlegrid.js';
 
 const ABILITY_MAP = {
     strength: 'STR',
@@ -407,11 +407,15 @@ function getAvailableAdjacentTiles(targetId) {
         { x: target.x - 1, y: target.y },
         { x: target.x + 1, y: target.y },
         { x: target.x, y: target.y - 1 },
-        { x: target.x, y: target.y + 1 }
+        { x: target.x, y: target.y + 1 },
+        { x: target.x - 1, y: target.y - 1 },
+        { x: target.x + 1, y: target.y - 1 },
+        { x: target.x - 1, y: target.y + 1 },
+        { x: target.x + 1, y: target.y + 1 }
     ];
 
     return candidates.filter(tile => {
-        if (tile.x < 0 || tile.x >= grid.width || tile.y < 0 || tile.y >= grid.height) return false;
+        if (!isWithinGrid(grid, tile.x, tile.y)) return false;
         return !Object.values(grid.occupied).some(occupant => occupant.id !== targetId && occupant.x === tile.x && occupant.y === tile.y && occupant.hp > 0);
     });
 }
@@ -463,6 +467,10 @@ function moveActorAlongPath(actorId, path) {
     if (totalCost > gameState.combat.movementRemaining) {
         return false;
     }
+    if (pathMovesCloserToBlockedSource(actorId, path)) {
+        uiHooks.logToBattle(`${actor.name} flinches and cannot bring themself closer to what they fear.`, 'check-fail');
+        return false;
+    }
 
     applyOpportunityAttacks(actorId, path);
     const destination = path[path.length - 1];
@@ -481,12 +489,12 @@ function closeDistanceToTarget(actorId, targetId, reachFeet = 5) {
     if (!actorToken || !targetToken) return false;
 
     const reachTiles = feetToTiles(grid, reachFeet);
-    if (getGridDistance(actorToken, targetToken) <= reachTiles) {
+    if (getRangeDistance(actorToken, targetToken) <= reachTiles) {
         return true;
     }
 
     const options = getAvailableAdjacentTiles(targetId)
-        .map(tile => ({ tile, distance: getGridDistance(actorToken, tile) }))
+        .map(tile => ({ tile, distance: getRangeDistance(actorToken, tile) }))
         .sort((a, b) => a.distance - b.distance);
     const best = options[0];
     if (!best) return false;
@@ -532,6 +540,228 @@ function getFriendlyIds(actorId) {
     });
 }
 
+function getActorTeam(actorId) {
+    const token = getToken(gameState.combat.grid, actorId);
+    if (token?.team) return token.team;
+    return isEnemyId(actorId) ? 'enemies' : 'allies';
+}
+
+function getSpellTargeting(spell) {
+    const targeting = typeof spell?.targeting === 'string'
+        ? { type: 'single', side: spell.targeting, rangeFeet: spell.rangeFeet || 5 }
+        : { ...(spell?.targeting || {}) };
+
+    return {
+        type: targeting.type || 'single',
+        side: targeting.side || 'enemy',
+        rangeFeet: targeting.rangeFeet ?? spell?.rangeFeet ?? 5,
+        template: targeting.template || null,
+        sizeFeet: targeting.sizeFeet || null,
+        requiresFacing: !!targeting.requiresFacing,
+        origin: targeting.origin || (targeting.side === 'self' ? 'self' : 'target'),
+        maxTargets: targeting.maxTargets || spell?.maxTargets || 1
+    };
+}
+
+function getSelectionTargetId(selection, actorId) {
+    if (!selection) return actorId;
+    if (typeof selection === 'string') return selection;
+    return selection.targetId || selection.actorId || actorId;
+}
+
+function getSelectionCenter(selection, grid) {
+    if (!selection || typeof selection === 'string') return null;
+    if (selection.center && Number.isInteger(selection.center.x) && Number.isInteger(selection.center.y)) {
+        return selection.center;
+    }
+    if (Number.isInteger(selection.x) && Number.isInteger(selection.y)) {
+        return { x: selection.x, y: selection.y };
+    }
+    if (selection.targetId) {
+        const token = getToken(grid, selection.targetId);
+        if (token) return { x: token.x, y: token.y };
+    }
+    return null;
+}
+
+function getHostileActionSide(spell) {
+    return ['attack', 'save', 'auto', 'auto_status'].includes(spell.type);
+}
+
+function getTargetTeamFilters(actorId, spell) {
+    const actorTeam = getActorTeam(actorId);
+    const targeting = getSpellTargeting(spell);
+
+    if (targeting.side === 'self') {
+        return {
+            filter: (token) => token.id === actorId
+        };
+    }
+    if (targeting.side === 'ally') {
+        return {
+            team: actorTeam
+        };
+    }
+    if (targeting.side === 'enemy') {
+        return {
+            excludeTeam: actorTeam
+        };
+    }
+    return {};
+}
+
+function getCoverBonusValue(cover) {
+    if (cover === 'three_quarters') return 5;
+    if (cover === 'half') return 2;
+    return 0;
+}
+
+function getTargetingReferencePoint(actorId, spell, selection) {
+    const grid = gameState.combat.grid;
+    const actorToken = getToken(grid, actorId);
+    if (!actorToken) return null;
+
+    const targeting = getSpellTargeting(spell);
+    if (targeting.origin === 'self') {
+        return { x: actorToken.x, y: actorToken.y };
+    }
+
+    return getSelectionCenter(selection, grid) || (() => {
+        const targetToken = getToken(grid, getSelectionTargetId(selection, actorId));
+        return targetToken ? { x: targetToken.x, y: targetToken.y } : null;
+    })();
+}
+
+function resolveSpellTargetEntries(actorId, spell, selection) {
+    const grid = gameState.combat.grid;
+    const actorToken = getToken(grid, actorId);
+    if (!grid || !actorToken) return { valid: false, targets: [], tiles: [], cover: 'none', targeting: getSpellTargeting(spell) };
+
+    const targeting = getSpellTargeting(spell);
+    const selectionTargetId = getSelectionTargetId(selection, actorId);
+
+    if (targeting.type === 'single') {
+        const targetId = targeting.side === 'self' ? actorId : selectionTargetId;
+        const targetToken = getToken(grid, targetId);
+        if (!targetToken) {
+            return { valid: false, targets: [], tiles: [], cover: 'none', targeting };
+        }
+        const inRange = targetId === actorId || canTargetToken(grid, actorId, targetId, targeting.rangeFeet);
+        return {
+            valid: inRange,
+            targets: inRange ? [{
+                id: targetId,
+                token: targetToken,
+                tile: { x: targetToken.x, y: targetToken.y },
+                cover: getCoverBetween(grid, actorId, targetId)
+            }] : [],
+            tiles: inRange ? [{ x: targetToken.x, y: targetToken.y }] : [],
+            cover: getCoverBetween(grid, actorId, targetId),
+            targeting
+        };
+    }
+
+    const center = getTargetingReferencePoint(actorId, spell, selection);
+    if (!center) {
+        return { valid: false, targets: [], tiles: [], cover: 'none', targeting };
+    }
+
+    const rangeFromActor = getRangeDistance(actorToken, center) * grid.tileSize;
+    if (rangeFromActor > targeting.rangeFeet) {
+        return { valid: false, targets: [], tiles: [], cover: 'none', targeting };
+    }
+
+    const facing = targeting.requiresFacing
+        ? (typeof selection === 'object' && selection?.facing ? selection.facing : inferFacing(actorToken, center).id)
+        : null;
+    const origin = targeting.origin === 'self'
+        ? { x: actorToken.x, y: actorToken.y }
+        : center;
+    const tiles = getTemplateTiles(grid, {
+        template: targeting.template,
+        origin,
+        center,
+        sizeFeet: targeting.sizeFeet || targeting.rangeFeet,
+        facing
+    });
+    const teamFilters = getTargetTeamFilters(actorId, spell);
+    const targets = collectTemplateTargets(grid, {
+        template: targeting.template,
+        origin,
+        center,
+        sizeFeet: targeting.sizeFeet || targeting.rangeFeet,
+        facing
+    }, teamFilters).filter((entry) => entry.cover !== 'full');
+
+    return {
+        valid: tiles.length > 0,
+        targets,
+        tiles,
+        facing,
+        center,
+        cover: 'none',
+        targeting
+    };
+}
+
+export function getSpellTargetingPreview(actorId, spellId, selection = null) {
+    const spell = spells[spellId];
+    const actor = getCombatActor(actorId);
+    if (!spell || !actor || !gameState.combat?.grid) {
+        return { valid: false, summary: '', affectedNames: [], tiles: [], targeting: getSpellTargeting(spell || {}) };
+    }
+
+    const resolution = resolveSpellTargetEntries(actorId, spell, selection);
+    const targetTiles = resolution.tiles.map((tile) => `(${tile.x},${tile.y})`);
+    const affectedNames = resolution.targets
+        .map((entry) => getCombatActor(entry.id)?.name || entry.id)
+        .filter(Boolean);
+    const facingLabel = resolution.facing
+        ? ` Facing ${getFacingDirections().find((direction) => direction.id === resolution.facing)?.label || resolution.facing}.`
+        : '';
+    const summary = resolution.valid
+        ? `${spell.name}${facingLabel} Tiles: ${targetTiles.join(', ') || 'none'}. Affected: ${affectedNames.join(', ') || 'none'}.`
+        : `${spell.name} has no legal targets from that selection.`;
+
+    return {
+        ...resolution,
+        summary,
+        affectedNames
+    };
+}
+
+function canActorUseHostileEffectOnTarget(actorId, targetId, spell = null) {
+    const actor = getCombatActor(actorId);
+    if (!actor || !targetId) return false;
+    return canActorTargetActor(actor, targetId, { harmful: spell ? getHostileActionSide(spell) : true });
+}
+
+function pathMovesCloserToBlockedSource(actorId, path = []) {
+    const actor = getCombatActor(actorId);
+    const blockedSourceIds = getApproachBlockedSourceIds(actor);
+    if (!actor || blockedSourceIds.length === 0 || path.length < 2) return false;
+
+    return blockedSourceIds.some((sourceId) => {
+        const sourceToken = getToken(gameState.combat.grid, sourceId);
+        if (!sourceToken || sourceToken.hp <= 0) return false;
+        const startDistance = getRangeDistance(path[0], sourceToken);
+        return path.slice(1).some((step) => getRangeDistance(step, sourceToken) < startDistance);
+    });
+}
+
+function cleanupSourceMaintainedEffects(actorId) {
+    const actor = getCombatActor(actorId);
+    if (!actor || !gameState.combat?.grid) return;
+
+    getSourceMaintainedEffects(actor).forEach((effect) => {
+        const sourceToken = getToken(gameState.combat.grid, effect.sourceActorId);
+        const actorToken = getToken(gameState.combat.grid, actorId);
+        if (!sourceToken || sourceToken.hp <= 0 || !actorToken || !isAdjacent(gameState.combat.grid, actorId, effect.sourceActorId)) {
+            removeEffectFromActor(actor, effect.id);
+        }
+    });
+}
+
 function canActorTakeActions(actor) {
     return !!actor && !effectHasDataFlag(actor, 'actionLocked');
 }
@@ -553,43 +783,10 @@ function targetForcesMeleeCrit(target, attackerId, targetId, profile) {
     return isAdjacent(gameState.combat.grid, attackerId, targetId, feetToTiles(gameState.combat.grid, profile?.reachFeet || 5));
 }
 
-function getCombatantIdsWithinRadius(centerId, radiusFeet, candidates) {
-    const centerToken = getToken(gameState.combat.grid, centerId);
-    if (!centerToken) return [];
-    const radiusTiles = feetToTiles(gameState.combat.grid, radiusFeet);
-    return candidates.filter((candidateId) => {
-        const token = getToken(gameState.combat.grid, candidateId);
-        return token && getGridDistance(centerToken, token) <= radiusTiles;
-    });
-}
-
 function getBlessTargets(casterId, primaryTargetId, maxTargets = 3) {
     const friendlyIds = getFriendlyIds(casterId);
     const ordered = [primaryTargetId, casterId, ...friendlyIds.filter((id) => id !== primaryTargetId && id !== casterId)].filter(Boolean);
     return [...new Set(ordered)].slice(0, maxTargets);
-}
-
-function getBurningHandsTargets(casterId, primaryTargetId, spell) {
-    const hostileIds = getHostileIds(casterId);
-    const inRange = hostileIds.filter((id) => canTargetToken(gameState.combat.grid, casterId, id, spell.rangeFeet || 15));
-    if (!primaryTargetId || !inRange.includes(primaryTargetId)) return [];
-    const cluster = getCombatantIdsWithinRadius(primaryTargetId, spell.areaRadiusFeet || 5, inRange);
-    return [...new Set([primaryTargetId, ...cluster])];
-}
-
-function getSleepTargets(casterId, primaryTargetId, spell) {
-    const hostileIds = getHostileIds(casterId);
-    const centerToken = getToken(gameState.combat.grid, primaryTargetId);
-    if (!centerToken) return [];
-    return getCombatantIdsWithinRadius(primaryTargetId, spell.areaRadiusFeet || 20, hostileIds)
-        .map((id) => ({
-            id,
-            actor: getCombatActor(id),
-            distance: getGridDistance(centerToken, getToken(gameState.combat.grid, id))
-        }))
-        .filter((entry) => entry.actor && entry.actor.hp > 0)
-        .sort((a, b) => (a.actor.hp - b.actor.hp) || (a.distance - b.distance))
-        .map((entry) => entry.id);
 }
 
 function hasHostileAdjacent(actorId) {
@@ -609,6 +806,7 @@ function beginTurn(actorId) {
     const actor = getCombatActor(actorId);
     if (!actor || actor.hp <= 0) return false;
 
+    cleanupSourceMaintainedEffects(actorId);
     tickActorEffects(actor, 'turn_start');
     syncActorState(actor);
     syncGridToken(actorId);
@@ -634,6 +832,7 @@ function endActorTurn(actorId) {
 
     reconcileTileEffects(actorId, 'turn_end');
     tickActorEffects(actor, 'turn_end');
+    cleanupSourceMaintainedEffects(actorId);
     syncActorState(actor);
     syncGridToken(actorId);
 }
@@ -709,6 +908,7 @@ function applySpellBuff(casterId, targetId, spell, options = {}) {
     const baseOverrides = {
         id: effectId,
         source: spell.concentration ? concentrationSource : `${spell.id}:${casterId}`,
+        sourceActorId: casterId,
         name: spell.effect.name || spell.name,
         remaining: spell.effect.remaining ?? 5,
         durationType: spell.effect.durationType || 'turns',
@@ -758,6 +958,7 @@ function applySpellOnHitEffect(casterId, targetId, spell) {
     return !!addEffectToActor(target, spell.onHitEffect.id, {
         ...spell.onHitEffect,
         source: `${spell.id}:${casterId}`,
+        sourceActorId: casterId,
         data: spell.onHitEffect.data || {}
     });
 }
@@ -797,6 +998,10 @@ function resolveWeaponHit(attackerId, targetId, options = {}) {
     const attacker = getCombatActor(attackerId);
     const target = getCombatActor(targetId);
     if (!attacker || !target) return false;
+    if (!canActorUseHostileEffectOnTarget(attackerId, targetId)) {
+        uiHooks.logToBattle(`${attacker.name} cannot bring themself to strike ${target.name}.`, 'check-fail');
+        return false;
+    }
 
     const profile = getAttackProfile(attackerId);
     if (!profile || !ensureTargetInRange(attackerId, targetId, profile)) {
@@ -841,13 +1046,14 @@ function resolveWeaponHit(attackerId, targetId, options = {}) {
     syncActorState(target);
 
     const targetSnapshot = getDerivedActorState(target);
+    const coverBonus = profile.isRanged ? getCoverBonusValue(getCoverBetween(gameState.combat.grid, attackerId, targetId)) : 0;
     const critThreshold = attacker.subclassId === 'champion' ? 19 : 20;
     const isCritical = targetForcesMeleeCrit(target, attackerId, targetId, profile)
         || attackResult.roll >= critThreshold
         || attackResult.isCritical;
-    const hit = attackResult.total >= targetSnapshot.ac || attackResult.roll === 20;
+    const hit = attackResult.total >= (targetSnapshot.ac + coverBonus) || attackResult.roll === 20;
 
-    uiHooks.logToBattle(`${attacker.name} attacks ${target.name} with ${profile.name}: ${attackResult.total} (vs AC ${targetSnapshot.ac}).`, 'system');
+    uiHooks.logToBattle(`${attacker.name} attacks ${target.name} with ${profile.name}: ${attackResult.total} (vs AC ${targetSnapshot.ac + coverBonus}).`, 'system');
 
     if (!hit) {
         uiHooks.logToBattle('Miss!', 'system');
@@ -894,7 +1100,7 @@ function getPreferredEnemyTarget(enemyId) {
     const hostileIds = getHostileIds(enemyId);
     const source = getToken(gameState.combat.grid, enemyId);
     return hostileIds
-        .map(id => ({ id, actor: getCombatActor(id), distance: getGridDistance(source, getToken(gameState.combat.grid, id)) }))
+        .map(id => ({ id, actor: getCombatActor(id), distance: getRangeDistance(source, getToken(gameState.combat.grid, id)) }))
         .filter(entry => entry.actor && entry.actor.hp > 0)
         .sort((a, b) => a.distance - b.distance)[0]?.id || 'player';
 }
@@ -1071,9 +1277,6 @@ export function performAttack(targetId, actorId = 'player') {
     }
 
     const resolved = resolveWeaponHit(actorId, targetId, { consumeAction: true });
-    if (!resolved) {
-        uiHooks.logToBattle(`${actor.name} cannot reach ${target.name}.`, "check-fail");
-    }
 
     if (!checkWinCondition()) {
         uiHooks.updateCombatUI(actorId);
@@ -1110,18 +1313,20 @@ export function performCastSpell(spellId, targetId, actorId = 'player') {
         return;
     }
 
-    const target = getCombatActor(targetId || actorId);
-    if (!target) return;
+    const targeting = getSpellTargeting(spell);
+    const resolution = resolveSpellTargetEntries(actorId, spell, targetId);
+    const primaryTargetId = targeting.side === 'self' ? actorId : getSelectionTargetId(targetId, actorId);
+    const target = getCombatActor(primaryTargetId || actorId);
 
-    const rangeFeet = spell.rangeFeet || 5;
-    const targetInRange = actorId === (targetId || actorId)
-        ? true
-        : ensureTargetInRange(actorId, targetId, { rangeFeet, reachFeet: rangeFeet }, { rangeFeet });
-    if (!targetInRange) {
-        uiHooks.logToBattle(`${target.name} is out of range for ${spell.name}.`, "check-fail");
+    if (!resolution.valid || (!target && targeting.type === 'single')) {
+        uiHooks.logToBattle(`${spell.name} has no legal target from that position.`, "check-fail");
         return;
     }
-    if (spell.type === 'buff' && spell.effect && !canApplyEffectToActor(target, spell.effect.id, {
+    if (targeting.type === 'single' && getHostileActionSide(spell) && !canActorUseHostileEffectOnTarget(actorId, primaryTargetId, spell)) {
+        uiHooks.logToBattle(`${actor.name} cannot direct ${spell.name} at ${target?.name || primaryTargetId}.`, 'check-fail');
+        return;
+    }
+    if (spell.type === 'buff' && spell.effect && target && !canApplyEffectToActor(target, spell.effect.id, {
         id: spell.effect.id,
         name: spell.effect.name || spell.name,
         durationType: spell.effect.durationType || spell.durationType || 'turns',
@@ -1131,6 +1336,10 @@ export function performCastSpell(spellId, targetId, actorId = 'player') {
         applicationTags: spell.effect.applicationTags || []
     })) {
         uiHooks.logToBattle(`${spell.name} cannot affect ${target.name} right now.`, 'check-fail');
+        return;
+    }
+    if (targeting.type === 'template' && getHostileActionSide(spell) && resolution.targets.length === 0) {
+        uiHooks.logToBattle(`${spell.name} would catch no valid targets there.`, 'check-fail');
         return;
     }
 
@@ -1169,11 +1378,11 @@ export function performCastSpell(spellId, targetId, actorId = 'player') {
             removeEffectFromActor(target, 'unconscious');
         }
         syncActorState(target);
-        syncGridToken(targetId || actorId);
+        syncGridToken(primaryTargetId || actorId);
         uiHooks.logToBattle(`${target.name} recovers ${healAmount} HP.`, "gain");
         uiHooks.showBattleEventText(`+${healAmount} HP`);
     } else if (spell.type === 'auto') {
-        tryUseShieldReaction(targetId, { spellId, autoHit: true });
+        tryUseShieldReaction(primaryTargetId, { spellId, autoHit: true });
         syncActorState(target);
         if (effectBlocksSpell(target, spellId)) {
             uiHooks.logToBattle(`${target.name} turns aside ${spell.name} with Shield.`, 'gain');
@@ -1192,21 +1401,22 @@ export function performCastSpell(spellId, targetId, actorId = 'player') {
             tags: spellAttackProfile.tags
         });
         actor.combatFlags.hidden = false;
-        tryUseShieldReaction(targetId, { attackTotal: result.total, spellId, autoHit: false });
+        tryUseShieldReaction(primaryTargetId, { attackTotal: result.total, spellId, autoHit: false });
         syncActorState(target);
         const targetSnapshot = getDerivedActorState(target);
-        uiHooks.logToBattle(`Spell Attack: ${result.total} (vs AC ${targetSnapshot.ac})`, "system");
+        const coverBonus = spellAttackProfile.isRanged ? getCoverBonusValue(resolution.targets[0]?.cover) : 0;
+        uiHooks.logToBattle(`Spell Attack: ${result.total} (vs AC ${targetSnapshot.ac + coverBonus})`, "system");
 
-        if (result.total >= targetSnapshot.ac || result.roll === 20) {
+        if (result.total >= (targetSnapshot.ac + coverBonus) || result.roll === 20) {
             const damage = calculateDamageRoll(
                 spell.damage,
                 0,
-                targetForcesMeleeCrit(target, actorId, targetId, spellAttackProfile) || result.roll === 20
+                targetForcesMeleeCrit(target, actorId, primaryTargetId, spellAttackProfile) || result.roll === 20
             ).total;
             const finalDamage = resolveDamage(target, damage, spell.damageType);
-            if (applySpellOnHitEffect(actorId, targetId, spell)) {
+            if (applySpellOnHitEffect(actorId, primaryTargetId, spell)) {
                 syncActorState(target);
-                syncGridToken(targetId);
+                syncGridToken(primaryTargetId);
             }
             consumeIncomingHitEffects(target, { tags: spellAttackProfile.tags });
             uiHooks.logToBattle(`Hit! Dealt ${finalDamage} ${spell.damageType} damage.`, "combat");
@@ -1216,17 +1426,18 @@ export function performCastSpell(spellId, targetId, actorId = 'player') {
             uiHooks.showBattleEventText("Miss!");
         }
     } else if (spell.type === 'save') {
-        const targets = spell.id === 'burning_hands'
-            ? getBurningHandsTargets(actorId, targetId, spell)
-            : [targetId];
-        targets.forEach((resolvedTargetId) => {
-            const resolvedTarget = getCombatActor(resolvedTargetId);
+        const targetEntries = targeting.type === 'template'
+            ? resolution.targets
+            : resolution.targets.slice(0, 1);
+        targetEntries.forEach((entry) => {
+            const resolvedTarget = getCombatActor(entry.id);
             if (!resolvedTarget) return;
             const save = rollSavingThrow(resolvedTarget, spell.saveAbility);
-            uiHooks.logToBattle(`${resolvedTarget.name} Save (${spell.saveAbility}): ${save.total} (DC ${snapshot.spellSaveDC})`, "system");
+            const coverBonus = spell.saveAbility === 'DEX' ? getCoverBonusValue(entry.cover) : 0;
+            uiHooks.logToBattle(`${resolvedTarget.name} Save (${spell.saveAbility}): ${save.total + coverBonus} (DC ${snapshot.spellSaveDC})`, "system");
 
             let damage = rollDiceExpression(spell.damage).total;
-            if (save.total >= snapshot.spellSaveDC) {
+            if ((save.total + coverBonus) >= snapshot.spellSaveDC) {
                 damage = spell.halfOnSave === false ? 0 : Math.floor(damage / 2);
                 uiHooks.logToBattle(damage > 0 ? "Save successful! Damage reduced." : "Save successful! No damage.", "gain");
             } else {
@@ -1253,18 +1464,18 @@ export function performCastSpell(spellId, targetId, actorId = 'player') {
                 concentration: true,
                 modifiers: []
             });
-            getBlessTargets(actorId, targetId || actorId, spell.maxTargets || 3).forEach((allyId) => {
+            getBlessTargets(actorId, primaryTargetId || actorId, targeting.maxTargets || 3).forEach((allyId) => {
                 applied = applySpellBuff(actorId, allyId, spell, {
                     sourceOverride: concentrationSource,
                     manageConcentration: false
                 }) || applied;
             });
         } else {
-            applied = applySpellBuff(actorId, targetId || actorId, spell);
+            applied = applySpellBuff(actorId, primaryTargetId || actorId, spell);
         }
         syncActorState(actor);
         syncActorState(target);
-        syncGridToken(targetId || actorId);
+        syncGridToken(primaryTargetId || actorId);
         if (applied) {
             uiHooks.logToBattle(`${target.name} is bolstered by ${spell.name}.`, 'gain');
         } else {
@@ -1273,13 +1484,22 @@ export function performCastSpell(spellId, targetId, actorId = 'player') {
     } else if (spell.type === 'auto_status') {
         let affectedHp = rollDiceExpression(spell.amount).total;
         let anyAffected = false;
-        getSleepTargets(actorId, targetId, spell).forEach((resolvedTargetId) => {
-            const resolvedTarget = getCombatActor(resolvedTargetId);
+        resolution.targets
+            .map((entry) => ({
+                id: entry.id,
+                actor: getCombatActor(entry.id),
+                distance: resolution.center ? getRangeDistance(resolution.center, entry.tile) : 0
+            }))
+            .filter((entry) => entry.actor && entry.actor.hp > 0)
+            .sort((a, b) => (a.actor.hp - b.actor.hp) || (a.distance - b.distance))
+            .forEach((entry) => {
+            const resolvedTarget = entry.actor;
             if (!resolvedTarget || resolvedTarget.hp > affectedHp) return;
             const appliedEffect = addEffectToActor(resolvedTarget, spell.appliedEffectId, {
                 remaining: spell.effectDuration || 2,
                 durationType: spell.durationType || 'turns',
                 source: `${spell.id}:${actorId}`,
+                sourceActorId: actorId,
                 applicationTags: spell.applicationTags || []
             });
             if (appliedEffect) {
@@ -1293,7 +1513,7 @@ export function performCastSpell(spellId, targetId, actorId = 'player') {
             }
         });
         if (!anyAffected) {
-            uiHooks.logToBattle(`${target.name} resists the worst of ${spell.name}.`, 'system');
+            uiHooks.logToBattle(`${spell.name} fails to overcome anyone in the affected area.`, 'system');
         }
     }
 

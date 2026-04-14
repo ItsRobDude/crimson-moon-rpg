@@ -7,7 +7,8 @@ This project now has an explicit positional combat foundation in `battlegrid.js`
 - 1 tile = 5 feet
 - flat ground is the default
 - combatants occupy a single tile
-- Manhattan distance is the current distance metric
+- movement still uses simple square-grid pathing
+- attack range, adjacency, and template resolution now use square-grid reach/template math instead of Manhattan-only checks
 - line of sight can be blocked by terrain flags
 - movement, adjacency, and opportunity attacks are tracked in combat state
 - tile size is authoritative for movement, spell range, and reach conversion
@@ -19,18 +20,20 @@ This project now has an explicit positional combat foundation in `battlegrid.js`
   - layered stats and effect resolution
 - `battlegrid.js`
   - tiles, occupancy, line of sight, adjacency, movement cost, opportunity-attack hooks
-  - tile effects and hazards
+  - template builders for radius, cone, line, and cube effects
+  - tile effects, zone effects, and cover hooks
 - `combat.js`
   - initiative
   - turn flow
+  - declarative spell targeting resolution
   - range checks
   - auto-closing for melee/touch actions when movement allows
   - grid-backed sneak attack adjacency checks
   - tile hazard reconciliation on movement and turn boundaries
 
-## Tile Effects
+## Tile And Zone Effects
 
-Tiles can now define hazards/effects such as:
+Tiles and zones can now define hazards/effects such as:
 
 - burning ground
 - poison clouds
@@ -43,7 +46,7 @@ Supported trigger timing:
 - `turn_start`
 - `turn_end`
 
-Tile effects can:
+Tile and zone effects can:
 
 - deal damage
 - apply a normal status effect
@@ -83,18 +86,15 @@ The intended direction remains:
 - true positional combat, not permanently abstract menu combat
 - one effect/status system shared by combat and narrative play
 
-## Non-Visual Spell Assumptions
+## Current Template UI
 
-Until the battlegrid UI exposes facing and area templates directly, current combat uses two temporary authored approximations:
+Until the battle screen grows into a fuller visual grid widget, the current battle UI uses a lightweight preview contract:
 
-- `Burning Hands`
-  - the chosen target anchors the cone
-  - the spell affects that target plus nearby hostiles clustered within 5 feet of it, so long as they remain within the caster's 15-foot reach
-- `Sleep`
-  - the chosen target anchors the point of origin
-  - the spell then affects creatures in that 20-foot local cluster in ascending current-HP order
+- line/cone spells require facing selection before confirmation
+- point/radius spells choose a center tile through the existing position-driven battle menu
+- previews show affected tiles and caught creatures before confirmation
 
-These are temporary implementation assumptions, not the long-term substitute for true template targeting.
+This is still a temporary UI layer, but the underlying spell resolution now uses real template geometry instead of spell-specific cluster approximations.
 
 ## Guardrails
 

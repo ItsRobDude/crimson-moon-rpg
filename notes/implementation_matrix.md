@@ -59,10 +59,10 @@ Statuses:
 | `bless` | implemented | Concentration buff and current multi-target ally application are wired. |
 | `shield_of_faith` | implemented | Concentration AC buff and recast concentration handoff are wired. |
 | `magic_missile` | implemented | Auto-hit damage is wired and `Shield` now blocks it. |
-| `burning_hands` | partial | Save-based damage works; cone/template targeting is still abstracted. |
+| `burning_hands` | implemented | Save-based damage now resolves through a forward cone template with preview-before-confirm targeting. |
 | `shield` | implemented | Reaction-only, AC boost, and `Magic Missile` block are wired. |
 | `mage_armor` | implemented | Unarmored AC formula and long-rest duration are wired. |
-| `sleep` | implemented | Auto-status, magical-sleep immunity, and current HP-ordered cluster targeting are wired. |
+| `sleep` | implemented | Auto-status, magical-sleep immunity, and HP-ordered radius-template targeting are wired. |
 
 ## Conditions and Statuses
 
@@ -71,14 +71,14 @@ Statuses:
 | `poisoned` | implemented | Attack/ability-check disadvantage is shared across combat and narrative rules. |
 | `blessed` | implemented | Dice bonuses to attacks and saves are wired through the effect engine. |
 | `spore_sickness` | implemented | CON-check and social penalties are wired through the shared effect engine. |
-| `frightened` | partial | Attack/social penalties exist; full position-based fear behavior is not implemented. |
-| `charmed` | partial | Social penalty exists; broader hostile-targeting behavior is not implemented. |
+| `frightened` | partial | Shared attack/check penalties exist and source-aware “do not move closer” hooks are wired; fuller visibility/escape nuance is still incomplete. |
+| `charmed` | partial | Shared penalties exist and hostile-targeting against the charmer is now blocked; broader social-scene source handling is still incomplete. |
 | `burning` | partial | Tile/status integration exists; ongoing fire ecosystem is still small. |
 | `prone` | partial | Own attacks, movement lock, and incoming melee/ranged attack modifiers are wired; standing and fuller battlefield nuance are still incomplete. |
 | `incapacitated` | implemented | Effect exists, drops concentration, and locks actions/reactions in combat. |
 | `restrained` | partial | Attack lock, speed zero, incoming-attack advantage, and DEX-save disadvantage are wired; escape flow is still incomplete. |
-| `grappled` | partial | Speed-zero effect exists; escape contest flow is not implemented. |
-| `blinded` | partial | Attack and awareness penalties plus incoming-attack advantage are wired; wider combat targeting implications are incomplete. |
+| `grappled` | partial | Speed-zero effect and source-maintained cleanup hooks exist; escape contest flow is not implemented. |
+| `blinded` | partial | Attack, awareness, and sight-adjacent skill penalties plus incoming-attack advantage are wired; wider perception/targeting nuance is incomplete. |
 | `deafened` | partial | Awareness penalty exists; broader spell/audio interactions are not implemented. |
 | `unconscious` | partial | Applied/removed in combat and sleep flow, locks actions/reactions, and grants incoming advantage/melee crits; full death-save/downed-state model is not implemented. |
 | Exhaustion 1-3 | partial | Current tiers exist, including attack/save penalties at tier 3; full 5e exhaustion ladder is not complete. |

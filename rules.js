@@ -98,7 +98,7 @@ export function calculateDerivedStats(character) {
     };
 }
 
-export function getSkillBonus(character, skillName) {
+export function getSkillBonus(character, skillName, options = {}) {
     ensureActorMechanics(character);
     const snapshot = getDerivedActorState(character);
     const normalized = skillName.toLowerCase();
@@ -114,7 +114,8 @@ export function getSkillBonus(character, skillName) {
         target: 'skill_check',
         skill: normalized,
         ability,
-        tags: getSkillTags(normalized)
+        tags: getSkillTags(normalized),
+        sourceActorId: options.sourceActorId || null
     });
 
     bonus += modifiers.flat;
@@ -124,7 +125,10 @@ export function getSkillBonus(character, skillName) {
 
 export function rollSkillCheck(character, skillName, advantage = false) {
     const normalized = skillName.toLowerCase();
-    const { bonus, ability, effectModifiers } = getSkillBonus(character, normalized);
+    const options = typeof advantage === 'object'
+        ? advantage
+        : { advantage: !!advantage };
+    const { bonus, ability, effectModifiers } = getSkillBonus(character, normalized, options);
 
     let roll1 = rollDie(20);
     let roll2 = rollDie(20);
@@ -135,13 +139,13 @@ export function rollSkillCheck(character, skillName, advantage = false) {
     const hasDisadvantage = effectModifiers.disadvantage;
     const hasAdvantage = effectModifiers.advantage;
 
-    if ((advantage || hasAdvantage) && !hasDisadvantage) {
+    if ((options.advantage || hasAdvantage) && !hasDisadvantage) {
         finalRoll = Math.max(roll1, roll2);
         note += " (Advantage)";
-    } else if (hasDisadvantage && !(advantage || hasAdvantage)) {
+    } else if (hasDisadvantage && !(options.advantage || hasAdvantage)) {
         finalRoll = Math.min(roll1, roll2);
         note += " (Disadvantage)";
-    } else if ((advantage || hasAdvantage) && hasDisadvantage) {
+    } else if ((options.advantage || hasAdvantage) && hasDisadvantage) {
         // Cancel out
         finalRoll = roll1;
     }
@@ -174,7 +178,8 @@ export function rollSavingThrow(character, abilityName, options = {}) {
     const effectModifiers = getEffectModifiers(character, {
         target: 'saving_throw',
         ability: abilityName,
-        tags: options.tags || []
+        tags: options.tags || [],
+        sourceActorId: options.sourceActorId || null
     });
     bonus += effectModifiers.flat;
 
@@ -218,7 +223,8 @@ export function rollAttack(character, modStat, proficiency, options = {}) {
     const effectModifiers = getEffectModifiers(character, {
         target: 'attack_roll',
         ability: modStat,
-        tags: resolvedOptions.tags || []
+        tags: resolvedOptions.tags || [],
+        sourceActorId: resolvedOptions.sourceActorId || null
     });
     const totalMod = mod + proficiency + effectModifiers.flat;
 

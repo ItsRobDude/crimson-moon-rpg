@@ -16,7 +16,7 @@ import { gameState, getActorCastableSpells, getInventoryEntries, getItemCount, g
 import { CANONICAL_START_SCENE, ensureStoryState, getLocationStoryRequirement, getLocationUnlockHint, meetsStoryRequirement, storyActs, storyEvents, syncStoryStateForScene } from './data/storyTimeline.js';
 import { addEffectToActor, getBonusSkillChoiceCount, getBonusToolChoiceCount, getBonusToolChoiceOptions, getRaceTraitDefinitions, removeEffectFromActor } from './data/mechanics.js';
 import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod, generateScaledStats, getPlayerAC } from './rules.js';
-import { initCombatSystem, startCombat, performAttack, performCastSpell, performAbility, performDefend, performFlee, performEndTurn, performActionSurge, performCunningAction, uiHooks } from './combat.js';
+import { getSpellTargetingPreview, initCombatSystem, startCombat, performAttack, performCastSpell, performAbility, performDefend, performFlee, performEndTurn, performActionSurge, performCunningAction, uiHooks } from './combat.js';
 
 export function getCharacterById(characterId) {
     if (characterId === 'player') {
@@ -2472,17 +2472,19 @@ function updateCombatUI(activeCharacterId = 'player') {
         const isTurn = gameState.combat.turnOrder[gameState.combat.turnIndex] === activeCharacterId;
         if (isTurn) {
             turnIndicator.textContent = `${activeName}'s Turn - ${gameState.combat.movementRemaining} ft move`;
+            setBattleActionPreview();
             renderPlayerActions(actionsContainer, null, activeCharacterId);
         } else {
             turnIndicator.textContent = "Waiting...";
+            setBattleActionPreview();
         }
     } else {
         const enemy = gameState.combat.enemies.find(e => e.uniqueId === gameState.combat.turnOrder[gameState.combat.turnIndex]);
         turnIndicator.textContent = enemy ? `${enemy.name}'s Turn` : "Enemy's Turn";
+        setBattleActionPreview();
     }
 
     document.getElementById('battle-scene-image').style.backgroundImage = "url('landscapes/battle_placeholder.webp')";
-    document.getElementById('battle-scene-main-text').innerText = gameState.combat.sceneText || "The air crackles with tension.";
 }
 
 function createActionButton(label, icon, onClick, extraClass = '', disabled = false) {
@@ -2500,6 +2502,33 @@ function createActionButton(label, icon, onClick, extraClass = '', disabled = fa
     return btn;
 }
 
+function setBattleActionPreview(text = null) {
+    const battleText = document.getElementById('battle-scene-main-text');
+    if (!battleText) return;
+    battleText.innerText = text || gameState.combat.sceneText || "The air crackles with tension.";
+}
+
+function getSpellTargetingConfig(spell) {
+    if (!spell) return { type: 'single', side: 'enemy', rangeFeet: 5 };
+    if (typeof spell.targeting === 'string') {
+        return { type: 'single', side: spell.targeting, rangeFeet: spell.rangeFeet || 5 };
+    }
+    return {
+        type: spell.targeting?.type || 'single',
+        side: spell.targeting?.side || 'enemy',
+        rangeFeet: spell.targeting?.rangeFeet ?? spell.rangeFeet ?? 5,
+        template: spell.targeting?.template || null,
+        sizeFeet: spell.targeting?.sizeFeet || null,
+        requiresFacing: !!spell.targeting?.requiresFacing
+    };
+}
+
+function getPreviewButtonLabel(preview, fallbackLabel) {
+    const affected = preview.affectedNames?.length ? preview.affectedNames.join(', ') : 'No targets';
+    const firstTile = preview.tiles?.[0] ? `(${preview.tiles[0].x},${preview.tiles[0].y})` : 'off-grid';
+    return `${fallbackLabel} - ${firstTile} - ${affected}`;
+}
+
 function renderPlayerActions(container, subMenu = null, actingId = 'player') {
     container.innerHTML = '';
     const grid = document.createElement('div');
@@ -2508,14 +2537,17 @@ function renderPlayerActions(container, subMenu = null, actingId = 'player') {
     const actor = (actingId === 'player') ? gameState.player : gameState.roster[actingId];
     const hasAction = gameState.combat.actionsRemaining > 0;
     const hasBonus = gameState.combat.bonusActionsRemaining > 0;
+    setBattleActionPreview();
 
     if (subMenu === 'attack') {
+        setBattleActionPreview('Choose a creature to attack. Positions are shown by tile coordinates.');
         gameState.combat.enemies.forEach(enemy => {
             if (enemy.hp <= 0) return;
             grid.appendChild(createActionButton(enemy.name, 'swords', () => performAttack(enemy.uniqueId, actingId), 'primary'));
         });
         grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, null, actingId), 'flee'));
     } else if (subMenu === 'spells') {
+        setBattleActionPreview('Choose a spell. Area spells now preview legal tiles before you confirm them.');
         const spellList = getActorCastableSpells(actor, { combatOnly: true }).filter((spellId) => (spells[spellId]?.castingTime || 'action') !== 'reaction');
         spellList.forEach(spellId => {
             const spell = spells[spellId];
@@ -2529,21 +2561,52 @@ function renderPlayerActions(container, subMenu = null, actingId = 'player') {
             }, '', !hasSlots || !canCast));
         });
         grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, null, actingId), 'flee'));
+    } else if (subMenu && subMenu.type === 'spell_preview') {
+        const preview = getSpellTargetingPreview(actingId, subMenu.spellId, subMenu.selection);
+        setBattleActionPreview(preview.summary);
+        grid.appendChild(createActionButton(`Confirm ${spells[subMenu.spellId].name}`, 'check_circle', () => performCastSpell(subMenu.spellId, subMenu.selection, actingId), 'primary', !preview.valid || (preview.targeting.side === 'enemy' && preview.affectedNames.length === 0)));
+        (preview.affectedNames || []).forEach((name) => {
+            grid.appendChild(createActionButton(name, 'flare', () => {}, '', true));
+        });
+        grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, { type: 'spell_target', spellId: subMenu.spellId }, actingId), 'flee'));
     } else if (subMenu && subMenu.type === 'spell_target') {
-        // Targets: Player + Companions + Enemies?
-        // For simplicity, "Party" vs "Enemies".
         const spell = spells[subMenu.spellId];
-        if (spell.targeting === 'self') {
+        const targeting = getSpellTargetingConfig(spell);
+        if (targeting.type === 'template' && targeting.requiresFacing) {
+            setBattleActionPreview(`Choose a facing for ${spell.name}. Each preview lists the tiles and creatures that would be caught in the effect.`);
+            ['north', 'east', 'south', 'west'].forEach((facing) => {
+                const preview = getSpellTargetingPreview(actingId, subMenu.spellId, { facing });
+                grid.appendChild(createActionButton(
+                    getPreviewButtonLabel(preview, facing[0].toUpperCase() + facing.slice(1)),
+                    'explore',
+                    () => renderPlayerActions(container, { type: 'spell_preview', spellId: subMenu.spellId, selection: { facing } }, actingId),
+                    '',
+                    !preview.valid
+                ));
+            });
+        } else if (targeting.type === 'template') {
+            setBattleActionPreview(`Choose the center point for ${spell.name}. The preview will show the affected tiles before you commit.`);
+            gameState.combat.enemies.forEach(enemy => {
+                if (enemy.hp <= 0) return;
+                const preview = getSpellTargetingPreview(actingId, subMenu.spellId, { targetId: enemy.uniqueId });
+                grid.appendChild(createActionButton(
+                    getPreviewButtonLabel(preview, enemy.name),
+                    'auto_stories',
+                    () => renderPlayerActions(container, { type: 'spell_preview', spellId: subMenu.spellId, selection: { targetId: enemy.uniqueId } }, actingId),
+                    'primary',
+                    !preview.valid
+                ));
+            });
+        } else if (targeting.side === 'self') {
             grid.appendChild(createActionButton('Self', 'shield', () => performCastSpell(subMenu.spellId, actingId, actingId), 'primary'));
-        } else if (spell.type === 'heal' || spell.targeting === 'ally') {
-            // Allow targeting self or allies
+        } else if (spell.type === 'heal' || targeting.side === 'ally') {
             grid.appendChild(createActionButton(`Self`, 'healing', () => performCastSpell(subMenu.spellId, actingId, actingId), 'primary'));
-            // Add player if actor is companion, and vice versa
             if (actingId !== 'player') grid.appendChild(createActionButton(gameState.player.name, 'healing', () => performCastSpell(subMenu.spellId, 'player', actingId), 'primary'));
             gameState.party.forEach(pid => {
                 if (pid !== actingId) grid.appendChild(createActionButton(gameState.roster[pid].name, 'healing', () => performCastSpell(subMenu.spellId, pid, actingId), 'primary'));
             });
         } else {
+            setBattleActionPreview(`Choose a target for ${spell.name}.`);
             gameState.combat.enemies.forEach(enemy => {
                 if (enemy.hp <= 0) return;
                 grid.appendChild(createActionButton(enemy.name, 'auto_stories', () => performCastSpell(subMenu.spellId, enemy.uniqueId, actingId), 'primary'));
