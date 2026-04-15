@@ -309,7 +309,7 @@ test('shield negates magic missile explicitly', () => {
   expect(gameState.player.hp).toBe(gameState.player.maxHp);
 });
 
-test('standing from prone clears the effect and spends half normal movement', () => {
+test('standing from prone preserves the correct half-movement remainder when the turn starts prone', () => {
   gameState.player = createActor({ name: 'Hero', classId: 'fighter' });
   addEffectToActor(gameState.player, 'prone');
   syncActorState(gameState.player);
@@ -320,7 +320,7 @@ test('standing from prone clears the effect and spends half normal movement', ()
     activeActorId: 'player',
     actionsRemaining: 1,
     bonusActionsRemaining: 1,
-    movementRemaining: 30,
+    movementRemaining: 15,
     enemies: [],
     turnOrder: ['player']
   };
@@ -360,6 +360,39 @@ test('escape action breaks grappled movement locks on a successful check', () =>
   expect(gameState.combat.actionsRemaining).toBe(0);
   expect(gameState.player.mechanics.activeEffects.some((effect) => effect.id === 'grappled')).toBe(false);
   expect(gameState.combat.movementRemaining).toBe(30);
+
+  randomSpy.mockRestore();
+});
+
+test('escape action does not refund movement already preserved mid-turn', () => {
+  const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.95);
+
+  gameState.player = createActor({
+    name: 'Hero',
+    classId: 'fighter',
+    abilities: { STR: 16, DEX: 12, CON: 14, INT: 10, WIS: 10, CHA: 8 },
+    combatFlags: { turnStartedSpeedZero: false }
+  });
+  addEffectToActor(gameState.player, 'grappled', {
+    escapeDc: 10,
+    source: 'monster:grappler',
+    sourceActorId: 'enemy_0'
+  });
+  syncActorState(gameState.player);
+
+  gameState.combat = {
+    ...gameState.combat,
+    active: true,
+    activeActorId: 'player',
+    actionsRemaining: 1,
+    bonusActionsRemaining: 1,
+    movementRemaining: 10,
+    enemies: [],
+    turnOrder: ['player']
+  };
+
+  expect(performEscape('player')).toBe(true);
+  expect(gameState.combat.movementRemaining).toBe(10);
 
   randomSpy.mockRestore();
 });

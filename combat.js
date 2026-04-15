@@ -871,7 +871,8 @@ function beginTurn(actorId) {
     actor.combatFlags = {
         ...(actor.combatFlags || {}),
         reactionAvailable: !effectHasDataFlag(actor, 'reactionLocked'),
-        sneakAttackUsedThisTurn: false
+        sneakAttackUsedThisTurn: false,
+        turnStartedSpeedZero: getDerivedActorState(actor).speed <= 0
     };
     reconcileTileEffects(actorId, 'turn_start');
     return true;
@@ -1649,12 +1650,16 @@ export function performStand(actorId = 'player') {
         uiHooks.logToBattle(`${actor.name} cannot rise right now.`, 'check-fail');
         return false;
     }
-
-    const normalSpeed = actor?.mechanics?.baseSpeed || getDerivedActorState(actor).speed || 0;
-    const standingCost = Math.max(1, Math.floor(normalSpeed / 2));
+    const preStandSpeed = Math.max(0, getDerivedActorState(actor).speed || 0);
+    const currentRemaining = Math.max(0, gameState.combat.movementRemaining ?? preStandSpeed);
     removeEffectFromActor(actor, 'prone');
     syncActorState(actor);
-    gameState.combat.movementRemaining = Math.max(0, (gameState.combat.movementRemaining ?? getDerivedActorState(actor).speed) - standingCost);
+    const normalSpeed = Math.max(0, getDerivedActorState(actor).speed || actor?.mechanics?.baseSpeed || 0);
+    const standingCost = Math.max(1, Math.floor(normalSpeed / 2));
+    const equivalentRemaining = preStandSpeed > 0
+        ? Math.floor(currentRemaining * (normalSpeed / preStandSpeed))
+        : currentRemaining;
+    gameState.combat.movementRemaining = Math.max(0, equivalentRemaining - standingCost);
     syncGridToken(actorId);
     uiHooks.logToBattle(`${actor.name} regains their feet, spending half their movement.`, 'system');
     uiHooks.updateCombatUI(actorId);
@@ -1689,7 +1694,12 @@ export function performEscape(actorId = 'player') {
 
     effects.forEach((effect) => removeEffectFromActor(actor, effect.id));
     syncActorState(actor);
-    gameState.combat.movementRemaining = getDerivedActorState(actor).speed;
+    const freedSpeed = getDerivedActorState(actor).speed;
+    const hadMovementBeforeEscape = (gameState.combat.movementRemaining || 0) > 0;
+    const startedTurnPinned = actor.combatFlags?.turnStartedSpeedZero !== false;
+    gameState.combat.movementRemaining = hadMovementBeforeEscape
+        ? gameState.combat.movementRemaining
+        : (startedTurnPinned ? freedSpeed : 0);
     syncGridToken(actorId);
     uiHooks.logToBattle(`${actor.name} tears free of the hold.`, 'gain');
     uiHooks.updateCombatUI(actorId);
