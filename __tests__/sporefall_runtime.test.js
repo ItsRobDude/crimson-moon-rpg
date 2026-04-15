@@ -147,6 +147,55 @@ test('Eoin dialogue reacts to discovered cathedral and north-side clues', () => 
   expect(scene.text).toContain("relieved and guilty");
 });
 
+test('north approach exposes stonework reading and bridge investigation that fits Eoin lore', () => {
+  let scene = getRuntimeScene('SCENE_SPOREFALL_NORTH_APPROACH');
+  const markerChoice = scene.choices.find((choice) => choice.text.includes('bridgework'));
+
+  expect(markerChoice).toBeDefined();
+  expect(markerChoice.skill).toBe('history');
+  expect(markerChoice.traitAid?.traitId).toBe('stonecunning');
+  expect(markerChoice.toolAid?.toolId).toBe('mason_tools');
+
+  scene = getRuntimeScene('SCENE_SPOREFALL_NORTH_BRIDGE');
+  const descendChoice = scene.choices.find((choice) => choice.text.includes('follow the smell'));
+  expect(descendChoice).toBeDefined();
+  expect(descendChoice.itemAid?.itemId).toBe('rope');
+  expect(descendChoice.statusAid?.statusId).toBe('torchlight');
+  expect(descendChoice.onSuccess.effects).toEqual(expect.arrayContaining([
+    expect.objectContaining({ type: 'flag', flagId: 'sporefall_bridge_body_seen', value: true })
+  ]));
+});
+
+test('Eoin mother dialogue turns sharper after the bridge body is found', () => {
+  let scene = getRuntimeScene('SCENE_EOIN_MOTHER_TALK');
+  expect(scene.text).not.toContain('under the north bridge');
+
+  gameState.flags.sporefall_bridge_body_seen = true;
+  scene = getRuntimeScene('SCENE_EOIN_MOTHER_TALK');
+
+  expect(scene.text).toContain('north bridge');
+  expect(scene.text).toContain('Whatever hope carried him this far does not die cleanly');
+});
+
+test('early Sporefall critical path does not surface Neala or Liobhan', () => {
+  const earlySceneIds = [
+    'SCENE_ARRIVAL_WHISPERWOOD',
+    'SCENE_SPOREFALL_STREET_SEARCH',
+    'SCENE_MEET_EOIN',
+    'SCENE_EOIN_TALK',
+    'SCENE_HUB_SPOREFALL',
+    'SCENE_SPOREFALL_NORTH_APPROACH',
+    'SCENE_SPOREFALL_NORTH_BRIDGE'
+  ];
+
+  earlySceneIds.forEach((sceneId) => {
+    const scene = getRuntimeScene(sceneId);
+    expect(scene.text).not.toContain('Neala');
+    expect(scene.text).not.toContain('Liobhan');
+    expect((scene.choices || []).some((choice) => choice.text.includes('Neala') || choice.text.includes('Liobhan'))).toBe(false);
+  });
+});
+
 test('legacy Eoin assistance no longer routes back into the old ruins prototype', () => {
   expect(scenes.SCENE_EOIN_ASSISTANCE.choices[0].nextScene).toBe('SCENE_HUB_SPOREFALL');
 });

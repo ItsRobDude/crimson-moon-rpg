@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 import { createBattleGrid, placeToken } from '../battlegrid.js';
-import { applyOpportunityAttacks, hasReactionAvailable, performActionSurge, performAttack, performCastSpell, performCunningAction, performAbility } from '../combat.js';
+import { applyOpportunityAttacks, hasReactionAvailable, performActionSurge, performAttack, performCastSpell, performCunningAction, performAbility, performEscape, performStand } from '../combat.js';
 import { gameState, resetGameState, syncActorState } from '../data/gameState.js';
 import { addEffectToActor, createDefaultMechanicsState } from '../data/mechanics.js';
 
@@ -307,6 +307,61 @@ test('shield negates magic missile explicitly', () => {
   expect(gameState.player.currentSlots[1]).toBe(0);
   expect(hasReactionAvailable('player')).toBe(false);
   expect(gameState.player.hp).toBe(gameState.player.maxHp);
+});
+
+test('standing from prone clears the effect and spends half normal movement', () => {
+  gameState.player = createActor({ name: 'Hero', classId: 'fighter' });
+  addEffectToActor(gameState.player, 'prone');
+  syncActorState(gameState.player);
+
+  gameState.combat = {
+    ...gameState.combat,
+    active: true,
+    activeActorId: 'player',
+    actionsRemaining: 1,
+    bonusActionsRemaining: 1,
+    movementRemaining: 30,
+    enemies: [],
+    turnOrder: ['player']
+  };
+
+  expect(performStand('player')).toBe(true);
+  expect(gameState.player.mechanics.activeEffects.some((effect) => effect.id === 'prone')).toBe(false);
+  expect(gameState.combat.movementRemaining).toBe(15);
+});
+
+test('escape action breaks grappled movement locks on a successful check', () => {
+  const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.95);
+
+  gameState.player = createActor({
+    name: 'Hero',
+    classId: 'fighter',
+    abilities: { STR: 16, DEX: 12, CON: 14, INT: 10, WIS: 10, CHA: 8 }
+  });
+  addEffectToActor(gameState.player, 'grappled', {
+    escapeDc: 10,
+    source: 'monster:grappler',
+    sourceActorId: 'enemy_0'
+  });
+  syncActorState(gameState.player);
+
+  gameState.combat = {
+    ...gameState.combat,
+    active: true,
+    activeActorId: 'player',
+    actionsRemaining: 1,
+    bonusActionsRemaining: 1,
+    movementRemaining: 0,
+    enemies: [],
+    turnOrder: ['player']
+  };
+
+  expect(performEscape('player')).toBe(true);
+  expect(gameState.combat.actionsRemaining).toBe(0);
+  expect(gameState.player.mechanics.activeEffects.some((effect) => effect.id === 'grappled')).toBe(false);
+  expect(gameState.combat.movementRemaining).toBe(30);
+
+  randomSpy.mockRestore();
 });
 
 test('evocation sculpt spells spares allies caught in a burning hands cone', () => {

@@ -248,7 +248,7 @@ export const effectDefinitions = {
         defaultDuration: 1,
         modifiers: [
             { type: 'disadvantage', target: 'attack_roll' },
-            { type: 'multiplier', target: 'speed', value: 0 },
+            { type: 'multiplier', target: 'speed', value: 0.5 },
             { type: 'advantage', target: 'incoming_attack_roll', tags: ['melee_attack'] },
             { type: 'disadvantage', target: 'incoming_attack_roll', tags: ['ranged_attack'] }
         ],
@@ -368,6 +368,55 @@ export const effectDefinitions = {
             { type: 'disadvantage', target: 'saving_throw' },
             { type: 'multiplier', target: 'speed', value: 0.5 }
         ]
+    },
+    exhausted_4: {
+        id: 'exhausted_4',
+        name: 'Exhaustion IV',
+        description: 'The body begins to fail, dragging every movement toward collapse.',
+        durationType: 'long_rest',
+        defaultDuration: 1,
+        modifiers: [
+            { type: 'disadvantage', target: 'ability_check' },
+            { type: 'disadvantage', target: 'attack_roll' },
+            { type: 'disadvantage', target: 'saving_throw' },
+            { type: 'multiplier', target: 'speed', value: 0 }
+        ]
+    },
+    exhausted_5: {
+        id: 'exhausted_5',
+        name: 'Exhaustion V',
+        description: 'Only the barest motion remains; the body can no longer meaningfully fight back.',
+        durationType: 'long_rest',
+        defaultDuration: 1,
+        modifiers: [
+            { type: 'disadvantage', target: 'ability_check' },
+            { type: 'disadvantage', target: 'attack_roll' },
+            { type: 'disadvantage', target: 'saving_throw' },
+            { type: 'multiplier', target: 'speed', value: 0 }
+        ],
+        data: {
+            actionLocked: true,
+            reactionLocked: true
+        }
+    },
+    exhausted_6: {
+        id: 'exhausted_6',
+        name: 'Exhaustion VI',
+        description: 'The body gives out entirely.',
+        durationType: 'long_rest',
+        defaultDuration: 1,
+        modifiers: [
+            { type: 'disadvantage', target: 'ability_check' },
+            { type: 'disadvantage', target: 'attack_roll' },
+            { type: 'disadvantage', target: 'saving_throw' },
+            { type: 'multiplier', target: 'speed', value: 0 },
+            { type: 'advantage', target: 'incoming_attack_roll' }
+        ],
+        data: {
+            actionLocked: true,
+            reactionLocked: true,
+            incomingMeleeAttacksCritical: true
+        }
     },
     antitoxin_guard: {
         id: 'antitoxin_guard',
@@ -816,7 +865,7 @@ export function getEffectModifiers(actor, context = {}) {
                 result.disadvantage = true;
                 result.notes.push(`${effect.name}: disadvantage`);
             } else if (modifier.type === 'multiplier') {
-                result.multipliers.push(modifier.value || 1);
+                result.multipliers.push(modifier.value ?? 1);
                 result.notes.push(`${effect.name}: x${modifier.value}`);
             }
         });
@@ -839,7 +888,7 @@ export function getEffectModifiers(actor, context = {}) {
                 result.disadvantage = true;
                 result.notes.push(`${trait.name}: disadvantage`);
             } else if (modifier.type === 'multiplier') {
-                result.multipliers.push(modifier.value || 1);
+                result.multipliers.push(modifier.value ?? 1);
                 result.notes.push(`${trait.name}: x${modifier.value}`);
             }
         });

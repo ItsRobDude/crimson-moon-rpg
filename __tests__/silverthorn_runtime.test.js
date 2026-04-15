@@ -60,3 +60,25 @@ test('gate captain route study is one-time and grants a mixed narrative-combat p
   const revisit = getRuntimeScene('SCENE_SILVERTHORN_GATE_CAPTAIN');
   expect(revisit.choices.some((choice) => choice.text.includes('Study the route marks'))).toBe(false);
 });
+
+test('Silverthorn rumor surfaces carry relic tension and the vanished-borough panic without spoiling the hidden truth', () => {
+  setTimeline(1, 'afternoon');
+
+  const rumors = getRuntimeScene('SCENE_RUSTY_BLADE_RUMORS');
+  const notices = getRuntimeScene('SCENE_SILVERTHORN_NOTICE_WHISPERWOOD');
+  const gateCaptain = getRuntimeScene('SCENE_SILVERTHORN_GATE_CAPTAIN');
+
+  expect(rumors.text).toContain('Durnhelm');
+  expect(rumors.text).toContain('relic');
+  expect(rumors.text).toContain('Whisperwood');
+  expect(rumors.text).not.toContain('Underdark');
+  expect(rumors.text).not.toContain('Ciara');
+
+  expect(notices.text).toContain('Whisperwood');
+  expect(notices.text).toContain('taken whole');
+  expect(notices.text).not.toContain('portal');
+
+  expect(gateCaptain.text).toContain('Durnhelm');
+  expect(gateCaptain.text).toContain('Whisperwood');
+  expect(gateCaptain.text).not.toContain('Liam');
+});

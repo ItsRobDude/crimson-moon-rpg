@@ -58,6 +58,30 @@ function getAllCombatActors() {
     ];
 }
 
+function actorHasCombatEffect(actor, effectId) {
+    return !!actor?.mechanics?.activeEffects?.some((effect) => effect.id === effectId);
+}
+
+function getEscapeableEffects(actor) {
+    if (!actor?.mechanics?.activeEffects) return [];
+    return actor.mechanics.activeEffects.filter((effect) => effect.id === 'grappled' || effect.id === 'restrained');
+}
+
+function getEscapeDc(effect) {
+    if (Number.isFinite(effect?.escapeDc)) {
+        return effect.escapeDc;
+    }
+    if (effect?.sourceActorId) {
+        const sourceActor = getCombatActor(effect.sourceActorId);
+        if (sourceActor) {
+            const sourceSnapshot = getDerivedActorState(sourceActor);
+            const sourceMod = Math.max(sourceSnapshot.modifiers.STR || 0, sourceSnapshot.modifiers.DEX || 0);
+            return 8 + (sourceActor.proficiencyBonus || 2) + sourceMod;
+        }
+    }
+    return effect?.id === 'restrained' ? 13 : 12;
+}
+
 function getActorSpellList(actor, { combatOnly = false } = {}) {
     if (!actor) return [];
     const ids = getActorCastableSpells(actor, { combatOnly });
@@ -294,6 +318,7 @@ function getAttackProfile(actorId) {
 }
 
 function syncGridToken(actorId) {
+    if (!gameState.combat?.grid) return;
     const token = getToken(gameState.combat.grid, actorId);
     const actor = getCombatActor(actorId);
     if (!token || !actor) return;
@@ -781,6 +806,15 @@ function cleanupSourceMaintainedEffects(actorId) {
 
 function canActorTakeActions(actor) {
     return !!actor && !effectHasDataFlag(actor, 'actionLocked');
+}
+
+function spendAction(actorId) {
+    if (gameState.combat.actionsRemaining <= 0) {
+        uiHooks.logToBattle('No Action remaining!', 'check-fail');
+        return false;
+    }
+    gameState.combat.actionsRemaining -= 1;
+    return true;
 }
 
 function getAttackTags(profile) {
@@ -1606,6 +1640,60 @@ export function performAbility(abilityId, actorId = 'player') {
     if (!checkWinCondition()) {
         uiHooks.updateCombatUI(actorId);
     }
+}
+
+export function performStand(actorId = 'player') {
+    const actor = getCombatActor(actorId);
+    if (!actor || !actorHasCombatEffect(actor, 'prone')) return false;
+    if (!canActorTakeActions(actor)) {
+        uiHooks.logToBattle(`${actor.name} cannot rise right now.`, 'check-fail');
+        return false;
+    }
+
+    const normalSpeed = actor?.mechanics?.baseSpeed || getDerivedActorState(actor).speed || 0;
+    const standingCost = Math.max(1, Math.floor(normalSpeed / 2));
+    removeEffectFromActor(actor, 'prone');
+    syncActorState(actor);
+    gameState.combat.movementRemaining = Math.max(0, (gameState.combat.movementRemaining ?? getDerivedActorState(actor).speed) - standingCost);
+    syncGridToken(actorId);
+    uiHooks.logToBattle(`${actor.name} regains their feet, spending half their movement.`, 'system');
+    uiHooks.updateCombatUI(actorId);
+    return true;
+}
+
+export function performEscape(actorId = 'player') {
+    const actor = getCombatActor(actorId);
+    if (!actor) return false;
+    if (!canActorTakeActions(actor)) {
+        uiHooks.logToBattle(`${actor.name} cannot struggle free right now.`, 'check-fail');
+        return false;
+    }
+
+    const effects = getEscapeableEffects(actor);
+    if (effects.length === 0) {
+        uiHooks.logToBattle(`${actor.name} is not pinned in place.`, 'system');
+        return false;
+    }
+    if (!spendAction(actorId)) return false;
+
+    const snapshot = getDerivedActorState(actor);
+    const bestEscapeMod = Math.max(snapshot.modifiers.STR || 0, snapshot.modifiers.DEX || 0);
+    const roll = rollDie(20) + bestEscapeMod;
+    const dc = Math.max(...effects.map((effect) => getEscapeDc(effect)));
+
+    if (roll < dc) {
+        uiHooks.logToBattle(`${actor.name} strains against the hold but cannot break free.`, 'check-fail');
+        uiHooks.updateCombatUI(actorId);
+        return false;
+    }
+
+    effects.forEach((effect) => removeEffectFromActor(actor, effect.id));
+    syncActorState(actor);
+    gameState.combat.movementRemaining = getDerivedActorState(actor).speed;
+    syncGridToken(actorId);
+    uiHooks.logToBattle(`${actor.name} tears free of the hold.`, 'gain');
+    uiHooks.updateCombatUI(actorId);
+    return true;
 }
 
 

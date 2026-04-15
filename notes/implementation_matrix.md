@@ -17,8 +17,8 @@ Statuses:
 | Human `versatile` | implemented | Bonus skill choice is wired into character creation and derived state. |
 | Elf `darkvision` | implemented | Derived senses expose darkvision. |
 | Elf `keen_senses` | implemented | Perception proficiency is granted through trait handling. |
-| Elf `fey_ancestry` | partial | Charm-save advantage and magical-sleep immunity are wired; broader charm logic is still limited. |
-| Elf `trance` | data-only | Present as lore/trait identity, but still not differentiated in the rest/timeline loop. |
+| Elf `fey_ancestry` | partial | Charm-save advantage, magical-sleep immunity, and source-aware charmer targeting lockouts are wired; broader charm logic is still limited. |
+| Elf `trance` | partial | Present in trait handling and now softens long-rest ambush risk in narrative rest flow, but it is still a conservative identity pass rather than full sleep/rest differentiation. |
 | Dwarf `darkvision` | implemented | Derived senses expose darkvision. |
 | Dwarf `dwarven_resilience` | partial | Poison resistance and poison-save advantage are wired; broader poison ecosystem is still narrow. |
 | Dwarf `dwarven_combat_training` | implemented | Weapon proficiencies are granted through derived trait handling. |
@@ -74,14 +74,14 @@ Statuses:
 | `frightened` | partial | Shared attack/check penalties exist and source-aware “do not move closer” hooks are wired; fuller visibility/escape nuance is still incomplete. |
 | `charmed` | partial | Shared penalties exist and hostile-targeting against the charmer is now blocked; broader social-scene source handling is still incomplete. |
 | `burning` | partial | Tile/status integration exists; ongoing fire ecosystem is still small. |
-| `prone` | partial | Own attacks, movement lock, and incoming melee/ranged attack modifiers are wired; standing and fuller battlefield nuance are still incomplete. |
+| `prone` | partial | Own attacks, reduced movement, standing, and incoming melee/ranged attack modifiers are wired; fuller battlefield nuance is still incomplete. |
 | `incapacitated` | implemented | Effect exists, drops concentration, and locks actions/reactions in combat. |
-| `restrained` | partial | Attack lock, speed zero, incoming-attack advantage, and DEX-save disadvantage are wired; escape flow is still incomplete. |
-| `grappled` | partial | Speed-zero effect and source-maintained cleanup hooks exist; escape contest flow is not implemented. |
+| `restrained` | partial | Attack lock, speed zero, incoming-attack advantage, DEX-save disadvantage, and a shared action-based escape flow are wired; fuller contest nuance is still incomplete. |
+| `grappled` | partial | Speed-zero effect, source-maintained cleanup hooks, and a shared action-based escape flow are wired; fuller contest nuance is still incomplete. |
 | `blinded` | partial | Attack, awareness, and sight-adjacent skill penalties plus incoming-attack advantage are wired; wider perception/targeting nuance is incomplete. |
 | `deafened` | partial | Awareness penalty exists; broader spell/audio interactions are not implemented. |
 | `unconscious` | partial | Applied/removed in combat and sleep flow, locks actions/reactions, and grants incoming advantage/melee crits; full death-save/downed-state model is not implemented. |
-| Exhaustion 1-3 | partial | Current tiers exist, including attack/save penalties at tier 3; full 5e exhaustion ladder is not complete. |
+| Exhaustion 1-6 | partial | All six tiers now exist in shared derived-state handling, including speed collapse and near-incapacitation at the highest tiers; the wider encounter ecosystem still needs more authored use and recovery pressure. |
 | `antitoxin_guard` | implemented | Rest-of-day poison-save advantage is wired. |
 
 ## Reactions

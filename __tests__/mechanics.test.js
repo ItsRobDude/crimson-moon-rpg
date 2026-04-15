@@ -1,4 +1,4 @@
-import { addEffectToActor, canActorTargetActor, canApplyEffectToActor, createDefaultMechanicsState, getApproachBlockedSourceIds, getBonusSkillChoiceCount, getBonusToolChoiceCount, getDerivedActorState, getEffectModifiers, removeEffectsFromActorBySource, setProficiencyMultiplier, tickActorEffects } from '../data/mechanics.js';
+import { addEffectToActor, canActorTargetActor, canApplyEffectToActor, createDefaultMechanicsState, effectHasDataFlag, getApproachBlockedSourceIds, getBonusSkillChoiceCount, getBonusToolChoiceCount, getDerivedActorState, getEffectModifiers, removeEffectsFromActorBySource, setProficiencyMultiplier, tickActorEffects } from '../data/mechanics.js';
 import { spells } from '../data/spells.js';
 import { getSkillBonus } from '../rules.js';
 
@@ -226,6 +226,33 @@ test('prone exposes incoming melee advantage and incoming ranged disadvantage th
 
   expect(meleeIncoming.advantage).toBe(true);
   expect(rangedIncoming.disadvantage).toBe(true);
+});
+
+test('prone now halves speed instead of collapsing movement entirely', () => {
+  const actor = createActor();
+  addEffectToActor(actor, 'prone');
+
+  expect(getDerivedActorState(actor).speed).toBe(15);
+});
+
+test('higher exhaustion tiers collapse speed and eventually lock the actor down', () => {
+  const actor = createActor();
+  addEffectToActor(actor, 'exhausted_4');
+
+  let snapshot = getDerivedActorState(actor);
+  let saveModifiers = getEffectModifiers(actor, { target: 'saving_throw', ability: 'CON' });
+  expect(snapshot.speed).toBe(0);
+  expect(saveModifiers.disadvantage).toBe(true);
+
+  addEffectToActor(actor, 'exhausted_6');
+  snapshot = getDerivedActorState(actor);
+  const incoming = getEffectModifiers(actor, { target: 'incoming_attack_roll', tags: ['melee_attack'] });
+
+  expect(snapshot.speed).toBe(0);
+  expect(effectHasDataFlag(actor, 'actionLocked')).toBe(true);
+  expect(effectHasDataFlag(actor, 'reactionLocked')).toBe(true);
+  expect(effectHasDataFlag(actor, 'incomingMeleeAttacksCritical')).toBe(true);
+  expect(incoming.advantage).toBe(true);
 });
 
 test('charmed blocks hostile targeting only against the source actor', () => {

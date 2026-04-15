@@ -16,7 +16,7 @@ import { gameState, getActorCastableSpells, getInventoryEntries, getItemCount, g
 import { CANONICAL_START_SCENE, ensureStoryState, getLocationStoryRequirement, getLocationUnlockHint, meetsStoryRequirement, storyActs, storyEvents, syncStoryStateForScene } from './data/storyTimeline.js';
 import { addEffectToActor, getActorTraitDefinitions, getBonusSkillChoiceCount, getBonusToolChoiceCount, getBonusToolChoiceOptions, getDerivedActorState, getRaceTraitDefinitions, removeEffectFromActor } from './data/mechanics.js';
 import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod, generateScaledStats, getPlayerAC } from './rules.js';
-import { getSpellTargetingPreview, initCombatSystem, startCombat, performAttack, performCastSpell, performAbility, performDefend, performFlee, performEndTurn, performActionSurge, performCunningAction, uiHooks } from './combat.js';
+import { getSpellTargetingPreview, initCombatSystem, startCombat, performAttack, performCastSpell, performAbility, performDefend, performEscape, performFlee, performEndTurn, performActionSurge, performCunningAction, performStand, uiHooks } from './combat.js';
 import { clearTrackedTimeout, scheduleTrackedTimeout } from './timers.js';
 
 export function getCharacterById(characterId) {
@@ -601,8 +601,8 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
         }
 
         const marketMood = time.isDusk
-            ? 'Merchants are packing away their wares with one eye on the lowering light while buyers hurry through last purchases as though supplies alone could keep dread at bay.'
-            : 'The district is busy, but not carefree. Wagon wheels, shouted prices, and the ring of hammered steel ride above the sound of people trying not to discuss the eastern road too loudly.';
+            ? 'Merchants are packing away their wares with one eye on the lowering light while buyers hurry through last purchases as though supplies alone could keep dread at bay. Every third conversation breaks on the same words before lowering into a whisper: Durnhelm, the relic, the road north.'
+            : 'The district is busy, but not carefree. Wagon wheels, shouted prices, and the ring of hammered steel ride above the sound of people trying not to discuss the eastern road too loudly. Even here, fear has learned new names: Durnhelm, vanished caravans, and the kind of relic no city can agree to trust in another city\'s hands.';
         scene.text = `${baseScene.text} ${marketMood}`;
         scene.choices = [
             createChoice('Browse the General Store', 'SCENE_SILVERTHORN_GENERAL_STORE'),
@@ -679,8 +679,8 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
         const heardBefore = !!getSceneMemory('silverthorn_rumors_heard');
         setSceneMemory('silverthorn_rumors_heard', true);
         scene.text = heardBefore
-            ? "On repetition the stories only grow heavier: more travelers missing, more patrols returning silent or fevered, and more merchants insisting the road itself felt different after sunset. The details shift. The fear does not."
-            : baseScene.text;
+            ? "On repetition the room grows no kinder. The names change hands, but the shape of the dread remains the same: dwarves unearthed something in Durnhelm that should have stayed buried, every realm now eyes every other realm for the coming quarrel, and Whisperwood vanished at the exact hour the first war-rumors began to harden into plans. No one says they expect peace. They only argue over what will break first."
+            : "You keep your cup low and listen. One table swears Durnhelm found a relic powerful enough to bend kingdoms into war. Another says Whisperwood vanished because it tried to hide the relic first. A caravan master spits and says that is court-bred nonsense, but even he lowers his voice when he admits the eastern road has started bringing back men who talk as though they left pieces of themselves somewhere beneath the trees. The room cannot agree on the truth. It agrees perfectly on the danger.";
         scene.choices = [
             createChoice('Return to the common room', 'SCENE_RUSTY_BLADE_INN'),
             createChoice('Head for the eastern gate', 'SCENE_SILVERTHORN_GATES')
@@ -778,10 +778,12 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
 
     if (sceneId === 'SCENE_SILVERTHORN_NOTICE_WHISPERWOOD') {
         setSceneMemory('silverthorn_notice_whisperwood', true);
+        scene.text = "The postings have been layered one over another until the whole board feels swollen with panic. Patrol rosters stop mid-name. Three merchant families ask after kin who never came back from Whisperwood. A militia order warns that the borough can no longer be reached by ordinary means, though no officer will say what that sentence is meant to mean. At the bottom, someone has scrawled in shaking charcoal: 'The town did not fall silent. It was taken whole.'";
         return scene;
     }
 
     if (sceneId === 'SCENE_SILVERTHORN_NOTICE_CONTRACTS') {
+        scene.text = "Escort work and rat bounties still cling to the older layers of the board, but the fresh postings tell a harsher story. Curfew fines. Closed-route compensation. Special wagons requisitioned under council seal. One clipped notice offers good silver for verified intelligence from Durnhelm, then disappears beneath wax before anyone can linger over it. You come away with the sense that Silverthorn is already bracing for something larger than one vanished borough.";
         return scene;
     }
 
@@ -806,9 +808,9 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
         setSceneMemory('silverthorn_gate_captain_seen', true);
         scene.text = warnedAlready
             ? hasRouteBriefing
-                ? "The captain recognizes you at once and taps the same route marks you already copied into memory. 'Then keep them straight in your head,' he says. 'Out there, one bad landmark costs more than pride.'"
-                : "The captain recognizes you at once. 'Same road, same warning: keep your faces covered if the spores darken, trust your footing more than your sight, and if the forest goes too quiet, do not mistake that for mercy.'"
-            : baseScene.text;
+                ? "The captain recognizes you at once and taps the same route marks you already copied into memory. 'Then keep them straight in your head,' he says. 'The council can argue over relics and borders after we stop losing patrols. Out there, one bad landmark costs more than pride.'"
+                : "The captain recognizes you at once. 'Same road, same warning: keep your faces covered if the spores darken, trust your footing more than your sight, and if the forest goes too quiet, do not mistake that for mercy. And if anyone on the road starts asking what Durnhelm found, keep walking.'"
+            : "The captain studies you for a beat longer than courtesy allows, then opens the route ledger with two scarred fingers. 'We lose scouts to the east and patience to the north,' he says. 'Whisperwood is gone, Durnhelm has half the realm whispering about relic-war, and every fool with a horse thinks fear can be outrun if he leaves before dusk. It cannot. So listen closely.'";
         scene.choices = [];
 
         if (!hasRouteBriefing) {
@@ -871,7 +873,7 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
                 state.eoinFed ? 'You can still picture the way Eoin tried not to devour the ration too quickly.' : null,
                 state.eoinTreated ? 'The borrowed steadiness in his breath has taken some of the panic out of the street.' : null
             ].filter(Boolean).join(' ');
-            scene.text = `You stand once more in Sporefall's central street, where the silence no longer feels abandoned so much as watched. Doors hang open to rooms no one had time to close, and the red light on the stones makes every threshold look stained. The borough still opens west toward the cathedral quarter, east toward the overseer's row, and north toward the bridge Eoin named.${eoinState ? ` ${eoinState}` : ''}`;
+            scene.text = `You stand once more in Sporefall's central street, where the silence no longer feels abandoned so much as watched. Doors hang open to rooms no one had time to close. A butcher's awning has fused to its frame in black curls. The red light on the stones makes every threshold look blood-washed whether blood touched it or not. The borough still opens west toward the cathedral quarter, east toward the overseer's row, and north toward the bridge Eoin named.${eoinState ? ` ${eoinState}` : ''}`;
             scene.choices = [
                 createChoice('Step back into the central street', 'SCENE_HUB_SPOREFALL'),
                 createChoice("Return to Eoin's hiding place", 'SCENE_EOIN_TALK')
@@ -880,7 +882,7 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
         }
 
         const torchlit = hasStatusEffect('torchlight');
-        scene.text = "You wake into a borough that feels like it should still be asleep, yet nothing here carries the peace of sleep. The houses lean inward. Ash clings to the street in damp, dark seams. Somewhere nearby, something wooden taps softly in the wind, and every sound after that feels like a mistake for existing.";
+        scene.text = "You wake into a borough that feels like it should still be asleep, yet nothing here carries the peace of sleep. The houses lean inward as though bracing against some pressure still building beneath the earth. Ash and spore-clotted rain have dried in dark seams between the stones. A door nearby stands open on a room whose walls are striped by dragged fingertips. Somewhere close, something wooden taps softly in the wind, and every sound after that feels like a mistake for existing.";
         scene.choices = [
             createChoice('Search the nearest street for survivors (Perception)', null, {
                 type: 'skillCheck',
@@ -937,8 +939,8 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
         const searchedBefore = !!getSceneMemory('sporefall_street_search_seen');
         setSceneMemory('sporefall_street_search_seen', true);
         scene.text = searchedBefore
-            ? "The nearby houses remain empty of life and full of the small humiliations of evacuation: a dropped toy, a cooking pot left black on cold iron, a shawl caught in a hinge. The same restrained cough still betrays a human presence behind the ruined home."
-            : "The street is not empty so much as interrupted. Doors have been left wide in the middle of ordinary lives, and the deeper you move between the houses, the more the place feels paused at the exact instant everyone understood they were too late.";
+            ? "The nearby houses remain empty of life and full of the small humiliations of catastrophe: a child's toy stamped into red mud, a cooking pot left black on cold iron, a shawl dried stiff where something wet once soaked through it. The same restrained cough still betrays a human presence behind the ruined home."
+            : "The street is not empty so much as interrupted. Doors have been left wide in the middle of ordinary lives. Bedding trails across thresholds. One wall is marked shoulder-high with the brown smear of someone trying to stay upright after they should already have been down. The deeper you move between the houses, the more the borough feels paused at the exact instant everyone understood they were too late.";
         scene.choices = [
             createChoice('Follow the coughing behind the house', 'SCENE_MEET_EOIN'),
             createChoice('Circle wide and cut off whoever is hiding', 'SCENE_MEET_EOIN'),
@@ -963,9 +965,9 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
     if (sceneId === 'SCENE_MEET_EOIN') {
         scene.choices = [...(scene.choices || [])];
         if (state.eoinGlimpsed) {
-            scene.text = "The pale figure you glimpsed behind the house finally shows himself. A young man steps into the moon-glow with a broken spear in shaking hands, shoulders tucked as if he expects the night itself to strike first. His face is hollow from hunger and fright in nearly equal measure. 'Stay back,' he says, though the threat lands weaker than the plea beneath it. 'Are you real, or another kindness this place will take back?'";
+            scene.text = "The pale figure you glimpsed behind the house finally shows himself. A young man steps into the moon-glow with a broken spear in shaking hands, shoulders tucked as if he expects the night itself to strike first. His clothes are too thin for the cold and too dirty for any recent shelter above ground. His face is hollow from hunger and fright in nearly equal measure. 'Stay back,' he says, though the threat lands weaker than the plea beneath it. 'Are you real, or another kindness this place will take back?'";
         } else {
-            scene.text = "A young man rises from the lee of a ruined wall with a broken spear half-lifted, breathing as if each breath has to be bargained for. He looks at you the way starving men look at food they suspect is poisoned: wanting to believe, unable to afford it.";
+            scene.text = "A young man rises from the lee of a ruined wall with a broken spear half-lifted, breathing as if each breath has to be bargained for. His sleeves are shredded at the cuffs, and the grime worked into them looks older than tonight. He watches you the way starving men watch food they suspect is poisoned: wanting to believe, unable to afford it.";
         }
         if (!state.eoinFed && actorHasItem('player', 'rations')) {
             scene.choices.unshift(createChoice('Offer him a ration before you ask anything', 'SCENE_EOIN_TALK', {
@@ -992,6 +994,9 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
             if (clueNotes.includes('north_side')) {
                 reactions.push("Any mention of the north-side bridge makes him look relieved and guilty at once, like he still hopes the answer to his mother lies there.");
             }
+            if (state.bridgeBodySeen) {
+                reactions.push("When the bridge comes up now, he goes quiet enough to hear himself shake. He still cannot make himself ask the question plainly.");
+            }
             const suffix = reactions.length > 0 ? ` ${reactions.join(' ')}` : '';
             const comfortBeat = [
                 state.eoinFed ? 'The memory of the food you gave him lingers in the way he no longer apologizes for surviving.' : null,
@@ -999,7 +1004,7 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
             ].filter(Boolean).join(' ');
             scene.text = `Eoin is calmer now, though never fully steady. He keeps watching the empty streets between words, as if expecting the town itself to overhear him. The same three threads still matter most to him: the cathedral, the north-side bridge, and the impossible fact that he feels present and absent all at once.${suffix}${comfortBeat ? ` ${comfortBeat}` : ''}`;
         } else {
-            scene.text = "Once the spear lowers a little, the story comes out in broken pieces: quarantine lines, prayers that became orders, a mother he lost sight of near the northern bridge, and a town that seemed to sicken all at once after the moon rose wrong. He speaks like someone afraid that saying the whole truth aloud might summon it back.";
+            scene.text = "Once the spear lowers a little, the story comes out in broken pieces: quarantine lines, prayers that became orders, a mother he lost sight of near the northern bridge where they used to sleep under the stonework, and a town that seemed to sicken all at once after the moon rose wrong. He still calls the place Whisperwood when he forgets himself. He speaks like someone afraid that saying the whole truth aloud might summon it back.";
         }
 
         if (!state.eoinTreated && actorHasItem('player', 'antitoxin')) {
@@ -1030,7 +1035,9 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
     }
 
     if (sceneId === 'SCENE_EOIN_MOTHER_TALK') {
-        if (state.bridgeSeen || state.northRouteOpen) {
+        if (state.bridgeBodySeen) {
+            scene.text = "When you tell Eoin what lies beneath the north bridge, the words seem to take his balance before he understands them. He folds in on himself with one hand over his mouth, not weeping so much as failing all at once. 'She hated the damp there,' he whispers after a long time. 'She kept saying we would leave before winter and find a room with a door that shut.' Whatever hope carried him this far does not die cleanly. It tears.";
+        } else if (state.bridgeSeen || state.northRouteOpen) {
             scene.text = "When you mention the north-side bridge, Eoin goes still. 'Then you saw where we stayed,' he says softly. 'Good. I kept thinking if someone else saw it too, maybe I didn't imagine her there.' The north still matters to him, but now it feels less like rumor and more like grief with a street name.";
         }
         return scene;
@@ -1042,6 +1049,7 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
         if (state.journalFound || state.letterFound || state.compassFound) clueBeat.push("Aodhan's house has begun giving up its secrets");
         if (state.northRouteOpen) clueBeat.push('the north road is open if speed matters more than certainty');
         if (state.cathedralMasonryRead) clueBeat.push('the broken masonry has already told you the cathedral began failing before the panic');
+        if (state.bridgeBodySeen) clueBeat.push("the north bridge now carries the shape of Eoin's loss");
         const survivorBeat = [
             state.eoinFed ? 'Eoin has at least one meal in him now.' : null,
             state.eoinTreated ? 'His breathing has steadied enough to trust him with a longer watch.' : null
@@ -1248,8 +1256,116 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
 
     if (sceneId === 'SCENE_SPOREFALL_NORTH_APPROACH') {
         scene.text = state.bridgeSeen
-            ? `${baseScene.text} The bridge you checked earlier still tugs at the back of your mind, but the outer road remains the fastest way to keep moving without first understanding what the cathedral and manor know.`
-            : baseScene.text;
+            ? "The northern streets remain barer than the rest of Sporefall, as though whole families were driven through here too quickly to carry anything but panic. The footbridge still sags over the black water where Eoin said they slept, and the outer road beyond it still offers the fastest way forward if you can bear ignorance better than delay."
+            : "The northern streets feel flensed. Market stalls stand open with nothing worth taking left in them. A warped district marker still bears the older name, Whisperwood, half-buried under crimson mildew. Ahead, the road widens toward the footbridge Eoin mentioned, then thins again into a route that could carry you deeper into Sporefall without first learning what the cathedral quarter or the overseer's row would tell you.";
+        scene.choices = [
+            createChoice('Read the old marker and bridgework before the spores swallow them (History)', null, {
+                type: 'skillCheck',
+                skill: 'history',
+                dc: 11,
+                traitAid: {
+                    traitId: 'stonecunning',
+                    bonus: 2,
+                    logText: 'Stonecunning lets you read old borough masonry like a record of who built it and who later defaced it.'
+                },
+                toolAid: {
+                    toolId: 'mason_tools',
+                    bonus: 2,
+                    logText: "A mason's eye catches the older Whisperwood stone beneath the newer wound."
+                },
+                successText: "The bridge piers and marker were raised long before this became Sporefall. You can still read the careful municipal pride under the corruption: this was once the borough's poor northern edge, repaired often, neglected almost never. The neglect came later.",
+                failText: 'The old stone still speaks of age and civic labor, but the corruption has obscured the finer reading.',
+                onSuccess: {
+                    effects: [
+                        { type: 'flag', flagId: 'sporefall_bridge_marker_read', value: true }
+                    ]
+                },
+                nextSceneSuccess: 'SCENE_SPOREFALL_NORTH_APPROACH',
+                nextSceneFail: 'SCENE_SPOREFALL_NORTH_APPROACH'
+            }),
+            createChoice('Check the ruined footbridge first', 'SCENE_SPOREFALL_NORTH_BRIDGE'),
+            createChoice('Cross the open street toward the north road (Perception)', null, {
+                type: 'skillCheck',
+                skill: 'perception',
+                dc: 11,
+                statusAid: {
+                    statusId: 'torchlight',
+                    bonus: 1,
+                    logText: 'Torchlight catches movement in the stalls before it can close on you.'
+                },
+                successText: 'You catch the ambush before it closes and pick your way through the dead ground without giving it your throat.',
+                failText: 'Something lunges from behind an overturned cart before you can choose your footing.',
+                nextSceneSuccess: 'SCENE_SPOREFALL_NORTH_ROUTE_DISCOVERED',
+                nextSceneFail: 'SCENE_SPOREFALL_NORTH_AMBUSH'
+            }),
+            createChoice('Return to the central street', 'SCENE_HUB_SPOREFALL')
+        ];
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_SPOREFALL_NORTH_BRIDGE') {
+        scene.text = state.bridgeBodySeen
+            ? "The footbridge sags over the sluggish black stream like a jaw broken and left to heal crooked. Beneath it, the little shelter of bedding, bowls, and salvaged cloth no longer reads as absence alone. You have already seen the truth the spore left curled in its nest, and the whole place feels indecent to stand in."
+            : "The footbridge sags over a sluggish black stream. Beneath it lie scraps of bedding, a cracked bowl, a child's carved trinket, and the outline of a life lived one bad season at a time. Mold has climbed the stone piers in dark red veins. Whatever warmth once sheltered here is gone, but the place still feels occupied by the shape of it.";
+        scene.choices = [];
+
+        if (!state.bridgeBodySeen) {
+            scene.choices.push(createChoice('Climb down beneath the bridge and follow the smell (Athletics)', null, {
+                type: 'skillCheck',
+                skill: 'athletics',
+                dc: 11,
+                itemAid: {
+                    itemId: 'rope',
+                    bonus: 2,
+                    logText: 'Rope keeps you from trusting rotten stone with your full weight.'
+                },
+                statusAid: {
+                    statusId: 'torchlight',
+                    bonus: 1,
+                    logText: 'Torchlight cuts through the red dark under the bridge.'
+                },
+                successText: "You lower yourself into the dark beneath the bridge and find the last shelter intact enough to accuse the living. There, tucked behind mildewed blankets and a collapsed crate, lies a woman's body drawn in on itself. The skin has tightened to the bone. Red fungal growth threads through her ribs and throat like roots claiming timber. Whatever took her did not do it quickly.",
+                failText: 'The descent slips under you. You scrape stone and foul water before forcing yourself back up, shaken and bloodied but alive.',
+                onSuccess: {
+                    effects: [
+                        { type: 'flag', flagId: 'sporefall_bridge_body_seen', value: true },
+                        { type: 'flag', flagId: 'sporefall_bridge_seen', value: true }
+                    ]
+                },
+                onFail: {
+                    effects: [
+                        { type: 'damage', amount: '1d4' },
+                        { type: 'flag', flagId: 'sporefall_bridge_seen', value: true }
+                    ]
+                },
+                nextSceneSuccess: 'SCENE_SPOREFALL_NORTH_BRIDGE',
+                nextSceneFail: 'SCENE_SPOREFALL_NORTH_BRIDGE'
+            }));
+        }
+
+        scene.choices.push(
+            createChoice('Read the shelter like a field camp (Investigation)', null, {
+                type: 'skillCheck',
+                skill: 'investigation',
+                dc: 10,
+                itemAid: {
+                    itemId: 'healer_kit',
+                    bonus: 1,
+                    logText: 'A healer\'s kit makes the traces of sickness and desperate care easier to separate.'
+                },
+                successText: "The shelter tells its story in leftovers: one adult, one child, too little food, careful attempts at cleanliness, and the kind of stubborn order poor people build when they mean to endure. This was not a hiding place prepared for one night. It was home.",
+                failText: 'You can tell people lived here. The finer shape of that life keeps slipping through the rot and filth.',
+                onSuccess: {
+                    effects: [
+                        { type: 'flag', flagId: 'sporefall_bridge_seen', value: true }
+                    ]
+                },
+                nextSceneSuccess: 'SCENE_SPOREFALL_NORTH_BRIDGE',
+                nextSceneFail: 'SCENE_SPOREFALL_NORTH_BRIDGE'
+            }),
+            createChoice('Push on toward the north road', 'SCENE_SPOREFALL_NORTH_ROUTE_DISCOVERED'),
+            createChoice('Return to the central street', 'SCENE_HUB_SPOREFALL')
+        );
         return scene;
     }
 
@@ -2861,6 +2977,13 @@ function renderPlayerActions(container, subMenu = null, actingId = 'player') {
         grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, 'spells', actingId), 'flee'));
     } else if (subMenu === 'abilities') {
         // Render Class Features
+        if (actorHasStatus(actor, 'prone')) {
+            grid.appendChild(createActionButton('Stand Up', 'vertical_align_top', () => performStand(actingId)));
+        }
+        if (actorHasStatus(actor, 'grappled') || actorHasStatus(actor, 'restrained')) {
+            grid.appendChild(createActionButton('Break Free', 'fitness_center', () => performEscape(actingId), '', !hasAction));
+        }
+
         // Cunning Action (Rogue)
         if (actor.level >= 2 && actor.classId === 'rogue') {
              grid.appendChild(createActionButton('Dash (Bonus)', 'directions_run', () => performCunningAction('dash', actingId), '', !hasBonus));
@@ -3380,16 +3503,29 @@ function toggleMenu() {
     modal.classList.toggle('hidden');
 }
 
+function getLongRestAmbushChance() {
+    const baseChance = Math.max(0, gameState.threat.level || 0);
+    if (!actorHasTrait(gameState.player, 'trance')) {
+        return baseChance;
+    }
+    return Math.max(0, baseChance - 20);
+}
+
 function showRestModal() {
     const modal = document.getElementById('rest-modal');
     const warning = document.getElementById('long-rest-warning');
     const shortRestBtn = document.getElementById('btn-short-rest');
     const longRestBtn = document.getElementById('btn-long-rest');
+    const ambushChance = getLongRestAmbushChance();
 
-    if (gameState.threat.level > 50) {
-        warning.innerText = "Resting here is dangerous. There is a high chance of being ambushed.";
-    } else if (gameState.threat.level > 20) {
-        warning.innerText = "The area is unsafe. Resting might attract unwanted attention.";
+    if (ambushChance > 50) {
+        warning.innerText = actorHasTrait(gameState.player, 'trance')
+            ? "Resting here is dangerous. Your trance keeps a thinner watch through the danger, but the risk of ambush remains high."
+            : "Resting here is dangerous. There is a high chance of being ambushed.";
+    } else if (ambushChance > 20) {
+        warning.innerText = actorHasTrait(gameState.player, 'trance')
+            ? "The area is unsafe. Your trance may catch movement others would sleep through, but something here could still close in."
+            : "The area is unsafe. Resting might attract unwanted attention.";
     } else {
         warning.innerText = "";
     }
@@ -3404,12 +3540,15 @@ function showRestModal() {
 
     longRestBtn.onclick = () => {
         modal.classList.add('hidden');
-        if (gameState.threat.level > 20 && rollDie(100) <= gameState.threat.level) {
+        if (ambushChance > 20 && rollDie(100) <= ambushChance) {
             logMessage("You are ambushed while resting!", "combat");
             startCombat(['fungal_beast'], gameState.currentSceneId, 'SCENE_DEFEAT');
         } else {
             logMessage("You take a long rest.", "system");
             performLongRest();
+            if (actorHasTrait(gameState.player, 'trance') && gameState.threat.level > ambushChance) {
+                logMessage('Your trance keeps a narrow watch through the night, and the danger passes without closing in.', 'system');
+            }
             advanceToNextMorning('The night passes.', { inSilverthorn: gameState.currentSceneId.startsWith('SCENE_SILVERTHORN') || gameState.currentSceneId.startsWith('SCENE_RUSTY_BLADE') });
             updateStatsUI();
         }
@@ -3606,6 +3745,7 @@ function getSporefallState() {
         letterFound: !!gameState.flags.sporefall_letter_found,
         compassFound: !!gameState.flags.sporefall_compass_found,
         bridgeSeen: !!gameState.flags.sporefall_bridge_seen,
+        bridgeBodySeen: !!gameState.flags.sporefall_bridge_body_seen,
         northRouteOpen: !!gameState.flags.sporefall_north_route_open
     };
 }
