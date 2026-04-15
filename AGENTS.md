@@ -97,6 +97,8 @@ Before changing major story flow, timing, or city content, check:
 - `notes/story_timeline_model.md`
 - `readme.txt`
 - `notes/act1_canon_internal.md` for contributor-only canon truths and spoiler boundaries
+- `notes/narrative_runtime_contract.md` for runtime-authoring and spoiler-discipline rules
+- `notes/narrative_state_registry.md` for story-critical flags and scene-memory ownership
 
 Use `dnd-original-campaign-draft` as the best current reference for:
 
@@ -128,6 +130,18 @@ Current naming rule:
 
 - present-tense horror scenes can use `Sporefall`
 - memory fragments, older records, and pre-ritual references should usually use `Whisperwood`
+
+## Narrative Runtime Safety
+
+Use `notes/narrative_runtime_contract.md` before adding or revising large runtime-authored scene branches.
+
+Important rules:
+
+- stable authored prose belongs in `data/scenes.js` whenever practical
+- runtime mutation in `game.js` should stay limited to state-based variation, fallback selection, and systemic choice assembly
+- spoiler-sensitive lore should not be introduced only in runtime prose branches
+- every new story-critical flag or scene-memory key must be documented in `notes/narrative_state_registry.md` and mirrored in `data/narrativeSafety.js`
+- use the documented fallback vocabulary: `redirect`, `degrade`, `delay`, `hide_choice`, `show_rumor_only_version`
 
 ## Key Files
 
@@ -162,6 +176,10 @@ Start here before editing:
 - `data/storyTimeline.js`
   - act/event progression model
   - scene-triggered story advancement
+- `data/narrativeSafety.js`
+  - machine-readable narrative safety vocabulary
+  - spoiler-term list
+  - story-critical flag and scene-memory registry mirror
 - `notes/combat_grid_model.md`
   - current positional combat assumptions
   - battlegrid guardrails
@@ -185,6 +203,7 @@ Do:
 - keep Silverthorn content event-aware
 - keep scene transitions readable and explicit
 - preserve save compatibility where practical
+- add tests or validations when changing narrative gating, critical flags, or spoiler-sensitive route logic
 
 Do not:
 
@@ -193,6 +212,8 @@ Do not:
 - add rewards or relationship gains to repeatable revisit loops unless intentional
 - add locations that exist only as flavor with no meaningful next step
 - flatten VN-style pacing into pure RPG exploration logic
+- create undocumented one-off story flags or scene-memory keys
+- let runtime branches become the only place a scene's prerequisite or spoiler boundary is expressed
 
 ## Silverthorn-Specific Rules
 

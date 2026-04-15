@@ -1,3 +1,5 @@
+import { SCENE_FALLBACK_MODES } from './narrativeSafety.js';
+
 export const CANONICAL_START_SCENE = 'SCENE_BRIEFING';
 
 export const STORY_EVENT_STATUS = {
@@ -258,6 +260,196 @@ export const storySceneTriggers = {
     SCENE_HUSHBRIAR_TOWN: {
         activate: ['hushbriar_demigod_thread'],
         actId: 'act_5_hushbriar_endgame'
+    }
+};
+
+export const sceneSafetyPolicies = {
+    SCENE_HUB_SILVERTHORN: {
+        thread: 'silverthorn_prep',
+        prerequisites: {
+            storyEvents: ['alderic_briefing']
+        },
+        fallbackMode: SCENE_FALLBACK_MODES.DEGRADE,
+        ifReachedTooEarly: 'Keep the player in Silverthorn-facing prep content and never skip directly past Alderic.',
+        ifPartiallyInformed: 'Allow rumor, prep, and civic-pressure surfaces without escalating into hidden ritual truth.',
+        onRevisit: 'Vary by time, scene memory, and one-time prep rewards without removing the city-center next step.',
+        neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
+    },
+    SCENE_RUSTY_BLADE_RUMORS: {
+        thread: 'silverthorn_prep',
+        prerequisites: {
+            storyEvents: ['alderic_briefing']
+        },
+        fallbackMode: SCENE_FALLBACK_MODES.SHOW_RUMOR_ONLY_VERSION,
+        ifReachedTooEarly: 'Keep rumors at the level of relic anxiety, vanished Whisperwood, and fear of the eastern road.',
+        ifPartiallyInformed: 'Let repeat visits sharpen the room’s dread without confirming hidden causes.',
+        onRevisit: 'Use harsher repeat text, not new spoiler exposition.',
+        neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
+    },
+    SCENE_SILVERTHORN_NOTICE_WHISPERWOOD: {
+        thread: 'silverthorn_prep',
+        prerequisites: {
+            storyEvents: ['alderic_briefing']
+        },
+        fallbackMode: SCENE_FALLBACK_MODES.SHOW_RUMOR_ONLY_VERSION,
+        ifReachedTooEarly: 'Present civic panic and disappearance language, not the hidden cause.',
+        ifPartiallyInformed: 'Allow language about the borough being taken or unreachable, never the buried truth behind it.',
+        onRevisit: 'Remain a clue surface rather than a reward surface.',
+        neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
+    },
+    SCENE_SILVERTHORN_GATE_CAPTAIN: {
+        thread: 'silverthorn_prep',
+        prerequisites: {
+            storyEvents: ['silverthorn_departure']
+        },
+        fallbackMode: SCENE_FALLBACK_MODES.DEGRADE,
+        ifReachedTooEarly: 'Keep the captain in road-warning and route-mark mode rather than letting him reveal hidden knowledge.',
+        ifPartiallyInformed: 'He may react to rumors, patrol losses, and relic tension, but not the hidden ritual truth.',
+        onRevisit: 'Reinforce route knowledge and patrol fatigue without duplicating the route-study reward.',
+        neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
+    },
+    SCENE_TRAVEL_SHADOWMIRE: {
+        thread: 'shadowmire_blackout',
+        prerequisites: {
+            storyEvents: ['silverthorn_departure']
+        },
+        fallbackMode: SCENE_FALLBACK_MODES.REDIRECT,
+        ifReachedTooEarly: 'Players who have not left Silverthorn should be redirected back into the canonical departure flow.',
+        ifPartiallyInformed: 'Keep the route healthy at first, then let dread rise through haze and omens before blackout.',
+        onRevisit: 'Treat this as a committed transition rather than a repeatable free-roam branch.',
+        neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
+    },
+    SCENE_SPOREFALL_WAKE: {
+        thread: 'sporefall_arrival',
+        prerequisites: {
+            storyEvents: ['sporefall_arrival']
+        },
+        fallbackMode: SCENE_FALLBACK_MODES.DELAY,
+        ifReachedTooEarly: 'Do not expose broad free-roam; use the wake-up shock to narrow the route into first-contact survival.',
+        ifPartiallyInformed: 'Let the borough read as Sporefall in the present while older names remain in memory-facing surfaces only.',
+        onRevisit: 'This should not be replayed as a lootable or repeatable scene.',
+        neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
+    },
+    SCENE_ARRIVAL_WHISPERWOOD: {
+        thread: 'sporefall_arrival',
+        prerequisites: {
+            storyEvents: ['sporefall_arrival']
+        },
+        fallbackMode: SCENE_FALLBACK_MODES.DELAY,
+        ifReachedTooEarly: 'The first major survivor contact should remain close and immediate, not be skipped into broad wandering.',
+        ifPartiallyInformed: 'Failure may delay Eoin by one nearby step, but should not let the player miss him entirely.',
+        onRevisit: 'After Eoin is met, degrade into directional hub access instead of replaying first-arrival beats.',
+        neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
+    },
+    SCENE_MEET_EOIN: {
+        thread: 'eoin_thread',
+        prerequisites: {
+            storyEvents: ['sporefall_arrival']
+        },
+        fallbackMode: SCENE_FALLBACK_MODES.DELAY,
+        ifReachedTooEarly: 'Let the player circle once, then route back into Eoin rather than losing the thread.',
+        ifPartiallyInformed: 'Eoin should feel frightened and incomplete, not suddenly omniscient.',
+        onRevisit: 'Keep him as an anchor and survivor surface, not a repeatable clue fountain.',
+        neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
+    },
+    SCENE_EOIN_TALK: {
+        thread: 'eoin_thread',
+        prerequisites: {
+            storyEvents: ['eoin_thread']
+        },
+        fallbackMode: SCENE_FALLBACK_MODES.DEGRADE,
+        ifReachedTooEarly: 'If the player knows less, Eoin should speak in fragments and local grief rather than hidden truth.',
+        ifPartiallyInformed: 'Bridge and cathedral clues may sharpen his responses without making him explain the ritual.',
+        onRevisit: 'Preserve his emotional state while acknowledging discovered clues and aid already given.',
+        neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
+    },
+    SCENE_EOIN_MOTHER_TALK: {
+        thread: 'north_bridge',
+        prerequisites: {
+            storyEvents: ['eoin_thread']
+        },
+        fallbackMode: SCENE_FALLBACK_MODES.DEGRADE,
+        ifReachedTooEarly: 'Before the bridge body is found, this should stay in grief, absence, and uncertainty.',
+        ifPartiallyInformed: 'After the bridge is seen but before the body is found, keep the scene suggestive rather than confirmatory.',
+        onRevisit: 'Once the body is found, let the dialogue confirm loss without expanding into hidden ritual explanation.',
+        neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
+    },
+    SCENE_HUB_SPOREFALL: {
+        thread: 'sporefall_investigation',
+        prerequisites: {
+            storyEvents: ['sporefall_investigation']
+        },
+        fallbackMode: SCENE_FALLBACK_MODES.DEGRADE,
+        ifReachedTooEarly: 'Keep the first borough sandbox small and directional rather than broad and unguided.',
+        ifPartiallyInformed: 'Surface only the routes supported by current clues, flags, and one-time discoveries.',
+        onRevisit: 'Use found-clue memory to shorten text while preserving west/east/north meaningfully.',
+        neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
+    },
+    SCENE_SPOREFALL_CATHEDRAL_APPROACH: {
+        thread: 'sporefall_investigation',
+        prerequisites: {
+            storyEvents: ['sporefall_investigation']
+        },
+        fallbackMode: SCENE_FALLBACK_MODES.HIDE_CHOICE,
+        ifReachedTooEarly: 'Let the area feel foreboding, but do not expose late clue surfaces until the investigation thread is live.',
+        ifPartiallyInformed: 'Allow masonry and bag clues to layer in without confirming the hidden ritual truth.',
+        onRevisit: 'Do not re-award the courier bag clue after it has been taken.',
+        neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
+    },
+    SCENE_SPOREFALL_OVERSEER_JOURNAL: {
+        thread: 'aodhan_thread',
+        prerequisites: {
+            storyEvents: ['sporefall_investigation']
+        },
+        fallbackMode: SCENE_FALLBACK_MODES.HIDE_CHOICE,
+        ifReachedTooEarly: 'The overseer-house clue sequence should wait behind its trap and investigation beats.',
+        ifPartiallyInformed: 'Let the documents imply desperation and collapse without dumping the hidden mechanism outright.',
+        onRevisit: 'Do not re-award the journal once found.',
+        neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
+    },
+    SCENE_SPOREFALL_OVERSEER_CORRESPONDENCE: {
+        thread: 'aodhan_thread',
+        prerequisites: {
+            storyEvents: ['sporefall_investigation']
+        },
+        fallbackMode: SCENE_FALLBACK_MODES.HIDE_CHOICE,
+        ifReachedTooEarly: 'Keep this behind the normal investigation sequence.',
+        ifPartiallyInformed: 'Allow correspondence to sharpen suspicion without resolving it.',
+        onRevisit: 'Do not re-award the correspondence clue once found.',
+        neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
+    },
+    SCENE_SPOREFALL_NORTH_APPROACH: {
+        thread: 'north_skip_route',
+        prerequisites: {
+            storyEvents: ['sporefall_investigation']
+        },
+        fallbackMode: SCENE_FALLBACK_MODES.DEGRADE,
+        ifReachedTooEarly: 'Keep the north viable but clue-light, not a sequence breaker.',
+        ifPartiallyInformed: 'Allow stonework reading, bridge checking, and route-opening without spoiling the cathedral truth.',
+        onRevisit: 'Preserve the route as a hard bargain between speed and certainty.',
+        neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
+    },
+    SCENE_SPOREFALL_NORTH_BRIDGE: {
+        thread: 'north_bridge',
+        prerequisites: {
+            storyEvents: ['sporefall_investigation']
+        },
+        fallbackMode: SCENE_FALLBACK_MODES.DEGRADE,
+        ifReachedTooEarly: 'The bridge should read as survival traces and unease before it becomes explicit grief.',
+        ifPartiallyInformed: 'Allow shelter-reading and environmental dread before the body is confirmed.',
+        onRevisit: 'Once the body is found, degrade into aftermath rather than re-running the discovery beat.',
+        neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
+    },
+    SCENE_SPOREFALL_NORTH_ROUTE_DISCOVERED: {
+        thread: 'north_skip_route',
+        prerequisites: {
+            storyEvents: ['sporefall_investigation']
+        },
+        fallbackMode: SCENE_FALLBACK_MODES.DEGRADE,
+        ifReachedTooEarly: 'The skip route may stay viable, but should not collapse the larger clue structure.',
+        ifPartiallyInformed: 'Treat it as a speed-over-certainty branch rather than a hidden-truth shortcut.',
+        onRevisit: 'Keep the route open without repeating its discovery reward.',
+        neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
     }
 };
 
