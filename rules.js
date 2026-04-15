@@ -114,7 +114,7 @@ export function getSkillBonus(character, skillName, options = {}) {
         target: 'skill_check',
         skill: normalized,
         ability,
-        tags: getSkillTags(normalized),
+        tags: [...new Set([...(getSkillTags(normalized) || []), ...((options.tags || []).map(String))])],
         sourceActorId: options.sourceActorId || null
     });
 
@@ -129,6 +129,7 @@ export function rollSkillCheck(character, skillName, advantage = false) {
         ? advantage
         : { advantage: !!advantage };
     const { bonus, ability, effectModifiers } = getSkillBonus(character, normalized, options);
+    const externalFlatBonus = Number(options.flatBonus || 0);
 
     let roll1 = rollDie(20);
     let roll2 = rollDie(20);
@@ -150,9 +151,14 @@ export function rollSkillCheck(character, skillName, advantage = false) {
         finalRoll = roll1;
     }
 
-    let total = finalRoll + bonus;
+    let total = finalRoll + bonus + externalFlatBonus;
 
-    effectModifiers.dice.forEach(dice => {
+    const extraDice = [
+        ...(effectModifiers.dice || []),
+        ...((Array.isArray(options.extraDice) ? options.extraDice : options.extraDice ? [options.extraDice] : []))
+    ];
+
+    extraDice.forEach(dice => {
         const dieResult = rollDiceExpression(dice).total;
         total += dieResult;
         note += ` + ${dieResult} (${dice})`;
@@ -161,7 +167,7 @@ export function rollSkillCheck(character, skillName, advantage = false) {
     return {
         total,
         roll: finalRoll,
-        modifier: bonus,
+        modifier: bonus + externalFlatBonus,
         note: note,
         ability
     };

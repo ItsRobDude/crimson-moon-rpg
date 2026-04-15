@@ -1,4 +1,5 @@
-import { gameState, initializeNewGame, resetGameState } from '../data/gameState.js';
+import { addItem, gameState, initializeNewGame, resetGameState } from '../data/gameState.js';
+import { addEffectToActor } from '../data/mechanics.js';
 import { getRuntimeScene } from '../game.js';
 import { scenes } from '../data/scenes.js';
 
@@ -29,6 +30,23 @@ test('sporefall arrival routes early perception success to eoin and failure to a
   expect(searchChoice.dc).toBe(10);
   expect(searchChoice.nextSceneSuccess).toBe('SCENE_MEET_EOIN');
   expect(searchChoice.nextSceneFail).toBe('SCENE_SPOREFALL_STREET_SEARCH');
+});
+
+test('torchlight opens a stronger arrival read and spare rations can be offered to Eoin', () => {
+  addEffectToActor(gameState.player, 'torchlight', {
+    id: 'torchlight',
+    name: 'Torchlight',
+    durationType: 'time_slots',
+    remaining: 1,
+    modifiers: []
+  });
+  addItem('rations');
+
+  let scene = getRuntimeScene('SCENE_ARRIVAL_WHISPERWOOD');
+  expect(scene.choices.some((choice) => choice.text.includes('torch high'))).toBe(true);
+
+  scene = getRuntimeScene('SCENE_MEET_EOIN');
+  expect(scene.choices.some((choice) => choice.text.includes('Offer him a ration'))).toBe(true);
 });
 
 test('post-eoin sporefall hub exposes directional cathedral, house, and north routes', () => {
@@ -86,6 +104,17 @@ test('cathedral clue search and overseer study rewards are revisit-safe', () => 
   expect(scene.choices.some((choice) => choice.text.includes('journal'))).toBe(false);
   expect(scene.choices.some((choice) => choice.text.includes('correspondence'))).toBe(false);
   expect(scene.choices.some((choice) => choice.text.includes('desk drawer'))).toBe(false);
+});
+
+test('cathedral approach exposes a stone-reading clue pass for dwarven or mason-aware characters', () => {
+  addItem('mason_tools');
+
+  const scene = getRuntimeScene('SCENE_SPOREFALL_CATHEDRAL_APPROACH');
+  const masonryChoice = scene.choices.find((choice) => choice.text.includes('cracked cathedral stone'));
+
+  expect(masonryChoice).toBeDefined();
+  expect(masonryChoice.toolAid?.toolId).toBe('mason_tools');
+  expect(masonryChoice.traitAid?.traitId).toBe('stonecunning');
 });
 
 test('overseer door exposes the safe rune choice only after the trap hint is known', () => {

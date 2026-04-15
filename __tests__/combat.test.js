@@ -309,6 +309,67 @@ test('shield negates magic missile explicitly', () => {
   expect(gameState.player.hp).toBe(gameState.player.maxHp);
 });
 
+test('evocation sculpt spells spares allies caught in a burning hands cone', () => {
+  const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0);
+
+  gameState.player = createActor({
+    name: 'Evoker',
+    classId: 'wizard',
+    subclassId: 'evocation',
+    level: 3,
+    abilities: { STR: 8, DEX: 14, CON: 12, INT: 18, WIS: 12, CHA: 10 },
+    preparedSpells: ['burning_hands'],
+    spellbook: ['burning_hands'],
+    spellcastingMode: 'spellbook',
+    spellSlots: { 1: 2 },
+    currentSlots: { 1: 2 }
+  });
+  syncActorState(gameState.player);
+
+  const ally = createActor({
+    id: 'ally',
+    name: 'Scout',
+    classId: 'rogue',
+    hp: 10,
+    maxHp: 10
+  });
+  syncActorState(ally);
+  gameState.roster.ally = ally;
+  gameState.party = ['ally'];
+
+  const enemy = createActor({
+    id: 'enemy',
+    uniqueId: 'enemy_0',
+    type: 'enemy',
+    name: 'Fungal Beast',
+    hp: 10,
+    maxHp: 10
+  });
+  syncActorState(enemy);
+
+  gameState.combat = {
+    ...gameState.combat,
+    active: true,
+    activeActorId: 'player',
+    actionsRemaining: 1,
+    bonusActionsRemaining: 1,
+    grid: createBattleGrid(8, 6, 5),
+    enemies: [enemy],
+    turnOrder: ['player', 'ally', enemy.uniqueId]
+  };
+
+  placeToken(gameState.combat.grid, { id: 'player', x: 1, y: 2, team: 'allies', hp: gameState.player.hp, reach: 1 });
+  placeToken(gameState.combat.grid, { id: 'ally', x: 2, y: 2, team: 'allies', hp: ally.hp, reach: 1 });
+  placeToken(gameState.combat.grid, { id: enemy.uniqueId, x: 3, y: 2, team: 'enemies', hp: enemy.hp, reach: 1 });
+
+  performCastSpell('burning_hands', enemy.uniqueId, 'player');
+
+  expect(gameState.roster.ally.hp).toBe(10);
+  expect(gameState.combat.enemies[0].hp).toBeLessThan(10);
+
+  randomSpy.mockRestore();
+});
+
 test('action surge grants one additional action and spends its resource', () => {
   gameState.player = createActor({
     name: 'Fighter',

@@ -12,9 +12,9 @@ import { shops } from './data/shops.js';
 import { npcs } from './data/npcs.js';
 import { companions } from './data/companions.js';
 import { factions } from './data/factions.js';
-import { gameState, getActorCastableSpells, getInventoryEntries, getItemCount, getItemEquipFailure, getPreparedSpellLimit, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, setNpcStatus, processNarrativeTrigger, unequipItem, syncPartyLevels, saveGame, loadGame as loadGameData, removeItem, advanceTime, getTimelineLabel, getTimeSlotLabel, getSceneMemory, setSceneMemory, performShortRest as gsPerformShortRest, performLongRest as gsPerformLongRest, syncCharacterState } from './data/gameState.js';
+import { gameState, getActorCastableSpells, getInventoryEntries, getItemCount, getItemEquipFailure, getInventoryUseCost, getPreparedSpellLimit, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, setNpcStatus, processNarrativeTrigger, unequipItem, syncPartyLevels, saveGame, loadGame as loadGameData, removeItem, advanceTime, getTimelineLabel, getTimeSlotLabel, getSceneMemory, setSceneMemory, performShortRest as gsPerformShortRest, performLongRest as gsPerformLongRest, syncCharacterState } from './data/gameState.js';
 import { CANONICAL_START_SCENE, ensureStoryState, getLocationStoryRequirement, getLocationUnlockHint, meetsStoryRequirement, storyActs, storyEvents, syncStoryStateForScene } from './data/storyTimeline.js';
-import { addEffectToActor, getBonusSkillChoiceCount, getBonusToolChoiceCount, getBonusToolChoiceOptions, getRaceTraitDefinitions, removeEffectFromActor } from './data/mechanics.js';
+import { addEffectToActor, getActorTraitDefinitions, getBonusSkillChoiceCount, getBonusToolChoiceCount, getBonusToolChoiceOptions, getDerivedActorState, getRaceTraitDefinitions, removeEffectFromActor } from './data/mechanics.js';
 import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod, generateScaledStats, getPlayerAC } from './rules.js';
 import { getSpellTargetingPreview, initCombatSystem, startCombat, performAttack, performCastSpell, performAbility, performDefend, performFlee, performEndTurn, performActionSurge, performCunningAction, uiHooks } from './combat.js';
 import { clearTrackedTimeout, scheduleTrackedTimeout } from './timers.js';
@@ -24,6 +24,124 @@ export function getCharacterById(characterId) {
         return gameState.player;
     }
     return gameState.roster[characterId];
+}
+
+function actorHasItem(characterId, itemId, quantity = 1) {
+    return getItemCount(itemId, characterId) >= Math.max(1, quantity || 1);
+}
+
+function actorHasStatus(actor, statusId) {
+    return !!actor && !!statusId && hasStatusEffect(statusId, actor.id || 'player');
+}
+
+function actorHasTrait(actor, traitId) {
+    return !!actor && !!traitId && getActorTraitDefinitions(actor).some((trait) => trait.id === traitId);
+}
+
+function actorHasToolAccess(actor, toolId) {
+    if (!actor || !toolId) return false;
+    const actorId = actor.id || 'player';
+    const snapshot = getDerivedActorState(actor);
+    return snapshot.proficiencies.tools.includes(toolId) || actorHasItem(actorId, toolId);
+}
+
+function meetsChoiceRequirements(choice, actor = gameState.player) {
+    if (!choice?.requires) return true;
+
+    const actorId = actor?.id || 'player';
+    const requires = choice.requires;
+
+    if (requires.relationship) {
+        const current = getRelationship(requires.relationship.npcId);
+        if (current < (requires.relationship.min || -999)) return false;
+    }
+    if (requires.reputation) {
+        const current = getReputation(requires.reputation.factionId);
+        if (current < (requires.reputation.min || -999)) return false;
+    }
+    if (requires.flag && !gameState.flags[requires.flag]) return false;
+    if (requires.notFlag && gameState.flags[requires.notFlag]) return false;
+    if (requires.npcState) {
+        const { id, status } = requires.npcState;
+        if (getNpcStatus(id) !== status) return false;
+    }
+    if (requires.storyEvent && !meetsStoryRequirement(gameState.story, requires.storyEvent)) return false;
+    if (requires.storyAct) {
+        const currentActId = gameState.story && gameState.story.currentActId;
+        if (Array.isArray(requires.storyAct)) {
+            if (!requires.storyAct.includes(currentActId)) return false;
+        } else if (currentActId !== requires.storyAct) {
+            return false;
+        }
+    }
+    if (requires.itemId && !actorHasItem(actorId, requires.itemId, requires.quantity || 1)) return false;
+    if (requires.anyItemIds && !requires.anyItemIds.some((itemId) => actorHasItem(actorId, itemId))) return false;
+    if (requires.toolId && !actorHasToolAccess(actor, requires.toolId)) return false;
+    if (requires.traitId && !actorHasTrait(actor, requires.traitId)) return false;
+    if (requires.status) {
+        const statuses = Array.isArray(requires.status) ? requires.status : [requires.status];
+        if (!statuses.every((statusId) => actorHasStatus(actor, statusId))) return false;
+    }
+    if (requires.notStatus) {
+        const statuses = Array.isArray(requires.notStatus) ? requires.notStatus : [requires.notStatus];
+        if (statuses.some((statusId) => actorHasStatus(actor, statusId))) return false;
+    }
+    if (requires.sceneMemory) {
+        const { key, value = true } = typeof requires.sceneMemory === 'string'
+            ? { key: requires.sceneMemory, value: true }
+            : requires.sceneMemory;
+        if (getSceneMemory(key) !== value) return false;
+    }
+    if (requires.notSceneMemory) {
+        const { key, value = true } = typeof requires.notSceneMemory === 'string'
+            ? { key: requires.notSceneMemory, value: true }
+            : requires.notSceneMemory;
+        if (getSceneMemory(key) === value) return false;
+    }
+
+    return true;
+}
+
+function buildNarrativeCheckOptions(choice, actor = gameState.player) {
+    const actorId = actor?.id || 'player';
+    const options = {
+        ...(choice.skillOptions || {})
+    };
+    const notes = [];
+
+    const applyAid = (aid, active, fallbackLabel) => {
+        if (!aid || !active) return;
+        if (aid.advantage) options.advantage = true;
+        if (aid.bonus) options.flatBonus = (options.flatBonus || 0) + aid.bonus;
+        if (aid.extraDice) {
+            const extraDice = Array.isArray(aid.extraDice) ? aid.extraDice : [aid.extraDice];
+            options.extraDice = [...(options.extraDice || []), ...extraDice];
+        }
+        if (aid.tags) {
+            const tags = Array.isArray(aid.tags) ? aid.tags : [aid.tags];
+            options.tags = [...new Set([...(options.tags || []), ...tags])];
+        }
+        notes.push(aid.logText || fallbackLabel);
+    };
+
+    if (choice.itemAid) {
+        const aid = choice.itemAid;
+        applyAid(aid, actorHasItem(actorId, aid.itemId, aid.quantity || 1), `${items[aid.itemId]?.name || 'Item'} helps.`);
+    }
+    if (choice.toolAid) {
+        const aid = choice.toolAid;
+        applyAid(aid, actorHasToolAccess(actor, aid.toolId), `${items[aid.toolId]?.name || 'Tool'} gives you better purchase.`);
+    }
+    if (choice.traitAid) {
+        const aid = choice.traitAid;
+        applyAid(aid, actorHasTrait(actor, aid.traitId), `${aid.label || 'Your training'} sharpens the read.`);
+    }
+    if (choice.statusAid) {
+        const aid = choice.statusAid;
+        applyAid(aid, actorHasStatus(actor, aid.statusId), `${aid.label || aid.statusId} steadies you.`);
+    }
+
+    return { options, notes };
 }
 
 // ... (Existing exports and initUI) ...
@@ -749,7 +867,11 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
 
     if (sceneId === 'SCENE_ARRIVAL_WHISPERWOOD') {
         if (state.eoinMet) {
-            scene.text = "You stand once more in Sporefall's central street, where the silence feels less empty now that you know at least one frightened soul still haunts it. The borough still opens west toward the cathedral quarter, east toward the overseer's row, and north toward the bridge Eoin named.";
+            const eoinState = [
+                state.eoinFed ? 'You can still picture the way Eoin tried not to devour the ration too quickly.' : null,
+                state.eoinTreated ? 'The borrowed steadiness in his breath has taken some of the panic out of the street.' : null
+            ].filter(Boolean).join(' ');
+            scene.text = `You stand once more in Sporefall's central street, where the silence no longer feels abandoned so much as watched. Doors hang open to rooms no one had time to close, and the red light on the stones makes every threshold look stained. The borough still opens west toward the cathedral quarter, east toward the overseer's row, and north toward the bridge Eoin named.${eoinState ? ` ${eoinState}` : ''}`;
             scene.choices = [
                 createChoice('Step back into the central street', 'SCENE_HUB_SPOREFALL'),
                 createChoice("Return to Eoin's hiding place", 'SCENE_EOIN_TALK')
@@ -757,14 +879,15 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
             return scene;
         }
 
-        scene.text = baseScene.text;
+        const torchlit = hasStatusEffect('torchlight');
+        scene.text = "You wake into a borough that feels like it should still be asleep, yet nothing here carries the peace of sleep. The houses lean inward. Ash clings to the street in damp, dark seams. Somewhere nearby, something wooden taps softly in the wind, and every sound after that feels like a mistake for existing.";
         scene.choices = [
             createChoice('Search the nearest street for survivors (Perception)', null, {
                 type: 'skillCheck',
                 skill: 'perception',
                 dc: 10,
-                successText: 'Out of the corner of your eye, something pale and human slips behind a nearby house. It is too careful to be a beast.',
-                failText: 'The street looks dead until the silence starts feeling staged rather than empty.',
+                successText: 'At first it looks like another ruin settling. Then you catch the truth of it: a pale hand, a face withdrawing, the small disciplined panic of someone trying very hard not to be found.',
+                failText: 'Nothing moves at first. Then the stillness itself begins to feel arranged, as if whoever remains here has learned to hide inside silence rather than risk breathing against it.',
                 onSuccess: {
                     effects: [
                         { type: 'flag', flagId: 'sporefall_eoin_glimpsed', value: true }
@@ -779,8 +902,34 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
                 nextSceneFail: 'SCENE_SPOREFALL_STREET_SEARCH'
             }),
             createChoice('Move between the ruined homes', 'SCENE_SPOREFALL_STREET_SEARCH'),
-            createChoice('Pause and listen for anyone still alive', 'SCENE_SPOREFALL_STREET_SEARCH')
+            createChoice('Stand still and listen for the living', 'SCENE_SPOREFALL_STREET_SEARCH')
         ];
+        if (torchlit) {
+            scene.choices.unshift(createChoice('Hold your torch high and read the soot-marked doorways (Perception)', null, {
+                type: 'skillCheck',
+                skill: 'perception',
+                dc: 8,
+                statusAid: {
+                    statusId: 'torchlight',
+                    bonus: 2,
+                    logText: 'Torchlight shows where soot, footprints, and fresh disturbance part ways.'
+                },
+                successText: 'By torchlight the street gives itself away: scuffed ash by a cellar lip, a handprint where someone steadied themself, breath caught just once behind a shattered lintel.',
+                failText: 'The flame gives shape to the wreckage, but not enough. Shadows slip behind shadows, and the borough keeps its living hidden a little longer.',
+                onSuccess: {
+                    effects: [
+                        { type: 'flag', flagId: 'sporefall_eoin_glimpsed', value: true }
+                    ]
+                },
+                onFail: {
+                    effects: [
+                        { type: 'flag', flagId: 'sporefall_eoin_delayed', value: true }
+                    ]
+                },
+                nextSceneSuccess: 'SCENE_MEET_EOIN',
+                nextSceneFail: 'SCENE_SPOREFALL_STREET_SEARCH'
+            }));
+        }
         return scene;
     }
 
@@ -788,23 +937,50 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
         const searchedBefore = !!getSceneMemory('sporefall_street_search_seen');
         setSceneMemory('sporefall_street_search_seen', true);
         scene.text = searchedBefore
-            ? "The nearby houses remain empty of life and full of evidence that something still hides here by choice, not instinct. The same faint cough betrays a human presence behind the ruined home."
-            : baseScene.text;
+            ? "The nearby houses remain empty of life and full of the small humiliations of evacuation: a dropped toy, a cooking pot left black on cold iron, a shawl caught in a hinge. The same restrained cough still betrays a human presence behind the ruined home."
+            : "The street is not empty so much as interrupted. Doors have been left wide in the middle of ordinary lives, and the deeper you move between the houses, the more the place feels paused at the exact instant everyone understood they were too late.";
         scene.choices = [
             createChoice('Follow the coughing behind the house', 'SCENE_MEET_EOIN'),
-            createChoice('Circle wide and cut off whoever is hiding', 'SCENE_MEET_EOIN')
+            createChoice('Circle wide and cut off whoever is hiding', 'SCENE_MEET_EOIN'),
+            createChoice('Read the ruined thresholds with a healer’s eye (Medicine)', null, {
+                type: 'skillCheck',
+                skill: 'medicine',
+                dc: 11,
+                statusAid: {
+                    statusId: 'torchlight',
+                    bonus: 1,
+                    logText: 'The light lets you separate blood, ash, and spore-stain before they blur together.'
+                },
+                successText: 'The signs resolve into a pattern: whoever is hiding here is frightened, feverish, and still trying not to lead anything back to their shelter.',
+                failText: 'You find traces of panic, blood, and hurried movement, but not enough to read what kind of life is still hiding here.',
+                nextSceneSuccess: 'SCENE_MEET_EOIN',
+                nextSceneFail: 'SCENE_MEET_EOIN'
+            })
         ];
         return scene;
     }
 
     if (sceneId === 'SCENE_MEET_EOIN') {
+        scene.choices = [...(scene.choices || [])];
         if (state.eoinGlimpsed) {
-            scene.text = "The pale figure you glimpsed behind the house finally shows himself. A young man steps into the moon-glow with a broken spear in trembling hands, looking more haunted than living. 'Stay back,' he says. 'Are you real, or another trick of the moon?'";
+            scene.text = "The pale figure you glimpsed behind the house finally shows himself. A young man steps into the moon-glow with a broken spear in shaking hands, shoulders tucked as if he expects the night itself to strike first. His face is hollow from hunger and fright in nearly equal measure. 'Stay back,' he says, though the threat lands weaker than the plea beneath it. 'Are you real, or another kindness this place will take back?'";
+        } else {
+            scene.text = "A young man rises from the lee of a ruined wall with a broken spear half-lifted, breathing as if each breath has to be bargained for. He looks at you the way starving men look at food they suspect is poisoned: wanting to believe, unable to afford it.";
+        }
+        if (!state.eoinFed && actorHasItem('player', 'rations')) {
+            scene.choices.unshift(createChoice('Offer him a ration before you ask anything', 'SCENE_EOIN_TALK', {
+                effects: [
+                    { type: 'consumeItem', itemId: 'rations', quantity: 1, logText: 'You hand over one day of rations.' },
+                    { type: 'relationship', npcId: 'eoin', amount: 1 },
+                    { type: 'flag', flagId: 'sporefall_eoin_fed', value: true }
+                ]
+            }));
         }
         return scene;
     }
 
     if (sceneId === 'SCENE_EOIN_TALK') {
+        scene.choices = [...(scene.choices || [])];
         if (state.eoinTalked) {
             const reactions = [];
             if (clueNotes.includes('cathedral')) {
@@ -817,9 +993,31 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
                 reactions.push("Any mention of the north-side bridge makes him look relieved and guilty at once, like he still hopes the answer to his mother lies there.");
             }
             const suffix = reactions.length > 0 ? ` ${reactions.join(' ')}` : '';
-            scene.text = `Eoin is calmer now, though never fully steady. He keeps watching the empty streets between words, as if expecting the town itself to overhear him. The same three threads still matter most to him: the cathedral, the north-side bridge, and the impossible fact that he feels present and absent all at once.${suffix}`;
+            const comfortBeat = [
+                state.eoinFed ? 'The memory of the food you gave him lingers in the way he no longer apologizes for surviving.' : null,
+                state.eoinTreated ? 'The rasp in his breath is lighter now, though the fear behind it remains untouched.' : null
+            ].filter(Boolean).join(' ');
+            scene.text = `Eoin is calmer now, though never fully steady. He keeps watching the empty streets between words, as if expecting the town itself to overhear him. The same three threads still matter most to him: the cathedral, the north-side bridge, and the impossible fact that he feels present and absent all at once.${suffix}${comfortBeat ? ` ${comfortBeat}` : ''}`;
         } else {
-            scene.text = baseScene.text;
+            scene.text = "Once the spear lowers a little, the story comes out in broken pieces: quarantine lines, prayers that became orders, a mother he lost sight of near the northern bridge, and a town that seemed to sicken all at once after the moon rose wrong. He speaks like someone afraid that saying the whole truth aloud might summon it back.";
+        }
+
+        if (!state.eoinTreated && actorHasItem('player', 'antitoxin')) {
+            scene.choices.unshift(createChoice('Press antitoxin into his hands and tell him to drink', 'SCENE_EOIN_TALK', {
+                effects: [
+                    { type: 'consumeItem', itemId: 'antitoxin', quantity: 1, logText: 'You part with one vial of antitoxin.' },
+                    { type: 'relationship', npcId: 'eoin', amount: 2 },
+                    { type: 'flag', flagId: 'sporefall_eoin_treated', value: true }
+                ]
+            }));
+        } else if (!state.eoinTreated && actorHasItem('player', 'healer_kit')) {
+            scene.choices.unshift(createChoice('Use your healer kit to steady his shaking hands', 'SCENE_EOIN_TALK', {
+                effects: [
+                    { type: 'consumeItem', itemId: 'healer_kit', quantity: 1, logText: 'You use up a healer kit patching cracked skin and binding the worst of the raw places.' },
+                    { type: 'relationship', npcId: 'eoin', amount: 1 },
+                    { type: 'flag', flagId: 'sporefall_eoin_treated', value: true }
+                ]
+            }));
         }
         return scene;
     }
@@ -843,9 +1041,14 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
         if (state.cathedralLetterFound) clueBeat.push('the courier letter has already tied the cathedral quarter to the overseer');
         if (state.journalFound || state.letterFound || state.compassFound) clueBeat.push("Aodhan's house has begun giving up its secrets");
         if (state.northRouteOpen) clueBeat.push('the north road is open if speed matters more than certainty');
+        if (state.cathedralMasonryRead) clueBeat.push('the broken masonry has already told you the cathedral began failing before the panic');
+        const survivorBeat = [
+            state.eoinFed ? 'Eoin has at least one meal in him now.' : null,
+            state.eoinTreated ? 'His breathing has steadied enough to trust him with a longer watch.' : null
+        ].filter(Boolean).join(' ');
         const suffix = clueBeat.length > 0 ? ` Already, ${clueBeat.join(', and ')}.` : '';
 
-        scene.text = `${baseScene.text}${suffix}`;
+        scene.text = `${baseScene.text}${suffix}${survivorBeat ? ` ${survivorBeat}` : ''}`;
         scene.choices = [
             createChoice(state.cathedralVisionSeen ? 'Return west to the Cathedral of Bone' : 'Head west through the cathedral quarter', 'SCENE_SPOREFALL_CATHEDRAL_APPROACH'),
             createChoice(state.homeUnlocked ? "Return east to Aodhan's house" : "Head east toward the overseer's row", 'SCENE_SPOREFALL_OVERSEER_APPROACH'),
@@ -866,6 +1069,35 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
                     { type: 'addItem', itemId: 'urgent_letter_overseer' },
                     { type: 'flag', flagId: 'sporefall_cathedral_letter_found', value: true }
                 ]
+            }));
+        }
+        if (!state.cathedralMasonryRead) {
+            scene.choices.push(createChoice('Read the cracked cathedral stone before you climb (History)', null, {
+                type: 'skillCheck',
+                skill: 'history',
+                dc: 12,
+                traitAid: {
+                    traitId: 'stonecunning',
+                    bonus: 2,
+                    logText: 'Stonecunning lets you read the breaks the way others read handwriting.'
+                },
+                toolAid: {
+                    toolId: 'mason_tools',
+                    bonus: 2,
+                    logText: "A mason's sense of weight and settling makes the failure plain."
+                },
+                skillOptions: {
+                    tags: ['stonework']
+                },
+                successText: 'The damage is wrong for a simple evacuation. Hairline fractures radiate from pressure points that were already under strain before panic emptied the square. Whatever overtook Sporefall did not begin tonight.',
+                failText: 'You can tell the cathedral failed in stages, but not enough to say which wound came first.',
+                onSuccess: {
+                    effects: [
+                        { type: 'flag', flagId: 'sporefall_cathedral_masonry_read', value: true }
+                    ]
+                },
+                nextSceneSuccess: 'SCENE_SPOREFALL_CATHEDRAL_APPROACH',
+                nextSceneFail: 'SCENE_SPOREFALL_CATHEDRAL_APPROACH'
             }));
         }
         scene.choices.push(
@@ -930,6 +1162,11 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
                 type: 'skillCheck',
                 skill: 'investigation',
                 dc: 14,
+                toolAid: {
+                    toolId: 'thieves_tools',
+                    bonus: 2,
+                    logText: "Thieves' tools teach you where a trap wants impatient hands to reach."
+                },
                 successText: 'The cuts in the wood reveal how the circuit flows. Two of the runes are only there to punish the impatient.',
                 failText: "You find the grooves, but not the logic that would let you break them safely.",
                 onSuccess: {
@@ -1089,6 +1326,24 @@ function applySceneEffect(effect, source = 'scene') {
         if (removeItem(effect.itemId, targetId, effect.quantity || 1)) {
             const item = items[effect.itemId];
             logMessage(logText || `Lost ${item?.name || effect.itemId}.`, 'system');
+        }
+        return;
+    }
+
+    if (effect.type === 'consumeItem') {
+        if (removeItem(effect.itemId, targetId, effect.quantity || 1)) {
+            const item = items[effect.itemId];
+            logMessage(logText || `${targetActor.name} uses up ${item?.name || effect.itemId}.`, 'system');
+        }
+        return;
+    }
+
+    if (effect.type === 'useItem' && effect.itemId) {
+        const result = useConsumable(effect.itemId, targetId, effect.targetActorId || targetId);
+        if (result.success) {
+            logMessage(logText || result.msg || `${targetActor.name} uses ${items[effect.itemId]?.name || effect.itemId}.`, 'gain');
+        } else if (effect.logOnFailure) {
+            logMessage(effect.logOnFailure === true ? (result.msg || `Could not use ${items[effect.itemId]?.name || effect.itemId}.`) : effect.logOnFailure, 'check-fail');
         }
         return;
     }
@@ -1921,34 +2176,7 @@ function renderChoices(choices) {
     let renderedCount = 0;
     if (choices) {
         choices.forEach((choice) => {
-            if (choice.requires) {
-                if (choice.requires.relationship) {
-                    const current = getRelationship(choice.requires.relationship.npcId);
-                    if (current < (choice.requires.relationship.min || -999)) return;
-                }
-                if (choice.requires.reputation) {
-                    const current = getReputation(choice.requires.reputation.factionId);
-                    if (current < (choice.requires.reputation.min || -999)) return;
-                }
-                if (choice.requires.flag) {
-                    if (!gameState.flags[choice.requires.flag]) return;
-                }
-                if (choice.requires.npcState) {
-                    const { id, status } = choice.requires.npcState;
-                    if (getNpcStatus(id) !== status) return;
-                }
-                if (choice.requires.storyEvent) {
-                    if (!meetsStoryRequirement(gameState.story, choice.requires.storyEvent)) return;
-                }
-                if (choice.requires.storyAct) {
-                    const currentActId = gameState.story && gameState.story.currentActId;
-                    if (Array.isArray(choice.requires.storyAct)) {
-                        if (!choice.requires.storyAct.includes(currentActId)) return;
-                    } else if (currentActId !== choice.requires.storyAct) {
-                        return;
-                    }
-                }
-            }
+            if (!meetsChoiceRequirements(choice, gameState.player)) return;
             const btn = document.createElement('button');
             btn.innerText = choice.text + (choice.cost ? ` (${choice.cost}g)` : "");
             btn.onclick = () => handleChoice(choice);
@@ -2003,10 +2231,12 @@ function handleChoice(choice) {
     if (!choice.type) { if (choice.nextScene) goToScene(choice.nextScene); return; }
 
     if (choice.type === 'skillCheck') {
-        const result = rollSkillCheck(gameState.player, choice.skill);
+        const { options: checkOptions, notes: aidNotes } = buildNarrativeCheckOptions(choice, gameState.player);
+        const result = rollSkillCheck(gameState.player, choice.skill, checkOptions);
         const dc = choice.dc;
+        const aidSuffix = aidNotes.length > 0 ? ` ${aidNotes.join(' ')}` : '';
 
-        logMessage(`Skill Check (${choice.skill}): Rolled ${result.roll} + ${result.modifier} = ${result.total} (DC ${dc})${result.note || ''}`, result.total >= dc ? "check-success" : "check-fail");
+        logMessage(`Skill Check (${choice.skill}): Rolled ${result.roll} + ${result.modifier} = ${result.total} (DC ${dc})${result.note || ''}${aidSuffix}`, result.total >= dc ? "check-success" : "check-fail");
 
         if (result.total >= dc) {
             if (choice.skill === 'stealth') {
@@ -2635,6 +2865,7 @@ function renderPlayerActions(container, subMenu = null, actingId = 'player') {
         if (actor.level >= 2 && actor.classId === 'rogue') {
              grid.appendChild(createActionButton('Dash (Bonus)', 'directions_run', () => performCunningAction('dash', actingId), '', !hasBonus));
              grid.appendChild(createActionButton('Disengage (Bonus)', 'do_not_step', () => performCunningAction('disengage', actingId), '', !hasBonus));
+             grid.appendChild(createActionButton('Hide (Bonus)', 'visibility_off', () => performCunningAction('hide', actingId), '', !hasBonus));
         }
 
         // Action Surge (Fighter)
@@ -2665,12 +2896,22 @@ function renderPlayerActions(container, subMenu = null, actingId = 'player') {
             const spell = spells[spellId];
             return spell.level === 0 || ((actor.currentSlots?.[spell.level] || 0) > 0);
         });
+        const usableInventoryEntries = getInventoryEntries(actingId).filter((entry) => {
+            const item = items[entry.itemId];
+            return item && (item.type === 'consumable' || item.type === 'scroll');
+        });
+        const canUseInventory = usableInventoryEntries.some((entry) => {
+            const preferredCost = getInventoryUseCost(entry.itemId, actingId);
+            if (!gameState.combat.active) return true;
+            if (preferredCost === 'bonus' && hasBonus) return true;
+            return hasAction;
+        });
 
         grid.appendChild(createActionButton('Attack', 'swords', () => renderPlayerActions(container, 'attack', actingId), 'primary', !hasAction));
         grid.appendChild(createActionButton('Spells', 'auto_stories', () => renderPlayerActions(container, 'spells', actingId), '', !hasSpells));
         grid.appendChild(createActionButton('Abilities', 'star', () => renderPlayerActions(container, 'abilities', actingId)));
         grid.appendChild(createActionButton('Defend', 'shield', () => performDefend(actingId), '', !hasAction));
-        grid.appendChild(createActionButton('Items', 'local_drink', () => toggleInventory(true, actingId), '', !hasAction)); // Using Item is usually an Action (unless Thief)
+        grid.appendChild(createActionButton('Items', 'local_drink', () => toggleInventory(true, actingId), '', !canUseInventory));
         grid.appendChild(createActionButton('End Turn', 'hourglass_bottom', performEndTurn, 'flee')); // Manual End Turn
         // Flee is special, uses Action
         // grid.appendChild(createActionButton('Flee', 'directions_run', performFlee, 'flee', !hasAction));
@@ -2863,6 +3104,32 @@ function toggleInventory(forceOpen = null, characterId = 'player') {
         updateCombatUI(characterId);
     };
 
+    const getAvailableUseCost = (itemId, targetId) => {
+        if (!gameState.combat.active) return 'free';
+        const preferredCost = getInventoryUseCost(itemId, targetId);
+        if (preferredCost === 'bonus' && gameState.combat.bonusActionsRemaining > 0) return 'bonus';
+        if (gameState.combat.actionsRemaining > 0) return 'action';
+        if (preferredCost === 'bonus' && gameState.combat.bonusActionsRemaining > 0) return 'bonus';
+        return null;
+    };
+
+    const canUseInventoryItemNow = (itemId, targetId) => !!getAvailableUseCost(itemId, targetId);
+
+    const spendInventoryUseCost = (itemId, targetId) => {
+        const cost = getAvailableUseCost(itemId, targetId);
+        if (cost === 'free') return 'free';
+        if (cost === 'bonus') {
+            gameState.combat.bonusActionsRemaining = Math.max(0, gameState.combat.bonusActionsRemaining - 1);
+            updateCombatUI(targetId);
+            return 'bonus';
+        }
+        if (cost === 'action') {
+            spendAction();
+            return 'action';
+        }
+        return null;
+    };
+
     const renderInventory = (targetId) => {
         characterId = targetId;
         modal.dataset.activeCharacter = targetId;
@@ -3009,17 +3276,27 @@ function toggleInventory(forceOpen = null, characterId = 'player') {
 
             if (item.type === 'consumable' || item.type === 'scroll') {
                 const useBtn = document.createElement('button');
-                useBtn.innerText = item.type === 'scroll' ? 'Invoke' : 'Use';
-                useBtn.disabled = gameState.combat.active && gameState.combat.actionsRemaining <= 0;
+                const preferredCost = gameState.combat.active ? getInventoryUseCost(itemId, targetId) : 'free';
+                const costLabel = preferredCost === 'bonus' ? 'Use (Bonus)' : (item.type === 'scroll' ? 'Invoke' : 'Use');
+                useBtn.innerText = costLabel;
+                useBtn.disabled = !canUseInventoryItemNow(itemId, targetId);
                 useBtn.onclick = (event) => {
                     event.stopPropagation();
-                    if (!hasActionAvailable()) return;
+                    const availableCost = getAvailableUseCost(itemId, targetId);
+                    if (!availableCost) {
+                        logInventoryMessage('No action economy remaining to use that item.', 'check-fail');
+                        return;
+                    }
                     const result = useConsumable(itemId, targetId);
                     if (!result.success) {
                         logInventoryMessage(result.msg || `Cannot use ${item.name}.`, 'check-fail');
                         return;
                     }
-                    spendAction();
+                    const spentCost = spendInventoryUseCost(itemId, targetId);
+                    if (!spentCost) {
+                        logInventoryMessage('No action economy remaining to use that item.', 'check-fail');
+                        return;
+                    }
                     logInventoryMessage(result.msg || `Used ${item.name}.`, 'gain');
                     updateStatsUI();
                     renderInventory(targetId);
@@ -3318,8 +3595,11 @@ function getSporefallState() {
         eoinMet: !!gameState.flags.sporefall_eoin_met,
         eoinTalked: !!gameState.flags.sporefall_eoin_talked,
         eoinGlimpsed: !!gameState.flags.sporefall_eoin_glimpsed,
+        eoinFed: !!gameState.flags.sporefall_eoin_fed,
+        eoinTreated: !!gameState.flags.sporefall_eoin_treated,
         cathedralLetterFound: !!gameState.flags.sporefall_cathedral_letter_found,
         cathedralVisionSeen: !!gameState.flags.sporefall_cathedral_vision_seen,
+        cathedralMasonryRead: !!gameState.flags.sporefall_cathedral_masonry_read,
         homeTrapHint: !!gameState.flags.sporefall_home_trap_hint,
         homeUnlocked: !!gameState.flags.sporefall_home_unlocked,
         journalFound: !!gameState.flags.sporefall_journal_found,

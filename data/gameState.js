@@ -276,6 +276,18 @@ export function getItemCount(itemId, characterId = 'player') {
         .reduce((sum, entry) => sum + entry.quantity, 0);
 }
 
+export function getInventoryUseCost(itemId, characterId = 'player') {
+    const item = items[itemId];
+    const actor = getActorByCharacterId(characterId);
+    if (!item || !actor) return 'action';
+
+    const qualifiesForFastHands = actor.classId === 'rogue'
+        && actor.subclassId === 'thief'
+        && ['consumable', 'adventuring_gear'].includes(item.type);
+
+    return qualifiesForFastHands ? 'bonus' : 'action';
+}
+
 function hasInventoryItem(actor, itemId) {
     ensureActorInventory(actor);
     return actor.inventory.some((entry) => entry.itemId === itemId && entry.quantity > 0);
@@ -1032,7 +1044,9 @@ export function useConsumable(itemId, characterId = 'player', targetId = charact
     const item = items[itemId];
     const char = getActorByCharacterId(characterId);
     const target = getActorByCharacterId(targetId) || char;
-    if (!item || !['consumable', 'scroll'].includes(item.type)) return { success: false, msg: 'Not usable.' };
+    if (!item || (!item.usage && item.type !== 'scroll' && !['consumable', 'scroll'].includes(item.type))) {
+        return { success: false, msg: 'Not usable.' };
+    }
     if (!char || !target) return { success: false, msg: 'Character not found.' };
     if (!hasInventoryItem(char, itemId)) return { success: false, msg: `No ${item.name} available.` };
 

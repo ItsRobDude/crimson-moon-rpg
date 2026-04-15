@@ -1,4 +1,4 @@
-import { addItem, advanceTime, equipItem, gameState, getInventoryEntries, initializeNewGame, loadGame, performLongRest, performShortRest, resetGameState, saveGame, useConsumable } from '../data/gameState.js';
+import { addItem, advanceTime, equipItem, gameState, getInventoryEntries, getInventoryUseCost, initializeNewGame, loadGame, performLongRest, performShortRest, resetGameState, saveGame, useConsumable } from '../data/gameState.js';
 import { addEffectToActor } from '../data/mechanics.js';
 
 beforeEach(() => {
@@ -156,6 +156,29 @@ test('shield proficiency is enforced for equipment legality', () => {
 
   expect(equipItem('shield').success).toBe(false);
   expect(gameState.player.equipped.shield).toBe(null);
+});
+
+test('thief rogues can use consumables as bonus-action object interactions while scrolls remain actions', () => {
+  initializeNewGame(
+    'Kest',
+    'human',
+    'rogue',
+    'criminal',
+    { STR: 10, DEX: 15, CON: 13, INT: 12, WIS: 10, CHA: 14 },
+    ['stealth', 'sleight_of_hand', 'perception', 'deception'],
+    {
+      expertiseSkills: ['stealth', 'sleight_of_hand']
+    }
+  );
+  gameState.player.level = 3;
+  gameState.player.subclassId = 'thief';
+
+  addItem('torch');
+  addItem('scroll_bless');
+
+  expect(getInventoryUseCost('torch')).toBe('bonus');
+  expect(getInventoryUseCost('potion_healing')).toBe('bonus');
+  expect(getInventoryUseCost('scroll_bless')).toBe('action');
 });
 
 test('save and load preserves mechanics-heavy player state', () => {

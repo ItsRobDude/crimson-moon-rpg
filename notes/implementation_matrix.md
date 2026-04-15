@@ -18,11 +18,11 @@ Statuses:
 | Elf `darkvision` | implemented | Derived senses expose darkvision. |
 | Elf `keen_senses` | implemented | Perception proficiency is granted through trait handling. |
 | Elf `fey_ancestry` | partial | Charm-save advantage and magical-sleep immunity are wired; broader charm logic is still limited. |
-| Elf `trance` | data-only | Present as lore/trait identity, not rest-behavior logic yet. |
+| Elf `trance` | data-only | Present as lore/trait identity, but still not differentiated in the rest/timeline loop. |
 | Dwarf `darkvision` | implemented | Derived senses expose darkvision. |
 | Dwarf `dwarven_resilience` | partial | Poison resistance and poison-save advantage are wired; broader poison ecosystem is still narrow. |
 | Dwarf `dwarven_combat_training` | implemented | Weapon proficiencies are granted through derived trait handling. |
-| Dwarf `stonecunning` | partial | Tool choice hook exists in creation; no deeper stonework scene hooks yet. |
+| Dwarf `stonecunning` | partial | Tool choice hook exists in creation, and early Sporefall stone-reading checks now recognize the trait; broader stonework coverage is still narrow. |
 
 ## Classes and Subclasses
 
@@ -36,12 +36,12 @@ Statuses:
 | Rogue base shell | implemented | Hit die, proficiencies, creation, and combat shell are present. |
 | Rogue `Expertise` | implemented | Doubled proficiency multipliers are stored and used in rules math. |
 | Rogue `Sneak Attack` | partial | Per-attacker turn gating, adjacency, finesse/ranged checks, and hidden/advantage support exist; fuller 5e edge cases are still incomplete. |
-| Rogue `Cunning Action` | partial | Dash, disengage, and hide hooks exist; broader hide/object interaction depth is still incomplete. |
-| Thief `Fast Hands` | data-only | Feature exists in data but object-use bonus-action depth is not complete. |
+| Rogue `Cunning Action` | partial | Dash, disengage, and hide hooks exist; broader hide/stealth encounter nuance is still incomplete. |
+| Thief `Fast Hands` | implemented | Consumable and gear use now prefers bonus-action object use in combat for thief rogues. |
 | Thief `Second-Story Work` | data-only | Defined in data only. |
 | Wizard base shell | implemented | Spellbook/prepared flow, slots, and Arcane Recovery shell are present. |
 | Wizard `Arcane Recovery` | implemented | Short-rest slot recovery is wired once per long rest. |
-| Evocation `Sculpt Spells` | data-only | Defined in data only. |
+| Evocation `Sculpt Spells` | implemented | Template evocation save spells now spare allied targets caught in the area. |
 | Cleric base shell | implemented | Prepared casting, slots, default subclass, and combat shell are present. |
 | Cleric `Channel Divinity` | partial | Preserve Life style heal is wired; domain breadth is still narrow. |
 | Life `Disciple of Life` | implemented | Healing bonus is applied to qualifying healing spells. |

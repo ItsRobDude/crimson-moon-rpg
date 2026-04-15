@@ -547,6 +547,17 @@ function getActorTeam(actorId) {
     return isEnemyId(actorId) ? 'enemies' : 'allies';
 }
 
+function isFriendlyTarget(sourceActorId, targetActorId) {
+    return getActorTeam(sourceActorId) === getActorTeam(targetActorId);
+}
+
+function canSculptSpellTarget(actor, targetId, spell) {
+    return actor?.classId === 'wizard'
+        && actor?.subclassId === 'evocation'
+        && spell?.school === 'Evocation'
+        && isFriendlyTarget(actor.id || actor.uniqueId || 'player', targetId);
+}
+
 function getSpellTargeting(spell) {
     const targeting = typeof spell?.targeting === 'string'
         ? { type: 'single', side: spell.targeting, rangeFeet: spell.rangeFeet || 5 }
@@ -604,6 +615,11 @@ function getTargetTeamFilters(actorId, spell) {
         };
     }
     if (targeting.side === 'enemy') {
+        if (targeting.type === 'template') {
+            return {
+                filter: (token) => token.id !== actorId
+            };
+        }
         return {
             excludeTeam: actorTeam
         };
@@ -1433,6 +1449,10 @@ export function performCastSpell(spellId, targetId, actorId = 'player') {
         targetEntries.forEach((entry) => {
             const resolvedTarget = getCombatActor(entry.id);
             if (!resolvedTarget) return;
+            if (canSculptSpellTarget(actor, entry.id, spell)) {
+                uiHooks.logToBattle(`${resolvedTarget.name} is untouched by ${spell.name} as ${actor.name} shapes the spell around an ally.`, 'gain');
+                return;
+            }
             const save = rollSavingThrow(resolvedTarget, spell.saveAbility);
             const coverBonus = spell.saveAbility === 'DEX' ? getCoverBonusValue(entry.cover) : 0;
             uiHooks.logToBattle(`${resolvedTarget.name} Save (${spell.saveAbility}): ${save.total + coverBonus} (DC ${snapshot.spellSaveDC})`, "system");
