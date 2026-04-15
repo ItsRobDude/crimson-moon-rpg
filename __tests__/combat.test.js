@@ -527,6 +527,15 @@ test('bless applies to up to three allies on the caster side', () => {
   syncActorState(ally);
   gameState.roster.ally = ally;
   gameState.party = ['ally'];
+  const enemy = createActor({
+    id: 'enemy',
+    uniqueId: 'enemy_0',
+    type: 'enemy',
+    name: 'Raider',
+    hp: 10,
+    maxHp: 10
+  });
+  syncActorState(enemy);
 
   gameState.combat = {
     ...gameState.combat,
@@ -535,12 +544,13 @@ test('bless applies to up to three allies on the caster side', () => {
     actionsRemaining: 1,
     bonusActionsRemaining: 1,
     grid: createBattleGrid(8, 6, 5),
-    enemies: [],
-    turnOrder: ['player', 'ally']
+    enemies: [enemy],
+    turnOrder: ['player', 'ally', enemy.uniqueId]
   };
 
   placeToken(gameState.combat.grid, { id: 'player', x: 1, y: 2, team: 'allies', hp: gameState.player.hp, reach: 1 });
   placeToken(gameState.combat.grid, { id: 'ally', x: 2, y: 2, team: 'allies', hp: ally.hp, reach: 1 });
+  placeToken(gameState.combat.grid, { id: enemy.uniqueId, x: 5, y: 2, team: 'enemies', hp: enemy.hp, reach: 1 });
 
   performCastSpell('bless', 'ally', 'player');
 
@@ -568,6 +578,15 @@ test('shield of faith recast moves concentration to the new target', () => {
   syncActorState(ally);
   gameState.roster.ally = ally;
   gameState.party = ['ally'];
+  const enemy = createActor({
+    id: 'enemy',
+    uniqueId: 'enemy_0',
+    type: 'enemy',
+    name: 'Watcher',
+    hp: 10,
+    maxHp: 10
+  });
+  syncActorState(enemy);
 
   gameState.combat = {
     ...gameState.combat,
@@ -576,12 +595,13 @@ test('shield of faith recast moves concentration to the new target', () => {
     actionsRemaining: 1,
     bonusActionsRemaining: 1,
     grid: createBattleGrid(8, 6, 5),
-    enemies: [],
-    turnOrder: ['player', 'ally']
+    enemies: [enemy],
+    turnOrder: ['player', 'ally', enemy.uniqueId]
   };
 
   placeToken(gameState.combat.grid, { id: 'player', x: 1, y: 2, team: 'allies', hp: gameState.player.hp, reach: 1 });
   placeToken(gameState.combat.grid, { id: 'ally', x: 2, y: 2, team: 'allies', hp: ally.hp, reach: 1 });
+  placeToken(gameState.combat.grid, { id: enemy.uniqueId, x: 5, y: 2, team: 'enemies', hp: enemy.hp, reach: 1 });
 
   performCastSpell('shield_of_faith', 'player', 'player');
   expect(gameState.player.mechanics.activeEffects.some((effect) => effect.id === 'shield_of_faith')).toBe(true);
@@ -615,7 +635,7 @@ test('sleep applies to multiple low-hp targets in hp order within the chosen are
 
   const enemyA = createActor({ id: 'enemy_a', uniqueId: 'enemy_a_0', type: 'enemy', name: 'A', hp: 5, maxHp: 5 });
   const enemyB = createActor({ id: 'enemy_b', uniqueId: 'enemy_b_0', type: 'enemy', name: 'B', hp: 4, maxHp: 4 });
-  const enemyC = createActor({ id: 'enemy_c', uniqueId: 'enemy_c_0', type: 'enemy', name: 'C', hp: 20, maxHp: 20 });
+  const enemyC = createActor({ id: 'enemy_c', uniqueId: 'enemy_c_0', type: 'enemy', name: 'C', hp: 32, maxHp: 32 });
   syncActorState(enemyA);
   syncActorState(enemyB);
   syncActorState(enemyC);

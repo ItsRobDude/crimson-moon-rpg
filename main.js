@@ -5,10 +5,10 @@ async function main() {
     // Dynamically import the game module
     const game = await import('./game.js');
 
-    function bootstrap() {
+    const bootstrap = () => {
       // Delegate all startup logic to game.js
       game.bootstrapGame();
-    }
+    };
 
     // Wait for the DOM to be ready before running the bootstrap logic.
     if (document.readyState === 'loading') {

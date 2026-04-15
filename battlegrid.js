@@ -164,21 +164,44 @@ export function isAdjacent(grid, tokenAId, tokenBId, reach = 1) {
     return getRangeDistance(a, b) <= reach;
 }
 
+function getIntermediateLineTiles(fromPoint, toPoint) {
+    const a = normalizePoint(fromPoint);
+    const b = normalizePoint(toPoint);
+    if (!a || !b) return [];
+
+    const tiles = [];
+    let x = a.x;
+    let y = a.y;
+    const dx = Math.abs(b.x - a.x);
+    const dy = Math.abs(b.y - a.y);
+    const sx = a.x < b.x ? 1 : -1;
+    const sy = a.y < b.y ? 1 : -1;
+    let err = dx - dy;
+
+    while (x !== b.x || y !== b.y) {
+        const doubleErr = err * 2;
+        if (doubleErr > -dy) {
+            err -= dy;
+            x += sx;
+        }
+        if (doubleErr < dx) {
+            err += dx;
+            y += sy;
+        }
+        if (x === b.x && y === b.y) break;
+        tiles.push({ x, y });
+    }
+
+    return tiles;
+}
+
 export function hasLineOfSightBetweenPoints(grid, fromPoint, toPoint) {
     const a = normalizePoint(fromPoint);
     const b = normalizePoint(toPoint);
     if (!a || !b) return false;
 
-    const xStep = Math.sign(b.x - a.x);
-    const yStep = Math.sign(b.y - a.y);
-    let x = a.x;
-    let y = a.y;
-
-    while (x !== b.x || y !== b.y) {
-        x += xStep;
-        y += yStep;
-        if (x === b.x && y === b.y) break;
-        const terrain = grid.terrain[getTileKey(x, y)];
+    for (const tile of getIntermediateLineTiles(a, b)) {
+        const terrain = grid.terrain[getTileKey(tile.x, tile.y)];
         if (terrain?.blocksLineOfSight) {
             return false;
         }
@@ -197,18 +220,10 @@ export function getCoverBetweenPoints(grid, fromPoint, toPoint) {
     const a = normalizePoint(fromPoint);
     const b = normalizePoint(toPoint);
     if (!a || !b) return 'full';
-
-    const xStep = Math.sign(b.x - a.x);
-    const yStep = Math.sign(b.y - a.y);
-    let x = a.x;
-    let y = a.y;
     let cover = 'none';
 
-    while (x !== b.x || y !== b.y) {
-        x += xStep;
-        y += yStep;
-        if (x === b.x && y === b.y) break;
-        const terrain = grid.terrain[getTileKey(x, y)];
+    for (const tile of getIntermediateLineTiles(a, b)) {
+        const terrain = grid.terrain[getTileKey(tile.x, tile.y)];
         if (!terrain) continue;
         if (terrain.blocksLineOfSight || terrain.cover === 'full' || terrain.coverBonus >= 5) {
             return 'full';

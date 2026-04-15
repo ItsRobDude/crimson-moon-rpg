@@ -258,7 +258,7 @@ test('load normalizes partial legacy saves while preserving newer Sporefall and 
   expect(gameState.discoveredLocations.whisperwood).toBe(false);
   expect(gameState.story.canonicalStartScene).toBe('SCENE_BRIEFING');
   expect(gameState.quests.investigate_whisperwood.currentStage).toBe(4);
-  expect(Array.isArray(gameState.quests.investigate_whisperwood.stages)).toBe(true);
+  expect(gameState.quests.investigate_whisperwood.stages[4]).toBeDefined();
 });
 
 test('save and load preserves concentration markers and Sporefall route flags', () => {

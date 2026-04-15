@@ -10,6 +10,7 @@ import { addEffectToActor, canActorTargetActor, canApplyEffectToActor, consumeIn
 import { rollInitiative, rollDie, rollAttack, rollDiceExpression, rollSavingThrow, calculateDamageRoll, calculateDamageReduction, getProficiencyBonus } from './rules.js';
 import { generateScaledStats } from './rules.js';
 import { canTargetToken, collectTemplateTargets, createBattlefieldLayout, feetToTiles, getCoverBetween, getFacingDirections, getMovementCost, getOpportunityAttackTriggers, getRangeDistance, getTemplateTiles, getTileEffects, getTileKey, getToken, inferFacing, isAdjacent, isWithinGrid, moveToken, setTerrain, setTileEffect } from './battlegrid.js';
+import { scheduleTrackedTimeout } from './timers.js';
 
 const ABILITY_MAP = {
     strength: 'STR',
@@ -1215,14 +1216,14 @@ export function combatTurnLoop() {
         uiHooks.logToBattle(`Round ${gameState.combat.round} - ${currentActor.name}'s Turn`, "system");
 
         if (gameState.settings?.companionAI !== false) {
-            setTimeout(() => companionTurnAI(currentActor), 600);
+            scheduleTrackedTimeout(() => companionTurnAI(currentActor), 600);
         } else {
             uiHooks.updateCombatUI(currentTurnId); // Pass active character ID
         }
     } else {
         uiHooks.logToBattle(`Round ${gameState.combat.round} - ${currentActor.name}'s Turn`, "system");
         uiHooks.updateCombatUI();
-        setTimeout(() => enemyTurn(currentActor), 700);
+        scheduleTrackedTimeout(() => enemyTurn(currentActor), 700);
     }
 }
 
@@ -1414,11 +1415,11 @@ export function performCastSpell(spellId, targetId, actorId = 'player') {
                 targetForcesMeleeCrit(target, actorId, primaryTargetId, spellAttackProfile) || result.roll === 20
             ).total;
             const finalDamage = resolveDamage(target, damage, spell.damageType);
+            consumeIncomingHitEffects(target, { tags: spellAttackProfile.tags });
             if (applySpellOnHitEffect(actorId, primaryTargetId, spell)) {
                 syncActorState(target);
                 syncGridToken(primaryTargetId);
             }
-            consumeIncomingHitEffects(target, { tags: spellAttackProfile.tags });
             uiHooks.logToBattle(`Hit! Dealt ${finalDamage} ${spell.damageType} damage.`, "combat");
             uiHooks.showBattleEventText(`${finalDamage}`);
         } else {
@@ -1495,6 +1496,7 @@ export function performCastSpell(spellId, targetId, actorId = 'player') {
             .forEach((entry) => {
             const resolvedTarget = entry.actor;
             if (!resolvedTarget || resolvedTarget.hp > affectedHp) return;
+            const previousConcentrationEffectId = resolvedTarget.mechanics?.concentrationEffectId || null;
             const appliedEffect = addEffectToActor(resolvedTarget, spell.appliedEffectId, {
                 remaining: spell.effectDuration || 2,
                 durationType: spell.durationType || 'turns',
@@ -1503,8 +1505,15 @@ export function performCastSpell(spellId, targetId, actorId = 'player') {
                 applicationTags: spell.applicationTags || []
             });
             if (appliedEffect) {
-                if (resolvedTarget.mechanics?.concentrationEffectId) {
-                    breakConcentration(resolvedTarget, ` as ${spell.name} takes hold`);
+                const concentrationSource = previousConcentrationEffectId
+                    ? previousConcentrationEffectId.split(':').slice(1).join(':')
+                    : null;
+                if (concentrationSource) {
+                    getAllCombatActors().forEach((combatant) => {
+                        removeEffectsFromActorBySource(combatant, concentrationSource, true);
+                    });
+                    syncAllGridTokens();
+                    uiHooks.logToBattle(`${resolvedTarget.name} loses concentration as ${spell.name} takes hold.`, 'system');
                 }
                 affectedHp -= resolvedTarget.hp;
                 anyAffected = true;
@@ -1710,7 +1719,7 @@ export function checkWinCondition() {
         handleCombatNarrativeTransition('combat_end');
         uiHooks.logToBattle(`Victory!`, "gain");
 
-        const totalXp = gameState.combat.enemies.reduce((sum, e) => sum + (enemies[e.id].xp || 0), 0);
+        const totalXp = gameState.combat.enemies.reduce((sum, e) => sum + (enemies[e.id]?.xp || 0), 0);
         const levelUpAvailable = gainXp(totalXp);
         uiHooks.logToBattle(`Gained ${totalXp} XP.`, "gain");
         if (levelUpAvailable) {
@@ -1720,11 +1729,15 @@ export function checkWinCondition() {
         uiHooks.updateStatsUI();
         uiHooks.saveGame();
 
-        const actionsContainer = document.getElementById('battle-actions-container');
-        actionsContainer.innerHTML = '';
-        actionsContainer.appendChild(
-            uiHooks.createActionButton('Victory!', 'celebration', () => uiHooks.goToScene(gameState.combat.winSceneId), 'col-span-2')
-        );
+        if (typeof document !== 'undefined') {
+            const actionsContainer = document.getElementById('battle-actions-container');
+            if (actionsContainer) {
+                actionsContainer.innerHTML = '';
+                actionsContainer.appendChild(
+                    uiHooks.createActionButton('Victory!', 'celebration', () => uiHooks.goToScene(gameState.combat.winSceneId), 'col-span-2')
+                );
+            }
+        }
         return true;
     }
     return false;

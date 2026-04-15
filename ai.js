@@ -5,6 +5,7 @@ import { rollDiceExpression, rollDie, rollAttack } from './rules.js';
 import { logMessage, showBattleEventText } from './logger.js';
 import { endPlayerTurn } from './combat.js'; // To end turn
 import { enemies } from './data/enemies.js'; // For target lookup if needed
+import { scheduleTrackedTimeout } from './timers.js';
 // Circular dependency: performAttack, performCastSpell, checkWinCondition are in combat.js?
 // Yes.
 // We need to call combat actions.
@@ -54,7 +55,7 @@ export function companionTurnAI(actor) {
                 }
                 // Call cast
                 performCastSpell(healSpellId, targetId, actor.id);
-                setTimeout(() => endPlayerTurn(), 1000);
+                scheduleTrackedTimeout(() => endPlayerTurn(), 1000);
                 return;
             }
         }
@@ -70,7 +71,7 @@ export function companionTurnAI(actor) {
         if (actor.equipped.weapon) {
             logMessage(`${actor.name} moves to attack ${targetEnemy.name}.`, "system");
             performAttack(targetEnemy.uniqueId, actor.id);
-            setTimeout(() => endPlayerTurn(), 1000);
+            scheduleTrackedTimeout(() => endPlayerTurn(), 1000);
             return;
         }
 
@@ -80,7 +81,7 @@ export function companionTurnAI(actor) {
             const spell = spells[dmgSpellId];
              if (spell.level === 0 || (actor.currentSlots[spell.level] > 0)) {
                  performCastSpell(dmgSpellId, targetEnemy.uniqueId, actor.id);
-                 setTimeout(() => endPlayerTurn(), 1000);
+                 scheduleTrackedTimeout(() => endPlayerTurn(), 1000);
                  return;
              }
          }
@@ -113,7 +114,7 @@ export function companionTurnAI(actor) {
          // Or allow bonus action?
 
          // Simple AI: One action then end.
-         setTimeout(() => {
+         scheduleTrackedTimeout(() => {
              endPlayerTurn();
          }, 1000);
          return;

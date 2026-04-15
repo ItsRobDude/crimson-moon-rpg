@@ -12,11 +12,12 @@ import { shops } from './data/shops.js';
 import { npcs } from './data/npcs.js';
 import { companions } from './data/companions.js';
 import { factions } from './data/factions.js';
-import { gameState, getActorCastableSpells, getInventoryEntries, getItemCount, getItemEquipFailure, getPreparedSpellLimit, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, processNarrativeTrigger, unequipItem, syncPartyLevels, saveGame, loadGame as loadGameData, removeItem, advanceTime, getTimelineLabel, getTimeSlotLabel, getSceneMemory, setSceneMemory, performShortRest as gsPerformShortRest, performLongRest as gsPerformLongRest, syncCharacterState } from './data/gameState.js';
+import { gameState, getActorCastableSpells, getInventoryEntries, getItemCount, getItemEquipFailure, getPreparedSpellLimit, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, setNpcStatus, processNarrativeTrigger, unequipItem, syncPartyLevels, saveGame, loadGame as loadGameData, removeItem, advanceTime, getTimelineLabel, getTimeSlotLabel, getSceneMemory, setSceneMemory, performShortRest as gsPerformShortRest, performLongRest as gsPerformLongRest, syncCharacterState } from './data/gameState.js';
 import { CANONICAL_START_SCENE, ensureStoryState, getLocationStoryRequirement, getLocationUnlockHint, meetsStoryRequirement, storyActs, storyEvents, syncStoryStateForScene } from './data/storyTimeline.js';
 import { addEffectToActor, getBonusSkillChoiceCount, getBonusToolChoiceCount, getBonusToolChoiceOptions, getRaceTraitDefinitions, removeEffectFromActor } from './data/mechanics.js';
 import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod, generateScaledStats, getPlayerAC } from './rules.js';
 import { getSpellTargetingPreview, initCombatSystem, startCombat, performAttack, performCastSpell, performAbility, performDefend, performFlee, performEndTurn, performActionSurge, performCunningAction, uiHooks } from './combat.js';
+import { clearTrackedTimeout, scheduleTrackedTimeout } from './timers.js';
 
 export function getCharacterById(characterId) {
     if (characterId === 'player') {
@@ -88,7 +89,8 @@ export function initUI() {
     refreshStartMenuState();
 
     startContinueBtn.onclick = () => {
-        if (!localStorage.getItem('crimson_moon_save')) {
+        if (!hasValidSaveData()) {
+            refreshStartMenuState();
             logMessage('No existing save found. Choose Start to begin a new campaign.', 'system');
             return;
         }
@@ -239,12 +241,26 @@ async function applyGameSettings(nextSettings, userInitiated = false) {
 
 function refreshStartMenuState() {
     const startContinueBtn = document.getElementById('btn-start-continue');
-    const hasSave = !!localStorage.getItem('crimson_moon_save');
+    const hasSave = hasValidSaveData();
 
     if (!startContinueBtn) return;
 
     startContinueBtn.disabled = !hasSave;
     startContinueBtn.innerText = hasSave ? 'Continue' : 'Continue (No Save)';
+}
+
+function hasValidSaveData() {
+    const rawSave = localStorage.getItem('crimson_moon_save');
+    if (!rawSave) return false;
+
+    try {
+        JSON.parse(rawSave);
+        return true;
+    } catch (error) {
+        console.warn('[save] removing corrupted local save during menu refresh', error);
+        localStorage.removeItem('crimson_moon_save');
+        return false;
+    }
 }
 
 function showOptionsModal() {
@@ -268,7 +284,7 @@ function exitGame() {
     setStartMenuStatus('Closing window...');
     window.close();
 
-    window.setTimeout(() => {
+    scheduleTrackedTimeout(() => {
         setStartMenuStatus('If the window stays open, close this tab or app window to exit.');
     }, 250);
 }
@@ -3285,6 +3301,14 @@ function logToBattle(msg, type) {
      console.log(`[Battle Log - ${type}] ${msg}`);
 }
 
+function logMessage(msg, type = 'system') {
+    if (typeof window !== 'undefined' && typeof window.logMessage === 'function') {
+        window.logMessage(msg, type);
+        return;
+    }
+    logToMain(msg, type);
+}
+
 if (typeof window !== 'undefined') {
     window.logMessage = logToMain;
 }
@@ -3311,13 +3335,14 @@ function showBattleEventText(message, duration = 1500) {
     const eventTextElement = document.getElementById('battle-event-text');
     if (!eventTextElement) return;
 
-    clearTimeout(eventTextTimeoutRef);
+    clearTrackedTimeout(eventTextTimeoutRef);
 
     eventTextElement.innerText = message;
     eventTextElement.classList.add('visible');
 
-    eventTextTimeoutRef = setTimeout(() => {
+    eventTextTimeoutRef = scheduleTrackedTimeout(() => {
         eventTextElement.classList.remove('visible');
+        eventTextTimeoutRef = null;
     }, duration);
 }
 

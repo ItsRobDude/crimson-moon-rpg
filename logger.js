@@ -1,3 +1,5 @@
+import { clearTrackedTimeout, scheduleTrackedTimeout } from './timers.js';
+
 export function logToMain(msg, type) {
     const logContent = document.getElementById('log-content');
     const entry = document.createElement('div');
@@ -30,13 +32,14 @@ export function showBattleEventText(message, duration = 1500) {
     const eventTextElement = document.getElementById('battle-event-text');
     if (!eventTextElement) return;
 
-    clearTimeout(eventTextTimeoutRef);
+    clearTrackedTimeout(eventTextTimeoutRef);
 
     eventTextElement.innerText = message;
     eventTextElement.classList.add('visible');
 
-    eventTextTimeoutRef = setTimeout(() => {
+    eventTextTimeoutRef = scheduleTrackedTimeout(() => {
         eventTextElement.classList.remove('visible');
+        eventTextTimeoutRef = null;
     }, duration);
 }
 

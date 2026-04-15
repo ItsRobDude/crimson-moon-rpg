@@ -750,7 +750,7 @@ export const scenes = {
                 successText: "You clamp a sleeve over your face and stay on your feet a little longer, but the world is already starting to tilt.",
                 failText: "Your lungs seize on the first breath you take. You cough violently as the haze floods your senses and the world folds into darkness.",
                 failEffect: { type: "status", id: "spore_sickness" },
-                nextScene: "SCENE_SHADOWMIRE_ROADSIDE_CORPSE"
+                nextScene: "SCENE_SPOREFALL_WAKE"
             }
         ]
     },
