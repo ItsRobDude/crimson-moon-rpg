@@ -1,4 +1,4 @@
-import { addItem, advanceTime, equipItem, gameState, getInventoryEntries, getInventoryUseCost, initializeNewGame, loadGame, performLongRest, performShortRest, resetGameState, saveGame, useConsumable } from '../data/gameState.js';
+import { addItem, advanceTime, equipItem, gameState, getInventoryEntries, getInventoryUseCost, getStoredSaveState, initializeNewGame, loadGame, performLongRest, performShortRest, resetGameState, SAVE_STORAGE_KEY, saveGame, useConsumable } from '../data/gameState.js';
 import { addEffectToActor } from '../data/mechanics.js';
 
 beforeEach(() => {
@@ -234,6 +234,34 @@ test('save and load preserves mechanics-heavy player state', () => {
   expect(gameState.timeline.slot).toBe('dusk');
 });
 
+test('stored save reader classifies missing, invalid, and valid save payloads', () => {
+  expect(getStoredSaveState().status).toBe('missing');
+
+  localStorage.setItem(SAVE_STORAGE_KEY, 'true');
+  let saveState = getStoredSaveState();
+  expect(saveState.status).toBe('invalid');
+  expect(localStorage.getItem(SAVE_STORAGE_KEY)).toBe('true');
+
+  saveState = getStoredSaveState({ cleanupInvalid: true });
+  expect(saveState.status).toBe('invalid');
+  expect(localStorage.getItem(SAVE_STORAGE_KEY)).toBeNull();
+
+  localStorage.setItem(SAVE_STORAGE_KEY, JSON.stringify({ currentSceneId: 'SCENE_BRIEFING' }));
+  saveState = getStoredSaveState();
+  expect(saveState.status).toBe('valid');
+  expect(saveState.data.currentSceneId).toBe('SCENE_BRIEFING');
+});
+
+test('load clears corrupted or unusable saves instead of attempting partial boot', () => {
+  localStorage.setItem(SAVE_STORAGE_KEY, '{ "corrupt": ');
+  expect(loadGame()).toBe(false);
+  expect(localStorage.getItem(SAVE_STORAGE_KEY)).toBeNull();
+
+  localStorage.setItem(SAVE_STORAGE_KEY, '[]');
+  expect(loadGame()).toBe(false);
+  expect(localStorage.getItem(SAVE_STORAGE_KEY)).toBeNull();
+});
+
 test('load normalizes partial legacy saves while preserving newer Sporefall and timeline progress', () => {
   initializeNewGame(
     'Kest',
@@ -256,7 +284,7 @@ test('load normalizes partial legacy saves while preserving newer Sporefall and 
 
   saveGame();
 
-  const saved = JSON.parse(localStorage.getItem('crimson_moon_save'));
+  const saved = JSON.parse(localStorage.getItem(SAVE_STORAGE_KEY));
   delete saved.timeline.silverthornActionCount;
   delete saved.reputation.whisperwood_survivors;
   delete saved.discoveredLocations.whisperwood;
@@ -265,7 +293,7 @@ test('load normalizes partial legacy saves while preserving newer Sporefall and 
     currentStage: 4,
     completed: false
   };
-  localStorage.setItem('crimson_moon_save', JSON.stringify(saved));
+  localStorage.setItem(SAVE_STORAGE_KEY, JSON.stringify(saved));
 
   resetGameState();
 

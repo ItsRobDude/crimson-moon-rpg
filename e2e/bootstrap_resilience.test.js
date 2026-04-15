@@ -63,4 +63,22 @@ test.describe('Game Bootstrap & Resilience', () => {
     const saved = await page.evaluate(() => localStorage.getItem('crimson_moon_save'));
     expect(saved).toBeNull();
   });
+
+  test('Parseable but unusable save payload should still disable Continue', async ({ page }) => {
+    await page.goto('http://localhost:8000');
+    await page.waitForFunction(() => window.gameReady);
+
+    await page.evaluate(() => {
+      localStorage.setItem('crimson_moon_save', 'true');
+    });
+
+    await page.reload();
+    await page.waitForFunction(() => window.gameReady);
+
+    await expect(page.locator('#start-menu')).not.toHaveClass(/hidden/);
+    await expect(page.locator('#btn-start-continue')).toBeDisabled();
+
+    const saved = await page.evaluate(() => localStorage.getItem('crimson_moon_save'));
+    expect(saved).toBeNull();
+  });
 });

@@ -12,7 +12,7 @@ import { shops } from './data/shops.js';
 import { npcs } from './data/npcs.js';
 import { companions } from './data/companions.js';
 import { factions } from './data/factions.js';
-import { gameState, getActorCastableSpells, getInventoryEntries, getItemCount, getItemEquipFailure, getInventoryUseCost, getPreparedSpellLimit, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, setNpcStatus, processNarrativeTrigger, unequipItem, syncPartyLevels, saveGame, loadGame as loadGameData, removeItem, advanceTime, getTimelineLabel, getTimeSlotLabel, getSceneMemory, setSceneMemory, performShortRest as gsPerformShortRest, performLongRest as gsPerformLongRest, syncCharacterState } from './data/gameState.js';
+import { gameState, getActorCastableSpells, getInventoryEntries, getItemCount, getItemEquipFailure, getInventoryUseCost, getPreparedSpellLimit, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, setNpcStatus, processNarrativeTrigger, unequipItem, syncPartyLevels, saveGame, loadGame as loadGameData, removeItem, advanceTime, getTimelineLabel, getTimeSlotLabel, getSceneMemory, setSceneMemory, performShortRest as gsPerformShortRest, performLongRest as gsPerformLongRest, syncCharacterState, getStoredSaveState, SAVE_STORAGE_KEY } from './data/gameState.js';
 import { CANONICAL_START_SCENE, ensureStoryState, getLocationStoryRequirement, getLocationUnlockHint, meetsStoryRequirement, storyActs, storyEvents, syncStoryStateForScene } from './data/storyTimeline.js';
 import { addEffectToActor, getActorTraitDefinitions, getBonusSkillChoiceCount, getBonusToolChoiceCount, getBonusToolChoiceOptions, getDerivedActorState, getRaceTraitDefinitions, removeEffectFromActor } from './data/mechanics.js';
 import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod, generateScaledStats, getPlayerAC } from './rules.js';
@@ -207,12 +207,11 @@ export function initUI() {
     refreshStartMenuState();
 
     startContinueBtn.onclick = () => {
-        if (!hasValidSaveData()) {
+        if (!loadGame()) {
             refreshStartMenuState();
             logMessage('No existing save found. Choose Start to begin a new campaign.', 'system');
             return;
         }
-        loadGame();
     };
 
     startNewBtn.onclick = () => {
@@ -359,26 +358,12 @@ async function applyGameSettings(nextSettings, userInitiated = false) {
 
 function refreshStartMenuState() {
     const startContinueBtn = document.getElementById('btn-start-continue');
-    const hasSave = hasValidSaveData();
+    const hasSave = getStoredSaveState({ cleanupInvalid: true }).status === 'valid';
 
     if (!startContinueBtn) return;
 
     startContinueBtn.disabled = !hasSave;
     startContinueBtn.innerText = hasSave ? 'Continue' : 'Continue (No Save)';
-}
-
-function hasValidSaveData() {
-    const rawSave = localStorage.getItem('crimson_moon_save');
-    if (!rawSave) return false;
-
-    try {
-        JSON.parse(rawSave);
-        return true;
-    } catch (error) {
-        console.warn('[save] removing corrupted local save during menu refresh', error);
-        localStorage.removeItem('crimson_moon_save');
-        return false;
-    }
 }
 
 function showOptionsModal() {
@@ -430,7 +415,7 @@ function showStartMenu() {
 }
 
 function beginNewGameFlow() {
-    localStorage.removeItem('crimson_moon_save');
+    localStorage.removeItem(SAVE_STORAGE_KEY);
     refreshStartMenuState();
     setStartMenuStatus('');
     resetCharacterCreationState();
@@ -3162,9 +3147,11 @@ export function loadGame() {
         // Ensure character creation is hidden
         document.getElementById('char-creation-modal').classList.add('hidden');
         document.getElementById('start-menu').classList.add('hidden');
+        return true;
     } else {
         // No save file, go to character creation
         showStartMenu();
+        return false;
     }
 }
 
@@ -3768,7 +3755,8 @@ function showBattleEventText(message, duration = 1500) {
 
 export function bootstrapGame() {
     console.debug("[bootstrapGame] starting");
-    console.debug("[bootstrapGame] hasSave =", !!localStorage.getItem('crimson_moon_save'));
+    const saveState = getStoredSaveState({ cleanupInvalid: true });
+    console.debug("[bootstrapGame] saveState =", saveState.status);
     initUI();
 
     try {
@@ -3776,7 +3764,7 @@ export function bootstrapGame() {
         showStartMenu();
     } catch (e) {
         console.error("Error during bootstrap/load, starting new game:", e);
-        localStorage.removeItem('crimson_moon_save');
+        localStorage.removeItem(SAVE_STORAGE_KEY);
         showStartMenu();
     }
 

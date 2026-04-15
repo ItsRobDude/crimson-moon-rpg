@@ -110,6 +110,8 @@ const defaultGameState = {
     }
 };
 
+export const SAVE_STORAGE_KEY = 'crimson_moon_save';
+
 // The active gameState is initialized as a deep copy of the default.
 export const gameState = JSON.parse(JSON.stringify(defaultGameState));
 
@@ -1312,38 +1314,75 @@ function normalizeLoadedState() {
 }
 
 export function saveGame() {
-    localStorage.setItem('crimson_moon_save', JSON.stringify(gameState));
+    localStorage.setItem(SAVE_STORAGE_KEY, JSON.stringify(gameState));
     // We can't use logMessage here directly as it creates a circular dependency
     console.log("[SAVE] Game saved to localStorage.");
 }
 
-export function loadGame() {
-    const saved = localStorage.getItem('crimson_moon_save');
-    if (saved) {
-        const savedState = JSON.parse(saved);
-        // Replace the entire gameState object content without breaking the export reference
-        Object.keys(defaultGameState).forEach(key => {
-            if (savedState[key] !== undefined) {
-                // For objects and arrays, replace their content
-                if (typeof gameState[key] === 'object' && gameState[key] !== null) {
-                    // Clear existing object/array before assigning new values
-                    if (Array.isArray(gameState[key])) {
-                        gameState[key].length = 0;
-                        Array.prototype.push.apply(gameState[key], savedState[key]);
-                    } else {
-                         Object.keys(gameState[key]).forEach(prop => delete gameState[key][prop]);
-                         Object.assign(gameState[key], savedState[key]);
-                    }
-                } else {
-                     gameState[key] = savedState[key];
-                }
-            }
-        });
-        normalizeLoadedState();
-        syncAllActorStates();
-        console.log("[LOAD] Game loaded from localStorage.");
-        return true;
+export function getStoredSaveState({ cleanupInvalid = false } = {}) {
+    const raw = localStorage.getItem(SAVE_STORAGE_KEY);
+    if (!raw) {
+        return {
+            status: 'missing',
+            data: null,
+            error: null
+        };
     }
-    console.log("[LOAD] No save data found.");
-    return false;
+
+    try {
+        const data = JSON.parse(raw);
+        if (!data || typeof data !== 'object' || Array.isArray(data)) {
+            throw new Error('Save payload must be a JSON object.');
+        }
+        return {
+            status: 'valid',
+            data,
+            error: null
+        };
+    } catch (error) {
+        if (cleanupInvalid) {
+            localStorage.removeItem(SAVE_STORAGE_KEY);
+        }
+        return {
+            status: 'invalid',
+            data: null,
+            error
+        };
+    }
+}
+
+export function loadGame() {
+    const saveState = getStoredSaveState({ cleanupInvalid: true });
+    if (saveState.status !== 'valid') {
+        if (saveState.status === 'invalid') {
+            console.warn('[LOAD] Corrupted save removed during load.', saveState.error);
+        } else {
+            console.log("[LOAD] No save data found.");
+        }
+        return false;
+    }
+
+    const savedState = saveState.data;
+    // Replace the entire gameState object content without breaking the export reference
+    Object.keys(defaultGameState).forEach(key => {
+        if (savedState[key] !== undefined) {
+            // For objects and arrays, replace their content
+            if (typeof gameState[key] === 'object' && gameState[key] !== null) {
+                // Clear existing object/array before assigning new values
+                if (Array.isArray(gameState[key])) {
+                    gameState[key].length = 0;
+                    Array.prototype.push.apply(gameState[key], savedState[key]);
+                } else {
+                     Object.keys(gameState[key]).forEach(prop => delete gameState[key][prop]);
+                     Object.assign(gameState[key], savedState[key]);
+                }
+            } else {
+                 gameState[key] = savedState[key];
+            }
+        }
+    });
+    normalizeLoadedState();
+    syncAllActorStates();
+    console.log("[LOAD] Game loaded from localStorage.");
+    return true;
 }

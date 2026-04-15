@@ -604,11 +604,7 @@ test('ray of frost applies its speed-reducing rider on hit', () => {
 });
 
 test('guiding bolt leaves a one-hit mark that the next successful attack consumes', () => {
-  const randomSpy = jest.spyOn(Math, 'random')
-    .mockReturnValueOnce(0.70)
-    .mockReturnValueOnce(0.00)
-    .mockReturnValueOnce(0.70)
-    .mockReturnValueOnce(0.00);
+  const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.70);
 
   gameState.player = createActor({
     name: 'Cleric',
