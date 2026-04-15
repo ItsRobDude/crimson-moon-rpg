@@ -21,5 +21,6 @@ The current Act II recovery slice assumes: Alderic briefing -> Silverthorn prep 
 See `notes/5e_mechanics_roadmap.md` for the rules-depth plan.
 See `notes/trustworthy_5e_lite_status.md` for the current near-term milestone target.
 See `notes/implementation_matrix.md` for the current shipped-state audit of exposed 5e-lite mechanics.
+See `notes/act1_canon_internal.md` for contributor-only Act I canon truths and spoiler boundaries. Do not surface that note directly in player-facing text.
 See `notes/test_run_tonight_checklist.md` for the recommended Node/Jest/Playwright verification order.
 See `AGENTS.md` for repo-specific guardrails before making major changes.

@@ -96,6 +96,7 @@ Before changing major story flow, timing, or city content, check:
 - `dnd-original-campaign-draft`
 - `notes/story_timeline_model.md`
 - `readme.txt`
+- `notes/act1_canon_internal.md` for contributor-only canon truths and spoiler boundaries
 
 Use `dnd-original-campaign-draft` as the best current reference for:
 
@@ -105,6 +106,28 @@ Use `dnd-original-campaign-draft` as the best current reference for:
 - how major choices might affect progression
 
 Do not invent contradictory lore if an existing source already answers it.
+
+## Internal Canon And Spoiler Discipline
+
+`notes/act1_canon_internal.md` exists so contributors and coding agents do not accidentally flatten or contradict the hidden truth of Act I.
+
+Use it for:
+
+- place-identity clarity such as `Whisperwood` vs `Sporefall`
+- what Silverthorn does and does not know at the opening
+- character guardrails for `Aodhan`, `Eoin`, `Neala`, and `Liobhan`
+- protected emotional set pieces that should not be reduced to quest utility
+
+Do not:
+
+- expose those truths in player-facing codex text, UI copy, early rumors, or scene narration before the story has earned them
+- let internal canon notes override the intended discovery pacing
+- move `Neala` or `Liobhan` into the normal early route
+
+Current naming rule:
+
+- present-tense horror scenes can use `Sporefall`
+- memory fragments, older records, and pre-ritual references should usually use `Whisperwood`
 
 ## Key Files
 
@@ -181,6 +204,7 @@ When editing Silverthorn:
 - common destinations should exist, but they must support pacing
 - repeated visits should acknowledge time and prior activity
 - departure from the city should feel like a commitment, not a random teleport
+- early rumor surfaces should stay focused on relic anxiety, missing Whisperwood, political distrust, and looming war pressure without dumping hidden ritual truth
 
 Good additions:
 
@@ -194,6 +218,17 @@ Weak additions:
 - generic "go here / go back" branches with no consequence
 - shops with no narrative framing
 - flavor scenes that do not update state, time, or knowledge
+
+## Sporefall Guardrails
+
+After the blackout, the game should settle into its grim long-form register.
+
+When editing early Sporefall:
+
+- preserve revelation pacing; implication should arrive before explanation
+- let body horror be explicit, but do not blurt hidden cause/mechanism before canonical discovery points
+- keep `Eoin`, `Moonwell / Aodhan by the bodies`, and `Lament Hill / the witch` emotionally heavy and carefully authored
+- treat scene, item, status, and trait checks as one shared systemic layer rather than separate "story mode" logic
 
 ## Combat and RPG Elements
 
