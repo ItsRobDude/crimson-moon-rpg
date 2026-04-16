@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import { enemies } from '../data/enemies.js';
 import { scenes } from '../data/scenes.js';
+import { storySceneTriggers } from '../data/storyTimeline.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -81,4 +82,50 @@ test('enemy portraits and runtime portrait fallbacks resolve to real files', () 
   expect(combatSource).toContain(approvedFallback);
   expect(gameSource).not.toContain('portraits/placeholder.png');
   expect(combatSource).not.toContain('portraits/placeholder.png');
+});
+
+test('Hushbriar town and inn keep the occupied dread through the Fionnlagh path', () => {
+  expect(scenes.SCENE_HUSHBRIAR_TOWN.text).toContain('occupied more than governed');
+  expect(scenes.SCENE_HUSHBRIAR_TOWN.text).toContain('sweet-rot stink');
+
+  expect(scenes.SCENE_HUSHBRIAR_MARKET.text).toContain('sagging herbalist tent');
+  expect(scenes.SCENE_HUSHBRIAR_MARKET.text).not.toBe('A few run-down shops are open: an herbalist tent, a library, and a provisioner.');
+
+  expect(scenes.SCENE_BRIARWOOD_INN.text).toContain('refugees');
+  expect(scenes.SCENE_BRIARWOOD_INN.text).toContain('pilgrims');
+  expect(scenes.SCENE_BRIARWOOD_INN.text).not.toBe('The inn is crowded.');
+
+  expect(scenes.SCENE_FIONNLAGH_HUB.text).toContain('Every hour in this place feels like something waiting to tear open');
+  expect(scenes.SCENE_FIONNLAGH_PLAGUE_INFO.text).toContain('black at the mouth');
+  expect(scenes.SCENE_FIONNLAGH_CLAN_INFO.text).toContain('split along every old wound');
+});
+
+test('Lament Hill now routes through authored scenes to Aine before unlocking the next threads', () => {
+  const approachChoices = scenes.SCENE_LAMENT_HILL_APPROACH.choices;
+  const visionChoices = scenes.SCENE_LAMENT_HILL_VISION.choices;
+  const cottageChoices = scenes.SCENE_LAMENT_COTTAGE.choices;
+  const signsChoices = scenes.SCENE_LAMENT_COTTAGE_SIGNS.choices;
+  const catChoices = scenes.SCENE_LAMENT_CAT_DISCOVERY.choices;
+  const gravesChoices = scenes.SCENE_LAMENT_GRAVES.choices;
+
+  expect(approachChoices.some((choice) => choice.nextScene === 'SCENE_LAMENT_HILL_VISION')).toBe(true);
+  expect(visionChoices.some((choice) => choice.nextScene === 'SCENE_LAMENT_COTTAGE')).toBe(true);
+  expect(cottageChoices.some((choice) => choice.nextScene === 'SCENE_LAMENT_CAT_DISCOVERY')).toBe(true);
+  expect(cottageChoices.some((choice) => choice.action === 'openMap')).toBe(false);
+  expect(gravesChoices.some((choice) => choice.action === 'openMap')).toBe(false);
+  expect(signsChoices.some((choice) => choice.nextScene === 'SCENE_LAMENT_AINE_REVEAL')).toBe(true);
+  expect(catChoices.every((choice) => choice.nextScene === 'SCENE_LAMENT_AINE_REVEAL')).toBe(true);
+
+  expect(storySceneTriggers.SCENE_LAMENT_COTTAGE.complete).toBeUndefined();
+  expect(storySceneTriggers.SCENE_LAMENT_COTTAGE.unlock).toBeUndefined();
+  expect(storySceneTriggers.SCENE_LAMENT_AINE_REVEAL.complete).toEqual(['lament_hill_thread']);
+  expect(storySceneTriggers.SCENE_LAMENT_AINE_REVEAL.unlock).toEqual(['archives_truth', 'hushbriar_demigod_thread']);
+});
+
+test('Sporefall street-search fail text stays in the same grim register', () => {
+  const survivorSearch = scenes.SCENE_ARRIVAL_WHISPERWOOD.choices.find((choice) => choice.type === 'skillCheck');
+
+  expect(survivorSearch.failText).toContain('cold mucus');
+  expect(survivorSearch.failText).toContain('slow, dragging shift');
+  expect(survivorSearch.failText).not.toContain('gross and slimy');
 });

@@ -237,12 +237,16 @@ export const storySceneTriggers = {
         actId: 'act_4_lament_hill_truth'
     },
     SCENE_LAMENT_COTTAGE: {
-        complete: ['lament_hill_thread'],
-        unlock: ['archives_truth', 'hushbriar_demigod_thread'],
+        activate: ['lament_hill_thread'],
         actId: 'act_4_lament_hill_truth'
     },
     SCENE_LAMENT_GRAVES: {
         activate: ['lament_hill_thread'],
+        actId: 'act_4_lament_hill_truth'
+    },
+    SCENE_LAMENT_AINE_REVEAL: {
+        complete: ['lament_hill_thread'],
+        unlock: ['archives_truth', 'hushbriar_demigod_thread'],
         actId: 'act_4_lament_hill_truth'
     },
     SCENE_SOUL_MILL_APPROACH: {

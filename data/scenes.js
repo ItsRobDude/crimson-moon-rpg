@@ -136,7 +136,7 @@ export const scenes = {
         id: "SCENE_HUSHBRIAR_TOWN",
         location: "hushbriar",
         background: "landscapes/silverthorn_market_avenue.png",
-        text: "Inside the walls, Hushbriar feels occupied more than governed. Wood elves keep their distance from Silverthorn uniforms, armored horses crowd the inn stables, and every open doorway looks like it learned caution before hospitality. Up ahead the Briarwood Inn still burns with enough light to gather refugees, pilgrims, and anyone too frightened to sleep alone.",
+        text: "Inside the walls, Hushbriar feels occupied more than governed. Wood elves move in short, careful bursts between doorways, never lingering long enough for a patrol to question them, and the whole town smells of wet ash, horse sweat, and the sweet-rot stink drifting in from the corpse-clogged creek. Silverthorn tack fills the inn stables, but every shuttered home around it looks as if grief is holding the door from the other side. The Briarwood Inn still burns with enough light to gather refugees, pilgrims, and anyone too frightened to sleep alone.",
         choices: [
             {
                 text: "Enter the Briarwood Inn.",
@@ -151,8 +151,8 @@ export const scenes = {
                 type: "skillCheck",
                 skill: "survival",
                 dc: 10,
-                successText: "You find a hidden cache of supplies left by a fleeing family.",
-                failText: "You find nothing but refuse and despair.",
+                successText: "You find a cache tucked beneath a split rain barrel: dried meat, lamp oil, and coin abandoned by a family that fled too fast to carry all of it.",
+                failText: "You find cold cookfires, doors barred from the inside, and the signs of people learning to disappear before soldiers notice them.",
                 onSuccess: { addGold: 10 },
                 nextSceneSuccess: "SCENE_HUSHBRIAR_TOWN", // Loops back for now
                 nextSceneFail: "SCENE_HUSHBRIAR_TOWN"
@@ -163,7 +163,7 @@ export const scenes = {
         id: "SCENE_HUSHBRIAR_MARKET",
         location: "hushbriar",
         background: "landscapes/silverthorn_market_avenue.png",
-        text: "A few run-down shops are open: an herbalist tent, a library, and a provisioner.",
+        text: "The market survives in the way a wound survives: poorly covered and never clean. A sagging herbalist tent trades in bitter roots and fever draughts, a soot-stained provisioner measures food as if every handful might start a fight, and even the little library keeps its door half-shut, as though books have become something a person might be punished for wanting.",
         type: "shop",
         shopId: "silverthorn_market", // Reuse for now
         choices: [
@@ -196,7 +196,7 @@ export const scenes = {
         id: "SCENE_BRIARWOOD_INN",
         location: "hushbriar",
         background: "landscapes/silverthorn_market_avenue.png", // Placeholder
-        text: "The inn is crowded.",
+        text: "Heat, damp wool, and low-voiced fear hit you at once. The Briarwood Inn is crowded with refugees sleeping upright over untouched bowls, pilgrims clutching prayer charms hard enough to leave marks in their palms, and locals who only dare speak once they have checked where the Silverthorn guards are standing. Even with the room full, nobody sounds safe. They sound like people trying not to be the loudest thing in a town that has started listening for weakness.",
         onEnter: {
             questUpdate: { id: "investigate_whisperwood", stage: 0 }
         },
@@ -217,7 +217,7 @@ export const scenes = {
         location: "hushbriar",
         background: "landscapes/silverthorn_market_avenue.png",
         npcPortrait: "portraits/npc_male_placeholder_portrait.png",
-        text: "Fionnlagh looks weary. 'What is it, my son?'",
+        text: "Fionnlagh jerks upright from the bar as if sleep itself has become dangerous. His eyes are raw with drink, prayer, and too many hours spent listening for bad news. When he recognizes you, relief only makes him look more afraid. 'By the gods... what is it now? Tell me quickly. Every hour in this place feels like something waiting to tear open.'",
         choices: [
             {
                 text: "Ask about the plague.",
@@ -242,7 +242,7 @@ export const scenes = {
         location: "hushbriar",
         background: "landscapes/silverthorn_market_avenue.png",
         npcPortrait: "portraits/npc_male_placeholder_portrait.png",
-        text: "'It's not just a sickness. It's a corruption of the soul. I've seen men turn into beasts.'",
+        text: "'Do not call it a sickness,' Fionnlagh whispers, glancing toward the nearest guard before dropping his voice again. 'Sickness leaves a body weaker. This thing hollows people out and stuffs something hungry back inside. I've seen men foam black at the mouth, claw their own faces open, and come up from the floor looking at their kin like meat.'",
         choices: [
             { text: "Back", nextScene: "SCENE_FIONNLAGH_HUB" }
         ]
@@ -252,7 +252,7 @@ export const scenes = {
         location: "hushbriar",
         background: "landscapes/silverthorn_market_avenue.png",
         npcPortrait: "portraits/npc_male_placeholder_portrait.png",
-        text: "'The clan has scattered. Some blame the humans, some blame the elves. We are broken.'",
+        text: "'The clan did not survive this whole,' he says. 'It split along every old wound we ever pretended had healed. Some curse the humans. Some curse our own. Some ran for the monastery, some took to the woods, and some locked themselves in their homes to wait for whichever horror found them first. Broken is too gentle a word for what we are now.'",
         choices: [
             { text: "Back", nextScene: "SCENE_FIONNLAGH_HUB" }
         ]
@@ -838,7 +838,7 @@ export const scenes = {
                 skill: "perception",
                 dc: 10,
                 successText: "Out of the corner of your eye, something pale and human slips behind a nearby house. It is too careful to be a beast.",
-                failText: "The plants are gross and slimy. Your fingers come away sticky—and something stirs nearby.",
+                failText: "The growths split wetly under your fingers, leaving them glazed in cold mucus and black grit. Somewhere close by, something answers the sound with a slow, dragging shift.",
                 onSuccess: {
                     effects: [
                         { type: "flag", flagId: "sporefall_eoin_glimpsed", value: true }
@@ -1634,31 +1634,71 @@ export const scenes = {
         id: "SCENE_LAMENT_HILL_APPROACH",
         location: "lament_hill",
         background: "landscapes/forest_walk.png", // Placeholder
-        text: "Rain begins to fall as you ascend Lament Hill. The path is scarred by old magic, splintered trees, and fresh landslides. By the time the ruined cottage comes into view, the whole hillside feels watched.",
+        text: "Rain begins to fall as you ascend Lament Hill. The path is torn by old magic and something much more personal: scorched earth, uprooted trees, boulders broken open from within, and scraps of debris still hanging in the air as though one instant of violence never finished happening. The ruined cottage waits near the summit, with two little graves set off to one side, and the whole hillside watches you with the patience of a wound that remembers the hand that made it.",
         choices: [
-            { text: "Investigate the cottage", nextScene: "SCENE_LAMENT_COTTAGE" },
+            { text: "Push higher through the wreckage", nextScene: "SCENE_LAMENT_HILL_VISION" },
             { text: "Look for the graves", nextScene: "SCENE_LAMENT_GRAVES" }
+        ]
+    },
+    "SCENE_LAMENT_HILL_VISION": {
+        id: "SCENE_LAMENT_HILL_VISION",
+        location: "lament_hill",
+        background: "landscapes/forest_walk.png",
+        text: "The climb turns treacherous. Vines lie across the path where there should be open ground, a stretch of broken hillside seems to drop away farther than it should, and a lizard skitters lightly over a gap your eyes insist is fatal. The illusion almost holds until the rain passes straight through a wall of thorn that casts a perfect shadow anyway. A woman's voice brushes the inside of your skull, cold with warning and grief: 'You wear a brand of darkness. Leave, or burn like he burned my kin.'",
+        choices: [
+            { text: "Trust the breaks in the illusion and keep climbing", nextScene: "SCENE_LAMENT_COTTAGE" },
+            { text: "Circle toward the graves and approach from the east", nextScene: "SCENE_LAMENT_GRAVES" }
         ]
     },
     "SCENE_LAMENT_COTTAGE": {
         id: "SCENE_LAMENT_COTTAGE",
         location: "lament_hill",
         background: "landscapes/forest_walk.png",
-        text: "The cottage is half-collapsed and cold despite the storm outside. A pressure builds in your skull before a woman's voice reaches you without sound: 'You don't belong here... no one does.' Somewhere inside, something small shifts beneath a pile of old cloth.",
+        text: "The cottage is half-collapsed and cold despite the storm outside. The door hangs splintered on one hinge, the rafters are blackened from fire that burned too hot and too clean, and the bedroom smells faintly of rain-soaked ash beneath the older smell of grief. The pressure in your skull sharpens again. 'You don't belong here,' the same voiceless woman says. 'No one does.' Beneath a tumble of pale cloth on the bed, something small shifts and goes still.",
         choices: [
-            { text: "Search for the hidden presence", action: "openMap" },
-            { text: "Study the ruin and the signs of battle", action: "openMap" },
-            { text: "Retreat and follow another lead", action: "openMap" }
+            { text: "Pull back the cloth and confront whatever is hiding there", nextScene: "SCENE_LAMENT_CAT_DISCOVERY" },
+            { text: "Study the scorch marks and shattered room first", nextScene: "SCENE_LAMENT_COTTAGE_SIGNS" },
+            { text: "Step back outside and gather yourself by the graves", nextScene: "SCENE_LAMENT_GRAVES" }
         ]
     },
     "SCENE_LAMENT_GRAVES": {
         id: "SCENE_LAMENT_GRAVES",
         location: "lament_hill",
         background: "landscapes/forest_walk.png",
-        text: "Two small handmade graves rest in the wet earth east of the cottage. Rain collects in the carved names, and the silence around them feels less peaceful than guarded.",
+        text: "Two small handmade graves rest in the wet earth east of the cottage, close enough to the wall that whoever buried the children meant to keep them near home. Rain gathers in the carved names before spilling down the wood like fresh tears. Nothing on the hill feels peaceful, but here the grief is so concentrated it almost has weight.",
         choices: [
-            { text: "Pay respects", action: "openMap" },
+            { text: "Pay respects and listen to the hill's silence", nextScene: "SCENE_LAMENT_COTTAGE" },
             { text: "Return to the cottage", nextScene: "SCENE_LAMENT_COTTAGE" }
+        ]
+    },
+    "SCENE_LAMENT_COTTAGE_SIGNS": {
+        id: "SCENE_LAMENT_COTTAGE_SIGNS",
+        location: "lament_hill",
+        background: "landscapes/forest_walk.png",
+        text: "The room bears too many kinds of violence at once. One wall is cratered inward as though struck by force meant for a battlefield, while the bedframe beside it is marked by smaller desperate hands and melted iron where bindings must have bitten hot. Under all of it lies a more recent disturbance: tiny pawprints in the dust, a white hair caught on a splinter, and the certain feeling that the thing watching you understands every word you do not say aloud.",
+        choices: [
+            { text: "Search the bed where something is still hiding", nextScene: "SCENE_LAMENT_CAT_DISCOVERY" },
+            { text: "Speak into the room and promise you did not come for blood", nextScene: "SCENE_LAMENT_AINE_REVEAL" }
+        ]
+    },
+    "SCENE_LAMENT_CAT_DISCOVERY": {
+        id: "SCENE_LAMENT_CAT_DISCOVERY",
+        location: "lament_hill",
+        background: "landscapes/forest_walk.png",
+        text: "You pull back the cloth and uncover a small white cat pressed into the corner of the bed. It hisses, but there is too much calculation in the sound for an ordinary animal. Rainwater beads on its fur without soaking in, and when it recoils the air around it ripples with the unmistakable strain of held magic.",
+        choices: [
+            { text: "Address the cat as if it understands you", nextScene: "SCENE_LAMENT_AINE_REVEAL" },
+            { text: "Step back and keep your hands away from your weapon", nextScene: "SCENE_LAMENT_AINE_REVEAL" }
+        ]
+    },
+    "SCENE_LAMENT_AINE_REVEAL": {
+        id: "SCENE_LAMENT_AINE_REVEAL",
+        location: "lament_hill",
+        background: "landscapes/forest_walk.png",
+        text: "The cat vanishes in a flash of pale light. In its place stands a wood elf woman clothed all in white, beautiful in the way winter can be beautiful and just as merciless. Grief has carved itself plainly into Aine's face, but fear sharpens it into anger before she speaks. 'Evil bastards,' she says, eyes fixed on the mark you carry. 'What do you want from me?' When she realizes you do not even understand what is on you, her fury falters into something more exhausted. She names it at last: the Mark of Ciara, Blackened Queen of the depths. Then, with the care of someone reopening a wound she never survived, she tells you Aodhan came here seeking the Stone of Oblivion. She would not tell him how to wield it. He answered by binding her in place and burning her children before her eyes. The words nearly fail her there, but she forces them onward anyway. If the Stone is to be used at all, it must drink divine blood. A god could wake it. A demigod could suffice. And while she bought time by sending Aodhan toward the Forbidden Archives, time is all she bought. 'If you would stop him,' Aine says, voice unsteady now, 'then choose quickly. Hushbriar may hold the blood he needs. The archives may hold the rest of what he was willing to do for it.'",
+        choices: [
+            { text: "Leave Lament Hill with Hushbriar in mind", action: "openMap" },
+            { text: "Leave Lament Hill and follow the Forbidden Archives lead", action: "openMap" }
         ]
     },
     "SCENE_SOLASMOR_APPROACH": {
