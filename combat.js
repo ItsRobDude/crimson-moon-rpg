@@ -7,9 +7,9 @@ import { enemies } from './data/enemies.js';
 import { items } from './data/items.js';
 import { spells } from './data/spells.js';
 import { addEffectToActor, canActorTargetActor, canApplyEffectToActor, consumeIncomingHitEffects, createDefaultMechanicsState, dropConcentration, effectBlocksSpell, effectHasDataFlag, getApproachBlockedSourceIds, getDerivedActorState, getEffectModifiers, getSourceMaintainedEffects, getSpellcastingAbility, removeEffectFromActor, removeEffectsFromActorBySource, tickActorEffects } from './data/mechanics.js';
-import { rollInitiative, rollDie, rollAttack, rollDiceExpression, rollSavingThrow, calculateDamageRoll, calculateDamageReduction, getProficiencyBonus } from './rules.js';
+import { rollInitiative, rollDie, rollAttack, rollDiceExpression, rollSavingThrow, calculateDamageRoll, calculateDamageReduction, getProficiencyBonus, getSkillBonus, rollSkillCheck } from './rules.js';
 import { generateScaledStats } from './rules.js';
-import { canTargetToken, collectTemplateTargets, createBattlefieldLayout, feetToTiles, getCoverBetween, getFacingDirections, getMovementCost, getOpportunityAttackTriggers, getRangeDistance, getTemplateTiles, getTileEffects, getTileKey, getToken, inferFacing, isAdjacent, isWithinGrid, moveToken, setTerrain, setTileEffect } from './battlegrid.js';
+import { canTargetToken, collectTemplateTargets, createBattlefieldLayout, feetToTiles, getCoverBetween, getCoverBetweenPoints, getFacingDirections, getMovementCost, getOpportunityAttackTriggers, getRangeDistance, getReachableTiles, getTemplateTiles, getTileEffects, getTileKey, getToken, inferFacing, isAdjacent, isWithinGrid, moveToken, setTerrain, setTileEffect } from './battlegrid.js';
 import { scheduleTrackedTimeout } from './timers.js';
 
 const DEFAULT_PORTRAIT_PATH = 'portraits/npc_male_placeholder_portrait.png';
@@ -510,6 +510,123 @@ function moveActorAlongPath(actorId, path) {
     return true;
 }
 
+function getMovementCoverSummary(actorId, point) {
+    const grid = gameState.combat.grid;
+    const hostileIds = getHostileIds(actorId);
+    const ranking = { none: 0, half: 1, three_quarters: 2, full: 3 };
+    let best = 'none';
+
+    hostileIds.forEach((hostileId) => {
+        const hostileToken = getToken(grid, hostileId);
+        if (!hostileToken || hostileToken.hp <= 0) return;
+        const cover = getCoverBetweenPoints(grid, hostileToken, point);
+        if ((ranking[cover] || 0) > (ranking[best] || 0)) {
+            best = cover;
+        }
+    });
+
+    return best;
+}
+
+function getThreateningHostileIds(actorId, point) {
+    const grid = gameState.combat.grid;
+    return getHostileIds(actorId).filter((hostileId) => {
+        const hostile = getCombatActor(hostileId);
+        const hostileToken = getToken(grid, hostileId);
+        if (!hostile || !hostileToken || hostile.hp <= 0) return false;
+        const reachFeet = hostile.attackProfile?.reachFeet || 5;
+        return getRangeDistance(point, hostileToken) <= feetToTiles(grid, reachFeet);
+    });
+}
+
+function getMeleeTargetIdsFromPoint(actorId, point) {
+    const grid = gameState.combat.grid;
+    const profile = getAttackProfile(actorId);
+    const reachFeet = profile?.reachFeet || 5;
+    return getHostileIds(actorId).filter((hostileId) => {
+        const hostile = getCombatActor(hostileId);
+        const hostileToken = getToken(grid, hostileId);
+        if (!hostile || !hostileToken || hostile.hp <= 0) return false;
+        return getRangeDistance(point, hostileToken) <= feetToTiles(grid, reachFeet);
+    });
+}
+
+export function getMovementPreview(actorId = 'player') {
+    const actor = getCombatActor(actorId);
+    const grid = gameState.combat.grid;
+    const actorToken = getToken(grid, actorId);
+    if (!gameState.combat?.active || !actor || !grid || !actorToken) {
+        return {
+            valid: false,
+            actorId,
+            entries: [],
+            current: null,
+            movementRemaining: 0
+        };
+    }
+
+    const movementRemaining = Math.max(0, gameState.combat.movementRemaining || 0);
+    const entries = getReachableTiles(grid, actorId, movementRemaining)
+        .filter((entry) => !pathMovesCloserToBlockedSource(actorId, entry.path))
+        .map((entry) => {
+        const triggers = getOpportunityAttackTriggers(grid, actorId, entry.path);
+        const threatenedIds = getThreateningHostileIds(actorId, entry);
+        const meleeTargets = getMeleeTargetIdsFromPoint(actorId, entry);
+        const cover = getMovementCoverSummary(actorId, entry);
+        const threatNames = threatenedIds.map((id) => getCombatActor(id)?.name || id);
+        const meleeTargetNames = meleeTargets.map((id) => getCombatActor(id)?.name || id);
+
+        return {
+            ...entry,
+            remainingAfter: Math.max(0, movementRemaining - entry.cost),
+            threatenedIds,
+            threatNames,
+            triggers,
+            opportunityAttackRisk: triggers.length > 0,
+            meleeTargets,
+            meleeTargetNames,
+            cover
+        };
+    });
+
+    return {
+        valid: true,
+        actorId,
+        entries,
+        current: { x: actorToken.x, y: actorToken.y },
+        movementRemaining
+    };
+}
+
+export function performMove(destination, actorId = 'player') {
+    const actor = getCombatActor(actorId);
+    if (!actor || !gameState.combat?.active) return false;
+    if (gameState.combat.activeActorId !== actorId) {
+        uiHooks.logToBattle(`${actor.name} cannot move outside their turn.`, 'check-fail');
+        return false;
+    }
+    if (!canActorTakeActions(actor)) {
+        uiHooks.logToBattle(`${actor.name} cannot move right now.`, 'check-fail');
+        return false;
+    }
+
+    const preview = getMovementPreview(actorId);
+    const targetX = destination?.x;
+    const targetY = destination?.y;
+    const entry = preview.entries.find((option) => option.x === targetX && option.y === targetY);
+    if (!entry) {
+        uiHooks.logToBattle(`${actor.name} has no safe path to that tile.`, 'check-fail');
+        return false;
+    }
+
+    const moved = moveActorAlongPath(actorId, entry.path);
+    if (moved) {
+        resetCombatUiState(actorId);
+        uiHooks.updateCombatUI(actorId);
+    }
+    return moved;
+}
+
 function closeDistanceToTarget(actorId, targetId, reachFeet = 5) {
     const grid = gameState.combat.grid;
     const actorToken = getToken(grid, actorId);
@@ -555,6 +672,15 @@ function getHostileIds(actorId) {
     }
 
     return gameState.combat.enemies.filter(enemy => enemy.hp > 0).map(enemy => enemy.uniqueId);
+}
+
+function resetCombatUiState(actorId = gameState.combat?.activeActorId || null) {
+    if (!gameState.combat) return;
+    gameState.combat.uiState = {
+        actorId,
+        subMenu: null
+    };
+    gameState.combat.transientPreview = null;
 }
 
 function getFriendlyIds(actorId) {
@@ -876,6 +1002,11 @@ function beginTurn(actorId) {
         sneakAttackUsedThisTurn: false,
         turnStartedSpeedZero: getDerivedActorState(actor).speed <= 0
     };
+    gameState.combat.uiState = {
+        actorId,
+        subMenu: null
+    };
+    gameState.combat.transientPreview = null;
     reconcileTileEffects(actorId, 'turn_start');
     return true;
 }
@@ -1204,7 +1335,13 @@ export function startCombat(combatantIds, winScene, loseScene) {
         reactionsRemaining: 1,
         movementRemaining: 30,
         activeActorId: 'player',
-        sneakAttackUsedThisTurn: false
+        sneakAttackUsedThisTurn: false,
+        encounterFlags: {},
+        uiState: {
+            actorId: 'player',
+            subMenu: null
+        },
+        transientPreview: null
     };
 
     syncAllGridTokens();
@@ -1297,13 +1434,90 @@ export function performCunningAction(type, actorId = 'player') {
         actor.combatFlags = { ...(actor.combatFlags || {}), disengage: true };
         uiHooks.logToBattle(`${actor.name} disengages and avoids opportunity attacks this turn.`, "gain");
     } else if (type === 'hide') {
-        actor.combatFlags = { ...(actor.combatFlags || {}), hidden: true };
-        uiHooks.logToBattle(`${actor.name} slips from sight and lines up a better strike.`, "gain");
+        const hostileIds = getHostileIds(actorId);
+        const bestPassivePerception = hostileIds.reduce((highest, hostileId) => {
+            const hostile = getCombatActor(hostileId);
+            if (!hostile || hostile.hp <= 0) return highest;
+            return Math.max(highest, 10 + getSkillBonus(hostile, 'perception').bonus);
+        }, 10);
+        const availableCover = hostileIds.some((hostileId) => getCoverBetween(gameState.combat.grid, hostileId, actorId) !== 'none');
+        const adjacentThreat = hostileIds.some((hostileId) => isAdjacent(gameState.combat.grid, actorId, hostileId));
+        const stealth = rollSkillCheck(actor, 'stealth');
+        const targetNumber = availableCover ? Math.max(5, bestPassivePerception - 2) : bestPassivePerception;
+        const success = hostileIds.length === 0 || (!adjacentThreat && stealth.total >= targetNumber);
+        actor.combatFlags = { ...(actor.combatFlags || {}), hidden: success };
+        if (success) {
+            uiHooks.logToBattle(`${actor.name} slips from sight and lines up a better strike. (${stealth.total} vs passive ${targetNumber})`, "gain");
+        } else {
+            uiHooks.logToBattle(`${actor.name} tries to vanish, but every hostile eye still has them. (${stealth.total} vs passive ${targetNumber})`, "check-fail");
+        }
     } else {
         uiHooks.logToBattle(`${actor.name} uses Cunning Action: ${type}.`, "gain");
     }
 
+    resetCombatUiState(actorId);
     uiHooks.updateCombatUI(actorId);
+}
+
+export function performCombatManeuver(type, targetId, actorId = 'player') {
+    const actor = getCombatActor(actorId);
+    const target = getCombatActor(targetId);
+    if (!actor || !target) return false;
+    if (!canActorTakeActions(actor)) {
+        uiHooks.logToBattle(`${actor.name} cannot force the issue right now.`, 'check-fail');
+        return false;
+    }
+    if (!canActorUseHostileEffectOnTarget(actorId, targetId)) {
+        uiHooks.logToBattle(`${actor.name} cannot bring themself to press ${target.name}.`, 'check-fail');
+        return false;
+    }
+    if (!ensureTargetInRange(actorId, targetId, { rangeFeet: null, reachFeet: 5 })) {
+        uiHooks.logToBattle(`${target.name} is too far away for that maneuver.`, 'check-fail');
+        return false;
+    }
+    if (!spendAction(actorId)) return false;
+
+    const attackRoll = rollSkillCheck(actor, 'athletics');
+    const athleticsBonus = getSkillBonus(target, 'athletics').bonus;
+    const acrobaticsBonus = getSkillBonus(target, 'acrobatics').bonus;
+    const defenseSkill = athleticsBonus >= acrobaticsBonus ? 'athletics' : 'acrobatics';
+    const defenseRoll = rollSkillCheck(target, defenseSkill);
+
+    uiHooks.logToBattle(`${actor.name} contests ${target.name}: ${attackRoll.total} Athletics vs ${defenseRoll.total} ${defenseSkill.replace('_', ' ')}.`, 'system');
+
+    if (attackRoll.total < defenseRoll.total) {
+        uiHooks.logToBattle(`${target.name} keeps their footing and breaks the attempt.`, 'check-fail');
+        uiHooks.updateCombatUI(actorId);
+        return false;
+    }
+
+    if (type === 'shove') {
+        addEffectToActor(target, 'prone', {
+            source: `maneuver:${actorId}:shove`,
+            sourceActorId: actorId,
+            remaining: 1,
+            durationType: 'turns'
+        });
+        uiHooks.logToBattle(`${actor.name} slams ${target.name} to the ground.`, 'gain');
+    } else if (type === 'grapple') {
+        addEffectToActor(target, 'grappled', {
+            source: `maneuver:${actorId}:grapple`,
+            sourceActorId: actorId,
+            remaining: 10,
+            durationType: 'turns'
+        });
+        uiHooks.logToBattle(`${actor.name} locks ${target.name} in a brutal hold.`, 'gain');
+    } else {
+        uiHooks.logToBattle(`${actor.name} attempts an unsupported maneuver.`, 'check-fail');
+        uiHooks.updateCombatUI(actorId);
+        return false;
+    }
+
+    syncActorState(target);
+    syncGridToken(targetId);
+    resetCombatUiState(actorId);
+    uiHooks.updateCombatUI(actorId);
+    return true;
 }
 
 export function performActionSurge(actorId = 'player') {
@@ -1314,6 +1528,7 @@ export function performActionSurge(actorId = 'player') {
     res.current--;
     gameState.combat.actionsRemaining++;
     uiHooks.logToBattle(`${actor.name} used Action Surge!`, "gain");
+    resetCombatUiState(actorId);
     uiHooks.updateCombatUI(actorId);
 }
 
@@ -1332,6 +1547,9 @@ export function performAttack(targetId, actorId = 'player') {
 
     const resolved = resolveWeaponHit(actorId, targetId, { consumeAction: true });
 
+    if (resolved) {
+        resetCombatUiState(actorId);
+    }
     if (!checkWinCondition()) {
         uiHooks.updateCombatUI(actorId);
     }
@@ -1626,20 +1844,39 @@ export function performAbility(abilityId, actorId = 'player') {
         uiHooks.logToBattle(`Used Second Wind and recovered ${healed} HP.`, "gain");
     } else if (abilityId === 'channel_divinity') {
         resource.current--;
+        let remainingPool = 5 * (actor.level || 1);
+        const healerToken = getToken(gameState.combat.grid, actorId);
+        const healedTargets = [];
         const allies = getFriendlyIds(actorId)
-            .map((id) => getCombatActor(id))
-            .filter((candidate) => candidate && candidate.hp < candidate.maxHp);
-        const chosenTarget = allies.sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp))[0] || actor;
-        const preserveLifeCap = Math.max(0, Math.floor(chosenTarget.maxHp / 2) - chosenTarget.hp);
-        const healed = Math.min(5 * (actor.level || 1), preserveLifeCap);
-        chosenTarget.hp = Math.min(chosenTarget.maxHp, chosenTarget.hp + healed);
-        syncActorState(chosenTarget);
-        syncGridToken(chosenTarget.uniqueId || chosenTarget.id || actorId);
-        uiHooks.logToBattle(`Channel Divinity restores ${healed} HP to ${chosenTarget.name} without lifting them past half health.`, 'gain');
+            .map((id) => ({ id, actor: getCombatActor(id), token: getToken(gameState.combat.grid, id) }))
+            .filter(({ actor, token }) => actor && actor.hp > 0 && token && healerToken && (getRangeDistance(healerToken, token) * gameState.combat.grid.tileSize) <= 30)
+            .map(({ actor }) => actor)
+            .filter((candidate) => candidate.hp < candidate.maxHp);
+
+        allies.sort((a, b) => ((a.hp / a.maxHp) - (b.hp / b.maxHp)) || ((a.hp - b.hp)));
+
+        allies.forEach((candidate) => {
+            if (remainingPool <= 0) return;
+            const preserveLifeCap = Math.max(0, Math.floor(candidate.maxHp / 2) - candidate.hp);
+            if (preserveLifeCap <= 0) return;
+            const healed = Math.min(remainingPool, preserveLifeCap);
+            candidate.hp = Math.min(candidate.maxHp, candidate.hp + healed);
+            remainingPool -= healed;
+            healedTargets.push(`${candidate.name} (+${healed})`);
+            syncActorState(candidate);
+            syncGridToken(candidate.uniqueId || candidate.id || actorId);
+        });
+
+        if (healedTargets.length === 0) {
+            uiHooks.logToBattle(`Channel Divinity finds no wounded ally it can lawfully lift.`, 'system');
+        } else {
+            uiHooks.logToBattle(`Channel Divinity restores ${healedTargets.join(', ')} without lifting anyone past half health.`, 'gain');
+        }
     } else {
         uiHooks.logToBattle(`Ability '${abilityId}' is not implemented yet.`, "system");
     }
 
+    resetCombatUiState(actorId);
     if (!checkWinCondition()) {
         uiHooks.updateCombatUI(actorId);
     }
@@ -1664,6 +1901,7 @@ export function performStand(actorId = 'player') {
     gameState.combat.movementRemaining = Math.max(0, equivalentRemaining - standingCost);
     syncGridToken(actorId);
     uiHooks.logToBattle(`${actor.name} regains their feet, spending half their movement.`, 'system');
+    resetCombatUiState(actorId);
     uiHooks.updateCombatUI(actorId);
     return true;
 }
@@ -1704,6 +1942,7 @@ export function performEscape(actorId = 'player') {
         : (startedTurnPinned ? freedSpeed : 0);
     syncGridToken(actorId);
     uiHooks.logToBattle(`${actor.name} tears free of the hold.`, 'gain');
+    resetCombatUiState(actorId);
     uiHooks.updateCombatUI(actorId);
     return true;
 }
@@ -1719,6 +1958,7 @@ export function performDefend(actorId = 'player') {
         gameState.combat.playerDefending = true;
     }
     uiHooks.logToBattle(`${actor.name} braces for the next attack.`, "system");
+    resetCombatUiState(actorId);
     uiHooks.updateCombatUI(actorId);
 }
 

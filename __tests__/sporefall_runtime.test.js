@@ -176,6 +176,22 @@ test('north approach exposes stonework reading and bridge investigation that fit
   ]));
 });
 
+test('north approach offers avoid and delay routes instead of forcing the ambush path', () => {
+  const scene = getRuntimeScene('SCENE_SPOREFALL_NORTH_APPROACH');
+  const labels = scene.choices.map((choice) => choice.text);
+
+  expect(labels).toEqual(expect.arrayContaining([
+    expect.stringContaining('Slip through the stalls'),
+    expect.stringContaining('Fall back for now')
+  ]));
+
+  const stealthAvoid = scene.choices.find((choice) => choice.text.includes('Slip through the stalls'));
+  expect(stealthAvoid.type).toBe('skillCheck');
+  expect(stealthAvoid.skill).toBe('stealth');
+  expect(stealthAvoid.nextSceneSuccess).toBe('SCENE_SPOREFALL_NORTH_ROUTE_DISCOVERED');
+  expect(stealthAvoid.nextSceneFail).toBe('SCENE_SPOREFALL_NORTH_AMBUSH');
+});
+
 test('Eoin mother dialogue turns sharper after the bridge body is found', () => {
   let scene = getRuntimeScene('SCENE_EOIN_MOTHER_TALK');
   expect(scene.text).not.toContain('under the north bridge');

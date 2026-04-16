@@ -107,7 +107,13 @@ const defaultGameState = {
         bonusActionsRemaining: 1,
         movementRemaining: 30,
         activeActorId: null,
-        sneakAttackUsedThisTurn: false
+        sneakAttackUsedThisTurn: false,
+        encounterFlags: {},
+        uiState: {
+            actorId: null,
+            subMenu: null
+        },
+        transientPreview: null
     }
 };
 
@@ -1276,6 +1282,41 @@ function normalizeQuestState(rawQuests = {}) {
     return normalized;
 }
 
+function normalizeCombatState(rawCombat = {}) {
+    const combat = {
+        ...defaultGameState.combat,
+        ...(rawCombat || {})
+    };
+
+    combat.enemies = Array.isArray(combat.enemies) ? combat.enemies : [];
+    combat.turnOrder = Array.isArray(combat.turnOrder) ? combat.turnOrder : [];
+    combat.turnIndex = Math.max(0, Number.isFinite(combat.turnIndex) ? combat.turnIndex : 0);
+    combat.round = Math.max(1, Number.isFinite(combat.round) ? combat.round : 1);
+    combat.actionsRemaining = Math.max(0, Number.isFinite(combat.actionsRemaining) ? combat.actionsRemaining : defaultGameState.combat.actionsRemaining);
+    combat.bonusActionsRemaining = Math.max(0, Number.isFinite(combat.bonusActionsRemaining) ? combat.bonusActionsRemaining : defaultGameState.combat.bonusActionsRemaining);
+    combat.reactionsRemaining = Math.max(0, Number.isFinite(combat.reactionsRemaining) ? combat.reactionsRemaining : defaultGameState.combat.reactionsRemaining);
+    combat.movementRemaining = Math.max(0, Number.isFinite(combat.movementRemaining) ? combat.movementRemaining : defaultGameState.combat.movementRemaining);
+    combat.encounterFlags = combat.encounterFlags && typeof combat.encounterFlags === 'object' ? combat.encounterFlags : {};
+    combat.uiState = {
+        actorId: combat.uiState?.actorId || null,
+        subMenu: combat.uiState?.subMenu ?? null
+    };
+    combat.transientPreview = null;
+    combat.grid = combat.grid && typeof combat.grid === 'object'
+        ? {
+            width: combat.grid.width || null,
+            height: combat.grid.height || null,
+            tileSize: combat.grid.tileSize || 5,
+            terrain: combat.grid.terrain && typeof combat.grid.terrain === 'object' ? combat.grid.terrain : {},
+            tileEffects: combat.grid.tileEffects && typeof combat.grid.tileEffects === 'object' ? combat.grid.tileEffects : {},
+            zoneEffects: combat.grid.zoneEffects && typeof combat.grid.zoneEffects === 'object' ? combat.grid.zoneEffects : {},
+            occupied: combat.grid.occupied && typeof combat.grid.occupied === 'object' ? combat.grid.occupied : {}
+        }
+        : null;
+
+    return combat;
+}
+
 function normalizeLoadedState() {
     gameState.currentSceneId = gameState.currentSceneId || CANONICAL_START_SCENE;
     gameState.flags = gameState.flags && typeof gameState.flags === 'object' ? gameState.flags : {};
@@ -1305,10 +1346,7 @@ function normalizeLoadedState() {
     gameState.mapPins = Array.isArray(gameState.mapPins) ? gameState.mapPins : [];
     gameState.party = Array.isArray(gameState.party) ? gameState.party : [];
     gameState.roster = gameState.roster && typeof gameState.roster === 'object' ? gameState.roster : {};
-    gameState.combat = {
-        ...defaultGameState.combat,
-        ...(gameState.combat || {})
-    };
+    gameState.combat = normalizeCombatState(gameState.combat);
 
     ensureActorInventory(gameState.player);
     ensureActorSelections(gameState.player);
@@ -1319,7 +1357,11 @@ function normalizeLoadedState() {
 }
 
 export function saveGame() {
-    localStorage.setItem(SAVE_STORAGE_KEY, JSON.stringify(gameState));
+    const serializedState = JSON.parse(JSON.stringify(gameState));
+    if (serializedState.combat) {
+        serializedState.combat.transientPreview = null;
+    }
+    localStorage.setItem(SAVE_STORAGE_KEY, JSON.stringify(serializedState));
     // We can't use logMessage here directly as it creates a circular dependency
     console.log("[SAVE] Game saved to localStorage.");
 }

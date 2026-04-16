@@ -223,7 +223,9 @@ export const effectDefinitions = {
         defaultDuration: 3,
         modifiers: [
             { type: 'disadvantage', target: 'skill_check', tags: ['social'] },
-            { type: 'disadvantage', target: 'skill_check', skill: 'insight' }
+            { type: 'disadvantage', target: 'skill_check', skill: 'insight' },
+            { type: 'disadvantage', target: 'skill_check', skill: 'deception', sourceActorOnly: true },
+            { type: 'disadvantage', target: 'skill_check', skill: 'intimidation', sourceActorOnly: true }
         ],
         data: {
             preventHostileActionsAgainstSource: true

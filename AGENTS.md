@@ -108,6 +108,12 @@ Use `dnd-original-campaign-draft` as the best current reference for:
 - likely event ordering
 - how major choices might affect progression
 
+Canon priority rule:
+
+- `dnd-original-campaign-draft` is bible unless Rob explicitly says otherwise
+- if current implementation, notes, or scene text drift from the campaign draft, tighten them back toward the draft unless Rob has overruled it
+- when fallback ordering is needed, prefer: `dnd-original-campaign-draft` -> timeline/canon notes -> current authored scene text/runtime behavior
+
 Do not invent contradictory lore if an existing source already answers it.
 
 ## Internal Canon And Spoiler Discipline
@@ -299,6 +305,7 @@ Prefer:
 - battle scenes that honor 5e logic as closely as practical
 - one shared effect/status model for combat and narrative rolls
 - true positional combat direction, not permanently abstract combat
+- most encounters remaining optional, with conflict usually arising from player choice, dialogue choices, route decisions, or roll-sensitive situations rather than mandatory filler fights
 
 Current intended combat direction:
 
@@ -308,6 +315,9 @@ Current intended combat direction:
 - positioning, movement, reach, adjacency, and targeting should eventually be real mechanics
 - tile size should remain authoritative at 5 feet unless a battle scene explicitly overrides it
 - tile hazards/effects should be implemented through the shared grid/effect systems, not one-off combat hacks
+- favor tabletop-faithful rules as the baseline, but use digital usability/readability inspired by games like Baldur's Gate when literal tabletop friction would hurt clarity or pacing
+- keep combat immersive and tonally integrated with the grim VN framing rather than treating battles like detached tactics puzzles
+- preserve a path toward trustworthy mid-combat saves when shaping combat state, turn flow, and serialization
 
 Avoid:
 
@@ -331,6 +341,7 @@ That means future work should generally move toward:
 - action, bonus action, reaction, and movement support
 - class/race features with real mechanical impact
 - spell and condition logic that works both in battle and outside it
+- deeper implementation of the currently exposed classes before broad shallow expansion into many lightly supported options
 
 ## Testing and Verification
 

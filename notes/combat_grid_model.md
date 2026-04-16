@@ -85,6 +85,9 @@ The intended direction remains:
 - near-tabletop 5e fidelity where practical
 - true positional combat, not permanently abstract menu combat
 - one effect/status system shared by combat and narrative play
+- tabletop-faithful rules as the baseline, with digital readability and target preview inspired by games like Baldur's Gate when literal tabletop procedure would slow the experience down
+- combat presentation staying immersive and tonally consistent with the grim VN framing instead of becoming a detached tactics minigame
+- serialization choices preserving a path toward trustworthy mid-combat saves later, even if that support is not fully exposed yet
 
 ## Current Template UI
 
@@ -93,6 +96,7 @@ Until the battle screen grows into a fuller visual grid widget, the current batt
 - line/cone spells require facing selection before confirmation
 - point/radius spells choose a center tile through the existing position-driven battle menu
 - previews show affected tiles and caught creatures before confirmation
+- movement now exposes reachable tiles with cost, threat, cover, and immediate melee-angle summaries before commitment
 
 This is still a temporary UI layer, but the underlying spell resolution now uses real template geometry instead of spell-specific cluster approximations.
 
@@ -104,3 +108,4 @@ When extending combat:
 - keep battlegrid state authoritative for adjacency, range, and movement
 - treat touch/melee actions differently from ranged targeting
 - preserve compatibility with story-state and VN pacing rather than building an isolated tactics layer
+- prefer optional or choice-driven encounters over mandatory filler combat when authoring battle hooks

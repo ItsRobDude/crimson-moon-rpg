@@ -334,6 +334,98 @@ export function getMovementCost(grid, x, y) {
     return grid.tileSize;
 }
 
+export function getAdjacentTiles(grid, point, options = {}) {
+    const origin = normalizePoint(point);
+    if (!grid || !origin) return [];
+
+    const includeDiagonals = options.includeDiagonals !== false;
+    const directions = [
+        { x: 1, y: 0 },
+        { x: -1, y: 0 },
+        { x: 0, y: 1 },
+        { x: 0, y: -1 }
+    ];
+
+    if (includeDiagonals) {
+        directions.push(
+            { x: 1, y: 1 },
+            { x: 1, y: -1 },
+            { x: -1, y: 1 },
+            { x: -1, y: -1 }
+        );
+    }
+
+    return directions
+        .map((delta) => ({ x: origin.x + delta.x, y: origin.y + delta.y }))
+        .filter((tile) => isWithinGrid(grid, tile.x, tile.y));
+}
+
+export function getTokenAt(grid, x, y, options = {}) {
+    const { excludeId = null, livingOnly = true } = options;
+    return Object.values(grid?.occupied || {}).find((token) => {
+        if (!token) return false;
+        if (excludeId && token.id === excludeId) return false;
+        if (livingOnly && token.hp <= 0) return false;
+        return token.x === x && token.y === y;
+    }) || null;
+}
+
+export function getReachableTiles(grid, tokenId, movementFeet = 0, options = {}) {
+    const token = getToken(grid, tokenId);
+    if (!grid || !token) return [];
+
+    const start = { x: token.x, y: token.y };
+    const includeDiagonals = options.includeDiagonals !== false;
+    const maxCost = Math.max(0, Number(movementFeet) || 0);
+    const frontier = [{
+        tile: start,
+        cost: 0,
+        path: [start]
+    }];
+    const bestCost = new Map([[getTileKey(start.x, start.y), 0]]);
+    const bestPath = new Map([[getTileKey(start.x, start.y), [start]]]);
+
+    while (frontier.length > 0) {
+        frontier.sort((a, b) => a.cost - b.cost);
+        const current = frontier.shift();
+        if (!current) continue;
+
+        getAdjacentTiles(grid, current.tile, { includeDiagonals }).forEach((nextTile) => {
+            const occupant = getTokenAt(grid, nextTile.x, nextTile.y, { excludeId: tokenId, livingOnly: true });
+            if (occupant) return;
+
+            const nextCost = current.cost + getMovementCost(grid, nextTile.x, nextTile.y);
+            if (nextCost > maxCost) return;
+
+            const key = getTileKey(nextTile.x, nextTile.y);
+            const previousBest = bestCost.get(key);
+            if (previousBest !== undefined && previousBest <= nextCost) return;
+
+            const nextPath = [...current.path, nextTile];
+            bestCost.set(key, nextCost);
+            bestPath.set(key, nextPath);
+            frontier.push({
+                tile: nextTile,
+                cost: nextCost,
+                path: nextPath
+            });
+        });
+    }
+
+    return [...bestCost.entries()]
+        .filter(([key]) => key !== getTileKey(start.x, start.y))
+        .map(([key, cost]) => {
+            const [x, y] = key.split(',').map(Number);
+            return {
+                x,
+                y,
+                cost,
+                path: bestPath.get(key) || [start, { x, y }]
+            };
+        })
+        .sort((a, b) => a.cost - b.cost || a.y - b.y || a.x - b.x);
+}
+
 export function inferFacing(fromPoint, toPoint) {
     const from = normalizePoint(fromPoint);
     const to = normalizePoint(toPoint);

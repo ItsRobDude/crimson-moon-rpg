@@ -16,7 +16,7 @@ import { gameState, getActorCastableSpells, getInventoryEntries, getItemCount, g
 import { CANONICAL_START_SCENE, ensureStoryState, getLocationStoryRequirement, getLocationUnlockHint, meetsStoryRequirement, storyActs, storyEvents, syncStoryStateForScene } from './data/storyTimeline.js';
 import { addEffectToActor, getActorTraitDefinitions, getBonusSkillChoiceCount, getBonusToolChoiceCount, getBonusToolChoiceOptions, getDerivedActorState, getRaceTraitDefinitions, removeEffectFromActor } from './data/mechanics.js';
 import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod, generateScaledStats, getPlayerAC } from './rules.js';
-import { getSpellTargetingPreview, initCombatSystem, startCombat, performAttack, performCastSpell, performAbility, performDefend, performEscape, performFlee, performEndTurn, performActionSurge, performCunningAction, performStand, uiHooks } from './combat.js';
+import { getMovementPreview, getSpellTargetingPreview, initCombatSystem, startCombat, performAttack, performCastSpell, performAbility, performCombatManeuver, performDefend, performEscape, performFlee, performEndTurn, performActionSurge, performCunningAction, performMove, performStand, uiHooks } from './combat.js';
 import { clearTrackedTimeout, scheduleTrackedTimeout } from './timers.js';
 
 const DEFAULT_PORTRAIT_PATH = 'portraits/npc_male_placeholder_portrait.png';
@@ -1439,6 +1439,25 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
                 nextSceneFail: 'SCENE_SPOREFALL_NORTH_APPROACH'
             }),
             createChoice('Check the ruined footbridge first', 'SCENE_SPOREFALL_NORTH_BRIDGE'),
+            createChoice('Slip through the stalls and avoid a straight crossing (Stealth)', null, {
+                type: 'skillCheck',
+                skill: 'stealth',
+                dc: 11,
+                statusAid: {
+                    statusId: 'torchlight',
+                    bonus: -1,
+                    logText: 'The torch helps you see, but it also gives the dead one more thing to notice.'
+                },
+                successText: 'You use the broken stalls and rot-sunk carts as cover, let the waiting shapes commit to the wrong shadow, and reach the north road without forcing a fight.',
+                failText: 'A rotten awning frame gives under your hand. The crack of it draws the dead out at once.',
+                onSuccess: {
+                    effects: [
+                        { type: 'flag', flagId: 'sporefall_north_route_avoided_fight', value: true }
+                    ]
+                },
+                nextSceneSuccess: 'SCENE_SPOREFALL_NORTH_ROUTE_DISCOVERED',
+                nextSceneFail: 'SCENE_SPOREFALL_NORTH_AMBUSH'
+            }),
             createChoice('Cross the open street toward the north road (Perception)', null, {
                 type: 'skillCheck',
                 skill: 'perception',
@@ -1453,6 +1472,7 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
                 nextSceneSuccess: 'SCENE_SPOREFALL_NORTH_ROUTE_DISCOVERED',
                 nextSceneFail: 'SCENE_SPOREFALL_NORTH_AMBUSH'
             }),
+            createChoice('Fall back for now and return once you have better ground', 'SCENE_HUB_SPOREFALL'),
             createChoice('Return to the central street', 'SCENE_HUB_SPOREFALL')
         ];
         return scene;
@@ -1525,9 +1545,11 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
     }
 
     if (sceneId === 'SCENE_SPOREFALL_NORTH_ROUTE_DISCOVERED') {
-        scene.text = state.northRouteOpen
-            ? "The northern road still offers the same hard bargain: speed, momentum, and a way deeper into the borough without first earning the richer clues of the cathedral quarter or overseer's row."
-            : scene.text;
+        scene.text = gameState.flags.sporefall_north_route_avoided_fight
+            ? "You clear the market road without giving the hidden dead the clean rush they wanted. Past the stalls, the northern route opens deeper into the ruined borough, proving the skip path is real even if the cost of taking it will be ignorance rather than blood for now."
+            : (state.northRouteOpen
+                ? "The northern road still offers the same hard bargain: speed, momentum, and a way deeper into the borough without first earning the richer clues of the cathedral quarter or overseer's row."
+                : scene.text);
         return scene;
     }
 
@@ -3110,7 +3132,10 @@ function updateCombatUI(activeCharacterId = 'player') {
         if (isTurn) {
             turnIndicator.textContent = `${activeName}'s Turn - ${gameState.combat.movementRemaining} ft move`;
             setBattleActionPreview();
-            renderPlayerActions(actionsContainer, null, activeCharacterId);
+            const savedSubMenu = gameState.combat.uiState?.actorId === activeCharacterId
+                ? gameState.combat.uiState?.subMenu ?? null
+                : null;
+            renderPlayerActions(actionsContainer, savedSubMenu, activeCharacterId);
         } else {
             turnIndicator.textContent = "Waiting...";
             setBattleActionPreview();
@@ -3166,6 +3191,45 @@ function getPreviewButtonLabel(preview, fallbackLabel) {
     return `${fallbackLabel} - ${firstTile} - ${affected}`;
 }
 
+function setCombatUiState(actingId = 'player', subMenu = null) {
+    if (!gameState.combat?.active) return;
+    gameState.combat.uiState = {
+        actorId: actingId,
+        subMenu: subMenu ?? null
+    };
+    gameState.combat.transientPreview = subMenu && typeof subMenu === 'object' && subMenu.type === 'move_preview'
+        ? { destination: { ...(subMenu.destination || {}) } }
+        : null;
+}
+
+function getMovementOptionLabel(option) {
+    const threatText = option.opportunityAttackRisk
+        ? `Risk ${option.threatNames.join(', ')}`
+        : (option.threatNames?.length ? `Threat ${option.threatNames.join(', ')}` : 'No threat');
+    const strikeText = option.meleeTargetNames?.length
+        ? `Melee ${option.meleeTargetNames.join(', ')}`
+        : 'No melee target';
+    const coverText = option.cover && option.cover !== 'none'
+        ? `${option.cover.replace('_', ' ')} cover`
+        : 'open';
+    return `(${option.x},${option.y}) - ${option.cost} ft - ${threatText} - ${strikeText} - ${coverText}`;
+}
+
+function getMovementPreviewText(option) {
+    const threatLine = option.opportunityAttackRisk
+        ? `Leaving your current footing would likely draw an opportunity attack from ${option.threatNames.join(', ')}.`
+        : option.threatNames?.length
+            ? `${option.threatNames.join(', ')} could still threaten this tile if you stop there.`
+            : 'No hostile can immediately punish the move itself.';
+    const meleeLine = option.meleeTargetNames?.length
+        ? `From there you could pressure ${option.meleeTargetNames.join(', ')} in melee.`
+        : 'From there you would still need another angle before forcing melee.';
+    const coverLine = option.cover && option.cover !== 'none'
+        ? `The tile leaves you with ${option.cover.replace('_', ' ')} cover from part of the field.`
+        : 'The tile leaves you exposed on the open stones.';
+    return `Move to (${option.x},${option.y}) for ${option.cost} feet, leaving ${option.remainingAfter} feet after the step. ${threatLine} ${meleeLine} ${coverLine}`;
+}
+
 function renderPlayerActions(container, subMenu = null, actingId = 'player') {
     container.innerHTML = '';
     const grid = document.createElement('div');
@@ -3174,9 +3238,33 @@ function renderPlayerActions(container, subMenu = null, actingId = 'player') {
     const actor = (actingId === 'player') ? gameState.player : gameState.roster[actingId];
     const hasAction = gameState.combat.actionsRemaining > 0;
     const hasBonus = gameState.combat.bonusActionsRemaining > 0;
+    const hasMovement = (gameState.combat.movementRemaining || 0) > 0;
+    setCombatUiState(actingId, subMenu);
     setBattleActionPreview();
 
-    if (subMenu === 'attack') {
+    if (subMenu === 'move') {
+        const preview = getMovementPreview(actingId);
+        setBattleActionPreview('Choose where to move. Each preview shows cost, likely threat, cover, and whether the tile gives you a melee angle.');
+        preview.entries.forEach((option) => {
+            grid.appendChild(createActionButton(
+                getMovementOptionLabel(option),
+                'explore',
+                () => renderPlayerActions(container, { type: 'move_preview', destination: { x: option.x, y: option.y } }, actingId),
+                '',
+                false
+            ));
+        });
+        if (!preview.entries.length) {
+            grid.appendChild(createActionButton('No legal movement tiles', 'block', () => {}, '', true));
+        }
+        grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, null, actingId), 'flee'));
+    } else if (subMenu && subMenu.type === 'move_preview') {
+        const preview = getMovementPreview(actingId);
+        const option = preview.entries.find((entry) => entry.x === subMenu.destination?.x && entry.y === subMenu.destination?.y);
+        setBattleActionPreview(option ? getMovementPreviewText(option) : 'That route is no longer available from your current footing.');
+        grid.appendChild(createActionButton('Confirm Move', 'check_circle', () => performMove(subMenu.destination, actingId), 'primary', !option));
+        grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, 'move', actingId), 'flee'));
+    } else if (subMenu === 'attack') {
         setBattleActionPreview('Choose a creature to attack. Positions are shown by tile coordinates.');
         gameState.combat.enemies.forEach(enemy => {
             if (enemy.hp <= 0) return;
@@ -3250,6 +3338,14 @@ function renderPlayerActions(container, subMenu = null, actingId = 'player') {
             });
         }
         grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, 'spells', actingId), 'flee'));
+    } else if (subMenu && subMenu.type === 'control_target') {
+        const maneuverName = subMenu.maneuver === 'grapple' ? 'Grapple' : 'Shove';
+        setBattleActionPreview(`Choose who to ${maneuverName.toLowerCase()}. The contest uses your Athletics against the target's Athletics or Acrobatics.`);
+        gameState.combat.enemies.forEach(enemy => {
+            if (enemy.hp <= 0) return;
+            grid.appendChild(createActionButton(enemy.name, 'sports_mma', () => performCombatManeuver(subMenu.maneuver, enemy.uniqueId, actingId), 'primary', !hasAction));
+        });
+        grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, 'abilities', actingId), 'flee'));
     } else if (subMenu === 'abilities') {
         // Render Class Features
         if (actorHasStatus(actor, 'prone')) {
@@ -3271,6 +3367,8 @@ function renderPlayerActions(container, subMenu = null, actingId = 'player') {
             const res = actor.resources['action_surge'];
             const available = res && res.current > 0;
             grid.appendChild(createActionButton('Action Surge', 'bolt', () => performActionSurge(actingId), '', !available));
+            grid.appendChild(createActionButton('Shove', 'front_hand', () => renderPlayerActions(container, { type: 'control_target', maneuver: 'shove' }, actingId), '', !hasAction));
+            grid.appendChild(createActionButton('Grapple', 'sports_mma', () => renderPlayerActions(container, { type: 'control_target', maneuver: 'grapple' }, actingId), '', !hasAction));
         }
 
         // Second Wind (Fighter)
@@ -3306,6 +3404,7 @@ function renderPlayerActions(container, subMenu = null, actingId = 'player') {
         });
 
         grid.appendChild(createActionButton('Attack', 'swords', () => renderPlayerActions(container, 'attack', actingId), 'primary', !hasAction));
+        grid.appendChild(createActionButton('Move', 'explore', () => renderPlayerActions(container, 'move', actingId), '', !hasMovement));
         grid.appendChild(createActionButton('Spells', 'auto_stories', () => renderPlayerActions(container, 'spells', actingId), '', !hasSpells));
         grid.appendChild(createActionButton('Abilities', 'star', () => renderPlayerActions(container, 'abilities', actingId)));
         grid.appendChild(createActionButton('Defend', 'shield', () => performDefend(actingId), '', !hasAction));
@@ -3433,7 +3532,13 @@ export function loadGame() {
         gameState.story = ensureStoryState(gameState.story);
         logMessage("Game Loaded.", "system");
         updateStatsUI();
-        goToScene(gameState.currentSceneId);
+        if (gameState.combat?.active) {
+            document.getElementById('scene-container')?.classList.add('hidden');
+            document.getElementById('battle-screen')?.classList.remove('hidden');
+            updateCombatUI(gameState.combat.activeActorId || gameState.combat.turnOrder?.[gameState.combat.turnIndex] || 'player');
+        } else {
+            goToScene(gameState.currentSceneId);
+        }
         // Ensure character creation is hidden
         document.getElementById('char-creation-modal').classList.add('hidden');
         document.getElementById('start-menu').classList.add('hidden');

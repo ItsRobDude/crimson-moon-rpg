@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 import { createBattleGrid, placeToken } from '../battlegrid.js';
-import { applyOpportunityAttacks, hasReactionAvailable, performActionSurge, performAttack, performCastSpell, performCunningAction, performAbility, performEscape, performStand } from '../combat.js';
+import { applyOpportunityAttacks, getMovementPreview, hasReactionAvailable, performActionSurge, performAttack, performCastSpell, performCombatManeuver, performCunningAction, performAbility, performEscape, performMove, performStand } from '../combat.js';
 import { gameState, resetGameState, syncActorState } from '../data/gameState.js';
 import { addEffectToActor, createDefaultMechanicsState } from '../data/mechanics.js';
 
@@ -1023,8 +1023,148 @@ test('channel divinity prioritizes the most wounded ally without healing past ha
     turnOrder: ['player', 'ally']
   };
 
+  placeToken(gameState.combat.grid, { id: 'player', x: 1, y: 2, team: 'allies', hp: gameState.player.hp, reach: 1 });
+  placeToken(gameState.combat.grid, { id: 'ally', x: 2, y: 2, team: 'allies', hp: ally.hp, reach: 1 });
+
   performAbility('channel_divinity', 'player');
 
   expect(gameState.player.resources.channel_divinity.current).toBe(0);
   expect(gameState.roster.ally.hp).toBe(8);
+});
+
+test('movement preview surfaces risky routes and moving spends only movement', () => {
+  gameState.player = createActor({ name: 'Scout', classId: 'fighter' });
+  syncActorState(gameState.player);
+
+  const enemy = createActor({
+    id: 'enemy',
+    uniqueId: 'enemy_0',
+    type: 'enemy',
+    name: 'Ghoul',
+    attackProfile: {
+      name: 'Claws',
+      damage: '1d1',
+      damageType: 'slashing',
+      toHit: 2,
+      reachFeet: 5
+    }
+  });
+  syncActorState(enemy);
+
+  gameState.combat = {
+    ...gameState.combat,
+    active: true,
+    activeActorId: 'player',
+    actionsRemaining: 1,
+    bonusActionsRemaining: 1,
+    movementRemaining: 30,
+    grid: createBattleGrid(8, 6, 5),
+    enemies: [enemy],
+    turnOrder: ['player', enemy.uniqueId]
+  };
+
+  placeToken(gameState.combat.grid, { id: 'player', x: 1, y: 2, team: 'allies', hp: gameState.player.hp, reach: 1 });
+  placeToken(gameState.combat.grid, { id: enemy.uniqueId, x: 2, y: 2, team: 'enemies', hp: enemy.hp, reach: 1 });
+
+  const preview = getMovementPreview('player');
+  const riskyTile = preview.entries.find((entry) => entry.x === 0 && entry.y === 1);
+
+  expect(riskyTile).toBeDefined();
+  expect(riskyTile.opportunityAttackRisk).toBe(true);
+
+  performMove({ x: 0, y: 1 }, 'player');
+
+  expect(gameState.combat.movementRemaining).toBe(25);
+  expect(gameState.combat.grid.occupied.player.x).toBe(0);
+  expect(gameState.combat.actionsRemaining).toBe(1);
+});
+
+test('fighter maneuvers can grapple a target on a successful athletics contest', () => {
+  const randomSpy = jest.spyOn(Math, 'random')
+    .mockReturnValueOnce(0.95)
+    .mockReturnValueOnce(0.10)
+    .mockReturnValueOnce(0.05)
+    .mockReturnValueOnce(0.10);
+
+  gameState.player = createActor({
+    name: 'Brawler',
+    classId: 'fighter',
+    abilities: { STR: 18, DEX: 12, CON: 14, INT: 10, WIS: 10, CHA: 8 },
+    proficiencies: { skills: ['athletics'], saves: [], weapons: [], armor: [], tools: [], languages: [] }
+  });
+  syncActorState(gameState.player);
+
+  const enemy = createActor({
+    id: 'enemy',
+    uniqueId: 'enemy_0',
+    type: 'enemy',
+    name: 'Cultist',
+    abilities: { STR: 10, DEX: 10, CON: 10, INT: 10, WIS: 10, CHA: 10 },
+    proficiencies: { skills: ['acrobatics'], saves: [], weapons: [], armor: [], tools: [], languages: [] }
+  });
+  syncActorState(enemy);
+
+  gameState.combat = {
+    ...gameState.combat,
+    active: true,
+    activeActorId: 'player',
+    actionsRemaining: 1,
+    bonusActionsRemaining: 1,
+    grid: createBattleGrid(8, 6, 5),
+    enemies: [enemy],
+    turnOrder: ['player', enemy.uniqueId]
+  };
+
+  placeToken(gameState.combat.grid, { id: 'player', x: 1, y: 2, team: 'allies', hp: gameState.player.hp, reach: 1 });
+  placeToken(gameState.combat.grid, { id: enemy.uniqueId, x: 2, y: 2, team: 'enemies', hp: enemy.hp, reach: 1 });
+
+  performCombatManeuver('grapple', enemy.uniqueId, 'player');
+
+  expect(gameState.combat.actionsRemaining).toBe(0);
+  expect(gameState.combat.enemies[0].mechanics.activeEffects.some((effect) => effect.id === 'grappled')).toBe(true);
+
+  randomSpy.mockRestore();
+});
+
+test('rogue hide uses a stealth contest instead of granting hidden automatically', () => {
+  const randomSpy = jest.spyOn(Math, 'random')
+    .mockReturnValueOnce(0.85)
+    .mockReturnValueOnce(0.10);
+
+  gameState.player = createActor({
+    name: 'Cutpurse',
+    classId: 'rogue',
+    level: 2,
+    proficiencies: { skills: ['stealth'], saves: [], weapons: [], armor: [], tools: [], languages: [] },
+    combatFlags: {}
+  });
+  syncActorState(gameState.player);
+
+  const enemy = createActor({
+    id: 'enemy',
+    uniqueId: 'enemy_0',
+    type: 'enemy',
+    name: 'Watcher'
+  });
+  syncActorState(enemy);
+
+  gameState.combat = {
+    ...gameState.combat,
+    active: true,
+    activeActorId: 'player',
+    actionsRemaining: 1,
+    bonusActionsRemaining: 1,
+    grid: createBattleGrid(8, 6, 5),
+    enemies: [enemy],
+    turnOrder: ['player', enemy.uniqueId]
+  };
+
+  placeToken(gameState.combat.grid, { id: 'player', x: 1, y: 2, team: 'allies', hp: gameState.player.hp, reach: 1 });
+  placeToken(gameState.combat.grid, { id: enemy.uniqueId, x: 5, y: 2, team: 'enemies', hp: enemy.hp, reach: 1 });
+
+  performCunningAction('hide', 'player');
+
+  expect(gameState.player.combatFlags.hidden).toBe(true);
+
+  randomSpy.mockRestore();
 });

@@ -36,14 +36,14 @@ Statuses:
 | Rogue base shell | implemented | Hit die, proficiencies, creation, and combat shell are present. |
 | Rogue `Expertise` | implemented | Doubled proficiency multipliers are stored and used in rules math. |
 | Rogue `Sneak Attack` | partial | Per-attacker turn gating, adjacency, finesse/ranged checks, and hidden/advantage support exist; fuller 5e edge cases are still incomplete. |
-| Rogue `Cunning Action` | partial | Dash, disengage, and hide hooks exist; broader hide/stealth encounter nuance is still incomplete. |
+| Rogue `Cunning Action` | partial | Dash, disengage, and contested hide hooks exist; broader hide/stealth encounter nuance is still incomplete. |
 | Thief `Fast Hands` | implemented | Consumable and gear use now prefers bonus-action object use in combat for thief rogues. |
 | Thief `Second-Story Work` | data-only | Defined in data only. |
 | Wizard base shell | implemented | Spellbook/prepared flow, slots, and Arcane Recovery shell are present. |
 | Wizard `Arcane Recovery` | implemented | Short-rest slot recovery is wired once per long rest. |
 | Evocation `Sculpt Spells` | implemented | Template evocation save spells now spare allied targets caught in the area. |
 | Cleric base shell | implemented | Prepared casting, slots, default subclass, and combat shell are present. |
-| Cleric `Channel Divinity` | partial | Preserve Life style heal is wired; domain breadth is still narrow. |
+| Cleric `Channel Divinity` | partial | Preserve Life now distributes healing across nearby wounded allies up to half HP; domain breadth is still narrow. |
 | Life `Disciple of Life` | implemented | Healing bonus is applied to qualifying healing spells. |
 
 ## Spells
@@ -91,6 +91,13 @@ Statuses:
 | Opportunity attacks | implemented | Grid-backed triggers and reaction consumption are wired. |
 | `Shield` spell reaction | implemented | Weapon attacks, spell attacks, and `Magic Missile` are covered. |
 | General reaction framework | partial | One shared reaction slot exists, but broader reaction content is still sparse. |
+
+## Combat UX And Save Foundations
+
+| Area | Status | Notes |
+| --- | --- | --- |
+| Movement previews | partial | Reachable tiles, cost, threat, cover, and melee-angle previews are now surfaced in battle UI, but the presentation is still text-first rather than a true visual grid widget. |
+| Mid-combat save foundation | partial | Combat save data now preserves stable UI state and strips transient previews, and load can restore back into battle mode; full mid-combat save support still needs runtime verification and broader state audit. |
 
 ## Verification Notes
 

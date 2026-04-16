@@ -373,3 +373,44 @@ test('long rest clears long-rest effects and restores spell resources after load
   expect(gameState.player.currentSlots[1]).toBe(gameState.player.spellSlots[1]);
   expect(gameState.player.mechanics.activeEffects.some((effect) => effect.id === 'mage_armor')).toBe(false);
 });
+
+test('save strips transient combat previews but preserves stable combat ui state for later restoration', () => {
+  initializeNewGame(
+    'Kest',
+    'human',
+    'fighter',
+    'soldier',
+    { STR: 15, DEX: 12, CON: 14, INT: 10, WIS: 10, CHA: 8 },
+    ['athletics', 'survival'],
+    []
+  );
+
+  gameState.combat = {
+    ...gameState.combat,
+    active: true,
+    activeActorId: 'player',
+    turnOrder: ['player'],
+    uiState: {
+      actorId: 'player',
+      subMenu: { type: 'move_preview', destination: { x: 2, y: 1 } }
+    },
+    transientPreview: {
+      destination: { x: 2, y: 1 }
+    }
+  };
+
+  saveGame();
+
+  const stored = JSON.parse(localStorage.getItem(SAVE_STORAGE_KEY));
+  expect(stored.combat.uiState).toEqual({
+    actorId: 'player',
+    subMenu: { type: 'move_preview', destination: { x: 2, y: 1 } }
+  });
+  expect(stored.combat.transientPreview).toBeNull();
+
+  resetGameState();
+  expect(loadGame()).toBe(true);
+  expect(gameState.combat.uiState.actorId).toBe('player');
+  expect(gameState.combat.uiState.subMenu).toEqual({ type: 'move_preview', destination: { x: 2, y: 1 } });
+  expect(gameState.combat.transientPreview).toBeNull();
+});

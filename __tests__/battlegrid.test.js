@@ -1,4 +1,4 @@
-import { canTargetToken, collectTemplateTargets, createBattleGrid, getOpportunityAttackTriggers, getTemplateTiles, getTileEffects, placeToken, setTerrain, setTileEffect, setZoneEffect } from '../battlegrid.js';
+import { canTargetToken, collectTemplateTargets, createBattleGrid, getOpportunityAttackTriggers, getReachableTiles, getTemplateTiles, getTileEffects, placeToken, setTerrain, setTileEffect, setZoneEffect } from '../battlegrid.js';
 
 test('line of sight blocks ranged targeting through obstructing terrain', () => {
   const grid = createBattleGrid(8, 6, 5);
@@ -104,4 +104,17 @@ test('zone effects participate in tile lookups for enter/start/end hazard proces
   expect(getTileEffects(grid, 3, 3).some((effect) => effect.id === 'embers')).toBe(true);
   expect(getTileEffects(grid, 4, 4).some((effect) => effect.id === 'embers')).toBe(true);
   expect(getTileEffects(grid, 7, 7).some((effect) => effect.id === 'embers')).toBe(false);
+});
+
+test('reachable movement tiles respect cost, occupancy, and difficult terrain', () => {
+  const grid = createBattleGrid(8, 8, 5);
+  placeToken(grid, { id: 'player', x: 1, y: 1, team: 'allies', hp: 10, reach: 1 });
+  placeToken(grid, { id: 'ally', x: 2, y: 1, team: 'allies', hp: 10, reach: 1 });
+  setTerrain(grid, 1, 2, { difficult: true });
+
+  const reachable = getReachableTiles(grid, 'player', 10);
+
+  expect(reachable.some((tile) => tile.x === 2 && tile.y === 1)).toBe(false);
+  expect(reachable.some((tile) => tile.x === 1 && tile.y === 2 && tile.cost === 10)).toBe(true);
+  expect(reachable.some((tile) => tile.x === 4 && tile.y === 4)).toBe(false);
 });

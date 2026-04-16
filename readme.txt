@@ -5,15 +5,19 @@ This project is a sandbox visual novel with deep RPG ambitions, set in the infec
 
 * **Core Fantasy:** survive a spreading spore apocalypse, choose which factions to trust, and decide whether to aid or confront the Blackened King and his pact with the drow Queen Ciara.
 * **Tone:** grounded, desperate, with brief sparks of wonder (ancient lunar magic, druidic rituals) so every encounter hints at a larger mystery behind the Crimson Moon.
-* **Gameplay Direction:** story and event flow come first, but the combat/rules layer should move as close to tabletop 5e as is reasonably practical. Battle scenes are expected to evolve toward true positional battlegrid combat rather than staying permanently abstract.
+* **Gameplay Direction:** story and event flow come first, but the combat/rules layer should move as close to tabletop 5e as is reasonably practical. Battle scenes are expected to evolve toward true positional battlegrid combat rather than staying permanently abstract, using digital readability and usability inspired by Baldur's Gate where literal tabletop handling would be too clumsy.
 * **Current Components:**
   * Narrative and battle UI (index.html, styles.css).
   * Character creation, combat rules, and game state management (game.js, rules.js, data/*).
   * World references: Silverthorn, Shadowmire, Sporefall (formerly Whisperwood Borough), Viridian Forest, Thorne Guild, the Druids, the Blackened King, Ciara.
 
 For narrative pacing, event windows, and "what a typical campaign route looks like if certain choices are made," check `dnd-original-campaign-draft`. Treat that file as the best current lore reference when adjusting story timing, Silverthorn sandbox beats, or major event flow.
+Treat `dnd-original-campaign-draft` as bible unless Rob explicitly says otherwise.
 
 Statuses and mechanical effects should not be treated as combat-only. Long-term direction is one shared effect model for battle, dialogue, social rolls, travel, and other non-combat scenes.
+Most encounters should remain optional and choice-driven rather than mandatory filler combat. Situational fights can still arise from rolls, route pressure, or dialogue fallout.
+Long-term combat/system planning should preserve a path toward mid-combat saves.
+For character systems, prioritize deeper class support over broad shallow expansion.
 
 See `notes/salvage_pitch.md` for a concrete gameplay loop and story structure that ties these pieces together.
 See `notes/story_timeline_model.md` for the canonical Silverthorn opening and the new event-driven timeline model.
