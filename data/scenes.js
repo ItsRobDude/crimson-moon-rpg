@@ -608,7 +608,7 @@ export const scenes = {
         id: "SCENE_SILVERTHORN_MARKET",
         location: "silverthorn",
         background: "landscapes/silverthorn_market_avenue.png",
-        text: "The market district is the loudest corner of Silverthorn. Traders shout over one another, pack animals snort at loaded carts, and a dozen side streets promise food, steel, rumor, or trouble. A weathered sign for The Rusty Blade swings above a nearby lane.",
+        text: "The market district is loud in the way anxious places are loud: too many voices working too hard to prove the city still functions. Traders bark prices over the clatter of wagon wheels, drovers keep skittish animals moving with short tempers, and every third stall seems to be selling the same shrinking comforts to people suddenly afraid of leaving walls without them. A weathered sign for The Rusty Blade swings above a nearby lane while shoppers and quartermasters alike keep one ear turned toward any mention of the eastern road.",
         choices: [
             { text: "Browse the General Store", nextScene: "SCENE_SILVERTHORN_GENERAL_STORE" },
             { text: "Visit the blacksmith", nextScene: "SCENE_SILVERTHORN_BLACKSMITH" },
@@ -620,7 +620,7 @@ export const scenes = {
         id: "SCENE_SILVERTHORN_GENERAL_STORE",
         location: "silverthorn",
         background: "landscapes/silverthorn_market_avenue.png",
-        text: "Shelves crowd the walls of the general store, laden with lamp oil, dried meat, blankets, bandages, and the sort of practical supplies adventurers always wish they had packed sooner.",
+        text: "The general store smells of lamp oil, damp wool, and the nervous haste of people buying as if shortages can be outrun. Shelves still hold dried meat, blankets, clean cloth, bandages, and travel staples, but the gaps between them look recent and argumentative. A slate by the till lists ration limits in chalk, and every customer ahead of you seems to be choosing which fear deserves their last handful of coin.",
         type: "shop",
         shopId: "silverthorn_general_store",
         choices: [
@@ -632,7 +632,7 @@ export const scenes = {
         id: "SCENE_SILVERTHORN_BLACKSMITH",
         location: "silverthorn",
         background: "landscapes/silverthorn_market_avenue.png",
-        text: "The forge glows orange behind a curtain of sparks. Racks of blades, bows, helms, and half-finished mail line the walls while apprentices hurry between bellows and anvils.",
+        text: "The forge glows like a wound worked too hard to close. Sparks keep lifting through the rafters while apprentices haul iron, pump bellows, and drag fresh commissions into a queue that already looks longer than daylight. Racks of blades, helms, bows, and half-finished mail line the walls, but the real mood here is triage: road steel, replacement buckles, patched armor, anything that might buy one more safe mile outside the gates.",
         type: "shop",
         shopId: "silverthorn_armorer",
         choices: [
@@ -644,7 +644,7 @@ export const scenes = {
         id: "SCENE_RUSTY_BLADE_INN",
         location: "silverthorn",
         background: "landscapes/silverthorn_market_avenue.png",
-        text: "The Rusty Blade is half tavern, half barracks overflow. Couriers, sellswords, and merchants crowd the common room while a barkeep polishes tankards with the steady calm of someone used to overhearing dangerous things.",
+        text: "The Rusty Blade is half tavern, half barracks overflow, and all of it feels one bad rumor away from turning into a war room. Couriers, sellswords, caravan hands, and merchants crowd the common room in damp wool and travel dust, drinking low and watching one another over their cups. Behind the bar, the barkeep polishes tankards with the steady calm of someone who has learned that dangerous news arrives disguised as conversation.",
         choices: [
             { text: "Take a room and rest", action: "longRest" },
             { text: "Listen for rumors about Whisperwood", nextScene: "SCENE_RUSTY_BLADE_RUMORS" },
@@ -686,7 +686,7 @@ export const scenes = {
         id: "SCENE_SILVERTHORN_TEMPLE_PRAYER",
         location: "silverthorn",
         background: "landscapes/silverthorn_market_avenue.png",
-        text: "You take a quiet moment beneath the stained glass and let the city's noise fall away. For a few breaths, the mission feels less like a command and more like a path you have chosen.",
+        text: "You kneel beneath the stained glass and let the city's noise recede to candle-pop, distant footfall, and the soft labor of people praying because they have run out of cleaner defenses. The stillness helps, but only honestly: not by making the road kinder, only by giving your fear a smaller room to echo in for a few breaths before you have to stand back up.",
         choices: [
             { text: "Step back into the temple hall", nextScene: "SCENE_SILVERTHORN_TEMPLE" },
             { text: "Return to City Center", nextScene: "SCENE_HUB_SILVERTHORN" }
@@ -939,7 +939,7 @@ export const scenes = {
         id: "SCENE_SKIRT_BEAST",
         location: "whisperwood",
         background: "landscapes/sporefall_crimson_frontier.png",
-        text: "You give the creature a wide berth, slipping between the trees while it snorts and paws at the moss. The spores glow faintly on your cloak, but the beast fades behind you.",
+        text: "You give the creature a wide berth, easing between the trees while it snorts and tears at the moss with blind, furious weight. Wet spores cling to your cloak and wrists, cold as breath from an opened grave, and every step away feels less like escape than permission borrowed a heartbeat at a time. The beast does fall behind, but the road ahead does not let you forget what nearly touched you.",
         onEnter: {
             questUpdate: { id: "investigate_whisperwood", stage: 3 },
             once: true

@@ -162,6 +162,12 @@ Do not:
 
 When adapting material from `dnd-original-campaign-draft`, translate it into authored prose rather than copying its table-facing structure, but do not flatten its brutality, bodily stakes, or emotional weight.
 
+This rule applies to secondary surfaces too:
+
+- shops, notice boards, prayer beats, inn common rooms, quarantine returns, clue rooms, and route-support scenes are not exempt from tone discipline
+- optional scenes may run quieter than set pieces, but they should still carry strain, fear, aftermath, scarcity, or hunted pressure
+- do not let low-combat or service-oriented scenes read like neutral RPG nodes dropped into a more serious game
+
 ## Narrative Runtime Safety
 
 Use `notes/narrative_runtime_contract.md` before adding or revising large runtime-authored scene branches.

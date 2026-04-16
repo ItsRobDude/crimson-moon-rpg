@@ -78,6 +78,18 @@ Avoid these common rewrite failures:
 - Choice labels should sound like something the player-character would actually think or say in that moment.
 - In grim scenes, do not flatten choices into generic utility verbs when a diegetic label can carry tone.
 
+## Secondary Surfaces Still Matter
+
+Optional and immersive support scenes are still part of the game's tonal contract.
+
+- shops and prep scenes cannot read like neutral RPG service nodes
+- rumor boards, barracks, inns, and gate plazas should still carry civic strain, fear, or suspicion
+- prayer or reflection scenes may soften the pace, but not the world around the player
+- clue scenes should feel discovered inside a damaged place, not dispensed by a menu
+- travel events should keep the road feeling hunted, burdened, contaminated, or watched
+
+If a scene exists mainly to prepare, stock up, rest, or gather context, it still needs a lived emotional condition: scarcity, overwork, panic, fatigue, grief, secrecy, or dread.
+
 ## Translate From The Campaign Draft
 
 The draft is table-facing and often includes:
