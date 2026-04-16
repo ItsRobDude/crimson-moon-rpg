@@ -82,3 +82,15 @@ test('remaining late-route surfaces no longer collapse into pure map-bounce plac
   expect(scenes.SCENE_SOLASMOR_GATES.choices.some((choice) => choice.action === 'openMap')).toBe(false);
   expect(scenes.SCENE_THIEVES_HIDEOUT.choices.length).toBeGreaterThan(0);
 });
+
+test('Elara protect route now holds inside the hideout instead of exposing unfinished destinations', () => {
+  const protectLabels = scenes.SCENE_ELARA_PROTECT_ROUTE.choices.map((choice) => choice.text);
+
+  expect(protectLabels.some((label) => label.includes('Solasmór'))).toBe(false);
+  expect(protectLabels.some((label) => label.includes('Soul Mill'))).toBe(false);
+  expect(protectLabels).toEqual(expect.arrayContaining([
+    expect.stringContaining('Sit with Elara'),
+    expect.stringContaining('guild is whispering'),
+    expect.stringContaining('ward circle')
+  ]));
+});

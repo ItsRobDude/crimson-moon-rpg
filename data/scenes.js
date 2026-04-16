@@ -179,21 +179,15 @@ export const scenes = {
         id: "SCENE_HUSHBRIAR_CORRUPTED",
         location: "hushbriar",
         background: "landscapes/silverthorn_market_avenue.png", // Placeholder: needs corrupted variant
-        text: "Hushbriar has fallen to shadow. The streets are empty, save for the occasional Silverthorn patrol enforcing martial law. Strange growths cover the buildings.",
+        text: "If you reach this quarter after the town has already started sealing itself against the worst of the night, Hushbriar feels less conquered than abandoned in place. Patrols still pass, but between them the streets are all wet ash, shuttered grief, and red fungal creep climbing the woodwork where the creek-mist settles thickest.",
         choices: [
             {
-                text: "Sneak to the Inn (Stealth)",
-                type: "skillCheck",
-                skill: "stealth",
-                dc: 14,
-                successText: "You slip past the patrols.",
-                failText: "A patrol spots you!",
-                nextSceneSuccess: "SCENE_BRIARWOOD_INN",
-                nextSceneFail: "SCENE_HUSHBRIAR_COMBAT_GUARDS"
+                text: "Make for the Briarwood Inn while the patrol turns the corner.",
+                nextScene: "SCENE_BRIARWOOD_INN"
             },
             {
-                text: "Leave the town.",
-                action: "openMap"
+                text: "Slip back toward the town center.",
+                nextScene: "SCENE_HUSHBRIAR_TOWN"
             }
         ]
     },
@@ -242,6 +236,13 @@ export const scenes = {
         location: "hushbriar",
         background: "landscapes/silverthorn_market_avenue.png",
         npcPortrait: "portraits/npc_male_placeholder_portrait.png",
+        onEnter: {
+            once: true,
+            effects: [
+                { type: "flag", flagId: "hushbriar_fionnlagh_met", value: true },
+                { type: "flag", flagId: "moonwell_night_available", value: true }
+            ]
+        },
         text: "Fionnlagh starts upright so fast his stool nearly tips. For one raw second he looks as though he expects to find a corpse where you are standing. His beard is damp with spilled drink, his vine-work headband sits crooked, and his eyes keep flicking toward the inn door like he can already hear something the rest of the room has not. 'Easy,' he mutters, though it sounds meant for himself. Then he recognizes you properly and the relief in his face only makes him look more frightened. 'By the gods... tell me you did not bring more death in with you. Every hour here feels wrong before it even happens.'",
         choices: [
             {
@@ -286,14 +287,14 @@ export const scenes = {
         id: "SCENE_HUSHBRIAR_SCREAMS",
         location: "hushbriar",
         background: "landscapes/silverthorn_market_avenue.png",
-        text: "Before he can answer, a child's scream cuts across the night outside. A heartbeat later a woman's cry follows it, higher and more terrible, the kind that turns every nearby voice to silence.",
+        text: "Before Fionnlagh can answer, a child's scream cuts across the night outside. A heartbeat later a woman's cry follows it, higher and more terrible, then several doors slam in panicked sequence as the whole lane tries to pretend it heard nothing. By the time you reach the street, the screaming has stopped. In its place comes the wet drag of something being hauled over mud, and a strand of spider silk glimmering between two fence posts where no web should be.",
         choices: [
             {
-                text: "Run toward the screams.",
+                text: "Run toward the lane before the silence settles.",
                 nextScene: "SCENE_INVESTIGATION"
             },
             {
-                text: "Go carefully, hand on your weapon.",
+                text: "Go carefully, hand low and ready for steel.",
                 nextScene: "SCENE_INVESTIGATION"
             }
         ]
@@ -302,15 +303,15 @@ export const scenes = {
         id: "SCENE_INVESTIGATION",
         location: "hushbriar",
         background: "landscapes/silverthorn_market_avenue.png",
-        text: "At the edge of town, an elven woman kneels in the mud beside a door smashed inward hard enough to scatter splinters across the yard. Grief has stripped language from her; only one torn breath follows another. In the threshold lies a child's severed hand, still closed around a wooden sword. You barely have time to take it in before two women turn toward you from the shadows with steel already bared: Neala first, fierce and shaking with contained fury, and Liobhán behind her, composed in the way only dangerous people ever are.",
+        text: "The lane ends in a yard churned to black mud. One cottage door hangs half-off its hinges, and the threshold is glazed with blood already stringing dark in the night air. No one living remains in the yard, only the evidence of panic: dropped prayer charms, a wooden sword snapped in two, and long silken bands caught on the fence where something climbed out with weight enough to bend the posts. Beyond the yard, broken brush and drag-marks lead east toward the treeline.",
         choices: [
             {
-                text: "Shift your weight toward steel.",
-                nextScene: "SCENE_THIEVES_CONFRONTATION"
+                text: "Follow the drag-marks before the dark swallows them.",
+                nextScene: "SCENE_TRACKING_CHOLDRITHS"
             },
             {
-                text: "Ask who did this.",
-                nextScene: "SCENE_THIEVES_CONFRONTATION"
+                text: "Back away and return to the inn with what you saw.",
+                nextScene: "SCENE_BRIARWOOD_INN"
             }
         ]
     },
@@ -319,21 +320,11 @@ export const scenes = {
         location: "hushbriar",
         background: "landscapes/silverthorn_market_avenue.png",
         npcPortrait: "portraits/npc_female_placeholder_portrait.png",
-        text: "Neala's weapon is at your chest before anyone can settle their footing. 'Well. Now it makes sense,' she says, voice raw with anger. She jerks her chin toward the ruined doorway. 'Choldriths. They were on your trail, and this house paid for it.' Liobhán is suddenly at your back, blade cold against the throat of whoever stood nearest. When she speaks, her voice is so calm it makes the threat worse. 'You carry darkness loudly for strangers. Explain yourselves before Neala decides to bury you in it.'",
+        text: "If you come here from an older save, the accusation-path is gone. The yard lies empty now but for blood, silk, and the same east-running trail toward the trees. Whatever did the killing has already left the lane behind.",
         choices: [
             {
-                text: "Explain yourselves and offer to hunt the creatures (Persuasion)",
-                type: "skillCheck",
-                skill: "persuasion",
-                dc: 12,
-                successText: "Neala does not lower her blade, but the angle changes. 'Then prove it,' she says. 'Follow the blood. Find what came here. Kill it before another door breaks open tonight.' Liobhán's knife eases away by a finger's width, no more.",
-                failText: "Neala's mouth twists with disgust. 'Lies. Or worse.' Liobhán moves first, and whatever restraint was still possible dies with the motion.",
-                nextSceneSuccess: "SCENE_TRACKING_CHOLDRITHS",
-                nextSceneFail: "SCENE_THIEVES_COMBAT"
-            },
-            {
-                text: "Strike before they can.",
-                nextScene: "SCENE_THIEVES_COMBAT"
+                text: "Take the eastern trail toward the Moonwell.",
+                nextScene: "SCENE_TRACKING_CHOLDRITHS"
             }
         ]
     },
@@ -341,17 +332,16 @@ export const scenes = {
         id: "SCENE_THIEVES_COMBAT",
         location: "hushbriar",
         background: "landscapes/silverthorn_market_avenue.png",
-        text: "Neala lunges with all the anger in her body, and Liobhán is already moving before the first shout leaves anyone's mouth. Her whistle snaps once, and hidden blades answer from the dark as if the whole town has turned against you.",
-        type: "combat",
-        enemies: ["fungal_beast", "fungal_beast"], // Placeholder for Rogue Enemy
-        winScene: "SCENE_TRACKING_CHOLDRITHS",
-        loseScene: "SCENE_DEFEAT"
+        text: "This older confrontation no longer resolves into combat in the live route. By the time you reach the yard, the only thing left to fight is the urge to waste more time while the trail east is still wet.",
+        choices: [
+            { text: "Take the eastern trail toward the Moonwell.", nextScene: "SCENE_TRACKING_CHOLDRITHS" }
+        ]
     },
     "SCENE_TRACKING_CHOLDRITHS": {
         id: "SCENE_TRACKING_CHOLDRITHS",
         location: "hushbriar",
         background: "landscapes/forest_walk.png",
-        text: "You follow drag marks, broken brush, and dark blood worked deep into the roots beyond town. The trail runs with ugly certainty beneath the trees until even the birds know better than to sing above it. At last it leads you into the clearing of the Moonwell.",
+        text: "You follow dark blood, torn silk, and broken brush beyond the last houses of Hushbriar. The trail runs with ugly certainty beneath the trees until even the birds know better than to sing above it. The farther east you go, the colder the air grows, as though some wider darkness has finally remembered the road. At last the trail spills into the clearing of the Moonwell.",
         choices: [
             {
                 text: "Approach the Moonwell in silence.",
@@ -363,7 +353,13 @@ export const scenes = {
         id: "SCENE_MOONWELL",
         location: "hushbriar",
         background: "landscapes/forest_walk_alt.png",
-        text: "Two small bodies wrapped in spider silk hang above the Moonwell, turning slowly in the night air. Beneath them stands Aodhan, head bowed, a dark stone rising and falling in his hand as if grief has left the motion behind after everything else. Two dead choldriths lie at his feet. He does not turn when he speaks. 'There should have been time,' he says quietly. 'For them. For all of this.'",
+        text: "The Moonwell should be a place of still water and prayer. Tonight it looks flayed open. Black ripples keep disturbing the surface from below, though nothing breaks it. Two small bodies wrapped in spider silk hang above the well, turning slowly in the wind like accusations no god has answered. Beneath them stands Aodhan, head bowed, the Stone of Oblivion rising and falling in his hand as if grief has left the motion behind after everything else. Around the clearing the air feels wrong, stretched thin and tearing. Somewhere far beyond the trees, the world is darkening in earnest. He does not turn when he speaks. 'There should have been time,' he says quietly. 'For them. For all of this.'",
+        onEnter: {
+            once: true,
+            effects: [
+                { type: "flag", flagId: "moonwell_seen", value: true }
+            ]
+        },
         choices: [
             {
                 text: "Confront Aodhan.",
@@ -376,7 +372,7 @@ export const scenes = {
         location: "hushbriar",
         background: "landscapes/forest_walk_alt.png",
         npcPortrait: "portraits/npc_male_placeholder_portrait.png",
-        text: "Aodhan closes his hand around the Stone of Oblivion and turns at last. Moonlight catches the ruin in his face before anger can hide it. 'Sad, isn't it?' he says quietly, glancing once at the silk-wrapped bodies above the well. 'To die that young. To spend years praying the world kinder, then watch it bare its teeth in one night.' His eyes settle on you, fever-bright with exhaustion and fury. 'The barrier failed moments ago. Not in some old warning. Not in some scholar's dream. Now. The dark is already here, and every oath they told us to trust has burned down around us.'",
+        text: "Aodhan closes his hand around the Stone of Oblivion and turns at last. Moonlight catches the ruin in his face before anger can hide it. 'Sad, isn't it?' he says quietly, glancing once at the silk-wrapped bodies above the well. 'To die that young. To spend years praying the world kinder, then watch it bare its teeth in one night.' His eyes settle on you, fever-bright with exhaustion and fury. 'I held Sporefall shut for as long as I could. Do you feel it? The last ring of the spell is gone. The barrier around the borough has broken. The Underdark is spilling through at full strength now, and the plague is running with it. This is the moment it stops being contained. This is the moment the dark wins ground.'",
         choices: [
             {
                 text: "\"Then this ends here, Aodhan.\"",
@@ -1032,6 +1028,29 @@ export const scenes = {
                     { type: "flag", flagId: "sporefall_eoin_talked", value: true }
                 ],
                 nextScene: "SCENE_HUB_SPOREFALL"
+            }
+        ]
+    },
+    "SCENE_HUSHBRIAR_MORNING_SETUP": {
+        id: "SCENE_HUSHBRIAR_MORNING_SETUP",
+        location: "hushbriar",
+        background: "landscapes/silverthorn_market_avenue.png",
+        onEnter: {
+            once: true,
+            effects: [
+                { type: "flag", flagId: "moonwell_missed", value: true },
+                { type: "flag", flagId: "moonwell_morning_setup_seen", value: true }
+            ]
+        },
+        text: "By first light, Hushbriar has given up the lie that the night passed cleanly. The town square is a knot of shouting, fleeing townsfolk, Silverthorn steel, and the first ugly whisper of guild knives answering back from the alleys. A mage with a dark stone has already carved his way through more than one door looking for someone the town refuses to name. Nobody can hold the square much longer. Whatever this becomes by noon, it will be war in miniature.",
+        choices: [
+            {
+                text: "Follow the fresh ruin east before the square locks into slaughter.",
+                nextScene: "SCENE_MOONWELL"
+            },
+            {
+                text: "Slip back into the Briarwood and gather yourself first.",
+                nextScene: "SCENE_BRIARWOOD_INN"
             }
         ]
     },
@@ -1821,7 +1840,7 @@ export const scenes = {
         location: "lament_hill",
         background: "landscapes/forest_walk_alt.png",
         npcPortrait: "portraits/npc_male_placeholder_portrait.png",
-        text: "The Archives are older than comfort and grander than mercy. Dark shelves climb into shadow, pale lights drift between them like captive moons, and every step sounds indecently loud, as though the dead in the walls resent being reminded of the living. Thalion leads you to a lectern where a silver-and-midnight tome lies open beside diagrams of the Stone of Oblivion. Here he gives the truth he will not let you leave without: the stone does not wake for prayer, nor for mortal slaughter. It must drink divinity. A god could rouse it. A demigod could suffice. Only after that sentence lands does he add, with a loathing that points inward, that he knows this because he once woke such a stone himself and bought eternity at the price of becoming the warning now standing before you.",
+        text: "The Archives are older than comfort and grander than mercy. Dark shelves climb into shadow, pale lights drift between them like captive moons, and every step sounds indecently loud, as though the dead in the walls resent being reminded of the living. Thalion leads you to a lectern where a silver-and-midnight tome lies open beside diagrams that never seem to hold still long enough to be safely understood. He does not give the answer as a scholar would. He gives it like testimony. The Stone of Oblivion does not wake for prayer, nor for ordinary slaughter. What stirs in the margins of the pages is holier and fouler than that. It must drink divinity. A god could rouse it. A demigod could suffice. Only after letting that sentence bruise the air between you does Thalion admit, with loathing that points inward, that he knows because he once committed such a sin himself and bought eternity at the price of becoming the warning now speaking to you.",
         choices: [
             { text: "\"Then answer what you still can before you close your mouth to me.\"", nextScene: "SCENE_ARCHIVES_AUDIENCE" },
             { text: "\"That is enough. Hushbriar cannot wait.\"", nextScene: "SCENE_HUSHBRIAR_GUILD_ROAD" }
@@ -2096,7 +2115,7 @@ export const scenes = {
         id: "SCENE_ELARA_PROTECT_ROUTE",
         location: "thieves_hideout",
         background: "landscapes/silverthorn_market_avenue.png",
-        text: "For the first time since you found her, Elara's fear cracks around something almost like relief. It is not trust. It may never become trust. But it is close enough to pain her with it. Around her, the guild shifts at once into motion: routes, boats, false names, watch posts, and which roads must be bled dry of rumor before Aodhan or Silverthorn hears too much. The choice is made now, and everyone in the room knows what that means. If Elara lives, the world's price has only been delayed, not forgiven.",
+        text: "For the first time since you found her, Elara's fear cracks around something almost like relief. It is not trust. It may never become trust. But it is close enough to hurt her with it. Nobody in the hideout mistakes this for safety. Beyond the crate walls, Hushbriar still groans, patrols still move, and every loose board sounds like the prelude to discovery. Even the guild quiets after a while, as though speaking too confidently might call the future closer. If Elara lives, the world's price has only been delayed, not forgiven.",
         choices: [
             {
                 text: "\"Neala, come with us. We need someone who can read your roads.\"",
@@ -2123,24 +2142,12 @@ export const scenes = {
                 action: "shortRest"
             },
             {
-                text: "Ask Neala to read the ferry chalk before you move. (Survival)",
-                requires: { flag: "neala_recruited" },
-                type: "skillCheck",
-                skill: "survival",
-                dc: 10,
-                companionAid: {
-                    companionId: "neala",
-                    bonus: 2,
-                    logText: "Neala reads the guild chalk as fast as another scout would read a prayer book."
-                },
-                successText: "With Neala correcting every false turn before you take it, the route ahead opens into smuggler paths instead of patrol lanes.",
-                failText: "Even with Neala's help, the chalk has been smeared, moved, or countermarked often enough to leave the road feeling less certain than she would like.",
-                nextSceneSuccess: "SCENE_SOLASMOR_APPROACH",
-                nextSceneFail: "SCENE_SOLASMOR_APPROACH"
+                text: "Sit with Elara while the others argue in whispers.",
+                nextScene: "SCENE_ELARA_HOLDFAST_CONFESSION"
             },
-            { text: "Scout Solasmór for sanctuary the guild can still use.", nextScene: "SCENE_SOLASMOR_APPROACH" },
-            { text: "Watch the Soul Mill smoke and learn what Alderic is preparing.", nextScene: "SCENE_SOUL_MILL_APPROACH" },
-            { text: "Return to the hideout and keep the route alive.", nextScene: "SCENE_ELARA_PROTECT_ROUTE" }
+            { text: "Listen at the outer crates for what the guild is whispering.", nextScene: "SCENE_ELARA_HOLDFAST_RUMORS" },
+            { text: "Check the ward circle and the hiding place for anything that might betray her.", nextScene: "SCENE_ELARA_HOLDFAST_WARD" },
+            { text: "Keep the hideout quiet and wait for the next bad knock.", nextScene: "SCENE_ELARA_PROTECT_ROUTE" }
         ]
     },
     "SCENE_NEALA_RECRUITED": {
@@ -2154,6 +2161,35 @@ export const scenes = {
                 text: "Move out while the guild route still holds.",
                 nextScene: "SCENE_ELARA_PROTECT_ROUTE"
             }
+        ]
+    },
+    "SCENE_ELARA_HOLDFAST_CONFESSION": {
+        id: "SCENE_ELARA_HOLDFAST_CONFESSION",
+        location: "thieves_hideout",
+        background: "landscapes/silverthorn_market_avenue.png",
+        npcPortrait: "portraits/npc_female_placeholder_portrait.png",
+        text: "Elara sits with her back to the crates and both hands locked white around the edge of her blanket. Up close, the divine part of her does not look glorious. It looks hunted. 'I kept thinking courage would arrive all at once,' she says without looking at you. 'Like a prayer finally answered. It never did. It was only fear, and more fear after it.' When she finally raises her eyes, shame is doing as much work there as terror. 'If I run, people die for me later. If I stay, people die for me now. I do not know which part of that makes me a coward.'",
+        choices: [
+            { text: "\"You're still here. That's not nothing.\"", nextScene: "SCENE_ELARA_PROTECT_ROUTE" },
+            { text: "\"Fear kept you alive. We deal with the rest after.\"", nextScene: "SCENE_ELARA_PROTECT_ROUTE" }
+        ]
+    },
+    "SCENE_ELARA_HOLDFAST_RUMORS": {
+        id: "SCENE_ELARA_HOLDFAST_RUMORS",
+        location: "thieves_hideout",
+        background: "landscapes/silverthorn_market_avenue.png",
+        text: "From the far side of the stacked crates you catch the guild in the kind of whisper that means nobody believes the wall is thick enough. One voice says the monastery bells in Solasmór have gone strange at dawn. Another swears the Soul Mill smoke has not thinned in days and stinks of sanctified blood. No one volunteers to investigate. They speak of those places the way people speak of weather moving toward them: not as choices, but as threats with names.",
+        choices: [
+            { text: "Let the whispers die and return to Elara's hiding place.", nextScene: "SCENE_ELARA_PROTECT_ROUTE" }
+        ]
+    },
+    "SCENE_ELARA_HOLDFAST_WARD": {
+        id: "SCENE_ELARA_HOLDFAST_WARD",
+        location: "thieves_hideout",
+        background: "landscapes/silverthorn_market_avenue.png",
+        text: "The ward circle has been drawn three times over in places where tired hands stopped trusting their first attempt. Salt has gone damp at the edges. Candle grease has bled into old chalk. Someone has wedged blankets into the cracks where light might leak through to the bridge above. None of it feels permanent. All of it feels desperate, which in a place like this is as close as anyone gets to honest defense.",
+        choices: [
+            { text: "Leave the ward as it is and keep the hideout quiet.", nextScene: "SCENE_ELARA_PROTECT_ROUTE" }
         ]
     },
     "SCENE_ELARA_STONE_ROUTE": {

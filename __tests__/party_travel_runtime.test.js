@@ -108,12 +108,19 @@ test('companion-aid hooks exist on existing routes without making companions man
 
   expect(northApproachChoice.companionAid?.companionId).toBe('eoin');
   expect(townScoutChoice.companionAid?.companionId).toBe('neala');
-  expect(protectScene.choices.some((choice) => choice.text.includes('Scout Solasmór'))).toBe(true);
-  expect(protectScene.choices.some((choice) => choice.text.includes('Watch the Soul Mill'))).toBe(true);
+  expect(protectScene.choices.some((choice) => choice.text.includes('Sit with Elara'))).toBe(true);
+  expect(protectScene.choices.some((choice) => choice.text.includes('guild is whispering'))).toBe(true);
 });
 
 test('new recruitment and bond flags are registered in both safety sources', () => {
   ['eoin_recruited', 'eoin_refused', 'eoin_locked_out', 'eoin_bonded', 'neala_recruited', 'neala_refused', 'neala_bonded'].forEach((flagId) => {
+    expect(narrativeStateRegistry.flags[flagId]).toBeDefined();
+    expect(registryNote).toContain(`\`${flagId}\``);
+  });
+});
+
+test('moonwell missable-state flags are registered in both safety sources', () => {
+  ['hushbriar_fionnlagh_met', 'moonwell_night_available', 'moonwell_seen', 'moonwell_missed', 'moonwell_morning_setup_seen'].forEach((flagId) => {
     expect(narrativeStateRegistry.flags[flagId]).toBeDefined();
     expect(registryNote).toContain(`\`${flagId}\``);
   });

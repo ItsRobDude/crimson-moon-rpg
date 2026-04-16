@@ -45,6 +45,11 @@ If you add a new story-critical key, update both this note and the JS registry i
 | `sporefall_bridge_seen` | `SCENE_SPOREFALL_NORTH_BRIDGE` | `north_bridge` | Bridge shelter investigated. | rumor_only | optional_clue |
 | `sporefall_bridge_body_seen` | `SCENE_SPOREFALL_NORTH_BRIDGE` | `north_bridge` | Eoin's mother found under the bridge. | spoiler_sensitive | optional_clue |
 | `sporefall_north_route_open` | `SCENE_SPOREFALL_NORTH_ROUTE_DISCOVERED` | `north_skip_route` | Northern skip route opened. | public | story_progression |
+| `hushbriar_fionnlagh_met` | `SCENE_FIONNLAGH_HUB` | `aodhan_thread` | Fionnlagh meeting completed and Moonwell night window opened. | public | story_progression |
+| `moonwell_night_available` | `SCENE_FIONNLAGH_HUB` | `aodhan_thread` | Moonwell night event is available before dawn. | public | story_progression |
+| `moonwell_seen` | `SCENE_MOONWELL` | `aodhan_thread` | Moonwell catastrophe witnessed directly. | spoiler_sensitive | story_progression |
+| `moonwell_missed` | `SCENE_HUSHBRIAR_MORNING_SETUP` | `aodhan_thread` | Player missed the night Moonwell encounter and hit the morning-after setup instead. | spoiler_sensitive | one_time_outcome |
+| `moonwell_morning_setup_seen` | `SCENE_HUSHBRIAR_MORNING_SETUP` | `aodhan_thread` | Morning-after Hushbriar commotion and three-way conflict setup seen. | spoiler_sensitive | story_progression |
 | `archives_thalion_audience_closed` | `SCENE_ARCHIVES_AUDIENCE` | `archives_truth` | First decisive Thalion audience exhausted. | spoiler_sensitive | one_time_outcome |
 | `archives_alderic_truth_learned` | `SCENE_ARCHIVES_ALDERIC_TRUTH` | `archives_truth` | Higher-value Alderic/Ciara truth extracted. | spoiler_sensitive | optional_clue |
 | `archives_alderic_truth_missed` | `SCENE_ARCHIVES_ALDERIC_REBUFF` | `archives_truth` | Deeper Alderic/Ciara truth permanently missed. | spoiler_sensitive | one_time_outcome |

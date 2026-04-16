@@ -3,13 +3,19 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { enemies } from '../data/enemies.js';
+import { gameState, resetGameState } from '../data/gameState.js';
 import { scenes } from '../data/scenes.js';
 import { storySceneTriggers } from '../data/storyTimeline.js';
+import { getRuntimeScene } from '../game.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, '..');
 const approvedFallback = 'portraits/npc_male_placeholder_portrait.png';
+
+beforeEach(() => {
+  resetGameState();
+});
 
 test('Durnhelm route now exposes an authored local loop instead of an immediate map bounce', () => {
   const gateChoices = scenes.SCENE_DURNHELM_GATES.choices;
@@ -98,6 +104,7 @@ test('Hushbriar town and inn keep the occupied dread through the Fionnlagh path'
   expect(scenes.SCENE_FIONNLAGH_HUB.text).toContain('Every hour here feels wrong before it even happens');
   expect(scenes.SCENE_FIONNLAGH_PLAGUE_INFO.text).toContain('black at the mouth');
   expect(scenes.SCENE_FIONNLAGH_CLAN_INFO.text).toContain('split along every old wound');
+  expect(scenes.SCENE_HUSHBRIAR_CORRUPTED.choices.some((choice) => choice.action === 'openMap')).toBe(false);
 });
 
 test('Lament Hill now routes through authored scenes to Aine before unlocking the next threads', () => {
@@ -130,6 +137,7 @@ test('late-game conversations preserve stronger distinct voices after the rewrit
   expect(scenes.SCENE_GUILD_BARGAIN.text).toContain("That's leverage");
   expect(scenes.SCENE_ELARA_HIDEAWAY.text).toContain('torn between dying for the world and running');
   expect(scenes.SCENE_DURNHELM_CATHAL.text).toContain('swears at the sky');
+  expect(scenes.SCENE_ARCHIVES_TRUTH_CHAMBER.text).toContain('He gives it like testimony');
 });
 
 test('Sporefall street-search fail text stays in the same grim register', () => {
@@ -138,4 +146,30 @@ test('Sporefall street-search fail text stays in the same grim register', () => 
   expect(survivorSearch.failText).toContain('cold mucus');
   expect(survivorSearch.failText).toContain('slow, dragging shift');
   expect(survivorSearch.failText).not.toContain('gross and slimy');
+});
+
+test('Moonwell route is restored as the Hushbriar night event and old guild-blame content is retired', () => {
+  expect(scenes.SCENE_INVESTIGATION.choices.some((choice) => choice.nextScene === 'SCENE_TRACKING_CHOLDRITHS')).toBe(true);
+  expect(scenes.SCENE_INVESTIGATION.text).not.toContain('Neala');
+  expect(scenes.SCENE_INVESTIGATION.text).not.toContain('Liobh');
+  expect(scenes.SCENE_THIEVES_CONFRONTATION.choices[0].nextScene).toBe('SCENE_TRACKING_CHOLDRITHS');
+  expect(scenes.SCENE_MOONWELL.text).toContain('world is darkening in earnest');
+  expect(scenes.SCENE_AODHAN_TALK.text).toContain('The barrier around the borough has broken');
+});
+
+test('after meeting Fionnlagh, Hushbriar at night surfaces the missable Moonwell event and dawn consequence', () => {
+  gameState.flags.hushbriar_fionnlagh_met = true;
+  gameState.flags.moonwell_night_available = true;
+
+  let scene = getRuntimeScene('SCENE_BRIARWOOD_INN');
+  expect(scene.choices.some((choice) => choice.text.includes('follow the screams'))).toBe(true);
+  expect(scene.choices.some((choice) => choice.text.includes('wait for dawn'))).toBe(true);
+
+  scene = getRuntimeScene('SCENE_HUSHBRIAR_TOWN');
+  expect(scene.choices.some((choice) => choice.text.includes('Follow the screaming'))).toBe(true);
+
+  expect(scenes.SCENE_HUSHBRIAR_MORNING_SETUP.onEnter.effects).toEqual(expect.arrayContaining([
+    expect.objectContaining({ type: 'flag', flagId: 'moonwell_missed', value: true }),
+    expect.objectContaining({ type: 'flag', flagId: 'moonwell_morning_setup_seen', value: true })
+  ]));
 });

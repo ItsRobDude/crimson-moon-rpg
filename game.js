@@ -510,6 +510,29 @@ function isSceneInSporefall(sceneId) {
     ].includes(sceneId);
 }
 
+function isSceneInEarlyHushbriar(sceneId) {
+    return [
+        'SCENE_ARRIVAL_HUSHBRIAR',
+        'SCENE_HUSHBRIAR_GATES',
+        'SCENE_HUSHBRIAR_TOWN',
+        'SCENE_HUSHBRIAR_MARKET',
+        'SCENE_HUSHBRIAR_CORRUPTED',
+        'SCENE_BRIARWOOD_INN',
+        'SCENE_FIONNLAGH_HUB',
+        'SCENE_FIONNLAGH_PLAGUE_INFO',
+        'SCENE_FIONNLAGH_CLAN_INFO',
+        'SCENE_HUSHBRIAR_SCREAMS',
+        'SCENE_INVESTIGATION',
+        'SCENE_TRACKING_CHOLDRITHS',
+        'SCENE_MOONWELL',
+        'SCENE_AODHAN_TALK',
+        'SCENE_AODHAN_COMBAT',
+        'SCENE_AODHAN_DEFEAT',
+        'SCENE_AFTERMATH',
+        'SCENE_HUSHBRIAR_MORNING_SETUP'
+    ].includes(sceneId);
+}
+
 function getSilverthornTimeState() {
     const slot = gameState.timeline.slot;
     return {
@@ -1176,6 +1199,9 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
             createChoice(state.northRouteOpen ? 'Take the northern skip route again' : 'Head north through the broken market road', 'SCENE_SPOREFALL_NORTH_APPROACH'),
             createChoice(gameState.flags.eoin_recruited ? "Check on Eoin before you choose a road" : "Return to Eoin's hiding place", 'SCENE_EOIN_TALK')
         ];
+        if (clueNotes.length > 0) {
+            scene.choices.push(createChoice("Leave Sporefall behind and follow Aodhan's trail toward Hushbriar", 'SCENE_ARRIVAL_HUSHBRIAR'));
+        }
         if (gameState.flags.eoin_recruited) {
             scene.choices.unshift(createChoice("Ask Eoin to show you the way north how he remembers it. (Survival)", null, {
                 type: 'skillCheck',
@@ -1508,6 +1534,48 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
     return scene;
 }
 
+function buildEarlyHushbriarRuntimeScene(sceneId, baseScene) {
+    const scene = cloneScene(sceneId);
+    const moonwellPending = !!gameState.flags.moonwell_night_available && !gameState.flags.moonwell_seen && !gameState.flags.moonwell_missed;
+    const morningAfterSeen = !!gameState.flags.moonwell_morning_setup_seen;
+
+    if (sceneId === 'SCENE_HUSHBRIAR_TOWN') {
+        scene.choices = [...(scene.choices || [])];
+        if (moonwellPending) {
+            scene.text = `${scene.text} Somewhere farther east, the night keeps threatening to break into a scream again and then thinking better of it. The whole town seems to be listening for the next one.`;
+            scene.choices.unshift(
+                createChoice('Follow the screaming through the east lanes while the town still hesitates.', 'SCENE_HUSHBRIAR_SCREAMS'),
+                createChoice('Hole up until dawn and see what the town looks like when fear finishes ripening.', 'SCENE_HUSHBRIAR_MORNING_SETUP', {
+                    timeAdvance: 1,
+                    timeReason: 'You wait out the rest of the night behind barred doors.'
+                })
+            );
+        } else if (morningAfterSeen) {
+            scene.text = `${scene.text} The square still carries the aftertaste of dawn panic, and every rumor in town now bends around the same hard truth: somebody powerful has started searching Hushbriar by force.`;
+        }
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_BRIARWOOD_INN') {
+        scene.choices = [...(scene.choices || [])];
+        if (moonwellPending) {
+            scene.text = `${scene.text} Every now and then the room pauses as if the whole inn heard something moving wrong in the east lanes.`;
+            scene.choices.splice(1, 0,
+                createChoice('Step back outside and follow the screams Fionnlagh feared.', 'SCENE_HUSHBRIAR_SCREAMS'),
+                createChoice('Bolt the door, keep low, and wait for dawn.', 'SCENE_HUSHBRIAR_MORNING_SETUP', {
+                    timeAdvance: 1,
+                    timeReason: 'You spend the last of the night behind barred shutters and whispered prayers.'
+                })
+            );
+        } else if (morningAfterSeen) {
+            scene.text = `${scene.text} Morning has not made anyone braver. It has only given the fear fresh names to whisper over breakfast they cannot eat.`;
+        }
+        return scene;
+    }
+
+    return scene;
+}
+
 export function getRuntimeScene(sceneId) {
     const baseScene = scenes[sceneId];
     if (!baseScene) return null;
@@ -1516,6 +1584,8 @@ export function getRuntimeScene(sceneId) {
         scene = buildSilverthornRuntimeScene(sceneId, baseScene);
     } else if (isSceneInSporefall(sceneId)) {
         scene = buildSporefallRuntimeScene(sceneId, baseScene);
+    } else if (isSceneInEarlyHushbriar(sceneId)) {
+        scene = buildEarlyHushbriarRuntimeScene(sceneId, baseScene);
     } else {
         scene = cloneScene(sceneId);
     }

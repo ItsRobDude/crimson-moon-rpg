@@ -135,6 +135,16 @@ test('north route discovery keeps the directional sandbox viable instead of dead
   expect(scene.choices.some((choice) => choice.text.includes('northern skip route'))).toBe(true);
 });
 
+test('Aodhan clues now surface a route out of Sporefall toward the Moonwell path', () => {
+  gameState.flags.sporefall_eoin_met = true;
+  gameState.flags.sporefall_eoin_talked = true;
+  gameState.flags.sporefall_cathedral_vision_seen = true;
+
+  const scene = getRuntimeScene('SCENE_HUB_SPOREFALL');
+
+  expect(scene.choices.some((choice) => choice.text.includes("follow Aodhan's trail toward Hushbriar"))).toBe(true);
+});
+
 test('Eoin dialogue reacts to discovered cathedral and north-side clues', () => {
   gameState.flags.sporefall_eoin_met = true;
   gameState.flags.sporefall_eoin_talked = true;

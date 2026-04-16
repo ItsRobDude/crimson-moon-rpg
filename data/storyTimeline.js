@@ -257,6 +257,30 @@ export const storySceneTriggers = {
         complete: ['archives_truth'],
         actId: 'act_4_lament_hill_truth'
     },
+    SCENE_ARRIVAL_HUSHBRIAR: {
+        actId: 'act_2_sporefall_revelations'
+    },
+    SCENE_HUSHBRIAR_TOWN: {
+        actId: 'act_2_sporefall_revelations'
+    },
+    SCENE_BRIARWOOD_INN: {
+        actId: 'act_2_sporefall_revelations'
+    },
+    SCENE_FIONNLAGH_HUB: {
+        actId: 'act_2_sporefall_revelations'
+    },
+    SCENE_HUSHBRIAR_SCREAMS: {
+        actId: 'act_2_sporefall_revelations'
+    },
+    SCENE_INVESTIGATION: {
+        actId: 'act_2_sporefall_revelations'
+    },
+    SCENE_TRACKING_CHOLDRITHS: {
+        actId: 'act_2_sporefall_revelations'
+    },
+    SCENE_HUSHBRIAR_MORNING_SETUP: {
+        actId: 'act_2_sporefall_revelations'
+    },
     SCENE_HUSHBRIAR_GUILD_ROAD: {
         activate: ['hushbriar_demigod_thread'],
         actId: 'act_5_hushbriar_endgame'
@@ -270,14 +294,6 @@ export const storySceneTriggers = {
         actId: 'act_5_hushbriar_endgame'
     },
     SCENE_ELARA_HIDEAWAY: {
-        activate: ['hushbriar_demigod_thread'],
-        actId: 'act_5_hushbriar_endgame'
-    },
-    SCENE_ARRIVAL_HUSHBRIAR: {
-        activate: ['hushbriar_demigod_thread'],
-        actId: 'act_5_hushbriar_endgame'
-    },
-    SCENE_HUSHBRIAR_TOWN: {
         activate: ['hushbriar_demigod_thread'],
         actId: 'act_5_hushbriar_endgame'
     }

@@ -223,6 +223,46 @@ export const narrativeStateRegistry = {
             revealSensitivity: 'public',
             semantics: 'story_progression'
         },
+        hushbriar_fionnlagh_met: {
+            owner: 'SCENE_FIONNLAGH_HUB',
+            thread: 'aodhan_thread',
+            meaning: 'The player reached Fionnlagh and opened the missable Moonwell night window.',
+            allowedValues: [true],
+            revealSensitivity: 'public',
+            semantics: 'story_progression'
+        },
+        moonwell_night_available: {
+            owner: 'SCENE_FIONNLAGH_HUB',
+            thread: 'aodhan_thread',
+            meaning: 'The Moonwell night event is currently available if the player investigates Hushbriar before dawn.',
+            allowedValues: [true],
+            revealSensitivity: 'public',
+            semantics: 'story_progression'
+        },
+        moonwell_seen: {
+            owner: 'SCENE_MOONWELL',
+            thread: 'aodhan_thread',
+            meaning: 'The player reached the Moonwell and saw the containment collapse in person.',
+            allowedValues: [true],
+            revealSensitivity: 'spoiler_sensitive',
+            semantics: 'story_progression'
+        },
+        moonwell_missed: {
+            owner: 'SCENE_HUSHBRIAR_MORNING_SETUP',
+            thread: 'aodhan_thread',
+            meaning: 'The player missed the first Moonwell night encounter and instead hit the morning-after consequence setup.',
+            allowedValues: [true],
+            revealSensitivity: 'spoiler_sensitive',
+            semantics: 'one_time_outcome'
+        },
+        moonwell_morning_setup_seen: {
+            owner: 'SCENE_HUSHBRIAR_MORNING_SETUP',
+            thread: 'aodhan_thread',
+            meaning: 'The player has seen the morning-after Hushbriar commotion that sets up the deferred three-way conflict.',
+            allowedValues: [true],
+            revealSensitivity: 'spoiler_sensitive',
+            semantics: 'story_progression'
+        },
         archives_thalion_audience_closed: {
             owner: 'SCENE_ARCHIVES_AUDIENCE',
             thread: 'archives_truth',
