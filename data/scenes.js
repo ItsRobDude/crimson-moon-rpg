@@ -1551,8 +1551,11 @@ export const scenes = {
         id: "SCENE_HUB_SHADOWMIRE",
         location: "shadowmire",
         background: "landscapes/forest_walk.png",
-        text: "The oppressive gloom of Shadowmire Forest surrounds you.",
-        choices: []
+        text: "Shadowmire closes around the road in damp green silence. The forest still lives here, but only just, and every mile east feels like a wager against how much longer that will remain true.",
+        choices: [
+            { text: "Keep to the eastern road", nextScene: "SCENE_TRAVEL_SHADOWMIRE" },
+            { text: "Fall back toward Silverthorn while you still can", nextScene: "SCENE_HUB_SILVERTHORN" }
+        ]
     },
     "SCENE_DURNHELM_GATES": {
         id: "SCENE_DURNHELM_GATES",
