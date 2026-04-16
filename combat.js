@@ -12,6 +12,8 @@ import { generateScaledStats } from './rules.js';
 import { canTargetToken, collectTemplateTargets, createBattlefieldLayout, feetToTiles, getCoverBetween, getFacingDirections, getMovementCost, getOpportunityAttackTriggers, getRangeDistance, getTemplateTiles, getTileEffects, getTileKey, getToken, inferFacing, isAdjacent, isWithinGrid, moveToken, setTerrain, setTileEffect } from './battlegrid.js';
 import { scheduleTrackedTimeout } from './timers.js';
 
+const DEFAULT_PORTRAIT_PATH = 'portraits/npc_male_placeholder_portrait.png';
+
 const ABILITY_MAP = {
     strength: 'STR',
     dexterity: 'DEX',
@@ -213,7 +215,7 @@ function buildEnemyCombatant(id, index) {
         uniqueId: `${id}_${index}`,
         type: 'enemy',
         name: combatantData.name,
-        portrait: combatantData.portrait || 'portraits/placeholder.png',
+        portrait: combatantData.portrait || DEFAULT_PORTRAIT_PATH,
         level,
         hp: combatantData.hp,
         maxHp: combatantData.hp,

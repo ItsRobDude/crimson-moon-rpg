@@ -19,6 +19,8 @@ import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttac
 import { getSpellTargetingPreview, initCombatSystem, startCombat, performAttack, performCastSpell, performAbility, performDefend, performEscape, performFlee, performEndTurn, performActionSurge, performCunningAction, performStand, uiHooks } from './combat.js';
 import { clearTrackedTimeout, scheduleTrackedTimeout } from './timers.js';
 
+const DEFAULT_PORTRAIT_PATH = 'portraits/npc_male_placeholder_portrait.png';
+
 export function getCharacterById(characterId) {
     if (characterId === 'player') {
         return gameState.player;
@@ -3044,7 +3046,7 @@ function renderPartyCard(p, id, activeId) {
 
     card.innerHTML = `
         <div class="party-header">
-            <div class="party-portrait" style='background-image: url("${p.portrait || 'portraits/placeholder.png'}");'></div>
+            <div class="party-portrait" style='background-image: url("${p.portrait || DEFAULT_PORTRAIT_PATH}");'></div>
             <div>
                 <p class="party-name">${p.name}</p>
                 <p class="party-class">Lv. ${p.level} ${classes[p.classId].name}</p>

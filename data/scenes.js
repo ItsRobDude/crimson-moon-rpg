@@ -3,7 +3,7 @@ export const scenes = {
         id: "SCENE_ARRIVAL_HUSHBRIAR",
         location: "hushbriar",
         background: "landscapes/silverthorn_market_avenue.png", // Placeholder until hushbriar landscape exists
-        text: "You arrive at Hushbriar Cove, trailing behind a squad of Silverthorn soldiers. The sun sets, and a dense fog swallows the sky. Two guards stand at the city gates, their torchlight struggling against the gloom.",
+        text: "You arrive at Hushbriar Cove a careful distance behind a Silverthorn patrol column. The road shoulders have been hacked clear, footprints press deep into the mud, and the sweet-rot smell from the corpse-choked creek still clings to your clothes. By the time the gates come into view, dusk has collapsed into cold fog and two soldiers stand watch beside a torch too weak for the work being asked of it.",
         onEnter: {
             addGold: 10 // Starting cash or adjustment
         },
@@ -28,27 +28,31 @@ export const scenes = {
         id: "SCENE_HUSHBRIAR_GATES",
         location: "hushbriar",
         background: "landscapes/silverthorn_market_avenue.png", // Placeholder
-        text: "'Halt travelers! State your business,' the tired guard grunts. Before you can answer, the suspicious guard steps forward, squinting at you. 'Wait. That look...'",
+        text: "'Halt, travelers. State your business, and be quick about it,' the older guard says. He looks tired enough to sway where he stands, but the younger one circles closer, eyes narrowing as he studies your gear, your faces, and anything that might tie you to Silverthorn's failed business in the east.",
         choices: [
             {
-                text: "Show respect and compliance.",
+                text: "Say you only seek shelter and keep your heads low (Persuasion)",
                 type: "skillCheck",
                 skill: "persuasion",
                 dc: 10,
-                successText: "You explain you are seeking refuge like everyone else. The tired guard waves you through. 'The emperor is conducting a search. Keep your heads low.'",
-                failText: "The suspicious guard isn't convinced. 'I've seen your face before...' He reaches for his weapon.",
+                successText: "You keep your voice level and your story small. The older guard exhales through his teeth and waves you through. 'The emperor is conducting a search. Stay out of our way and keep your heads low.'",
+                failText: "The younger guard stiffens. 'That mark... you're the ones who failed the Blackened King.' More soldiers answer his shout before you can clear the gate. Your weapons are stripped away and iron bites your wrists.",
                 nextSceneSuccess: "SCENE_HUSHBRIAR_TOWN",
-                nextSceneFail: "SCENE_HUSHBRIAR_COMBAT_GUARDS"
+                nextSceneFail: "SCENE_PRISON_CAPTURE"
             },
             {
-                text: "Slip past while they argue (Stealth)",
+                text: "Blend in with the late refugees and slip past them (Stealth)",
                 type: "skillCheck",
                 skill: "stealth",
                 dc: 14,
-                successText: "You blend into the crowd of refugees entering the gate, leaving the guards bickering.",
-                failText: "Your cloak catches on a crate. 'Hey! You there!' The guards surround you.",
+                successText: "You let a cluster of weary refugees swallow your silhouettes just long enough to pass the torchlight test. By the time the younger guard realizes he has miscounted the column, you are already inside the walls.",
+                failText: "Your movement draws the wrong kind of attention. The younger guard lunges, catches the edge of your cloak, and calls the watch before you can vanish into the crowd.",
                 nextSceneSuccess: "SCENE_HUSHBRIAR_TOWN",
-                nextSceneFail: "SCENE_HUSHBRIAR_COMBAT_GUARDS"
+                nextSceneFail: "SCENE_PRISON_CAPTURE"
+            },
+            {
+                text: "Refuse the order and go for your weapons",
+                nextScene: "SCENE_HUSHBRIAR_COMBAT_GUARDS"
             }
         ]
     },
@@ -56,9 +60,9 @@ export const scenes = {
         id: "SCENE_HUSHBRIAR_COMBAT_GUARDS",
         location: "hushbriar",
         background: "landscapes/silverthorn_market_avenue.png",
-        text: "'Traitors! Seize them!' The guards attack. You have no choice but to defend yourself.",
+        text: "Silverthorn soldiers close in through fog, torchlight, and shouted orders. Steel clears leather as you lunge for the only opening before the press of bodies turns into chains.",
         type: "combat",
-        enemies: ["dwarven_captain", "neala"],
+        enemies: ["silverthorn_guard", "silverthorn_guard"],
         winScene: "SCENE_HUSHBRIAR_TOWN",
         loseScene: "SCENE_PRISON_CAPTURE"
     },
@@ -66,42 +70,56 @@ export const scenes = {
         id: "SCENE_PRISON_CAPTURE",
         location: "hushbriar",
         background: "landscapes/silverthorn_market_avenue.png",
-        text: "You are overwhelmed by the guards. Blows rain down, and darkness takes you.",
+        text: "The gate watch does not kill you. It binds you, marches you through a city trying not to meet your eyes, and throws you into a holding cell with the promise that traitors do not leave Hushbriar by the front gate.",
         choices: [
-            { text: "Wake up...", nextScene: "SCENE_PRISON_CELL" }
+            { text: "Wake to the scrape of boots beyond the bars...", nextScene: "SCENE_PRISON_CELL" }
         ]
     },
     "SCENE_PRISON_CELL": {
         id: "SCENE_PRISON_CELL",
         location: "hushbriar",
         background: "landscapes/alderics_chamber.webp", // Placeholder for cell
-        text: "You wake in a cold, damp cell. A guard passes by. 'You have 24 hours before execution, traitor.' Your gear is piled on a table just out of reach.",
+        text: "You wake in a cold stone cell with your wrists rubbed raw and your gear piled on a table just beyond the bars. A guard paces the corridor in uneven intervals. 'Twenty-four hours,' he mutters without looking at you. 'Then the scaffold can decide whether the King still remembers your names.'",
         choices: [
             {
-                text: "Attempt to pick the lock (DEX/Thieves' Tools)",
+                text: "Work the lock with whatever scrap and wire you can reach (Sleight of Hand)",
                 type: "skillCheck",
-                skill: "sleight_of_hand", // Mapping to DEX
+                skill: "sleight_of_hand",
                 dc: 14,
-                successText: "Click. The mechanism yields. You slip out quietly, retrieving your gear.",
-                failText: "The lock is rusted shut. You make too much noise. The guard returns!",
+                successText: "The mechanism grudges you every inch, but at last it clicks. You slip out, reclaim your gear, and move before anyone thinks to look twice.",
+                failText: "The pick slips, the lock snaps loud enough to wake the corridor, and the pacing guard wheels back toward your cell with a curse.",
                 nextSceneSuccess: "SCENE_PRISON_ESCAPE",
-                nextSceneFail: "SCENE_DEFEAT" // Or combat with guard?
+                nextSceneFail: "SCENE_PRISON_GUARD_RETURN"
             },
             {
-                text: "Bribe the guard (50g)",
-                action: "shortRest", // Using as a placeholder action trigger or just custom choice?
-                // Standard handleChoice doesn't support custom logic easily without `type`?
-                // I'll implement a custom effect or check manually?
-                // Actually, let's use a cost check.
+                text: "Offer the guard 50 gold to forget what he heard",
                 cost: 50,
-                nextScene: "SCENE_PRISON_ESCAPE" // Assuming success if you have gold.
-                // Note: Standard handleChoice checks cost but might default to nextScene if type is not specified.
-                // game.js: `if (spendGold(choice.cost)) ...` logic needed for generic choices?
-                // Currently handleChoice only checks cost for rest.
+                nextScene: "SCENE_PRISON_ESCAPE"
             },
             {
-                text: "Wait for an opportunity.",
-                nextScene: "SCENE_DEFEAT"
+                text: "Wait for the next change of watch",
+                nextScene: "SCENE_PRISON_GUARD_RETURN"
+            }
+        ]
+    },
+    "SCENE_PRISON_GUARD_RETURN": {
+        id: "SCENE_PRISON_GUARD_RETURN",
+        location: "hushbriar",
+        background: "landscapes/alderics_chamber.webp",
+        text: "The guard stalks back to your cell, listening to the bars and lock with the bitter patience of a man who has heard too many desperate ideas in one night. He does not open the door, but he does lean close enough to make quiet bargains possible.",
+        choices: [
+            {
+                text: "Press 50 gold through the bars and buy one loose latch",
+                cost: 50,
+                nextScene: "SCENE_PRISON_ESCAPE"
+            },
+            {
+                text: "Lure him close and rush him when he unlocks the bars",
+                nextScene: "SCENE_HUSHBRIAR_COMBAT_GUARDS"
+            },
+            {
+                text: "Stay still until the corridor settles again",
+                nextScene: "SCENE_PRISON_CELL"
             }
         ]
     },
@@ -109,7 +127,7 @@ export const scenes = {
         id: "SCENE_PRISON_ESCAPE",
         location: "hushbriar",
         background: "landscapes/silverthorn_market_avenue.png",
-        text: "You have escaped the cell. You must move quickly before the alarm is raised.",
+        text: "Whether by a loosened latch or bought silence, the cell no longer holds you. You reclaim your gear, duck past the watch before the corridor changes hands, and slip back toward Hushbriar's darkened streets.",
         choices: [
             { text: "Sneak into the town shadows", nextScene: "SCENE_HUSHBRIAR_TOWN" }
         ]
@@ -118,7 +136,7 @@ export const scenes = {
         id: "SCENE_HUSHBRIAR_TOWN",
         location: "hushbriar",
         background: "landscapes/silverthorn_market_avenue.png",
-        text: "Inside, the town is quiet and fearful. Few elves roam the streets. The Briarwood Inn stands ahead, bustling with refugees.",
+        text: "Inside the walls, Hushbriar feels occupied more than governed. Wood elves keep their distance from Silverthorn uniforms, armored horses crowd the inn stables, and every open doorway looks like it learned caution before hospitality. Up ahead the Briarwood Inn still burns with enough light to gather refugees, pilgrims, and anyone too frightened to sleep alone.",
         choices: [
             {
                 text: "Enter the Briarwood Inn.",
@@ -1539,21 +1557,74 @@ export const scenes = {
     "SCENE_DURNHELM_GATES": {
         id: "SCENE_DURNHELM_GATES",
         location: "durnhelm",
-        background: "landscapes/forest_walk_alt.png", // Placeholder
-        text: "Durnhelm rises from the mountain like a fortress-temple, but the approach is choked with broken wagons, dwarven dead, and the scorched aftermath of arcane violence. The great gates still stand, yet the city beyond carries the hush of a place that survived only by inches.",
+        background: "landscapes/road_to_durnhelm.png",
+        text: "Durnhelm rises from the mountain like a fortress-temple, but the beauty of the approach dies in the last mile. Broken wagons, splintered trees, and dwarven dead choke the road beneath the gates. Some bodies are burned to charcoal, some hacked apart, and some look as though the fight simply tore the shape of them apart mid-breath.",
         choices: [
-            { text: "Speak to the guards", nextScene: "SCENE_DURNHELM_ENTRY" },
-            { text: "Leave", action: "openMap" }
+            {
+                text: "Read the slaughter outside the gates before you enter (Perception)",
+                type: "skillCheck",
+                skill: "perception",
+                dc: 12,
+                successText: "The dead are not arranged like a last stand. Their wounds and positions suggest pursuit, panic, and something powerful forcing its way out of the city rather than into it.",
+                failText: "You can count the dead, but not the shape of what happened to them. All the scene offers cleanly is ruin, smoke, and a fight far beyond ordinary soldiers.",
+                nextSceneSuccess: "SCENE_DURNHELM_ENTRY",
+                nextSceneFail: "SCENE_DURNHELM_ENTRY"
+            },
+            { text: "Push through the broken gatehouse", nextScene: "SCENE_DURNHELM_ENTRY" },
+            { text: "Turn away and follow the Lament Hill road instead", nextScene: "SCENE_LAMENT_HILL_APPROACH" }
         ]
     },
     "SCENE_DURNHELM_ENTRY": {
         id: "SCENE_DURNHELM_ENTRY",
         location: "durnhelm",
-        background: "landscapes/forest_walk_alt.png",
-        text: "The surviving guards wave you inside with visible reluctance. Every face in Durnhelm looks drawn tight with grief. They speak of a murderous wizard, a stolen relic, and a city still counting its dead.",
+        background: "landscapes/near_durnhelm.png",
+        text: "Inside the walls, Durnhelm is not empty. It is worse: alive enough to bury its dead. Survivors drag wrapped bodies toward pyres, a smashed storefront near the gate leaks ruined trade goods into the street, and every whispered conversation seems to end on the same pair of words: the forge. Someone finally tells you the worst of the fighting ran east, where the holy fire still burns beside the shattered temple.",
         choices: [
-            { text: "Search for the forge master", action: "openMap" },
-            { text: "Withdraw and reconsider your route", action: "openMap" }
+            { text: "Search the wrecked gate-quarter shops for context", nextScene: "SCENE_DURNHELM_MARKET_RUINS" },
+            { text: "Head east toward the holy forge", nextScene: "SCENE_DURNHELM_FORGE_APPROACH" },
+            { text: "Withdraw and take the Lament Hill lead instead", nextScene: "SCENE_LAMENT_HILL_APPROACH" }
+        ]
+    },
+    "SCENE_DURNHELM_MARKET_RUINS": {
+        id: "SCENE_DURNHELM_MARKET_RUINS",
+        location: "durnhelm",
+        background: "landscapes/near_durnhelm.png",
+        text: "The gate-quarter shops tell the story the survivors are too tired to repeat twice. A general store has been half-collapsed by collateral damage from the city guard's last fight. A magic shop stands open and gutted, its shelves smashed and its keeper clearly not among the living. Even the alchemist's surviving stock has been marked up into desperation. Everyone who will still speak points you east, toward the forge and the temple ruins where the wizard demanded answers.",
+        choices: [
+            { text: "Follow the east-side lead to the holy forge", nextScene: "SCENE_DURNHELM_FORGE_APPROACH" },
+            { text: "Return to the main thoroughfare", nextScene: "SCENE_DURNHELM_ENTRY" }
+        ]
+    },
+    "SCENE_DURNHELM_FORGE_APPROACH": {
+        id: "SCENE_DURNHELM_FORGE_APPROACH",
+        location: "durnhelm",
+        background: "landscapes/outside_dwarf_cave.png",
+        text: "The forge quarter still glows with holy fire, but everything around it looks as though a battle broke the street and then kept striking after the victory had already become murder. The nearby temple wall has been blasted open, an anvil is lodged impossibly high in the stone, and blood has dried in black fans across the floor. Somewhere inside the rubble, you hear a cough and the scrape of someone too angry to die quietly.",
+        choices: [
+            {
+                text: "Study the blasted stone and bloodwork before you move (Arcana)",
+                type: "skillCheck",
+                skill: "arcana",
+                dc: 12,
+                successText: "The scorch marks and torn masonry read like the work of a highly skilled wizard who never had to slow down for lesser opposition.",
+                failText: "You know only that the violence here was deliberate, personal, and far beyond the scale of a common raid.",
+                nextSceneSuccess: "SCENE_DURNHELM_CATHAL",
+                nextSceneFail: "SCENE_DURNHELM_CATHAL"
+            },
+            { text: "Follow the coughing through the wreckage", nextScene: "SCENE_DURNHELM_CATHAL" },
+            { text: "Fall back toward the gate quarter", nextScene: "SCENE_DURNHELM_ENTRY" }
+        ]
+    },
+    "SCENE_DURNHELM_CATHAL": {
+        id: "SCENE_DURNHELM_CATHAL",
+        location: "durnhelm",
+        background: "landscapes/outside_dwarf_cave.png",
+        npcPortrait: "portraits/npc_male_placeholder_portrait.png",
+        text: "You find the forgemaster under a spill of broken timber and cracked stone, drunk enough to sway and furious enough to stay conscious anyway. Cathal Ó Taidhg spits blood, curses the murderous thief who tore through Durnhelm, and finally gives the relic its name: the Stone of Oblivion. He tells you Aodhan stole it after demanding to know how to use it, that Alderic showed far too much interest in the stone before the empires agreed to leave it in dwarven hands, and that if anyone still living can tell you more, it may be the witch on Lament Hill. 'If you're chasing answers,' Cathal growls, 'chase them there before every road left to this world closes behind you.'",
+        choices: [
+            { text: "Take Cathal's warning and follow the Lament Hill lead", nextScene: "SCENE_LAMENT_HILL_APPROACH" },
+            { text: "Ask what waits if you turn back toward Silverthorn", nextScene: "SCENE_SILVERTHORN_QUARANTINE" },
+            { text: "Stay in Durnhelm a while longer", nextScene: "SCENE_DURNHELM_ENTRY" }
         ]
     },
     "SCENE_LAMENT_HILL_APPROACH": {
