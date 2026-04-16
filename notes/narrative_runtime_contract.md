@@ -44,6 +44,19 @@ Use runtime mutation in `game.js` only for:
 
 If a runtime branch adds new stable lore paragraphs or becomes the only readable version of a scene, mark it as a migration candidate and move the stable prose back toward `data/scenes.js` in a later pass.
 
+## Tone Safety
+
+Tone is a narrative safety issue, not just a style preference.
+
+Before shipping authored prose changes or large runtime variants, check them against `notes/narrative_tone_guide.md`.
+
+Important expectations:
+
+- runtime variants may adapt or shorten a scene, but should preserve its dread, grief, bodily stakes, and social fear
+- do not let runtime-authored text sand off death, rot, injury, panic, or occupied pressure that the authored baseline establishes
+- do not let a runtime branch become cleaner, tidier, or more generic than the baseline scene just because it is state-aware
+- if a scene class depends on a specific register such as Sporefall body horror or Archives penitential severity, keep that register intact across variants
+
 ## Spoiler Discipline
 
 `notes/act1_canon_internal.md` is internal only.
@@ -137,3 +150,6 @@ Any narrative safety work should preserve:
 - no early-route Neala / Liobhan appearances
 - no hidden-truth spoiler terms in early Silverthorn or early Sporefall runtime text
 - no story-critical flag or memory key outside the registry
+- no tonal drift that replaces concrete horror with generic mood language in protected scenes
+- no runtime variant that strips physical aftermath, social fear, or grief from the authored baseline
+- no protected NPC voice drifting into polished exposition, modern helper phrasing, or emotionally detached summary

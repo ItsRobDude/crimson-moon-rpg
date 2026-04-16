@@ -96,6 +96,7 @@ Before changing major story flow, timing, or city content, check:
 - `dnd-original-campaign-draft`
 - `notes/story_timeline_model.md`
 - `readme.txt`
+- `notes/narrative_tone_guide.md` for prose-tone guardrails and anti-drift rules
 - `notes/act1_canon_internal.md` for contributor-only canon truths and spoiler boundaries
 - `notes/narrative_runtime_contract.md` for runtime-authoring and spoiler-discipline rules
 - `notes/narrative_state_registry.md` for story-critical flags and scene-memory ownership
@@ -130,6 +131,36 @@ Current naming rule:
 
 - present-tense horror scenes can use `Sporefall`
 - memory fragments, older records, and pre-ritual references should usually use `Whisperwood`
+
+## Tone Preservation
+
+Before changing player-facing prose, dialogue, or choice labels, read `notes/narrative_tone_guide.md`.
+
+The intended register is hybrid grim realism:
+
+- grounded, desperate, and physically concrete
+- death-haunted rather than merely "dark"
+- explicit about bodily aftermath when the story earns it
+- willing to keep brief wonder, but only as contrast inside an ugly world
+
+Do:
+
+- keep death visible in scene dressing where the campaign draft establishes it
+- keep body horror concrete rather than coy, vague, or euphemistic
+- preserve dread in quiet scenes instead of flattening them into neutral transit beats
+- let grief, exhaustion, suspicion, prayer, hunger, injury, and social fear shape the prose
+- prefer concrete physical cues over repeated abstract dread words
+- keep choice labels diegetic and emotionally situated rather than menu-flat
+
+Do not:
+
+- sanitize ugliness that the draft treats as part of the world's lived texture
+- replace specific horror with generic epic-fantasy mood language
+- let NPCs sound like modern, clever assistants or emotionally polished lore dispensers
+- overuse abstract filler such as "ominous," "mysterious," or "dark presence" where physical evidence would be stronger
+- turn grim scenes into generic labels like `Continue`, `Proceed`, `Investigate Area`, or other gamey fallback wording
+
+When adapting material from `dnd-original-campaign-draft`, translate it into authored prose rather than copying its table-facing structure, but do not flatten its brutality, bodily stakes, or emotional weight.
 
 ## Narrative Runtime Safety
 
@@ -302,6 +333,7 @@ If you change:
 - menus or bootstrap flow, check `e2e/bootstrap_resilience.test.js`
 - character creation or save/load flow, check `e2e/character_creation.test.js` and `e2e/load_game.test.js`
 - timeline/state logic, add or update unit tests in `__tests__`
+- authored narrative tone, dialogue voice, or grim-scene choice wording, check and update the targeted narrative tests in `__tests__/narrative_tone.test.js` and related narrative suites
 
 When tests cannot be run, say so clearly and summarize what was verified by source inspection instead.
 
