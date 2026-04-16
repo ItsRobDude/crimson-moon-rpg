@@ -12,7 +12,7 @@ import { shops } from './data/shops.js';
 import { npcs } from './data/npcs.js';
 import { companions } from './data/companions.js';
 import { factions } from './data/factions.js';
-import { gameState, getActorCastableSpells, getInventoryEntries, getItemCount, getItemEquipFailure, getInventoryUseCost, getPreparedSpellLimit, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, setNpcStatus, processNarrativeTrigger, unequipItem, syncPartyLevels, saveGame, loadGame as loadGameData, removeItem, advanceTime, getTimelineLabel, getTimeSlotLabel, getSceneMemory, setSceneMemory, performShortRest as gsPerformShortRest, performLongRest as gsPerformLongRest, syncCharacterState, getStoredSaveState, SAVE_STORAGE_KEY } from './data/gameState.js';
+import { gameState, getActorCastableSpells, getInventoryEntries, getItemCount, getItemEquipFailure, getInventoryUseCost, getPreparedSpellLimit, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, addCompanion, removeCompanion, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, setNpcStatus, processNarrativeTrigger, unequipItem, syncPartyLevels, saveGame, loadGame as loadGameData, removeItem, advanceTime, getTimelineLabel, getTimeSlotLabel, getSceneMemory, setSceneMemory, performShortRest as gsPerformShortRest, performLongRest as gsPerformLongRest, syncCharacterState, getStoredSaveState, SAVE_STORAGE_KEY } from './data/gameState.js';
 import { CANONICAL_START_SCENE, ensureStoryState, getLocationStoryRequirement, getLocationUnlockHint, meetsStoryRequirement, storyActs, storyEvents, syncStoryStateForScene } from './data/storyTimeline.js';
 import { addEffectToActor, getActorTraitDefinitions, getBonusSkillChoiceCount, getBonusToolChoiceCount, getBonusToolChoiceOptions, getDerivedActorState, getRaceTraitDefinitions, removeEffectFromActor } from './data/mechanics.js';
 import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod, generateScaledStats, getPlayerAC } from './rules.js';
@@ -26,6 +26,23 @@ export function getCharacterById(characterId) {
         return gameState.player;
     }
     return gameState.roster[characterId];
+}
+
+function actorHasCompanion(companionId) {
+    return !!companionId && gameState.party.includes(companionId) && !!gameState.roster[companionId];
+}
+
+function getActivePartyActors() {
+    return gameState.party
+        .map((companionId) => gameState.roster[companionId])
+        .filter(Boolean);
+}
+
+function formatNameList(names = []) {
+    if (names.length === 0) return '';
+    if (names.length === 1) return names[0];
+    if (names.length === 2) return `${names[0]} and ${names[1]}`;
+    return `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`;
 }
 
 function actorHasItem(characterId, itemId, quantity = 1) {
@@ -68,6 +85,14 @@ function meetsChoiceRequirements(choice, actor = gameState.player) {
     if (requires.notFlag) {
         const flags = Array.isArray(requires.notFlag) ? requires.notFlag : [requires.notFlag];
         if (flags.some((flagId) => gameState.flags[flagId])) return false;
+    }
+    if (requires.companionId) {
+        const companionsRequired = Array.isArray(requires.companionId) ? requires.companionId : [requires.companionId];
+        if (!companionsRequired.every((companionId) => actorHasCompanion(companionId))) return false;
+    }
+    if (requires.notCompanionId) {
+        const companionsBlocked = Array.isArray(requires.notCompanionId) ? requires.notCompanionId : [requires.notCompanionId];
+        if (companionsBlocked.some((companionId) => actorHasCompanion(companionId))) return false;
     }
     if (requires.npcState) {
         const { id, status } = requires.npcState;
@@ -147,6 +172,15 @@ function buildNarrativeCheckOptions(choice, actor = gameState.player) {
     if (choice.statusAid) {
         const aid = choice.statusAid;
         applyAid(aid, actorHasStatus(actor, aid.statusId), `${aid.label || aid.statusId} steadies you.`);
+    }
+    if (choice.companionAid) {
+        const aid = choice.companionAid;
+        const companionActor = aid.companionId ? gameState.roster[aid.companionId] : null;
+        applyAid(
+            aid,
+            actorHasCompanion(aid.companionId),
+            aid.logText || `${companionActor?.name || 'Your companion'} helps read the danger before it closes.`
+        );
     }
 
     return { options, notes };
@@ -534,6 +568,59 @@ function cloneScene(sceneId) {
     return JSON.parse(JSON.stringify(scenes[sceneId]));
 }
 
+function applyPartySceneVariation(sceneId, scene) {
+    if (!scene) return scene;
+    const partyActors = getActivePartyActors();
+    if (partyActors.length === 0) return scene;
+
+    const partyNames = formatNameList(partyActors.map((actor) => actor.name));
+    const hasEoin = actorHasCompanion('eoin');
+    const hasNeala = actorHasCompanion('neala');
+
+    if (sceneId === 'SCENE_TRAVEL_SHADOWMIRE') {
+        scene.text = `${scene.text} ${partyNames} keep a tighter marching distance than comfort allows, because the forest is easier to trust than the open road only until something in it starts listening back.`;
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_HUB_SPOREFALL') {
+        const witness = hasEoin
+            ? 'Eoin moves with you now, flinching at each street he still recognizes and warning you away from the silences that feel too deliberate.'
+            : `${partyNames} spread through the street with the wary discipline of people who know ruin can still lunge.`;
+        scene.text = `${scene.text} ${witness}`;
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_HUSHBRIAR_TOWN') {
+        const pressure = hasNeala
+            ? 'With Neala among you, the townsfolk stop mistaking your group for aimless refugees and start treating you like people who belong to a more dangerous conversation.'
+            : `A visible group draws the eye here. ${partyNames} make the town feel your arrival even when nobody is brave enough to name it aloud.`;
+        scene.text = `${scene.text} ${pressure}`;
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_BRIARWOOD_INN') {
+        const innBeat = hasNeala
+            ? 'Neala counts doors, exits, and armed drunks before she sits, which does more to quiet the room around your table than any prayer.'
+            : `${partyNames} have to fold themselves smaller than they would like to fit around one table, and the innkeeper charges extra in the look he gives you for the trouble.`;
+        scene.text = `${scene.text} ${innBeat}`;
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_HUSHBRIAR_GUILD_ROAD' || sceneId === 'SCENE_ELARA_PROTECT_ROUTE') {
+        const roadBeat = hasNeala
+            ? 'Neala keeps reading the walls, culverts, and mooring posts without slowing, proving that half the guild route lives in marks a stranger would never know were there.'
+            : `${partyNames} make for a harder shape to hide, and every bend in the road feels built to ask whether your numbers are shelter or invitation.`;
+        scene.text = `${scene.text} ${roadBeat}`;
+        return scene;
+    }
+
+    if (scene.location === 'travel' && !sceneId.startsWith('SCENE_TRAVEL_EVENT_')) {
+        scene.text = `${scene.text} ${partyNames} have learned to keep their voices low enough that even relief sounds like conspiracy.`;
+    }
+
+    return scene;
+}
+
 function buildSilverthornRuntimeScene(sceneId, baseScene) {
     const time = getSilverthornTimeState();
     const scene = cloneScene(sceneId);
@@ -869,7 +956,7 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
             scene.text = `You stand once more in Sporefall's central street, where the silence no longer feels abandoned so much as watched. Doors hang open to rooms no one had time to close. A butcher's awning has fused to its frame in black curls. The red light on the stones makes every threshold look blood-washed whether blood touched it or not. The borough still opens west toward the cathedral quarter, east toward the overseer's row, and north toward the bridge Eoin named.${eoinState ? ` ${eoinState}` : ''}`;
             scene.choices = [
                 createChoice('Step back into the central street', 'SCENE_HUB_SPOREFALL'),
-                createChoice("Return to Eoin's hiding place", 'SCENE_EOIN_TALK')
+                createChoice(gameState.flags.eoin_recruited ? "Check in with Eoin before moving on" : "Return to Eoin's hiding place", 'SCENE_EOIN_TALK')
             ];
             return scene;
         }
@@ -976,6 +1063,7 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
 
     if (sceneId === 'SCENE_EOIN_TALK') {
         scene.choices = [...(scene.choices || [])];
+        const recruitmentResolved = !!(gameState.flags.eoin_recruited || gameState.flags.eoin_refused || gameState.flags.eoin_locked_out);
         if (state.eoinTalked) {
             const reactions = [];
             if (clueNotes.includes('cathedral')) {
@@ -995,7 +1083,14 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
                 state.eoinFed ? 'The memory of the food you gave him lingers in the way he no longer apologizes for surviving.' : null,
                 state.eoinTreated ? 'The rasp in his breath is lighter now, though the fear behind it remains untouched.' : null
             ].filter(Boolean).join(' ');
-            scene.text = `Eoin is calmer now, though never fully steady. He keeps watching the empty streets between words, as if expecting the town itself to overhear him. The same three threads still matter most to him: the cathedral, the north-side bridge, and the impossible fact that he feels present and absent all at once.${suffix}${comfortBeat ? ` ${comfortBeat}` : ''}`;
+            const recruitBeat = gameState.flags.eoin_recruited
+                ? 'He no longer sits like someone hiding from the street. He listens for your next move instead, frightened but committed to being part of it.'
+                : gameState.flags.eoin_refused
+                    ? 'He stays close to the cellar mouth now, resigned to surviving this place without your company.'
+                    : gameState.flags.eoin_locked_out
+                        ? 'He answers what he must, but the hurt in him has hardened into enough caution to keep the rest of himself back.'
+                        : null;
+            scene.text = `Eoin is calmer now, though never fully steady. He keeps watching the empty streets between words, as if expecting the town itself to overhear him. The same three threads still matter most to him: the cathedral, the north-side bridge, and the impossible fact that he feels present and absent all at once.${suffix}${comfortBeat ? ` ${comfortBeat}` : ''}${recruitBeat ? ` ${recruitBeat}` : ''}`;
         } else {
             scene.text = "Once the spear lowers a little, the story comes out in broken pieces: quarantine lines, prayers that became orders, a mother he lost sight of near the northern bridge where they used to sleep under the stonework, and a town that seemed to sicken all at once after the moon rose wrong. He still calls the place Whisperwood when he forgets himself. He speaks like someone afraid that saying the whole truth aloud might summon it back.";
         }
@@ -1014,6 +1109,31 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
                     { type: 'consumeItem', itemId: 'healer_kit', quantity: 1, logText: 'You use up a healer kit patching cracked skin and binding the worst of the raw places.' },
                     { type: 'relationship', npcId: 'eoin', amount: 1 },
                     { type: 'flag', flagId: 'sporefall_eoin_treated', value: true }
+                ]
+            }));
+        }
+        if (!recruitmentResolved) {
+            scene.choices.push(createChoice('Ask Eoin to walk with you and keep the borough from taking you blind', 'SCENE_EOIN_RECRUITED', {
+                effects: [
+                    { type: 'flag', flagId: 'sporefall_eoin_talked', value: true },
+                    { type: 'flag', flagId: 'eoin_recruited', value: true },
+                    { type: 'flag', flagId: 'eoin_bonded', value: true },
+                    { type: 'relationship', npcId: 'eoin', amount: 10 },
+                    { type: 'reputation', factionId: 'whisperwood_survivors', amount: 5 },
+                    { type: 'addCompanion', companionId: 'eoin', logText: 'Eoin joins the party, still shaking but no longer hiding from every ruined doorway.' }
+                ]
+            }));
+            scene.choices.push(createChoice('Tell Eoin to stay hidden until the road clears', 'SCENE_HUB_SPOREFALL', {
+                effects: [
+                    { type: 'flag', flagId: 'sporefall_eoin_talked', value: true },
+                    { type: 'flag', flagId: 'eoin_refused', value: true }
+                ]
+            }));
+            scene.choices.push(createChoice('Tell him you would rather walk alone than drag another ghost behind you', 'SCENE_HUB_SPOREFALL', {
+                effects: [
+                    { type: 'flag', flagId: 'sporefall_eoin_talked', value: true },
+                    { type: 'flag', flagId: 'eoin_locked_out', value: true },
+                    { type: 'relationship', npcId: 'eoin', amount: -15 }
                 ]
             }));
         }
@@ -1054,8 +1174,24 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
             createChoice(state.cathedralVisionSeen ? 'Return west to the Cathedral of Bone' : 'Head west through the cathedral quarter', 'SCENE_SPOREFALL_CATHEDRAL_APPROACH'),
             createChoice(state.homeUnlocked ? "Return east to Aodhan's house" : "Head east toward the overseer's row", 'SCENE_SPOREFALL_OVERSEER_APPROACH'),
             createChoice(state.northRouteOpen ? 'Take the northern skip route again' : 'Head north through the broken market road', 'SCENE_SPOREFALL_NORTH_APPROACH'),
-            createChoice("Return to Eoin's hiding place", 'SCENE_EOIN_TALK')
+            createChoice(gameState.flags.eoin_recruited ? "Check in with Eoin before choosing a road" : "Return to Eoin's hiding place", 'SCENE_EOIN_TALK')
         ];
+        if (gameState.flags.eoin_recruited) {
+            scene.choices.unshift(createChoice('Let Eoin guide you by the shelter paths to the north road (Survival)', null, {
+                type: 'skillCheck',
+                skill: 'survival',
+                dc: 10,
+                companionAid: {
+                    companionId: 'eoin',
+                    bonus: 2,
+                    logText: 'Eoin still remembers which alleys sheltered the hungry and which ones only looked safe from far away.'
+                },
+                successText: 'With Eoin reading the borough from memory and fear, you reach the north road without giving the dead ground a fair chance to answer.',
+                failText: 'Even Eoin cannot make Sporefall harmless, but his warning still keeps the worst of the streets from closing around you.',
+                nextSceneSuccess: 'SCENE_SPOREFALL_NORTH_APPROACH',
+                nextSceneFail: 'SCENE_SPOREFALL_NORTH_APPROACH'
+            }));
+        }
         return scene;
     }
 
@@ -1375,13 +1511,15 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
 export function getRuntimeScene(sceneId) {
     const baseScene = scenes[sceneId];
     if (!baseScene) return null;
+    let scene = null;
     if (isSceneInSilverthorn(sceneId)) {
-        return buildSilverthornRuntimeScene(sceneId, baseScene);
+        scene = buildSilverthornRuntimeScene(sceneId, baseScene);
+    } else if (isSceneInSporefall(sceneId)) {
+        scene = buildSporefallRuntimeScene(sceneId, baseScene);
+    } else {
+        scene = cloneScene(sceneId);
     }
-    if (isSceneInSporefall(sceneId)) {
-        return buildSporefallRuntimeScene(sceneId, baseScene);
-    }
-    return cloneScene(sceneId);
+    return applyPartySceneVariation(sceneId, scene);
 }
 
 function getStoryLabel(collection, id) {
@@ -1469,8 +1607,34 @@ function applySceneEffect(effect, source = 'scene') {
         return;
     }
 
+    if (effect.type === 'addCompanion' && effect.companionId) {
+        addCompanion(effect.companionId);
+        const companion = companions[effect.companionId];
+        if (companion) {
+            logMessage(logText || `${companion.name} joins the party.`, 'gain');
+        }
+        return;
+    }
+
+    if (effect.type === 'removeCompanion' && effect.companionId) {
+        removeCompanion(effect.companionId);
+        const companion = companions[effect.companionId];
+        if (companion) {
+            logMessage(logText || `${companion.name} leaves the party.`, 'system');
+        }
+        return;
+    }
+
     if (effect.type === 'flag' && effect.flagId) {
         gameState.flags[effect.flagId] = effect.value !== undefined ? effect.value : true;
+        return;
+    }
+
+    if (effect.type === 'threat') {
+        adjustThreat(effect.amount || 0, effect.reason || source);
+        if (logText) {
+            logMessage(logText, effect.amount >= 0 ? 'system' : 'gain');
+        }
         return;
     }
 
@@ -2597,6 +2761,49 @@ function toggleMap() {
     modal.classList.remove('hidden');
 }
 
+export function getTravelEventPool(locationId) {
+    const partySize = getActivePartyActors().length;
+
+    return travelEvents.filter((event) => {
+        if (Array.isArray(event.destinations) && !event.destinations.includes(locationId)) return false;
+        if (event.minThreat !== undefined && gameState.threat.level < event.minThreat) return false;
+        if (event.maxThreat !== undefined && gameState.threat.level > event.maxThreat) return false;
+        if (event.partyOnly && partySize === 0) return false;
+        if (event.soloOnly && partySize > 0) return false;
+        if (event.requiresFlag) {
+            const flags = Array.isArray(event.requiresFlag) ? event.requiresFlag : [event.requiresFlag];
+            if (!flags.every((flagId) => gameState.flags[flagId])) return false;
+        }
+        if (event.notFlag) {
+            const flags = Array.isArray(event.notFlag) ? event.notFlag : [event.notFlag];
+            if (flags.some((flagId) => gameState.flags[flagId])) return false;
+        }
+        return true;
+    });
+}
+
+function getTravelEventChance(locationId) {
+    let chance = 12 + Math.min(18, Math.floor(gameState.threat.level / 4));
+    if (getActivePartyActors().length > 0) chance += 6;
+    if (['whisperwood', 'hushbriar', 'thieves_hideout', 'soul_mill'].includes(locationId)) chance += 8;
+    if (gameState.flags.elara_route_aodhan_lured && ['hushbriar', 'thieves_hideout', 'soul_mill'].includes(locationId)) chance += 6;
+    return Math.max(10, Math.min(55, chance));
+}
+
+function buildTravelEventText(event) {
+    const partyActors = getActivePartyActors();
+    if (partyActors.length === 0) return event.text;
+
+    const partyNames = formatNameList(partyActors.map((actor) => actor.name));
+    if (actorHasCompanion('neala') && ['hushbriar', 'thieves_hideout', 'solasmor', 'soul_mill'].some((id) => event.destinations?.includes(id))) {
+        return `${event.text} Neala keeps cutting her eyes toward the margins of the road, reading the places where a guild scout or a hunter would choose to wait.`;
+    }
+    if (actorHasCompanion('eoin') && event.destinations?.includes('whisperwood')) {
+        return `${event.text} Eoin goes pale at the sight of it, but still names what the ruin used to be before the road can swallow the memory whole.`;
+    }
+    return `${event.text} ${partyNames} keep moving in a silence that feels shared rather than empty.`;
+}
+
 function travelTo(locationId) {
     document.getElementById('map-modal').classList.add('hidden');
 
@@ -2608,17 +2815,19 @@ function travelTo(locationId) {
     logMessage(`Traveling to ${locations[locationId].name}...`, "system");
     advanceNarrativeTime(1, 'The road eats up time.', { inSilverthorn: false });
 
-    if (rollDie(100) <= 20) {
-        const event = travelEvents[Math.floor(Math.random() * travelEvents.length)];
+    const availableEvents = getTravelEventPool(locationId);
+    if (availableEvents.length > 0 && rollDie(100) <= getTravelEventChance(locationId)) {
+        const event = availableEvents[Math.floor(Math.random() * availableEvents.length)];
         const eventSceneId = "SCENE_TRAVEL_EVENT_" + Date.now();
         const destSceneId = getHubSceneForLocation(locationId);
+        const eventText = buildTravelEventText(event);
 
         if (event.type === 'combat') {
             scenes[eventSceneId] = {
                 id: eventSceneId,
                 location: "travel",
                 background: "landscapes/forest_walk_alt.png",
-                text: event.text,
+                text: eventText,
                 type: 'combat',
                 enemyId: event.enemyId,
                 winScene: destSceneId,
@@ -2631,7 +2840,7 @@ function travelTo(locationId) {
                 id: eventSceneId,
                 location: 'travel',
                 background: event.background || 'landscapes/forest_walk_alt.png',
-                text: event.text,
+                text: eventText,
                 onEnter: event.effects ? { effects: event.effects } : undefined,
                 choices: [
                     {
@@ -2647,7 +2856,7 @@ function travelTo(locationId) {
                 id: eventSceneId,
                 location: "travel",
                 background: "landscapes/forest_walk_alt.png",
-                text: event.text,
+                text: eventText,
                 choices: [
                     {
                         text: "Investigate",
@@ -2657,6 +2866,7 @@ function travelTo(locationId) {
                         successText: event.successText,
                         failText: event.failText,
                         onSuccess: event.onSuccess,
+                        onFail: event.onFail,
                         nextSceneSuccess: destSceneId,
                         nextSceneFail: destSceneId
                     },

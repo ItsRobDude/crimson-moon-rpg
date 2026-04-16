@@ -151,6 +151,11 @@ export const scenes = {
                 type: "skillCheck",
                 skill: "survival",
                 dc: 10,
+                companionAid: {
+                    companionId: "neala",
+                    bonus: 2,
+                    logText: "Neala points out which alleys are actually escape lanes and which ones are just where patrols want the desperate to run."
+                },
                 successText: "You find a cache tucked beneath a split rain barrel: dried meat, lamp oil, and coin abandoned by a family that fled too fast to carry all of it.",
                 failText: "You find cold cookfires, doors barred from the inside, and the signs of people learning to disappear before soldiers notice them.",
                 onSuccess: { addGold: 10 },
@@ -201,6 +206,26 @@ export const scenes = {
             questUpdate: { id: "investigate_whisperwood", stage: 0 }
         },
         choices: [
+            {
+                text: "Pay for hearthspace and let the room watch over your rest",
+                cost: 2,
+                action: "shortRest"
+            },
+            {
+                text: "Sit with the refugees and listen for which roads are still swallowing people (Insight)",
+                type: "skillCheck",
+                skill: "insight",
+                dc: 12,
+                companionAid: {
+                    companionId: "neala",
+                    bonus: 2,
+                    logText: "Neala separates real fear from planted rumor before the lies settle in."
+                },
+                successText: "Between the refugees, dock hands, and hollow-eyed pilgrims, a pattern emerges: the bridge road is watched hardest, the creek paths are full of bodies, and no one who mentions a hidden boat ever does so above a whisper.",
+                failText: "The room gives you fragments only: screams by the creek, guards at the bridge, and too many stories spoken with the shape of rumor but the smell of truth.",
+                nextSceneSuccess: "SCENE_BRIARWOOD_INN",
+                nextSceneFail: "SCENE_BRIARWOOD_INN"
+            },
             {
                 text: "Talk to Fionnlagh (if alive)",
                 requires: { npcState: { id: "fionnlagh", status: "alive" } }, // Logic needed in game.js
@@ -1010,6 +1035,19 @@ export const scenes = {
             }
         ]
     },
+    "SCENE_EOIN_RECRUITED": {
+        id: "SCENE_EOIN_RECRUITED",
+        location: "whisperwood",
+        background: "landscapes/sporefall_crimson_frontier.png",
+        npcPortrait: "portraits/npc_male_placeholder_portrait.png",
+        text: "Eoin looks past you to the crimson streets, then down at the broken spear he has been carrying like a promise already broken. 'If I stay here, I keep waiting for the town to finish deciding what I am,' he says. He swallows, frightened clear through, and still nods. 'Fine. I will walk with you. But if I tell you a street is wrong, do not make me prove why.'",
+        choices: [
+            {
+                text: "Take Eoin with you into the streets",
+                nextScene: "SCENE_HUB_SPOREFALL"
+            }
+        ]
+    },
     "SCENE_EOIN_RITUAL_TALK": {
         id: "SCENE_EOIN_RITUAL_TALK",
         location: "whisperwood",
@@ -1334,6 +1372,11 @@ export const scenes = {
                 type: "skillCheck",
                 skill: "perception",
                 dc: 11,
+                companionAid: {
+                    companionId: "eoin",
+                    bonus: 2,
+                    logText: "Eoin still knows which stalls hid the desperate and which ones taught predators where to wait."
+                },
                 successText: "You catch the ambush before it closes and pick your way through the dead ground without giving it your throat.",
                 failText: "Something lunges from behind an overturned cart before you can choose your footing.",
                 nextSceneSuccess: "SCENE_SPOREFALL_NORTH_ROUTE_DISCOVERED",
@@ -2044,9 +2087,62 @@ export const scenes = {
         background: "landscapes/silverthorn_market_avenue.png",
         text: "For the first time since you found her, Elara's fear breaks around something like relief. It is not trust exactly, but it is close enough to wound. The guild begins talking in routes, boats, false names, and which roads must be watched for Aodhan or Silverthorn patrols. The choice is made now: if Elara lives, someone else will have to pay the world's price.",
         choices: [
+            {
+                text: "Ask Neala to leave the bridge and guide your company through guild ground",
+                requires: { notFlag: ["neala_recruited", "neala_refused"] },
+                effects: [
+                    { type: "flag", flagId: "neala_recruited", value: true },
+                    { type: "flag", flagId: "neala_bonded", value: true },
+                    { type: "relationship", npcId: "neala", amount: 10 },
+                    { type: "reputation", factionId: "thorne_guild", amount: 5 },
+                    { type: "addCompanion", companionId: "neala", logText: "Neala joins the party and starts treating every road like a problem she intends to outlive." }
+                ],
+                nextScene: "SCENE_NEALA_RECRUITED"
+            },
+            {
+                text: "Tell Neala the hideout still needs her more than you do",
+                requires: { notFlag: ["neala_recruited", "neala_refused"] },
+                effects: [
+                    { type: "flag", flagId: "neala_refused", value: true }
+                ],
+                nextScene: "SCENE_ELARA_PROTECT_ROUTE"
+            },
+            {
+                text: "Sleep in shifts among the crate rows and let the guild keep the outer watch",
+                action: "shortRest"
+            },
+            {
+                text: "Let Neala read the ferry chalk before you move on (Survival)",
+                requires: { flag: "neala_recruited" },
+                type: "skillCheck",
+                skill: "survival",
+                dc: 10,
+                companionAid: {
+                    companionId: "neala",
+                    bonus: 2,
+                    logText: "Neala reads the guild chalk as fast as another scout would read a prayer book."
+                },
+                successText: "With Neala correcting every false turn before you take it, the route ahead opens into smuggler paths instead of patrol lanes.",
+                failText: "Even with Neala's help, the chalk has been smeared, moved, or countermarked often enough to leave the road feeling less certain than she would like.",
+                nextSceneSuccess: "SCENE_SOLASMOR_APPROACH",
+                nextSceneFail: "SCENE_SOLASMOR_APPROACH"
+            },
             { text: "Scout Solasmór for sanctuary the guild can still use", nextScene: "SCENE_SOLASMOR_APPROACH" },
             { text: "Watch the Soul Mill smoke and learn what Alderic is preparing", nextScene: "SCENE_SOUL_MILL_APPROACH" },
             { text: "Return to the hideout and keep the route alive", nextScene: "SCENE_ELARA_PROTECT_ROUTE" }
+        ]
+    },
+    "SCENE_NEALA_RECRUITED": {
+        id: "SCENE_NEALA_RECRUITED",
+        location: "thieves_hideout",
+        background: "landscapes/silverthorn_market_avenue.png",
+        npcPortrait: "portraits/npc_female_placeholder_portrait.png",
+        text: "Neala stares at you long enough to make the agreement feel like a test instead of gratitude. At last she sheaths her blade. 'Fine,' she says. 'I will walk your roads until Elara is moved or you prove I misjudged you. Stay useful, stay quiet, and if I say run, do not ask me to explain it twice.'",
+        choices: [
+            {
+                text: "Move out while the guild route still holds",
+                nextScene: "SCENE_ELARA_PROTECT_ROUTE"
+            }
         ]
     },
     "SCENE_ELARA_STONE_ROUTE": {

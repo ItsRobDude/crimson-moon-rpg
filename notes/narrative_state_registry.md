@@ -30,6 +30,10 @@ If you add a new story-critical key, update both this note and the JS registry i
 | `sporefall_eoin_talked` | `SCENE_EOIN_TALK` | `eoin_thread` | Eoin's first major conversation is complete. | public | story_progression |
 | `sporefall_eoin_fed` | `SCENE_MEET_EOIN` / `SCENE_EOIN_TALK` | `eoin_thread` | Player fed Eoin. | public | optional_clue |
 | `sporefall_eoin_treated` | `SCENE_MEET_EOIN` / `SCENE_EOIN_TALK` | `eoin_thread` | Player treated Eoin. | public | optional_clue |
+| `eoin_recruited` | `SCENE_EOIN_TALK` | `eoin_thread` | Eoin joined the active party. | public | story_progression |
+| `eoin_refused` | `SCENE_EOIN_TALK` | `eoin_thread` | Player left Eoin hidden in Sporefall instead of recruiting him. | public | one_time_outcome |
+| `eoin_locked_out` | `SCENE_EOIN_TALK` | `eoin_thread` | Player handled Eoin harshly enough to close off recruitment. | public | one_time_outcome |
+| `eoin_bonded` | `SCENE_EOIN_TALK` | `eoin_thread` | Eoin trusts the party enough to offer route-specific help. | public | optional_clue |
 | `sporefall_cathedral_letter_found` | `SCENE_SPOREFALL_CATHEDRAL_APPROACH` | `sporefall_investigation` | Courier bag clue already claimed. | rumor_only | one_time_outcome |
 | `sporefall_cathedral_vision_seen` | `SCENE_SPOREFALL_CATHEDRAL_VISION` | `aodhan_thread` | Cathedral vision was seen. | spoiler_sensitive | story_progression |
 | `sporefall_cathedral_masonry_read` | `SCENE_SPOREFALL_CATHEDRAL_APPROACH` | `sporefall_investigation` | Stonework clue interpreted. | rumor_only | optional_clue |
@@ -51,6 +55,9 @@ If you add a new story-critical key, update both this note and the JS registry i
 | `hushbriar_guild_hostile` | `SCENE_THIEVES_HIDEOUT` | `hushbriar_demigod_thread` | Guild relationship turned openly hostile. | public | story_progression |
 | `elara_met` | `SCENE_ELARA_HIDEAWAY` | `hushbriar_demigod_thread` | Elara personally encountered. | spoiler_sensitive | story_progression |
 | `elara_route_protect` | `SCENE_ELARA_PROTECT_ROUTE` | `hushbriar_demigod_thread` | Party committed to protecting and hiding Elara. | spoiler_sensitive | story_progression |
+| `neala_recruited` | `SCENE_ELARA_PROTECT_ROUTE` | `hushbriar_demigod_thread` | Neala joined the party to guide the Elara protection route. | spoiler_sensitive | story_progression |
+| `neala_refused` | `SCENE_ELARA_PROTECT_ROUTE` | `hushbriar_demigod_thread` | Player chose to leave Neala guarding the hideout instead of recruiting her. | public | one_time_outcome |
+| `neala_bonded` | `SCENE_ELARA_PROTECT_ROUTE` | `hushbriar_demigod_thread` | Neala trusts the party enough to share guild routecraft. | spoiler_sensitive | optional_clue |
 | `elara_route_stone_hunt_declared` | `SCENE_ELARA_STONE_ROUTE` | `hushbriar_demigod_thread` | Party declared intent to use Elara's blood for the Stone. | spoiler_sensitive | story_progression |
 | `elara_route_aodhan_lured` | `SCENE_ELARA_BETRAY_ROUTE` | `hushbriar_demigod_thread` | Party chose to lead or lure Aodhan to Elara. | spoiler_sensitive | story_progression |
 

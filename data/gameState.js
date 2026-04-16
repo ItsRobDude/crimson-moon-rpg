@@ -720,11 +720,13 @@ function syncCompanionLevel(companionId) {
     const targetLevel = gameState.player.level;
     if (char.level >= targetLevel) return;
 
+    syncActorState(char);
+
     while (char.level < targetLevel) {
         char.level++;
         // Gain HP
         const cls = classes[char.classId];
-        const conMod = char.modifiers.CON;
+        const conMod = Number.isFinite(char.modifiers?.CON) ? char.modifiers.CON : getAbilityMod(char.abilities?.CON || 10);
         const hpGain = Math.floor(cls.hitDie / 2) + 1 + conMod; // Average
         char.maxHp += hpGain;
         char.hp += hpGain;
@@ -1145,7 +1147,9 @@ function initNpcRelationships() {
     for (const [key, npc] of Object.entries(npcs)) {
         gameState.relationships[key] = npc.relationshipStart;
     }
-    gameState.reputation = { silverthorn: 0, durnhelm: 0, whisperwood_survivors: 0 };
+    gameState.reputation = Object.fromEntries(
+        Object.entries(factions).map(([id, faction]) => [id, faction.neutral ?? 0])
+    );
     gameState.npcStates = {};
     Object.keys(npcs).forEach(id => { gameState.npcStates[id] = { status: 'alive', flags: {} }; });
 }

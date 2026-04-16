@@ -1,50 +1,28 @@
 export const companions = {
-    "aodhan": {
-        name: "Aodhan",
-        raceId: "human",
-        classId: "fighter",
-        description: "A stoic guard of Hushbriar, skilled with the blade.",
-        baseStats: { STR: 16, DEX: 12, CON: 14, INT: 10, WIS: 12, CHA: 10 },
-        portrait: "portraits/aodhan_portrait.png",
+    eoin: {
+        name: 'Eoin',
+        raceId: 'human',
+        classId: 'rogue',
+        description: 'A half-starved Sporefall survivor who still knows how to move through ruin without waking every hungry thing in it.',
+        baseStats: { STR: 10, DEX: 15, CON: 12, INT: 11, WIS: 14, CHA: 12 },
+        skills: ['perception', 'stealth', 'survival'],
+        portrait: 'portraits/npc_male_placeholder_portrait.png',
         defaultEquipment: {
-            weapon: "longsword",
-            armor: "chainmail"
-        },
-        // AI Preference hints
-        ai: {
-            style: "aggressive", // aggressive, defensive, support
-            preferredRange: "melee"
+            weapon: 'shortbow',
+            armor: 'leather_armor'
         }
     },
-    "elara": {
-        name: "Elara",
-        raceId: "elf",
-        classId: "wizard",
-        description: "A researcher of the arcane, fascinated by the spores.",
-        baseStats: { STR: 8, DEX: 14, CON: 12, INT: 16, WIS: 12, CHA: 10 },
-        portrait: "portraits/elara_portrait.png",
+    neala: {
+        name: 'Neala',
+        raceId: 'elf',
+        classId: 'rogue',
+        description: 'A Thorne Guild scout who survives by reading patrol patterns, bad lies, and the price hidden in every favor.',
+        baseStats: { STR: 11, DEX: 16, CON: 13, INT: 13, WIS: 14, CHA: 14 },
+        skills: ['deception', 'insight', 'perception', 'stealth'],
+        portrait: 'portraits/npc_female_placeholder_portrait.png',
         defaultEquipment: {
-            weapon: "dagger"
-        },
-        ai: {
-            style: "ranged_caster",
-            preferredRange: "ranged"
-        }
-    },
-    "neala": {
-        name: "Neala",
-        raceId: "human",
-        classId: "cleric", // Using Cleric for healer role
-        description: "A healer tending to the afflicted in the Briarwood.",
-        baseStats: { STR: 12, DEX: 10, CON: 14, INT: 12, WIS: 16, CHA: 13 },
-        portrait: "portraits/neala_portrait.png",
-        defaultEquipment: {
-            weapon: "mace",
-            armor: "leather_armor"
-        },
-        ai: {
-            style: "healer",
-            preferredRange: "melee" // Clerics can be melee, or ranged. Let's say melee for now.
+            weapon: 'shortsword',
+            armor: 'leather_armor'
         }
     }
 };

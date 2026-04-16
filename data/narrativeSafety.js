@@ -18,6 +18,7 @@ export const SCENE_STATE_SCHEMA = {
     requires: [
         'storyEvent',
         'flag',
+        'companionId',
         'sceneMemory',
         'item',
         'tool',
@@ -98,6 +99,38 @@ export const narrativeStateRegistry = {
             owner: 'SCENE_MEET_EOIN / SCENE_EOIN_TALK',
             thread: 'eoin_thread',
             meaning: 'The player treated Eoin, changing later text and survivor tone.',
+            allowedValues: [true],
+            revealSensitivity: 'public',
+            semantics: 'optional_clue'
+        },
+        eoin_recruited: {
+            owner: 'SCENE_EOIN_TALK',
+            thread: 'eoin_thread',
+            meaning: 'Eoin has joined the active party and should appear in travel, combat, and Sporefall route text.',
+            allowedValues: [true],
+            revealSensitivity: 'public',
+            semantics: 'story_progression'
+        },
+        eoin_refused: {
+            owner: 'SCENE_EOIN_TALK',
+            thread: 'eoin_thread',
+            meaning: 'The player declined to bring Eoin along, leaving him hidden in Sporefall for now.',
+            allowedValues: [true],
+            revealSensitivity: 'public',
+            semantics: 'one_time_outcome'
+        },
+        eoin_locked_out: {
+            owner: 'SCENE_EOIN_TALK',
+            thread: 'eoin_thread',
+            meaning: 'The player handled Eoin harshly enough that he will no longer trust a recruitment offer.',
+            allowedValues: [true],
+            revealSensitivity: 'public',
+            semantics: 'one_time_outcome'
+        },
+        eoin_bonded: {
+            owner: 'SCENE_EOIN_TALK',
+            thread: 'eoin_thread',
+            meaning: 'Eoin now trusts the party enough to offer route-specific survival help.',
             allowedValues: [true],
             revealSensitivity: 'public',
             semantics: 'optional_clue'
@@ -269,6 +302,30 @@ export const narrativeStateRegistry = {
             allowedValues: [true],
             revealSensitivity: 'spoiler_sensitive',
             semantics: 'story_progression'
+        },
+        neala_recruited: {
+            owner: 'SCENE_ELARA_PROTECT_ROUTE',
+            thread: 'hushbriar_demigod_thread',
+            meaning: 'Neala has joined the active party to guide the Elara protection route through guild ground.',
+            allowedValues: [true],
+            revealSensitivity: 'spoiler_sensitive',
+            semantics: 'story_progression'
+        },
+        neala_refused: {
+            owner: 'SCENE_ELARA_PROTECT_ROUTE',
+            thread: 'hushbriar_demigod_thread',
+            meaning: 'The player chose to leave Neala at the hideout instead of bringing her into the field.',
+            allowedValues: [true],
+            revealSensitivity: 'public',
+            semantics: 'one_time_outcome'
+        },
+        neala_bonded: {
+            owner: 'SCENE_ELARA_PROTECT_ROUTE',
+            thread: 'hushbriar_demigod_thread',
+            meaning: 'Neala trusts the party enough to share route knowledge and patrol reads on the road.',
+            allowedValues: [true],
+            revealSensitivity: 'spoiler_sensitive',
+            semantics: 'optional_clue'
         },
         elara_route_stone_hunt_declared: {
             owner: 'SCENE_ELARA_STONE_ROUTE',
