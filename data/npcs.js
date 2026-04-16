@@ -86,8 +86,8 @@ export const npcs = {
         id: "neala",
         name: "Neala Creach",
         portrait: "portraits/npc_female_placeholder_portrait.png", // Placeholder
-        faction: "silverthorn", // Actually Thieves Guild but wearing Silverthorn insignia in lore? Or just generic? Lore says "brandishing 'S' insignia... Neala Creach and Liobhan Sceith".
-        description: "A sharp-tongued elven rogue.",
+        faction: "thorne_guild",
+        description: "A sharp-tongued guild scout who mistakes mercy for weakness.",
         baseDisposition: "hostile",
         relationshipStart: -20,
         relationshipMin: -100,
@@ -136,8 +136,8 @@ export const npcs = {
         id: "liobhan",
         name: "Liobhán Sceith",
         portrait: "portraits/npc_female_placeholder_portrait.png", // Placeholder
-        faction: "silverthorn",
-        description: "A calm but deadly rogue.",
+        faction: "thorne_guild",
+        description: "A calm but deadly guild operative who weighs every word like a threat.",
         baseDisposition: "hostile",
         relationshipStart: -20,
         relationshipMin: -100,
@@ -197,9 +197,9 @@ export const npcs = {
         id: "elara",
         name: "Elara",
         portrait: "portraits/npc_female_placeholder_portrait.png",
-        faction: "whisperwood_survivors", // Or Neutral
-        description: "A mysterious figure, possibly the demigod of prophecy.",
-        baseDisposition: "neutral",
+        faction: "whisperwood_survivors",
+        description: "The prophesied demigod, hiding from the sacrifice she knows may save the world.",
+        baseDisposition: "wary",
         relationshipStart: 0
     },
     "ciara": {

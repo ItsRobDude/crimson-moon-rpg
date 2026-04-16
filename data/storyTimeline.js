@@ -249,11 +249,27 @@ export const storySceneTriggers = {
         unlock: ['archives_truth', 'hushbriar_demigod_thread'],
         actId: 'act_4_lament_hill_truth'
     },
+    SCENE_ARCHIVES_APPROACH: {
+        activate: ['archives_truth'],
+        actId: 'act_4_lament_hill_truth'
+    },
+    SCENE_ARCHIVES_TRUTH_CHAMBER: {
+        complete: ['archives_truth'],
+        actId: 'act_4_lament_hill_truth'
+    },
+    SCENE_HUSHBRIAR_GUILD_ROAD: {
+        activate: ['hushbriar_demigod_thread'],
+        actId: 'act_5_hushbriar_endgame'
+    },
     SCENE_SOUL_MILL_APPROACH: {
         activate: ['hushbriar_demigod_thread'],
         actId: 'act_5_hushbriar_endgame'
     },
     SCENE_THIEVES_HIDEOUT: {
+        activate: ['hushbriar_demigod_thread'],
+        actId: 'act_5_hushbriar_endgame'
+    },
+    SCENE_ELARA_HIDEAWAY: {
         activate: ['hushbriar_demigod_thread'],
         actId: 'act_5_hushbriar_endgame'
     },

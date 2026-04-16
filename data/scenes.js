@@ -1697,15 +1697,383 @@ export const scenes = {
         background: "landscapes/forest_walk.png",
         text: "The cat vanishes in a flash of pale light. In its place stands a wood elf woman clothed all in white, beautiful in the way winter can be beautiful and just as merciless. Grief has carved itself plainly into Aine's face, but fear sharpens it into anger before she speaks. 'Evil bastards,' she says, eyes fixed on the mark you carry. 'What do you want from me?' When she realizes you do not even understand what is on you, her fury falters into something more exhausted. She names it at last: the Mark of Ciara, Blackened Queen of the depths. Then, with the care of someone reopening a wound she never survived, she tells you Aodhan came here seeking the Stone of Oblivion. She would not tell him how to wield it. He answered by binding her in place and burning her children before her eyes. The words nearly fail her there, but she forces them onward anyway. If the Stone is to be used at all, it must drink divine blood. A god could wake it. A demigod could suffice. And while she bought time by sending Aodhan toward the Forbidden Archives, time is all she bought. 'If you would stop him,' Aine says, voice unsteady now, 'then choose quickly. Hushbriar may hold the blood he needs. The archives may hold the rest of what he was willing to do for it.'",
         choices: [
-            { text: "Leave Lament Hill with Hushbriar in mind", action: "openMap" },
-            { text: "Leave Lament Hill and follow the Forbidden Archives lead", action: "openMap" }
+            { text: "Leave Lament Hill with Hushbriar in mind", nextScene: "SCENE_HUSHBRIAR_GUILD_ROAD" },
+            { text: "Leave Lament Hill and follow the Forbidden Archives lead", nextScene: "SCENE_ARCHIVES_APPROACH" }
+        ]
+    },
+    "SCENE_ARCHIVES_APPROACH": {
+        id: "SCENE_ARCHIVES_APPROACH",
+        location: "lament_hill",
+        background: "landscapes/forest_walk.png",
+        text: "You press higher through the rain until the trees thin and the hill gives way to black stone. A cave mouth yawns between two weather-worn figures carved in mourning, and the ground before it is strewn with old bones, newer bodies, and the metallic stink of people who came seeking answers and found only the dark listening back.",
+        choices: [
+            { text: "Enter the cave and follow the stale breath of the mountain", nextScene: "SCENE_ARCHIVES_CAVERN" },
+            {
+                text: "Study the dead before you pass them (Perception)",
+                type: "skillCheck",
+                skill: "perception",
+                dc: 12,
+                successText: "The dead are not all ancient. Some still clutch lantern hooks and scholar's tools, and one trail of dragged heels ends not at the cave mouth but at stone that shimmers faintly under the rain.",
+                failText: "The dead tell only the oldest truth: too many people walked here afraid, and too few walked back out.",
+                nextSceneSuccess: "SCENE_ARCHIVES_CAVERN",
+                nextSceneFail: "SCENE_ARCHIVES_CAVERN"
+            }
+        ]
+    },
+    "SCENE_ARCHIVES_CAVERN": {
+        id: "SCENE_ARCHIVES_CAVERN",
+        location: "lament_hill",
+        background: "landscapes/forest_walk_alt.png",
+        text: "Inside, the cave air turns wet and heavy. Bodies lie where panic or exhaustion dropped them, and farther in the tunnel opens into a cemetery that cannot possibly fit inside the hill. Lightning flashes across a sky that should not exist here. A death knight rises among the graves, sword scraping free while shapes all around it begin to stand.",
+        choices: [
+            {
+                text: "Hold to the truth of the stone under your feet (Insight)",
+                type: "skillCheck",
+                skill: "insight",
+                dc: 12,
+                successText: "The cemetery shivers at the edges. You catch the lie in it, press through the false night, and the death knight collapses into cold mist before its blade can land.",
+                failText: "The illusion swallows you for a breath too long before the wrongness of it tears open. The graves vanish, leaving only the cave, the corpses, and a doorway of black iron deeper within.",
+                nextSceneSuccess: "SCENE_ARCHIVES_GATEKEEPER",
+                nextSceneFail: "SCENE_ARCHIVES_GATEKEEPER"
+            },
+            { text: "Walk straight at the false dead and refuse them your fear", nextScene: "SCENE_ARCHIVES_GATEKEEPER" }
+        ]
+    },
+    "SCENE_ARCHIVES_GATEKEEPER": {
+        id: "SCENE_ARCHIVES_GATEKEEPER",
+        location: "lament_hill",
+        background: "landscapes/forest_walk_alt.png",
+        npcPortrait: "portraits/npc_male_placeholder_portrait.png",
+        text: "The iron door breathes open only a little before a figure forms from the dark beyond it: tall, gaunt, robed in ruin, with pale fire burning where living eyes should be. 'I am Thalion Ebonhart,' the apparition says. 'Keeper of the Forbidden Archives. Speak truth, or be consumed by the kind of knowledge that never leaves its seekers whole.'",
+        choices: [
+            {
+                text: "Say you seek knowledge to stop Aodhan and the Stone of Oblivion",
+                nextScene: "SCENE_ARCHIVES_TRUTH_CHAMBER"
+            },
+            {
+                text: "Ask what price this place takes from those who enter (Persuasion)",
+                type: "skillCheck",
+                skill: "persuasion",
+                dc: 11,
+                successText: "Thalion studies you a moment longer, then steps aside. 'Curiosity is kinder than hunger. Enter, and spend it carefully.'",
+                failText: "'More than you can presently afford,' Thalion says. Yet after a long silence he steps aside anyway. 'Enter. Learn enough to regret wanting more.'",
+                nextSceneSuccess: "SCENE_ARCHIVES_TRUTH_CHAMBER",
+                nextSceneFail: "SCENE_ARCHIVES_TRUTH_CHAMBER"
+            }
+        ]
+    },
+    "SCENE_ARCHIVES_TRUTH_CHAMBER": {
+        id: "SCENE_ARCHIVES_TRUTH_CHAMBER",
+        location: "lament_hill",
+        background: "landscapes/forest_walk_alt.png",
+        npcPortrait: "portraits/npc_male_placeholder_portrait.png",
+        text: "The Archives are older than comfort and grander than mercy. Dark shelves climb into shadow, pale lights drift between them like captive moons, and every step feels loud enough to wake the dead buried in the walls. Thalion leads you to a lectern where a silver-and-midnight tome lies open beside diagrams of the Stone of Oblivion. Here, at last, he gives the truth he will not withhold: the Stone cannot be woken by prayer or mortal sacrifice. It must drink divinity. A god could empower it. A demigod could suffice. He admits, too, that he once used such a stone himself and bought eternity at the cost of becoming this thing that now guards the knowledge.",
+        choices: [
+            { text: "Press him while the door is still open to questions", nextScene: "SCENE_ARCHIVES_AUDIENCE" },
+            { text: "Take the core truth and head for Hushbriar at once", nextScene: "SCENE_HUSHBRIAR_GUILD_ROAD" }
+        ]
+    },
+    "SCENE_ARCHIVES_AUDIENCE": {
+        id: "SCENE_ARCHIVES_AUDIENCE",
+        location: "lament_hill",
+        background: "landscapes/forest_walk_alt.png",
+        npcPortrait: "portraits/npc_male_placeholder_portrait.png",
+        text: "Thalion's patience is not endless, but for one narrow window he permits questions. Even so, he answers like a man rationing blood: every truth measured, every silence deliberate, every glance warning that some doors only open once.",
+        choices: [
+            {
+                text: "Force him to name how Alderic truly serves Ciara (Persuasion)",
+                type: "skillCheck",
+                skill: "persuasion",
+                dc: 14,
+                requires: {
+                    notFlag: ["archives_thalion_audience_closed", "archives_alderic_truth_learned", "archives_alderic_truth_missed"]
+                },
+                successText: "At last Thalion relents. Alderic's legend in the depths was a mask; the prince vanished not to survive Ciara's armies but to bargain with them. What Silverthorn remembers as heroism was the first layer of a treachery that now threatens the whole realm.",
+                failText: "Thalion's mouth hardens. 'You have asked for a confession that belongs to the dead and the damned. I have given you enough to know the prince is false. The rest you failed to win.'",
+                onSuccess: {
+                    effects: [
+                        { type: "flag", flagId: "archives_alderic_truth_learned", value: true }
+                    ]
+                },
+                onFail: {
+                    effects: [
+                        { type: "flag", flagId: "archives_alderic_truth_missed", value: true }
+                    ]
+                },
+                nextSceneSuccess: "SCENE_ARCHIVES_AUDIENCE",
+                nextSceneFail: "SCENE_ARCHIVES_AUDIENCE"
+            },
+            {
+                text: "Ask what crime chained Thalion to this place (Persuasion)",
+                type: "skillCheck",
+                skill: "persuasion",
+                dc: 13,
+                requires: {
+                    notFlag: ["archives_thalion_audience_closed", "archives_thalion_confession_learned", "archives_thalion_confession_missed"]
+                },
+                successText: "The fire in Thalion's eyes gutters low. He admits he once harvested a trusting divine life to make a stone of his own and mistook knowledge for absolution. The Archives are not his throne. They are the sentence he earned.",
+                failText: "Thalion turns his gaze aside. 'Do not ask a penitent for the part of his sin he still loves enough to protect. You had your chance, and you spent it poorly.'",
+                onSuccess: {
+                    effects: [
+                        { type: "flag", flagId: "archives_thalion_confession_learned", value: true }
+                    ]
+                },
+                onFail: {
+                    effects: [
+                        { type: "flag", flagId: "archives_thalion_confession_missed", value: true }
+                    ]
+                },
+                nextSceneSuccess: "SCENE_ARCHIVES_AUDIENCE",
+                nextSceneFail: "SCENE_ARCHIVES_AUDIENCE"
+            },
+            {
+                text: "Ask where Aodhan will turn once this knowledge reaches him",
+                requires: {
+                    notFlag: "archives_thalion_audience_closed"
+                },
+                nextScene: "SCENE_ARCHIVES_AODHAN_WARNING"
+            },
+            {
+                text: "Leave before he decides you have already taken too much",
+                effects: [
+                    { type: "flag", flagId: "archives_thalion_audience_closed", value: true }
+                ],
+                nextScene: "SCENE_ARCHIVES_AFTERMATH"
+            }
+        ]
+    },
+    "SCENE_ARCHIVES_AODHAN_WARNING": {
+        id: "SCENE_ARCHIVES_AODHAN_WARNING",
+        location: "lament_hill",
+        background: "landscapes/forest_walk_alt.png",
+        npcPortrait: "portraits/npc_male_placeholder_portrait.png",
+        text: "'He will look where desperation and prophecy already point,' Thalion says. 'Toward Hushbriar. Toward the demigod who has spent her whole life fearing the day the Stone would call men to her door.' He studies your face as if measuring whether warning you was mercy or merely another cruelty delayed.",
+        choices: [
+            { text: "Return to the questioning while he still allows it", nextScene: "SCENE_ARCHIVES_AUDIENCE" },
+            {
+                text: "Take the warning and descend toward Hushbriar",
+                effects: [
+                    { type: "flag", flagId: "archives_thalion_audience_closed", value: true }
+                ],
+                nextScene: "SCENE_HUSHBRIAR_GUILD_ROAD"
+            }
+        ]
+    },
+    "SCENE_ARCHIVES_AFTERMATH": {
+        id: "SCENE_ARCHIVES_AFTERMATH",
+        location: "lament_hill",
+        background: "landscapes/forest_walk_alt.png",
+        text: "Once you step away from the lectern, the Archives become colder and less welcoming, as though the place itself has agreed with Thalion that the richest truths have already been spent on you. The road back down the hill waits in storm-dark silence, with Hushbriar looming now not as rumor but as obligation.",
+        choices: [
+            { text: "Descend toward Hushbriar and the demigod lead", nextScene: "SCENE_HUSHBRIAR_GUILD_ROAD" },
+            { text: "Climb back toward Aine's hill and reconsider", nextScene: "SCENE_LAMENT_HILL_APPROACH" }
+        ]
+    },
+    "SCENE_HUSHBRIAR_GUILD_ROAD": {
+        id: "SCENE_HUSHBRIAR_GUILD_ROAD",
+        location: "hushbriar",
+        background: "landscapes/silverthorn_market_avenue.png",
+        text: "By the time Hushbriar's outskirts reappear, the occupation has curdled from fear into method. Guards question anyone who looks healthy enough to carry blame, refugees disappear behind shuttered doors, and whispers move faster than patrols about contraband, hidden passengers, and a rowboat beneath the bridge that no one admits to using. Somewhere in that rot of secrecy, the guild is hiding something more valuable than coin.",
+        choices: [
+            { text: "Search beneath the bridge for the rowboat and the cargo trail", nextScene: "SCENE_HUSHBRIAR_DOCK" },
+            {
+                text: "Listen for who is moving contraband tonight (Insight)",
+                type: "skillCheck",
+                skill: "insight",
+                dc: 12,
+                successText: "You catch enough muttered fear to separate gossip from warning. Whatever the guild moved, even the frightened speak of it as cargo worth killing over.",
+                failText: "The town swallows its secrets before they reach you, but every glance still bends toward the bridge as if memory cannot help betraying itself.",
+                nextSceneSuccess: "SCENE_HUSHBRIAR_DOCK",
+                nextSceneFail: "SCENE_HUSHBRIAR_DOCK"
+            }
+        ]
+    },
+    "SCENE_HUSHBRIAR_DOCK": {
+        id: "SCENE_HUSHBRIAR_DOCK",
+        location: "hushbriar",
+        background: "landscapes/silverthorn_market_avenue.png",
+        text: "Beneath the bridge, river rot mingles with lamp oil and damp hemp. A small rowboat knocks softly against the pilings, half-hidden behind stacked crates. One ledger lies open beneath a weighted stone, its wet pages curling as if someone had to abandon it faster than they liked.",
+        choices: [
+            { text: "Read the ledger before the river takes the ink", nextScene: "SCENE_HUSHBRIAR_LEDGER" },
+            { text: "Wait in the dark and see who comes back for the boat", nextScene: "SCENE_THIEVES_HIDEOUT" }
+        ]
+    },
+    "SCENE_HUSHBRIAR_LEDGER": {
+        id: "SCENE_HUSHBRIAR_LEDGER",
+        location: "hushbriar",
+        background: "landscapes/silverthorn_market_avenue.png",
+        text: "The handwriting is hurried, angry, and afraid. One line has been underlined so hard it nearly tears the page: 'Move our precious cargo, quickly. It's only a matter of time before that murderous bastard or the Blackened King's soldiers show up at our doorstep.' Whatever the guild is protecting, they fear Aodhan and Alderic's men in equal measure.",
+        onEnter: {
+            once: true,
+            effects: [
+                { type: "flag", flagId: "hushbriar_guild_ledger_found", value: true }
+            ]
+        },
+        choices: [
+            { text: "Follow the dock trail to whoever owns this ledger", nextScene: "SCENE_THIEVES_HIDEOUT" },
+            { text: "Back away and return to the road with the clue in hand", nextScene: "SCENE_HUSHBRIAR_GUILD_ROAD" }
+        ]
+    },
+    "SCENE_THIEVES_HIDEOUT": {
+        id: "SCENE_THIEVES_HIDEOUT",
+        location: "thieves_hideout",
+        background: "landscapes/silverthorn_market_avenue.png",
+        npcPortrait: "portraits/npc_female_placeholder_portrait.png",
+        text: "The dock trail ends at a low, screened chamber built into the underside of the bridge itself. Neala steps out first with a blade already naked in her hand, Liobhán a heartbeat behind her and no easier to hear for it. Neither looks surprised. 'Ledger, bridge, hidden cargo,' Neala says. 'You really did follow the scent.' Liobhán's gaze drops to your hands, your belt, your face. 'Then speak carefully,' she says. 'The wrong truth gets buried here with the river.'",
+        choices: [
+            {
+                text: "Hand over the ledger and say you want the cargo safe before Aodhan finds it (Persuasion)",
+                type: "skillCheck",
+                skill: "persuasion",
+                dc: 13,
+                successText: "Neala snatches the ledger, but the killing angle leaves her blade. Liobhán studies you another moment and then nods once. 'Useful, then. Not harmless. But useful.'",
+                failText: "Neala's expression curdles into contempt. 'Too curious, too late, and still lying badly.' Liobhán does not draw blood, but the knives around you multiply all the same.",
+                onSuccess: {
+                    effects: [
+                        { type: "reputation", factionId: "thorne_guild", amount: 20 },
+                        { type: "relationship", npcId: "neala", amount: 10 },
+                        { type: "relationship", npcId: "liobhan", amount: 10 },
+                        { type: "flag", flagId: "hushbriar_guild_trusted", value: true }
+                    ]
+                },
+                onFail: {
+                    effects: [
+                        { type: "reputation", factionId: "thorne_guild", amount: -20 },
+                        { type: "flag", flagId: "hushbriar_guild_hostile", value: true }
+                    ]
+                },
+                nextSceneSuccess: "SCENE_GUILD_BARGAIN",
+                nextSceneFail: "SCENE_GUILD_REFUSAL"
+            },
+            {
+                text: "Threaten to sell them all to Silverthorn",
+                effects: [
+                    { type: "reputation", factionId: "thorne_guild", amount: -30 },
+                    { type: "flag", flagId: "hushbriar_guild_hostile", value: true }
+                ],
+                nextScene: "SCENE_GUILD_REFUSAL"
+            }
+        ]
+    },
+    "SCENE_GUILD_BARGAIN": {
+        id: "SCENE_GUILD_BARGAIN",
+        location: "thieves_hideout",
+        background: "landscapes/silverthorn_market_avenue.png",
+        npcPortrait: "portraits/npc_female_placeholder_portrait.png",
+        text: "Once they stop treating you like a body to dispose of, the truth comes in pieces. The cargo is not contraband at all but a person, and not just any person: Elara, the prophesied demigod. The guild is not sheltering her from kindness. A demigod who survives because of them becomes leverage no king, priest, or killer can ignore. Neala calls it good business. Liobhán, more honest, calls it the only bargain left that might keep everyone alive a little longer.",
+        choices: [
+            { text: "Ask to see Elara and swear you came to keep her blood unspent", nextScene: "SCENE_ELARA_HIDEAWAY" },
+            {
+                text: "Let them glimpse the Stone of Oblivion and ask whether Elara knows what it can do",
+                requires: { itemId: "stone_of_oblivion" },
+                nextScene: "SCENE_ELARA_HIDEAWAY"
+            },
+            {
+                text: "Warn them that Aodhan still lives and may already be on this trail",
+                requires: { notFlag: "aodhan_dead" },
+                nextScene: "SCENE_ELARA_HIDEAWAY"
+            }
+        ]
+    },
+    "SCENE_GUILD_REFUSAL": {
+        id: "SCENE_GUILD_REFUSAL",
+        location: "thieves_hideout",
+        background: "landscapes/silverthorn_market_avenue.png",
+        npcPortrait: "portraits/npc_female_placeholder_portrait.png",
+        text: "Trust dies quickly in the hideout. Neala wants you gone. Liobhán wants to know how much of your ignorance is genuine and how much is theater. They give you neither answers nor safety, but in the tension that follows you catch enough: there is someone deeper inside worth guarding, and the guild is frightened enough to kill for her or of her depending on which breath catches them first.",
+        choices: [
+            {
+                text: "Shadow their runner deeper into the hideout (Stealth)",
+                type: "skillCheck",
+                skill: "stealth",
+                dc: 14,
+                successText: "You keep to the wet stone and lantern shadow until the hideout opens into a second chamber where the real secret is being kept.",
+                failText: "A knife taps stone behind you. Liobhán does not even sound winded. 'You were warned,' she says, and the only path left is the one away from her blade.",
+                nextSceneSuccess: "SCENE_ELARA_HIDEAWAY",
+                nextSceneFail: "SCENE_HUSHBRIAR_GUILD_ROAD"
+            },
+            { text: "Withdraw before the bridge decides to keep you", nextScene: "SCENE_HUSHBRIAR_GUILD_ROAD" }
+        ]
+    },
+    "SCENE_ELARA_HIDEAWAY": {
+        id: "SCENE_ELARA_HIDEAWAY",
+        location: "thieves_hideout",
+        background: "landscapes/silverthorn_market_avenue.png",
+        npcPortrait: "portraits/npc_female_placeholder_portrait.png",
+        text: "Elara is hidden in the innermost chamber, behind stacked crates, blankets, and a ward circle drawn by hands too tired to trust their own lines. She looks younger than prophecy has any right to allow and more frightened than a demigod is supposed to be. Yet when her eyes find the mark you carry, all that fear hardens around a truth she has been expecting for years. She knows what relic was found. She knows why people will come for her blood. Shame and terror war across her face as she admits the part she has never found the courage to choose between: dying for the world, or running from it until someone stronger makes the choice for her.",
+        onEnter: {
+            once: true,
+            effects: [
+                { type: "flag", flagId: "elara_met", value: true }
+            ]
+        },
+        choices: [
+            {
+                text: "Promise to keep her hidden and move her before the hunters arrive",
+                effects: [
+                    { type: "flag", flagId: "elara_route_protect", value: true },
+                    { type: "relationship", npcId: "elara", amount: 15 },
+                    { type: "reputation", factionId: "thorne_guild", amount: 10 }
+                ],
+                nextScene: "SCENE_ELARA_PROTECT_ROUTE"
+            },
+            {
+                text: "Tell her the Stone is already in your hands and ask what her death would buy",
+                requires: { itemId: "stone_of_oblivion" },
+                effects: [
+                    { type: "flag", flagId: "elara_route_stone_hunt_declared", value: true },
+                    { type: "reputation", factionId: "thorne_guild", amount: -20 }
+                ],
+                nextScene: "SCENE_ELARA_STONE_ROUTE"
+            },
+            {
+                text: "Admit Aodhan still lives and could be led here if you chose",
+                requires: { notFlag: "aodhan_dead" },
+                effects: [
+                    { type: "flag", flagId: "elara_route_aodhan_lured", value: true },
+                    { type: "reputation", factionId: "thorne_guild", amount: -10 }
+                ],
+                nextScene: "SCENE_ELARA_BETRAY_ROUTE"
+            },
+            { text: "Leave with only the knowledge that she is here", nextScene: "SCENE_HUSHBRIAR_GUILD_ROAD" }
+        ]
+    },
+    "SCENE_ELARA_PROTECT_ROUTE": {
+        id: "SCENE_ELARA_PROTECT_ROUTE",
+        location: "thieves_hideout",
+        background: "landscapes/silverthorn_market_avenue.png",
+        text: "For the first time since you found her, Elara's fear breaks around something like relief. It is not trust exactly, but it is close enough to wound. The guild begins talking in routes, boats, false names, and which roads must be watched for Aodhan or Silverthorn patrols. The choice is made now: if Elara lives, someone else will have to pay the world's price.",
+        choices: [
+            { text: "Scout Solasmór for sanctuary the guild can still use", nextScene: "SCENE_SOLASMOR_APPROACH" },
+            { text: "Watch the Soul Mill smoke and learn what Alderic is preparing", nextScene: "SCENE_SOUL_MILL_APPROACH" },
+            { text: "Return to the hideout and keep the route alive", nextScene: "SCENE_ELARA_PROTECT_ROUTE" }
+        ]
+    },
+    "SCENE_ELARA_STONE_ROUTE": {
+        id: "SCENE_ELARA_STONE_ROUTE",
+        location: "thieves_hideout",
+        background: "landscapes/silverthorn_market_avenue.png",
+        text: "The room curdles around your words. Elara goes white as ash. Neala's hand finds her weapon. Even Liobhán, who has measured every life here as leverage first and sentiment second, looks at you as though she has finally decided what sort of butcher you might become. No blood is spilled yet, but after this there is no pretending your interest in Elara is anything clean.",
+        choices: [
+            { text: "Back away for now and study where such a sacrifice might be forced", nextScene: "SCENE_SOUL_MILL_APPROACH" },
+            { text: "Return to Hushbriar and decide whether greed was worth naming aloud", nextScene: "SCENE_HUSHBRIAR_GUILD_ROAD" }
+        ]
+    },
+    "SCENE_ELARA_BETRAY_ROUTE": {
+        id: "SCENE_ELARA_BETRAY_ROUTE",
+        location: "thieves_hideout",
+        background: "landscapes/silverthorn_market_avenue.png",
+        text: "At the mention of Aodhan, every lantern flame seems to shrink. Elara folds in on herself, knowing at once what sort of bargain you are entertaining. The guild does not forgive you for it, but neither do they dismiss the usefulness of a living baited trail. If Aodhan still hunts the Stone, then you have just turned Elara's hiding place into a future battlefield.",
+        choices: [
+            { text: "Watch the Soul Mill roads for whichever hunter reaches them first", nextScene: "SCENE_SOUL_MILL_APPROACH" },
+            { text: "Return to Hushbriar and keep the lie alive a little longer", nextScene: "SCENE_HUSHBRIAR_GUILD_ROAD" }
         ]
     },
     "SCENE_SOLASMOR_APPROACH": {
         id: "SCENE_SOLASMOR_APPROACH",
         location: "solasmor",
         background: "landscapes/forest_walk.png",
-        text: "The monastery of Solasmór stands silent in the hills.",
+        text: "The road to Solasmór climbs into a colder silence than the forest below. Rain-slick bell towers loom through the mist, but the monastery does not feel abandoned so much as withheld, as though every prayer spoken here now waits behind stone for proof that you deserve to hear it answered.",
         choices: [
             { text: "Approach the gates", nextScene: "SCENE_SOLASMOR_GATES" }
         ]
@@ -1714,9 +2082,17 @@ export const scenes = {
         id: "SCENE_SOLASMOR_GATES",
         location: "solasmor",
         background: "landscapes/forest_walk.png",
-        text: "The gates are barred. It seems the monks are not welcoming visitors.",
+        text: "The gates remain barred, and the little movement you glimpse above the wall is too cautious to promise sanctuary. Whatever Solasmór still offers, it will not yield itself to strangers in a single knock while the world below is already learning to feed on miracles.",
         choices: [
-            { text: "Knock", action: "openMap" }
+            {
+                text: "Leave before the watch above marks your face",
+                requires: { flag: "elara_route_protect" },
+                nextScene: "SCENE_ELARA_PROTECT_ROUTE"
+            },
+            {
+                text: "Turn back and decide whether the guild is still safer than prayer",
+                nextScene: "SCENE_HUSHBRIAR_GUILD_ROAD"
+            }
         ]
     },
     "SCENE_SOUL_MILL_APPROACH": {
@@ -1725,16 +2101,34 @@ export const scenes = {
         background: "landscapes/sporefall_whisperwood_reveal.png", // Placeholder
         text: "Dark smoke rises from the Soul Mill in a steady column, carrying the smell of ash, rot, and something industrial beneath it all. Even at a distance the place feels less like a destination and more like a sentence waiting to be carried out.",
         choices: [
-            { text: "Observe from distance", action: "openMap" }
+            {
+                text: "Withdraw and carry what you learned back to the guild",
+                requires: { flag: "elara_route_protect" },
+                nextScene: "SCENE_ELARA_PROTECT_ROUTE"
+            },
+            {
+                text: "Withdraw and weigh what sort of sacrifice this place was built to finish",
+                requires: { flag: "elara_route_stone_hunt_declared" },
+                nextScene: "SCENE_ELARA_STONE_ROUTE"
+            },
+            {
+                text: "Withdraw and keep watch for Aodhan on the black roads below",
+                requires: { flag: "elara_route_aodhan_lured" },
+                nextScene: "SCENE_ELARA_BETRAY_ROUTE"
+            },
+            {
+                text: "Back away and return to Hushbriar before the smoke changes its mind about you",
+                nextScene: "SCENE_HUSHBRIAR_GUILD_ROAD"
+            }
         ]
     },
-    "SCENE_THIEVES_HIDEOUT": {
-        id: "SCENE_THIEVES_HIDEOUT",
+    "SCENE_THIEVES_HIDEOUT_OLD": {
+        id: "SCENE_THIEVES_HIDEOUT_OLD",
         location: "thieves_hideout",
-        background: "landscapes/silverthorn_market_avenue.png", // Placeholder
-        text: "Beneath the bridge, behind stacked crates and river rot, you find the hidden loading dock the guild uses to move people and contraband. The rowboat is gone, but the place still feels recently used.",
+        background: "landscapes/silverthorn_market_avenue.png",
+        text: "An older loading nook lies empty now, stripped of cargo and certainty alike.",
         choices: [
-            { text: "Enter", action: "openMap" }
+            { text: "Return to the living hideout route", nextScene: "SCENE_HUSHBRIAR_GUILD_ROAD" }
         ]
     }
 };

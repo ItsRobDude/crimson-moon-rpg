@@ -41,6 +41,18 @@ If you add a new story-critical key, update both this note and the JS registry i
 | `sporefall_bridge_seen` | `SCENE_SPOREFALL_NORTH_BRIDGE` | `north_bridge` | Bridge shelter investigated. | rumor_only | optional_clue |
 | `sporefall_bridge_body_seen` | `SCENE_SPOREFALL_NORTH_BRIDGE` | `north_bridge` | Eoin's mother found under the bridge. | spoiler_sensitive | optional_clue |
 | `sporefall_north_route_open` | `SCENE_SPOREFALL_NORTH_ROUTE_DISCOVERED` | `north_skip_route` | Northern skip route opened. | public | story_progression |
+| `archives_thalion_audience_closed` | `SCENE_ARCHIVES_AUDIENCE` | `archives_truth` | First decisive Thalion audience exhausted. | spoiler_sensitive | one_time_outcome |
+| `archives_alderic_truth_learned` | `SCENE_ARCHIVES_ALDERIC_TRUTH` | `archives_truth` | Higher-value Alderic/Ciara truth extracted. | spoiler_sensitive | optional_clue |
+| `archives_alderic_truth_missed` | `SCENE_ARCHIVES_ALDERIC_REBUFF` | `archives_truth` | Deeper Alderic/Ciara truth permanently missed. | spoiler_sensitive | one_time_outcome |
+| `archives_thalion_confession_learned` | `SCENE_ARCHIVES_THALION_CONFESSION` | `archives_truth` | Thalion's personal confession learned. | spoiler_sensitive | optional_clue |
+| `archives_thalion_confession_missed` | `SCENE_ARCHIVES_THALION_REBUFF` | `archives_truth` | Thalion's personal confession permanently missed. | spoiler_sensitive | one_time_outcome |
+| `hushbriar_guild_ledger_found` | `SCENE_HUSHBRIAR_LEDGER` | `hushbriar_demigod_thread` | Loading-dock ledger clue found. | public | optional_clue |
+| `hushbriar_guild_trusted` | `SCENE_THIEVES_HIDEOUT` | `hushbriar_demigod_thread` | Guild trust earned enough to reach Elara. | public | story_progression |
+| `hushbriar_guild_hostile` | `SCENE_THIEVES_HIDEOUT` | `hushbriar_demigod_thread` | Guild relationship turned openly hostile. | public | story_progression |
+| `elara_met` | `SCENE_ELARA_HIDEAWAY` | `hushbriar_demigod_thread` | Elara personally encountered. | spoiler_sensitive | story_progression |
+| `elara_route_protect` | `SCENE_ELARA_PROTECT_ROUTE` | `hushbriar_demigod_thread` | Party committed to protecting and hiding Elara. | spoiler_sensitive | story_progression |
+| `elara_route_stone_hunt_declared` | `SCENE_ELARA_STONE_ROUTE` | `hushbriar_demigod_thread` | Party declared intent to use Elara's blood for the Stone. | spoiler_sensitive | story_progression |
+| `elara_route_aodhan_lured` | `SCENE_ELARA_BETRAY_ROUTE` | `hushbriar_demigod_thread` | Party chose to lead or lure Aodhan to Elara. | spoiler_sensitive | story_progression |
 
 ## Scene Memory
 

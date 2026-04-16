@@ -22,5 +22,13 @@ export const factions = {
         min: -100,
         max: 100,
         neutral: 0
+    },
+    thorne_guild: {
+        id: "thorne_guild",
+        name: "Thorne Guild",
+        description: "Smugglers, thieves, and survivalists who trade shelter for leverage.",
+        min: -100,
+        max: 100,
+        neutral: 0
     }
 };

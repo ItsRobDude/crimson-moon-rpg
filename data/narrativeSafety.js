@@ -189,6 +189,102 @@ export const narrativeStateRegistry = {
             allowedValues: [true],
             revealSensitivity: 'public',
             semantics: 'story_progression'
+        },
+        archives_thalion_audience_closed: {
+            owner: 'SCENE_ARCHIVES_AUDIENCE',
+            thread: 'archives_truth',
+            meaning: 'The first decisive Thalion interrogation has ended and the richest version should not repeat.',
+            allowedValues: [true],
+            revealSensitivity: 'spoiler_sensitive',
+            semantics: 'one_time_outcome'
+        },
+        archives_alderic_truth_learned: {
+            owner: 'SCENE_ARCHIVES_ALDERIC_TRUTH',
+            thread: 'archives_truth',
+            meaning: 'The player extracted the higher-value Alderic and Ciara alliance details from Thalion.',
+            allowedValues: [true],
+            revealSensitivity: 'spoiler_sensitive',
+            semantics: 'optional_clue'
+        },
+        archives_alderic_truth_missed: {
+            owner: 'SCENE_ARCHIVES_ALDERIC_REBUFF',
+            thread: 'archives_truth',
+            meaning: 'The player failed to win the deeper Alderic/Ciara truth during the one-pass Thalion audience.',
+            allowedValues: [true],
+            revealSensitivity: 'spoiler_sensitive',
+            semantics: 'one_time_outcome'
+        },
+        archives_thalion_confession_learned: {
+            owner: 'SCENE_ARCHIVES_THALION_CONFESSION',
+            thread: 'archives_truth',
+            meaning: 'The player won Thalion\'s personal confession about his own divine crime and guilt.',
+            allowedValues: [true],
+            revealSensitivity: 'spoiler_sensitive',
+            semantics: 'optional_clue'
+        },
+        archives_thalion_confession_missed: {
+            owner: 'SCENE_ARCHIVES_THALION_REBUFF',
+            thread: 'archives_truth',
+            meaning: 'The player failed to draw out Thalion\'s deeper confession during the one-pass audience.',
+            allowedValues: [true],
+            revealSensitivity: 'spoiler_sensitive',
+            semantics: 'one_time_outcome'
+        },
+        hushbriar_guild_ledger_found: {
+            owner: 'SCENE_HUSHBRIAR_LEDGER',
+            thread: 'hushbriar_demigod_thread',
+            meaning: 'The player found the loading-dock ledger pointing toward the guild\'s hidden cargo.',
+            allowedValues: [true],
+            revealSensitivity: 'public',
+            semantics: 'optional_clue'
+        },
+        hushbriar_guild_trusted: {
+            owner: 'SCENE_THIEVES_HIDEOUT',
+            thread: 'hushbriar_demigod_thread',
+            meaning: 'The guild has accepted the party as useful enough to risk showing them Elara.',
+            allowedValues: [true],
+            revealSensitivity: 'public',
+            semantics: 'story_progression'
+        },
+        hushbriar_guild_hostile: {
+            owner: 'SCENE_THIEVES_HIDEOUT',
+            thread: 'hushbriar_demigod_thread',
+            meaning: 'The party has lost the guild\'s trust and future contact should stay hostile or coercive.',
+            allowedValues: [true],
+            revealSensitivity: 'public',
+            semantics: 'story_progression'
+        },
+        elara_met: {
+            owner: 'SCENE_ELARA_HIDEAWAY',
+            thread: 'hushbriar_demigod_thread',
+            meaning: 'The party reached Elara\'s hiding place and the demigod route is now personal rather than rumor-level.',
+            allowedValues: [true],
+            revealSensitivity: 'spoiler_sensitive',
+            semantics: 'story_progression'
+        },
+        elara_route_protect: {
+            owner: 'SCENE_ELARA_PROTECT_ROUTE',
+            thread: 'hushbriar_demigod_thread',
+            meaning: 'The party committed to keeping Elara hidden and resisting those who would spend her life.',
+            allowedValues: [true],
+            revealSensitivity: 'spoiler_sensitive',
+            semantics: 'story_progression'
+        },
+        elara_route_stone_hunt_declared: {
+            owner: 'SCENE_ELARA_STONE_ROUTE',
+            thread: 'hushbriar_demigod_thread',
+            meaning: 'The party revealed an intent to use Elara\'s blood to empower the Stone of Oblivion.',
+            allowedValues: [true],
+            revealSensitivity: 'spoiler_sensitive',
+            semantics: 'story_progression'
+        },
+        elara_route_aodhan_lured: {
+            owner: 'SCENE_ELARA_BETRAY_ROUTE',
+            thread: 'hushbriar_demigod_thread',
+            meaning: 'The party chose to bring or bait the living Aodhan toward Elara\'s hiding place.',
+            allowedValues: [true],
+            revealSensitivity: 'spoiler_sensitive',
+            semantics: 'story_progression'
         }
     },
     sceneMemory: {

@@ -61,8 +61,14 @@ function meetsChoiceRequirements(choice, actor = gameState.player) {
         const current = getReputation(requires.reputation.factionId);
         if (current < (requires.reputation.min || -999)) return false;
     }
-    if (requires.flag && !gameState.flags[requires.flag]) return false;
-    if (requires.notFlag && gameState.flags[requires.notFlag]) return false;
+    if (requires.flag) {
+        const flags = Array.isArray(requires.flag) ? requires.flag : [requires.flag];
+        if (!flags.every((flagId) => gameState.flags[flagId])) return false;
+    }
+    if (requires.notFlag) {
+        const flags = Array.isArray(requires.notFlag) ? requires.notFlag : [requires.notFlag];
+        if (flags.some((flagId) => gameState.flags[flagId])) return false;
+    }
     if (requires.npcState) {
         const { id, status } = requires.npcState;
         if (getNpcStatus(id) !== status) return false;
@@ -2668,16 +2674,18 @@ function travelTo(locationId) {
     goToScene(getHubSceneForLocation(locationId));
 }
 
-function getHubSceneForLocation(locationId) {
-    const phase = gameState.worldPhase || 0;
+export function getHubSceneForLocation(locationId) {
     if (locationId === 'silverthorn' && gameState.flags['aodhan_dead']) {
         return 'SCENE_SILVERTHORN_QUARANTINE';
     }
     if (locationId === 'hushbriar') {
-        if (phase >= 2 || gameState.flags['aodhan_dead']) {
-            return 'SCENE_HUSHBRIAR_CORRUPTED';
-        }
-        return 'SCENE_HUSHBRIAR_TOWN';
+        return 'SCENE_HUSHBRIAR_GUILD_ROAD';
+    }
+    if (locationId === 'thieves_hideout') {
+        if (gameState.flags['elara_route_protect']) return 'SCENE_ELARA_PROTECT_ROUTE';
+        if (gameState.flags['elara_route_stone_hunt_declared']) return 'SCENE_ELARA_STONE_ROUTE';
+        if (gameState.flags['elara_route_aodhan_lured']) return 'SCENE_ELARA_BETRAY_ROUTE';
+        return 'SCENE_THIEVES_HIDEOUT';
     }
     if (locationId === 'silverthorn') return 'SCENE_HUB_SILVERTHORN';
     if (locationId === 'whisperwood') return 'SCENE_ARRIVAL_WHISPERWOOD';

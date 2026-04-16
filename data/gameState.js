@@ -72,7 +72,8 @@ const defaultGameState = {
     reputation: {
         silverthorn: 0,
         durnhelm: 0,
-        whisperwood_survivors: 0
+        whisperwood_survivors: 0,
+        thorne_guild: 0
     },
     relationships: {},
     discoveredLocations: {
