@@ -79,7 +79,7 @@ test('revisiting Sporefall arrival after meeting Eoin returns to the hub instead
 
   expect(labels).toEqual(expect.arrayContaining([
     expect.stringContaining('central street'),
-    expect.stringContaining("Eoin's hiding place")
+    expect.stringContaining("Eoin")
   ]));
   expect(labels.some((label) => label.includes('survivors'))).toBe(false);
 });
@@ -143,8 +143,8 @@ test('Eoin dialogue reacts to discovered cathedral and north-side clues', () => 
 
   const scene = getRuntimeScene('SCENE_EOIN_TALK');
 
-  expect(scene.text).toContain("grip tightens");
-  expect(scene.text).toContain("relieved and guilty");
+  expect(scene.text).toContain("grips the broken spear");
+  expect(scene.text).toContain("hopeful and sick");
 });
 
 test('north approach exposes stonework reading and bridge investigation that fits Eoin lore', () => {
@@ -198,4 +198,11 @@ test('early Sporefall critical path does not surface Neala or Liobhan', () => {
 
 test('legacy Eoin assistance no longer routes back into the old ruins prototype', () => {
   expect(scenes.SCENE_EOIN_ASSISTANCE.choices[0].nextScene).toBe('SCENE_HUB_SPOREFALL');
+});
+
+test('Eoin authored dialogue no longer reads like a mature tactical helper', () => {
+  expect(scenes.SCENE_MEET_EOIN.text).toContain('boy');
+  expect(scenes.SCENE_EOIN_RECRUITED.text).toContain("Don't leave me here");
+  expect(scenes.SCENE_EOIN_TALK.choices.some((choice) => choice.text.includes('mum'))).toBe(true);
+  expect(scenes.SCENE_EOIN_TALK.choices.some((choice) => choice.text.includes('keep the borough from taking you blind'))).toBe(false);
 });

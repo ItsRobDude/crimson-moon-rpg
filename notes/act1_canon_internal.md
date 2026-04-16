@@ -48,6 +48,31 @@ Player-facing early knowledge should stay narrow:
 - `Eoin` is a ghostlike, displaced survivor who does not understand the full truth of his own state.
 - Eoin's mother is dead beneath the north bridge, mummified and overtaken by the spore.
 
+## Voice Map
+
+These are contributor-facing voice anchors for current player-facing NPCs. Check new dialogue and choice labels against them before shipping rewrites.
+
+- `Eoin`
+  Young, frightened, lonely, and disoriented. He clings to concrete memories like his mother, hiding, hunger, the bridge, and getting lost. He should not sound tactically polished, emotionally fluent, or like a hardened scout.
+- `Neala`
+  Blunt, accusatory, impatient, and street-hard. Her threats are direct and hot-blooded. She should sound like someone ready to cut first and listen second.
+- `Liobhan`
+  Colder than Neala, measured, intelligent, and more unsettling because she rarely needs to raise her voice. Her menace should feel deliberate rather than explosive.
+- `Aine`
+  Defensive, grief-broken, suspicious, and volatile where her children or the Mark are concerned. She should resist explanation before she yields any truth.
+- `Thalion`
+  Formal, severe, penitential, and ritual-minded. He speaks like a keeper under sentence, not a casual lore source.
+- `Fionnlagh`
+  A frightened father and spiritually frayed man who feels doom everywhere. He should sound strained, personal, and uneasy rather than tidy or informational.
+- `Elara`
+  Terrified, guilty, conflicted, and ashamed. She knows what is coming for her and should never sound emotionally detached from it.
+- `Aodhan`
+  Grief-driven, dangerous, and morally unstable, but not theatrically villainous. He should sound like someone held together by fury and loss.
+- `Alderic`
+  Restrained, polished, rehearsed, and emotionally cold. Even when he is giving information, it should feel controlled and selective.
+- `Cathal`
+  Rough, bitter, exhausted, and abrasive. He should sound like a wounded forgemaster dragging himself through rage and shock, not a dignified expositor.
+
 ## Protected Emotional Set Pieces
 
 These scenes should be adapted carefully and not flattened into quest utility:

@@ -584,7 +584,7 @@ function applyPartySceneVariation(sceneId, scene) {
 
     if (sceneId === 'SCENE_HUB_SPOREFALL') {
         const witness = hasEoin
-            ? 'Eoin moves with you now, flinching at each street he still recognizes and warning you away from the silences that feel too deliberate.'
+            ? 'Eoin stays close enough that his sleeve brushes yours when the street opens too wide, flinching at every corner he still half-recognizes.'
             : `${partyNames} spread through the street with the wary discipline of people who know ruin can still lunge.`;
         scene.text = `${scene.text} ${witness}`;
         return scene;
@@ -600,7 +600,7 @@ function applyPartySceneVariation(sceneId, scene) {
 
     if (sceneId === 'SCENE_BRIARWOOD_INN') {
         const innBeat = hasNeala
-            ? 'Neala counts doors, exits, and armed drunks before she sits, which does more to quiet the room around your table than any prayer.'
+            ? 'Neala marks doors, exits, and armed drunks before she even thinks about sitting, and the room feels her doing it.'
             : `${partyNames} have to fold themselves smaller than they would like to fit around one table, and the innkeeper charges extra in the look he gives you for the trouble.`;
         scene.text = `${scene.text} ${innBeat}`;
         return scene;
@@ -608,7 +608,7 @@ function applyPartySceneVariation(sceneId, scene) {
 
     if (sceneId === 'SCENE_HUSHBRIAR_GUILD_ROAD' || sceneId === 'SCENE_ELARA_PROTECT_ROUTE') {
         const roadBeat = hasNeala
-            ? 'Neala keeps reading the walls, culverts, and mooring posts without slowing, proving that half the guild route lives in marks a stranger would never know were there.'
+            ? 'Neala keeps reading the walls, culverts, and mooring posts without slowing, lips tightening whenever a mark has been moved or muddied by the wrong hands.'
             : `${partyNames} make for a harder shape to hide, and every bend in the road feels built to ask whether your numbers are shelter or invitation.`;
         scene.text = `${scene.text} ${roadBeat}`;
         return scene;
@@ -956,7 +956,7 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
             scene.text = `You stand once more in Sporefall's central street, where the silence no longer feels abandoned so much as watched. Doors hang open to rooms no one had time to close. A butcher's awning has fused to its frame in black curls. The red light on the stones makes every threshold look blood-washed whether blood touched it or not. The borough still opens west toward the cathedral quarter, east toward the overseer's row, and north toward the bridge Eoin named.${eoinState ? ` ${eoinState}` : ''}`;
             scene.choices = [
                 createChoice('Step back into the central street', 'SCENE_HUB_SPOREFALL'),
-                createChoice(gameState.flags.eoin_recruited ? "Check in with Eoin before moving on" : "Return to Eoin's hiding place", 'SCENE_EOIN_TALK')
+                createChoice(gameState.flags.eoin_recruited ? "See if Eoin can steady himself before you move" : "Go back to Eoin's hiding place", 'SCENE_EOIN_TALK')
             ];
             return scene;
         }
@@ -1045,9 +1045,9 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
     if (sceneId === 'SCENE_MEET_EOIN') {
         scene.choices = [...(scene.choices || [])];
         if (state.eoinGlimpsed) {
-            scene.text = "The pale figure you glimpsed behind the house finally shows himself. A young man steps into the moon-glow with a broken spear in shaking hands, shoulders tucked as if he expects the night itself to strike first. His clothes are too thin for the cold and too dirty for any recent shelter above ground. His face is hollow from hunger and fright in nearly equal measure. 'Stay back,' he says, though the threat lands weaker than the plea beneath it. 'Are you real, or another kindness this place will take back?'";
+            scene.text = "The pale figure you glimpsed behind the house finally shows himself. A boy edges into the moon-glow with a broken spear in shaking hands, shoulders curled inward as if the night itself has struck him before. His clothes are too thin for the cold and too filthy for any recent safety above ground. His face is hollow from hunger and fright in nearly equal measure. 'Stay back,' he says, though the threat lands weaker than the plea under it. 'Are you real, or another kindness this place will take back?'";
         } else {
-            scene.text = "A young man rises from the lee of a ruined wall with a broken spear half-lifted, breathing as if each breath has to be bargained for. His sleeves are shredded at the cuffs, and the grime worked into them looks older than tonight. He watches you the way starving men watch food they suspect is poisoned: wanting to believe, unable to afford it.";
+            scene.text = "A boy rises from the lee of a ruined wall with a broken spear half-lifted, breathing as if every breath has to be bargained for first. His sleeves are shredded at the cuffs, and the grime ground into them looks older than tonight. He watches you the way starving children watch food they suspect is poisoned: wanting to believe, unable to afford it.";
         }
         if (!state.eoinFed && actorHasItem('player', 'rations')) {
             scene.choices.unshift(createChoice('Offer him a ration before you ask anything', 'SCENE_EOIN_TALK', {
@@ -1067,32 +1067,32 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
         if (state.eoinTalked) {
             const reactions = [];
             if (clueNotes.includes('cathedral')) {
-                reactions.push("When you mention the cathedral, Eoin's grip tightens on the broken spear. He keeps insisting that whatever happened there began before the moon turned wrong.");
+                reactions.push("When you mention the cathedral, Eoin grips the broken spear so hard his knuckles blanch. He keeps whispering that whatever happened there started before the moon went wrong.");
             }
             if (clueNotes.includes('overseer_house')) {
-                reactions.push("The overseer's house clearly means something to him now. He watches your face closely, as if afraid of what Aodhan's papers might prove.");
+                reactions.push("The overseer's house clearly means something to him now. He watches your face too closely, frightened of what Aodhan's papers might have made true.");
             }
             if (clueNotes.includes('north_side')) {
-                reactions.push("Any mention of the north-side bridge makes him look relieved and guilty at once, like he still hopes the answer to his mother lies there.");
+                reactions.push("Any mention of the north-side bridge makes him look hopeful and sick at once, like he still wants his mum to be there and knows better.");
             }
             if (state.bridgeBodySeen) {
                 reactions.push("When the bridge comes up now, he goes quiet enough to hear himself shake. He still cannot make himself ask the question plainly.");
             }
             const suffix = reactions.length > 0 ? ` ${reactions.join(' ')}` : '';
             const comfortBeat = [
-                state.eoinFed ? 'The memory of the food you gave him lingers in the way he no longer apologizes for surviving.' : null,
-                state.eoinTreated ? 'The rasp in his breath is lighter now, though the fear behind it remains untouched.' : null
+                state.eoinFed ? 'The memory of the food you gave him lingers in the way he has stopped apologizing before he speaks.' : null,
+                state.eoinTreated ? 'The rasp in his breath is lighter now, though the fear behind it has nowhere to go.' : null
             ].filter(Boolean).join(' ');
             const recruitBeat = gameState.flags.eoin_recruited
-                ? 'He no longer sits like someone hiding from the street. He listens for your next move instead, frightened but committed to being part of it.'
+                ? 'He still startles at every noise, but now he waits for your next move instead of curling back into the cellar mouth.'
                 : gameState.flags.eoin_refused
-                    ? 'He stays close to the cellar mouth now, resigned to surviving this place without your company.'
+                    ? 'He keeps close to the cellar mouth now, trying to look smaller than the ruin around him.'
                     : gameState.flags.eoin_locked_out
-                        ? 'He answers what he must, but the hurt in him has hardened into enough caution to keep the rest of himself back.'
+                        ? 'He answers what he must, but the hurt in him has gone careful and quiet.'
                         : null;
-            scene.text = `Eoin is calmer now, though never fully steady. He keeps watching the empty streets between words, as if expecting the town itself to overhear him. The same three threads still matter most to him: the cathedral, the north-side bridge, and the impossible fact that he feels present and absent all at once.${suffix}${comfortBeat ? ` ${comfortBeat}` : ''}${recruitBeat ? ` ${recruitBeat}` : ''}`;
+            scene.text = `Eoin is calmer now, though never steady. He keeps watching the empty street between words, as if expecting the town itself to overhear him. The same three hurts still pull at him: the cathedral, the north-side bridge, and the impossible feeling that part of him is here while part of him has already gone missing.${suffix}${comfortBeat ? ` ${comfortBeat}` : ''}${recruitBeat ? ` ${recruitBeat}` : ''}`;
         } else {
-            scene.text = "Once the spear lowers a little, the story comes out in broken pieces: quarantine lines, prayers that became orders, a mother he lost sight of near the northern bridge where they used to sleep under the stonework, and a town that seemed to sicken all at once after the moon rose wrong. He still calls the place Whisperwood when he forgets himself. He speaks like someone afraid that saying the whole truth aloud might summon it back.";
+            scene.text = "Once the spear lowers a little, the story comes out in broken pieces: quarantine lines, prayers that turned into orders, a mum he lost near the northern bridge where they used to sleep under the stonework, and a town that seemed to sicken all at once after the moon rose wrong. He still calls the place Whisperwood when he forgets himself. He speaks like a child afraid the whole truth might hear its name and come back.";
         }
 
         if (!state.eoinTreated && actorHasItem('player', 'antitoxin')) {
@@ -1113,23 +1113,23 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
             }));
         }
         if (!recruitmentResolved) {
-            scene.choices.push(createChoice('Ask Eoin to walk with you and keep the borough from taking you blind', 'SCENE_EOIN_RECRUITED', {
+            scene.choices.push(createChoice("\"All right. Stay close to me and don't fall behind.\"", 'SCENE_EOIN_RECRUITED', {
                 effects: [
                     { type: 'flag', flagId: 'sporefall_eoin_talked', value: true },
                     { type: 'flag', flagId: 'eoin_recruited', value: true },
                     { type: 'flag', flagId: 'eoin_bonded', value: true },
                     { type: 'relationship', npcId: 'eoin', amount: 10 },
                     { type: 'reputation', factionId: 'whisperwood_survivors', amount: 5 },
-                    { type: 'addCompanion', companionId: 'eoin', logText: 'Eoin joins the party, still shaking but no longer hiding from every ruined doorway.' }
+                    { type: 'addCompanion', companionId: 'eoin', logText: 'Eoin joins the party, frightened through and through, but too afraid of being left behind to stay hidden.' }
                 ]
             }));
-            scene.choices.push(createChoice('Tell Eoin to stay hidden until the road clears', 'SCENE_HUB_SPOREFALL', {
+            scene.choices.push(createChoice("\"Stay hidden. If I can clear a road, I'll come back for you.\"", 'SCENE_HUB_SPOREFALL', {
                 effects: [
                     { type: 'flag', flagId: 'sporefall_eoin_talked', value: true },
                     { type: 'flag', flagId: 'eoin_refused', value: true }
                 ]
             }));
-            scene.choices.push(createChoice('Tell him you would rather walk alone than drag another ghost behind you', 'SCENE_HUB_SPOREFALL', {
+            scene.choices.push(createChoice("\"I'm not dragging you through this with me.\"", 'SCENE_HUB_SPOREFALL', {
                 effects: [
                     { type: 'flag', flagId: 'sporefall_eoin_talked', value: true },
                     { type: 'flag', flagId: 'eoin_locked_out', value: true },
@@ -1142,7 +1142,7 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
 
     if (sceneId === 'SCENE_EOIN_RITUAL_TALK') {
         if (state.cathedralVisionSeen || state.cathedralLetterFound) {
-            scene.text = "Eoin listens hard when you tell him what the cathedral has already given up. 'Then it was real,' he whispers. 'The ritual. The overseer. The dark coming all at once.' He still points you back toward the Cathedral of Bone, but now with the dread of someone hearing his worst memory confirmed aloud.";
+            scene.text = "Eoin listens hard when you tell him what the cathedral has already given up. 'Then it was real,' he whispers. 'The rite. The Overseer. The dark all at once.' He still points you back toward the Cathedral of Bone, but now with the dread of someone hearing his worst memory answered aloud.";
         }
         return scene;
     }
@@ -1151,7 +1151,7 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
         if (state.bridgeBodySeen) {
             scene.text = "When you tell Eoin what lies beneath the north bridge, the words seem to take his balance before he understands them. He folds in on himself with one hand over his mouth, not weeping so much as failing all at once. 'She hated the damp there,' he whispers after a long time. 'She kept saying we would leave before winter and find a room with a door that shut.' Whatever hope carried him this far does not die cleanly. It tears.";
         } else if (state.bridgeSeen || state.northRouteOpen) {
-            scene.text = "When you mention the north-side bridge, Eoin goes still. 'Then you saw where we stayed,' he says softly. 'Good. I kept thinking if someone else saw it too, maybe I didn't imagine her there.' The north still matters to him, but now it feels less like rumor and more like grief with a street name.";
+            scene.text = "When you mention the north-side bridge, Eoin goes still. 'Then you saw where we stayed,' he says softly. 'Good. I kept thinking if somebody else saw it too, maybe I didn't make her up after.' The north still matters to him, but now it feels less like rumor and more like grief with a street name.";
         }
         return scene;
     }
@@ -1174,20 +1174,20 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
             createChoice(state.cathedralVisionSeen ? 'Return west to the Cathedral of Bone' : 'Head west through the cathedral quarter', 'SCENE_SPOREFALL_CATHEDRAL_APPROACH'),
             createChoice(state.homeUnlocked ? "Return east to Aodhan's house" : "Head east toward the overseer's row", 'SCENE_SPOREFALL_OVERSEER_APPROACH'),
             createChoice(state.northRouteOpen ? 'Take the northern skip route again' : 'Head north through the broken market road', 'SCENE_SPOREFALL_NORTH_APPROACH'),
-            createChoice(gameState.flags.eoin_recruited ? "Check in with Eoin before choosing a road" : "Return to Eoin's hiding place", 'SCENE_EOIN_TALK')
+            createChoice(gameState.flags.eoin_recruited ? "Check on Eoin before you choose a road" : "Return to Eoin's hiding place", 'SCENE_EOIN_TALK')
         ];
         if (gameState.flags.eoin_recruited) {
-            scene.choices.unshift(createChoice('Let Eoin guide you by the shelter paths to the north road (Survival)', null, {
+            scene.choices.unshift(createChoice("Ask Eoin to show you the way north how he remembers it. (Survival)", null, {
                 type: 'skillCheck',
                 skill: 'survival',
                 dc: 10,
                 companionAid: {
                     companionId: 'eoin',
                     bonus: 2,
-                    logText: 'Eoin still remembers which alleys sheltered the hungry and which ones only looked safe from far away.'
+                    logText: 'Eoin remembers the hungry-child ways through Sporefall: cellar lips, shelter walls, and alleys that used to hide him and his mum.'
                 },
-                successText: 'With Eoin reading the borough from memory and fear, you reach the north road without giving the dead ground a fair chance to answer.',
-                failText: 'Even Eoin cannot make Sporefall harmless, but his warning still keeps the worst of the streets from closing around you.',
+                successText: 'With Eoin following memory more than confidence, you reach the north road without giving the dead ground a fair chance to answer.',
+                failText: 'Even Eoin cannot make Sporefall harmless, but his frightened guesses still keep the worst of the streets from folding over you.',
                 nextSceneSuccess: 'SCENE_SPOREFALL_NORTH_APPROACH',
                 nextSceneFail: 'SCENE_SPOREFALL_NORTH_APPROACH'
             }));

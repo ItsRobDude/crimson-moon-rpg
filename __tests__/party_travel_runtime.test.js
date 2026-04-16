@@ -42,9 +42,9 @@ test('Eoin talk now exposes recruit, refusal, and lockout outcomes before the ro
   const labels = scene.choices.map((choice) => choice.text);
 
   expect(labels).toEqual(expect.arrayContaining([
-    expect.stringContaining('Ask Eoin to walk with you'),
-    expect.stringContaining('stay hidden'),
-    expect.stringContaining('walk alone')
+    expect.stringContaining("Stay close to me"),
+    expect.stringContaining("Stay hidden"),
+    expect.stringContaining("not dragging you")
   ]));
 });
 
@@ -79,12 +79,12 @@ test('runtime scenes react to traveling as a group and surface companion-specifi
   gameState.flags.sporefall_eoin_talked = true;
 
   let scene = getRuntimeScene('SCENE_HUB_SPOREFALL');
-  expect(scene.text).toContain('Eoin moves with you now');
-  expect(scene.choices.some((choice) => choice.text.includes('Let Eoin guide you'))).toBe(true);
+  expect(scene.text).toContain('Eoin stays close enough');
+  expect(scene.choices.some((choice) => choice.text.includes('show you the way north'))).toBe(true);
 
   addCompanion('neala');
   scene = getRuntimeScene('SCENE_BRIARWOOD_INN');
-  expect(scene.text).toContain('Neala counts doors');
+  expect(scene.text).toContain('Neala marks doors');
 });
 
 test('travel event pool filters by route, party state, and Elara protection flags', () => {

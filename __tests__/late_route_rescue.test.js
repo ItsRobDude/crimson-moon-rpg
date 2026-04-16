@@ -95,7 +95,7 @@ test('Hushbriar town and inn keep the occupied dread through the Fionnlagh path'
   expect(scenes.SCENE_BRIARWOOD_INN.text).toContain('pilgrims');
   expect(scenes.SCENE_BRIARWOOD_INN.text).not.toBe('The inn is crowded.');
 
-  expect(scenes.SCENE_FIONNLAGH_HUB.text).toContain('Every hour in this place feels like something waiting to tear open');
+  expect(scenes.SCENE_FIONNLAGH_HUB.text).toContain('Every hour here feels wrong before it even happens');
   expect(scenes.SCENE_FIONNLAGH_PLAGUE_INFO.text).toContain('black at the mouth');
   expect(scenes.SCENE_FIONNLAGH_CLAN_INFO.text).toContain('split along every old wound');
 });
@@ -107,19 +107,29 @@ test('Lament Hill now routes through authored scenes to Aine before unlocking th
   const signsChoices = scenes.SCENE_LAMENT_COTTAGE_SIGNS.choices;
   const catChoices = scenes.SCENE_LAMENT_CAT_DISCOVERY.choices;
   const gravesChoices = scenes.SCENE_LAMENT_GRAVES.choices;
+  const accusationChoices = scenes.SCENE_LAMENT_AINE_ACCUSATION.choices;
 
   expect(approachChoices.some((choice) => choice.nextScene === 'SCENE_LAMENT_HILL_VISION')).toBe(true);
   expect(visionChoices.some((choice) => choice.nextScene === 'SCENE_LAMENT_COTTAGE')).toBe(true);
   expect(cottageChoices.some((choice) => choice.nextScene === 'SCENE_LAMENT_CAT_DISCOVERY')).toBe(true);
   expect(cottageChoices.some((choice) => choice.action === 'openMap')).toBe(false);
   expect(gravesChoices.some((choice) => choice.action === 'openMap')).toBe(false);
-  expect(signsChoices.some((choice) => choice.nextScene === 'SCENE_LAMENT_AINE_REVEAL')).toBe(true);
-  expect(catChoices.every((choice) => choice.nextScene === 'SCENE_LAMENT_AINE_REVEAL')).toBe(true);
+  expect(signsChoices.some((choice) => choice.nextScene === 'SCENE_LAMENT_AINE_ACCUSATION')).toBe(true);
+  expect(catChoices.every((choice) => choice.nextScene === 'SCENE_LAMENT_AINE_ACCUSATION')).toBe(true);
+  expect(accusationChoices.every((choice) => choice.nextScene === 'SCENE_LAMENT_AINE_REVEAL')).toBe(true);
 
   expect(storySceneTriggers.SCENE_LAMENT_COTTAGE.complete).toBeUndefined();
   expect(storySceneTriggers.SCENE_LAMENT_COTTAGE.unlock).toBeUndefined();
   expect(storySceneTriggers.SCENE_LAMENT_AINE_REVEAL.complete).toEqual(['lament_hill_thread']);
   expect(storySceneTriggers.SCENE_LAMENT_AINE_REVEAL.unlock).toEqual(['archives_truth', 'hushbriar_demigod_thread']);
+});
+
+test('late-game conversations preserve stronger distinct voices after the rewrite', () => {
+  expect(scenes.SCENE_ARCHIVES_GATEKEEPER.text).toContain('last keeper and longest penitent');
+  expect(scenes.SCENE_THIEVES_HIDEOUT.text).toContain('next sentence expensive');
+  expect(scenes.SCENE_GUILD_BARGAIN.text).toContain("That's leverage");
+  expect(scenes.SCENE_ELARA_HIDEAWAY.text).toContain('torn between dying for the world and running');
+  expect(scenes.SCENE_DURNHELM_CATHAL.text).toContain('swears at the sky');
 });
 
 test('Sporefall street-search fail text stays in the same grim register', () => {

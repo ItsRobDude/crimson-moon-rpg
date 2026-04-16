@@ -28,9 +28,9 @@ test('Archives route is authored and archives_truth completes at the truth chamb
 
 test('Thalion audience contains one-pass missable truth gates and a closing flag', () => {
   const audienceChoices = scenes.SCENE_ARCHIVES_AUDIENCE.choices;
-  const aldericChoice = audienceChoices.find((choice) => choice.text.includes('Alderic truly serves Ciara'));
-  const confessionChoice = audienceChoices.find((choice) => choice.text.includes('what crime chained Thalion'));
-  const leaveChoice = audienceChoices.find((choice) => choice.text.includes('Leave before he decides'));
+  const aldericChoice = audienceChoices.find((choice) => choice.text.includes('Alderic buy for himself'));
+  const confessionChoice = audienceChoices.find((choice) => choice.text.includes('sin chained you'));
+  const leaveChoice = audienceChoices.find((choice) => choice.text.includes('Bow out before he decides'));
 
   expect(aldericChoice.requires.notFlag).toEqual(['archives_thalion_audience_closed', 'archives_alderic_truth_learned', 'archives_alderic_truth_missed']);
   expect(aldericChoice.onSuccess.effects).toContainEqual({ type: 'flag', flagId: 'archives_alderic_truth_learned', value: true });
@@ -51,9 +51,9 @@ test('Hushbriar now opens on the guild-investigation route and the ledger/Elara 
 
 test('Elara route choices differ based on Stone possession and whether Aodhan still lives', () => {
   const elaraChoices = scenes.SCENE_ELARA_HIDEAWAY.choices;
-  const stoneChoice = elaraChoices.find((choice) => choice.text.includes('Stone is already in your hands'));
+  const stoneChoice = elaraChoices.find((choice) => choice.text.includes('Stone is already in my hands'));
   const aodhanChoice = elaraChoices.find((choice) => choice.text.includes('Aodhan still lives'));
-  const protectChoice = elaraChoices.find((choice) => choice.text.includes('keep her hidden'));
+  const protectChoice = elaraChoices.find((choice) => choice.text.includes('move you before the hunters'));
 
   expect(stoneChoice.requires.itemId).toBe('stone_of_oblivion');
   expect(stoneChoice.effects).toContainEqual({ type: 'flag', flagId: 'elara_route_stone_hunt_declared', value: true });
