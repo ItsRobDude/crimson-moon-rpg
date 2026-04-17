@@ -330,6 +330,53 @@ test('standing from prone preserves the correct half-movement remainder when the
   expect(gameState.combat.movementRemaining).toBe(15);
 });
 
+test('standing from prone fails when no movement remains and leaves prone in place', () => {
+  gameState.player = createActor({ name: 'Hero', classId: 'fighter' });
+  addEffectToActor(gameState.player, 'prone');
+  syncActorState(gameState.player);
+
+  gameState.combat = {
+    ...gameState.combat,
+    active: true,
+    activeActorId: 'player',
+    actionsRemaining: 1,
+    bonusActionsRemaining: 1,
+    movementRemaining: 0,
+    enemies: [],
+    turnOrder: ['player']
+  };
+
+  expect(performStand('player')).toBe(false);
+  expect(gameState.player.mechanics.activeEffects.some((effect) => effect.id === 'prone')).toBe(true);
+  expect(gameState.combat.movementRemaining).toBe(0);
+});
+
+test('standing from prone fails when another effect reduces speed to zero', () => {
+  gameState.player = createActor({ name: 'Hero', classId: 'fighter' });
+  addEffectToActor(gameState.player, 'prone');
+  addEffectToActor(gameState.player, 'grappled', {
+    escapeDc: 10,
+    source: 'monster:grappler',
+    sourceActorId: 'enemy_0'
+  });
+  syncActorState(gameState.player);
+
+  gameState.combat = {
+    ...gameState.combat,
+    active: true,
+    activeActorId: 'player',
+    actionsRemaining: 1,
+    bonusActionsRemaining: 1,
+    movementRemaining: 15,
+    enemies: [],
+    turnOrder: ['player']
+  };
+
+  expect(performStand('player')).toBe(false);
+  expect(gameState.player.mechanics.activeEffects.some((effect) => effect.id === 'prone')).toBe(true);
+  expect(gameState.combat.movementRemaining).toBe(15);
+});
+
 test('escape action breaks grappled movement locks on a successful check', () => {
   const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.95);
 

@@ -1900,13 +1900,20 @@ export function performStand(actorId = 'player') {
     }
     const preStandSpeed = Math.max(0, getDerivedActorState(actor).speed || 0);
     const currentRemaining = Math.max(0, gameState.combat.movementRemaining ?? preStandSpeed);
-    removeEffectFromActor(actor, 'prone');
-    syncActorState(actor);
-    const normalSpeed = Math.max(0, getDerivedActorState(actor).speed || actor?.mechanics?.baseSpeed || 0);
+    const standingSnapshot = JSON.parse(JSON.stringify(actor));
+    removeEffectFromActor(standingSnapshot, 'prone');
+    syncActorState(standingSnapshot);
+    const normalSpeed = Math.max(0, getDerivedActorState(standingSnapshot).speed || actor?.mechanics?.baseSpeed || 0);
     const standingCost = Math.max(1, Math.floor(normalSpeed / 2));
     const equivalentRemaining = preStandSpeed > 0
         ? Math.floor(currentRemaining * (normalSpeed / preStandSpeed))
         : currentRemaining;
+    if (normalSpeed <= 0 || equivalentRemaining < standingCost) {
+        uiHooks.logToBattle(`${actor.name} lacks the movement to stand right now.`, 'check-fail');
+        return false;
+    }
+    removeEffectFromActor(actor, 'prone');
+    syncActorState(actor);
     gameState.combat.movementRemaining = Math.max(0, equivalentRemaining - standingCost);
     syncGridToken(actorId);
     uiHooks.logToBattle(`${actor.name} regains their feet, spending half their movement.`, 'system');
