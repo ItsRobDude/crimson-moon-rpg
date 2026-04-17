@@ -17,6 +17,8 @@ test.describe('Game Bootstrap & Resilience', () => {
 
     await expect(page.locator('#start-menu')).not.toHaveClass(/hidden/);
     await expect(page.locator('#btn-start-continue')).toBeDisabled();
+    await expect(page.locator('#stats-bar')).toBeHidden();
+    await expect(page.locator('#game-log-panel')).toBeHidden();
   });
 
   test('Valid save should be available from Continue', async ({ page }) => {

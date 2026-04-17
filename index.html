@@ -18,33 +18,36 @@
 
         <!-- Header: Character Info -->
         <header id="stats-bar">
-            <div class="stat-group">
-                <span id="char-name">Name</span>
-                <span id="char-level">Lvl 1</span>
-                <span id="char-class">Class</span>
-                <span id="char-ac">AC 10</span>
-                <span id="char-time">Day 1 - Midday</span>
-            </div>
-            <div class="stat-group bars">
-                <div class="bar-container hp-container">
-                    <div id="hp-bar-fill" class="bar-fill"></div>
-                    <span id="hp-text">HP: 10/10</span>
+            <div class="hud-primary">
+                <div class="hud-identity">
+                    <span id="char-name">Name</span>
+                    <div class="hud-meta-line">
+                        <span id="char-level">Lvl 1</span>
+                        <span id="char-class">Class</span>
+                        <span id="char-ac">AC 10</span>
+                        <span id="char-time">Day 1 - Midday</span>
+                    </div>
                 </div>
-                <div class="bar-container xp-container">
-                    <div id="xp-bar-fill" class="bar-fill"></div>
-                    <span id="xp-text">XP: 0/300</span>
+                <div class="hud-bars">
+                    <div class="bar-container hp-container">
+                        <div id="hp-bar-fill" class="bar-fill"></div>
+                        <span id="hp-text">HP: 10/10</span>
+                    </div>
+                    <div class="bar-container xp-container">
+                        <div id="xp-bar-fill" class="bar-fill"></div>
+                        <span id="xp-text">XP: 0/300</span>
+                    </div>
                 </div>
             </div>
-            <div class="stat-group">
-                <span id="char-weapon">Weapon: Unarmed</span>
-                <span id="char-armor">Armor: None</span>
-            </div>
-            <div class="stat-group buttons">
-                <button id="btn-map">Map</button>
-                <button id="btn-inventory">Inventory</button>
-                <button id="btn-quests">Quests</button>
-                <button id="btn-codex">Codex</button>
-                <button id="btn-menu">Menu</button>
+            <div class="hud-secondary">
+                <span id="char-loadout">Unarmed and no armor worth naming.</span>
+                <div class="stat-group buttons">
+                    <button id="btn-map">Map</button>
+                    <button id="btn-inventory">Inventory</button>
+                    <button id="btn-quests">Quests</button>
+                    <button id="btn-codex">Codex</button>
+                    <button id="btn-menu">Menu</button>
+                </div>
             </div>
         </header>
 
@@ -80,6 +83,8 @@
                     <div class="battle-side-column">
                         <div id="battle-turn-section" class="battle-section">
                             <h3 id="turn-indicator">Player's Turn</h3>
+                            <p id="battle-turn-summary" class="battle-turn-summary"></p>
+                            <p id="battle-guidance-text" class="battle-guidance-text"></p>
                             <div id="battle-actions-container" class="battle-actions-grid">
                                 <!-- Action buttons go here -->
                             </div>
@@ -111,6 +116,11 @@
 
             <!-- Dialogue & Interaction Section (Bottom) -->
             <div id="narrative-section">
+                <div id="objective-strip" class="hidden">
+                    <p class="objective-label">Current Aim</p>
+                    <p id="objective-text"></p>
+                    <p id="objective-status" class="hidden"></p>
+                </div>
                 <div id="narrative-box">
                     <p id="narrative-text">Welcome to Prophecies: Crimson Moon.</p>
                 </div>
@@ -152,6 +162,11 @@
     <div id="char-creation-modal" class="modal hidden">
         <div class="modal-content">
             <h2>Create Your Character</h2>
+            <div id="cc-guidance-panel" class="cc-guidance-panel">
+                <p id="cc-guidance-text"></p>
+                <p id="cc-selection-summary" class="cc-selection-summary"></p>
+                <p id="cc-autofill-note" class="cc-autofill-note"></p>
+            </div>
 
             <div class="cc-grid">
                 <!-- Left Column: Choices -->
@@ -240,6 +255,7 @@
                 <div class="cc-preview-column">
                     <div class="preview-panel">
                         <h3>Character Preview</h3>
+                        <p id="cc-build-summary" class="cc-build-summary"></p>
                         <div id="cc-preview-content">
                             <!-- Dynamic Stats go here -->
                         </div>
@@ -398,8 +414,10 @@
             <h2>How to Play</h2>
             <ul>
                 <li><strong>Checks:</strong> d20 + Ability Mod + Proficiency.</li>
-                <li><strong>Combat:</strong> Turn-based. Choose actions wisely.</li>
-                <li><strong>Saving:</strong> Auto-saves on scene change. Manual save in menu.</li>
+                <li><strong>Silverthorn:</strong> You do not need to see every street. Use the current objective and quest text to choose one or two preparations before you take the eastern road.</li>
+                <li><strong>Choices:</strong> Hints under a choice tell you whether it is a lead, preparation, or something that will cost time.</li>
+                <li><strong>Combat:</strong> Each turn gives you an action, often a bonus action, and movement. Attack, move for a better angle, or open Class Features and Items if the obvious answer is not the best one.</li>
+                <li><strong>Saving:</strong> Auto-saves on scene change. Manual save in menu if you want a clean stopping point.</li>
             </ul>
             <button class="close-modal">Got it</button>
         </div>

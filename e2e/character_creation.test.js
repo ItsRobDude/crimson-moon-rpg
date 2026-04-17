@@ -23,6 +23,9 @@ test.describe('Character Creation UI', () => {
     const characterName = 'Jules';
 
     await page.click('#btn-start-new');
+    await expect(page.locator('#cc-guidance-panel')).toBeVisible();
+    await expect(page.locator('#cc-selection-summary')).toContainText('pick');
+    await expect(page.locator('#cc-build-summary')).not.toBeEmpty();
 
     // Fill in the character name
     await page.fill('#cc-name', characterName);

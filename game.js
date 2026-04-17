@@ -301,6 +301,10 @@ const defaultGameSettings = {
 };
 
 let gameSettings = { ...defaultGameSettings };
+let objectiveStatusState = {
+    message: '',
+    tone: 'system'
+};
 
 function loadGameSettings() {
     try {
@@ -315,6 +319,114 @@ function loadGameSettings() {
 
 function persistGameSettings() {
     localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(gameSettings));
+}
+
+function setPresentationMode(active) {
+    document.body.classList.toggle('presentation-mode', !!active);
+    updateObjectiveStrip();
+}
+
+function setObjectiveStatus(message = '', tone = 'system') {
+    objectiveStatusState = {
+        message: message || '',
+        tone
+    };
+    updateObjectiveStrip();
+}
+
+function getQuestUpdateStatusMessage(questId, stage) {
+    if (questId === 'investigate_whisperwood') {
+        if (stage === 1) {
+            return 'Alderic has set your charge. Gather rumor, blessing, or supplies in Silverthorn before you commit to the eastern gate.';
+        }
+        if (stage === 2) {
+            return 'The city falls behind you now. Keep the eastern road and survive what Shadowmire puts in your path.';
+        }
+        if (stage === 3) {
+            return 'The first true clues lie ahead. Find Eoin and learn what part of Sporefall still speaks with a human voice.';
+        }
+        if (stage === 4) {
+            return 'You have several live trails now. Choose which quarter of Sporefall to press before the town swallows the rest.';
+        }
+    }
+    return '';
+}
+
+function getStoryProgressStatus(changes) {
+    if (changes.actChanged) {
+        const currentAct = storyActs.find((act) => act.id === gameState.story.currentActId);
+        return currentAct ? `${currentAct.title} now governs the road ahead.` : '';
+    }
+    if (changes.completed.length > 0) {
+        return `${getStoryLabel(storyEvents, changes.completed[changes.completed.length - 1])} has advanced. Check your footing before you choose the next route.`;
+    }
+    if (changes.unlocked.length > 0) {
+        return `${getStoryLabel(storyEvents, changes.unlocked[changes.unlocked.length - 1])} is now in motion.`;
+    }
+    return '';
+}
+
+function getCurrentObjectiveCopy() {
+    const quest = gameState.quests?.investigate_whisperwood;
+    const currentSceneId = gameState.currentSceneId;
+
+    if (!quest || quest.currentStage <= 0) {
+        return 'Hear Prince Alderic and learn what Silverthorn needs of you.';
+    }
+
+    if (quest.currentStage === 1) {
+        if (currentSceneId === 'SCENE_BRIEFING' || currentSceneId === 'SCENE_ALDERIC_REACTION' || currentSceneId === 'SCENE_BRIEFING_2') {
+            return "Hear Alderic out, then step into Silverthorn with a sense of the road ahead.";
+        }
+        if (isSceneInSilverthorn(currentSceneId)) {
+            return 'Prepare in Silverthorn before you take the eastern gate. The Rusty Blade and temple road are the surest first reads.';
+        }
+    }
+
+    if (quest.currentStage === 2) {
+        return 'Take the eastern road through Shadowmire and reach the ruins of Whisperwood alive.';
+    }
+
+    if (quest.currentStage === 3) {
+        return 'Find Eoin and learn where the living trail through Sporefall still runs.';
+    }
+
+    if (quest.currentStage === 4) {
+        return "Choose which quarter of Sporefall to press: the cathedral, the overseer's row, or the northern streets.";
+    }
+
+    return quest.stages?.[quest.currentStage] || quest.description || '';
+}
+
+function updateObjectiveStrip() {
+    const strip = document.getElementById('objective-strip');
+    const textEl = document.getElementById('objective-text');
+    const statusEl = document.getElementById('objective-status');
+
+    if (!strip || !textEl || !statusEl) return;
+
+    if (document.body.classList.contains('presentation-mode')) {
+        strip.classList.add('hidden');
+        return;
+    }
+
+    const objectiveText = getCurrentObjectiveCopy();
+    if (!objectiveText) {
+        strip.classList.add('hidden');
+        return;
+    }
+
+    strip.classList.remove('hidden');
+    textEl.innerText = objectiveText;
+
+    statusEl.classList.remove('hidden', 'tone-system', 'tone-gain', 'tone-warning');
+    if (objectiveStatusState.message) {
+        statusEl.innerText = objectiveStatusState.message;
+        statusEl.classList.add(`tone-${objectiveStatusState.tone || 'system'}`);
+    } else {
+        statusEl.innerText = '';
+        statusEl.classList.add('hidden');
+    }
 }
 
 function setStartMenuStatus(message = '') {
@@ -452,6 +564,7 @@ function showStartMenu() {
     document.getElementById('char-creation-modal').classList.add('hidden');
     document.getElementById('options-modal').classList.add('hidden');
     document.getElementById('start-menu').classList.remove('hidden');
+    setPresentationMode(true);
     refreshStartMenuState();
     setStartMenuStatus('');
 }
@@ -657,13 +770,50 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
 
         scene.text = `${baseScene.text} It is ${time.timelineLabel}. ${curfewBeat}`;
         scene.choices = [
-            createChoice(time.isNight ? 'See whether Alderic still receives visitors' : "Present yourself at Alderic's chamber again", 'SCENE_ALDERIC_CHAMBER_RETURN'),
-            createChoice('Cross into the market quarter', 'SCENE_SILVERTHORN_MARKET', { timeAdvance: 1, timeReason: 'You make your way across the city.', inSilverthorn: true }),
-            createChoice('Seek supplies at the General Store', 'SCENE_SILVERTHORN_GENERAL_STORE', { timeAdvance: 1, timeReason: 'You stop to resupply.', inSilverthorn: true }),
-            createChoice('Step inside The Rusty Blade', 'SCENE_RUSTY_BLADE_INN', { timeAdvance: 1, timeReason: 'You spend time in the inn.', inSilverthorn: true }),
-            createChoice('Take the temple road', 'SCENE_SILVERTHORN_TEMPLE', { timeAdvance: 1, timeReason: 'You make a detour to the temple.', inSilverthorn: true }),
-            createChoice('Read what fear has posted', 'SCENE_SILVERTHORN_NOTICE_BOARD', { timeAdvance: 1, timeReason: 'You spend a while reading the latest postings.', inSilverthorn: true }),
-            createChoice('Make for the eastern gate', 'SCENE_SILVERTHORN_GATES', { timeAdvance: 1, timeReason: 'You cross Silverthorn toward the eastern gate.', inSilverthorn: true })
+            createChoice(time.isNight ? 'See whether Alderic still receives visitors' : "Present yourself at Alderic's chamber again", 'SCENE_ALDERIC_CHAMBER_RETURN', {
+                hint: 'Return if you want the prince to restate the charge in his own words.'
+            }),
+            createChoice('Cross into the market quarter', 'SCENE_SILVERTHORN_MARKET', {
+                timeAdvance: 1,
+                timeReason: 'You make your way across the city.',
+                inSilverthorn: true,
+                hint: 'Good for supplies, steel, and a measure of the city mood.'
+            }),
+            createChoice('Seek supplies at the General Store', 'SCENE_SILVERTHORN_GENERAL_STORE', {
+                timeAdvance: 1,
+                timeReason: 'You stop to resupply.',
+                inSilverthorn: true,
+                hint: 'The plainest way to stock bandages, oil, and road necessities.'
+            }),
+            createChoice('Step inside The Rusty Blade', 'SCENE_RUSTY_BLADE_INN', {
+                timeAdvance: 1,
+                timeReason: 'You spend time in the inn.',
+                inSilverthorn: true,
+                hint: 'A strong first read on what the city fears and what the road has already cost.',
+                priority: 'recommended',
+                timeCostLabel: 'Takes about an hour'
+            }),
+            createChoice('Take the temple road', 'SCENE_SILVERTHORN_TEMPLE', {
+                timeAdvance: 1,
+                timeReason: 'You make a detour to the temple.',
+                inSilverthorn: true,
+                hint: 'A quiet place for blessing, counsel, and steadier nerves before departure.',
+                priority: 'recommended',
+                timeCostLabel: 'Takes about an hour'
+            }),
+            createChoice('Read what fear has posted', 'SCENE_SILVERTHORN_NOTICE_BOARD', {
+                timeAdvance: 1,
+                timeReason: 'You spend a while reading the latest postings.',
+                inSilverthorn: true,
+                hint: 'Useful if you want rumors and public anxieties before you choose a route.'
+            }),
+            createChoice('Make for the eastern gate', 'SCENE_SILVERTHORN_GATES', {
+                timeAdvance: 1,
+                timeReason: 'You cross Silverthorn toward the eastern gate.',
+                inSilverthorn: true,
+                hint: 'When you are ready to leave the city behind and judge the road for yourself.',
+                riskTag: 'Leaves Silverthorn'
+            })
         ];
         return scene;
     }
@@ -1801,6 +1951,7 @@ function getLocationLockMessage(locationId) {
 
 export function showCharacterCreation() {
     document.getElementById('start-menu').classList.add('hidden');
+    setPresentationMode(true);
     resetCharacterCreationState();
     const raceSelect = document.getElementById('cc-race');
     const classSelect = document.getElementById('cc-class');
@@ -1908,6 +2059,195 @@ function fillMissingSelections(current, available, count) {
     return next.slice(0, count);
 }
 
+function formatSelectionList(values = [], formatter = formatChoiceLabel) {
+    return values.map((value) => formatter(value)).join(', ');
+}
+
+function getAutofillPreview(selectionKey, raceKey, classKey, backgroundKey, finalStats) {
+    const cls = classes[classKey];
+    const background = backgrounds[backgroundKey];
+
+    if (selectionKey === 'classSkills') {
+        const max = cls.skillChoices || 0;
+        const available = (cls.skillProficiencies || []).filter((skill) => !(background?.skillProficiencies || []).includes(skill));
+        return fillMissingSelections(ccState.chosenSkills, available, max);
+    }
+
+    if (selectionKey === 'bonusSkills') {
+        const max = getBonusSkillChoiceCount(raceKey);
+        const unavailable = new Set([...(ccState.chosenSkills || []), ...(background?.skillProficiencies || [])]);
+        const available = [...new Set(Object.values(classes).flatMap((entry) => entry.skillProficiencies || []))]
+            .filter((skill) => !unavailable.has(skill));
+        return fillMissingSelections(ccState.chosenBonusSkills, available, max);
+    }
+
+    if (selectionKey === 'bonusTools') {
+        const max = getBonusToolChoiceCount(raceKey);
+        const available = getBonusToolChoiceOptions(raceKey).filter((tool) => !(background?.toolProficiencies || []).includes(tool));
+        return fillMissingSelections(ccState.chosenBonusTools, available, max);
+    }
+
+    if (selectionKey === 'cantrips') {
+        const spellState = getClassSpellSelectionState(classKey, finalStats);
+        return fillMissingSelections(ccState.chosenCantrips, spellState.cantrips, spellState.cantripCount);
+    }
+
+    if (selectionKey === 'spells') {
+        const spellState = getClassSpellSelectionState(classKey, finalStats);
+        const current = spellState.mode === 'spellbook' ? ccState.chosenSpellbook : ccState.chosenPreparedSpells;
+        return fillMissingSelections(current, spellState.spellChoices, spellState.spellCount);
+    }
+
+    if (selectionKey === 'expertise') {
+        const expertisePool = [...new Set([...(background?.skillProficiencies || []), ...ccState.chosenSkills, ...ccState.chosenBonusSkills])];
+        return fillMissingSelections(ccState.chosenExpertise, expertisePool, cls.expertiseChoices || 0);
+    }
+
+    return [];
+}
+
+function getCharacterCreationPickState(raceKey, classKey, backgroundKey, finalStats) {
+    const cls = classes[classKey];
+    const background = backgrounds[backgroundKey];
+    const spellState = getClassSpellSelectionState(classKey, finalStats);
+    const sections = [];
+
+    const classSkillMax = cls.skillChoices || 0;
+    if (classSkillMax > 0) {
+        sections.push({
+            label: 'class skill',
+            remaining: Math.max(0, classSkillMax - ccState.chosenSkills.length),
+            preview: getAutofillPreview('classSkills', raceKey, classKey, backgroundKey, finalStats),
+            formatter: formatChoiceLabel
+        });
+    }
+
+    const bonusSkillMax = getBonusSkillChoiceCount(raceKey);
+    if (bonusSkillMax > 0) {
+        sections.push({
+            label: 'bonus skill',
+            remaining: Math.max(0, bonusSkillMax - ccState.chosenBonusSkills.length),
+            preview: getAutofillPreview('bonusSkills', raceKey, classKey, backgroundKey, finalStats),
+            formatter: formatChoiceLabel
+        });
+    }
+
+    const bonusToolMax = getBonusToolChoiceCount(raceKey);
+    if (bonusToolMax > 0) {
+        sections.push({
+            label: 'tool',
+            remaining: Math.max(0, bonusToolMax - ccState.chosenBonusTools.length),
+            preview: getAutofillPreview('bonusTools', raceKey, classKey, backgroundKey, finalStats),
+            formatter: formatChoiceLabel
+        });
+    }
+
+    if (cls.fightingStyleChoices?.length) {
+        sections.push({
+            label: 'fighting style',
+            remaining: ccState.chosenFightingStyle ? 0 : 1,
+            preview: cls.fightingStyleChoices[0] ? [cls.fightingStyleChoices[0]] : [],
+            formatter: formatChoiceLabel
+        });
+    }
+
+    if (cls.expertiseChoices) {
+        sections.push({
+            label: 'expertise pick',
+            remaining: Math.max(0, cls.expertiseChoices - ccState.chosenExpertise.length),
+            preview: getAutofillPreview('expertise', raceKey, classKey, backgroundKey, finalStats),
+            formatter: formatChoiceLabel
+        });
+    }
+
+    if (spellState.cantripCount > 0) {
+        sections.push({
+            label: 'cantrip',
+            remaining: Math.max(0, spellState.cantripCount - ccState.chosenCantrips.length),
+            preview: getAutofillPreview('cantrips', raceKey, classKey, backgroundKey, finalStats),
+            formatter: (spellId) => spells[spellId]?.name || spellId
+        });
+    }
+
+    if (spellState.spellCount > 0) {
+        sections.push({
+            label: spellState.mode === 'spellbook' ? 'spellbook choice' : 'prepared spell',
+            remaining: Math.max(0, spellState.spellCount - (spellState.mode === 'spellbook' ? ccState.chosenSpellbook.length : ccState.chosenPreparedSpells.length)),
+            preview: getAutofillPreview('spells', raceKey, classKey, backgroundKey, finalStats),
+            formatter: (spellId) => spells[spellId]?.name || spellId
+        });
+    }
+
+    const pending = sections.filter((section) => section.remaining > 0);
+    return {
+        sections,
+        pending,
+        totalRemaining: pending.reduce((sum, section) => sum + section.remaining, 0)
+    };
+}
+
+function getCharacterCreationBuildSummary(raceKey, classKey, backgroundKey, finalStats) {
+    const cls = classes[classKey];
+    const background = backgrounds[backgroundKey];
+    const highestStat = Object.entries(finalStats).sort((a, b) => b[1] - a[1])[0]?.[0] || 'STR';
+    const summaryByClass = {
+        fighter: 'Steady front-line martial. High survivability, simple weapon choices, and the most forgiving first road.',
+        rogue: 'Cunning skirmisher. Excellent skill coverage and mobility, but lighter defenses punish careless positioning.',
+        cleric: 'Armored support caster. Strong staying power, healing, and blessings, with a manageable spell load.',
+        wizard: 'Fragile arcane specialist. Tremendous spell reach, but the least forgiving if you misread the field.'
+    };
+    const classSummary = summaryByClass[classKey] || cls.description;
+    return `${races[raceKey].name} ${cls.name} from the ${background.name}. ${classSummary} Your best early edge leans on ${highestStat}.`;
+}
+
+function updateCharacterCreationGuidance(raceKey, classKey, backgroundKey, finalStats) {
+    const cls = classes[classKey];
+    const guidanceEl = document.getElementById('cc-guidance-text');
+    const summaryEl = document.getElementById('cc-selection-summary');
+    const autofillEl = document.getElementById('cc-autofill-note');
+    const buildSummaryEl = document.getElementById('cc-build-summary');
+    const pickState = getCharacterCreationPickState(raceKey, classKey, backgroundKey, finalStats);
+
+    const defaultGuidance = 'If you want the steadiest first road, a fighter is the safest opening hand: heavier armor, cleaner weapon choices, and fewer fragile early decisions.';
+    const classGuidance = {
+        fighter: 'A fighter walks into Shadowmire with the most forgiving margin for mistakes. Strong armor and plain steel solve a great many first problems.',
+        rogue: 'A rogue begins with more subtle leverage. Pick this if you want stealth, sharper skill checks, and a slimmer margin for being cornered.',
+        cleric: 'A cleric gives you steel, prayer, and room to recover from bad luck. It asks for a little spell attention, but rewards caution well.',
+        wizard: 'A wizard begins powerful and brittle. If you choose this road, think ahead and let positioning protect what robes cannot.'
+    };
+
+    if (guidanceEl) {
+        guidanceEl.innerText = classGuidance[classKey] || defaultGuidance;
+    }
+
+    if (summaryEl) {
+        summaryEl.innerText = pickState.totalRemaining > 0
+            ? `${pickState.totalRemaining} pick${pickState.totalRemaining === 1 ? '' : 's'} still open before you begin.`
+            : 'Your sheet is ready. Nothing important will be chosen for you if you begin now.';
+    }
+
+    if (autofillEl) {
+        if (pickState.pending.length > 0) {
+            const previewText = pickState.pending
+                .map((section) => {
+                    const preview = section.preview.slice(0, section.remaining);
+                    if (!preview.length) {
+                        return `${section.remaining} ${section.label}${section.remaining === 1 ? '' : 's'} will be settled automatically.`;
+                    }
+                    return `${section.label.charAt(0).toUpperCase() + section.label.slice(1)}${section.remaining === 1 ? '' : 's'} will default to ${formatSelectionList(preview, section.formatter)}.`;
+                })
+                .join(' ');
+            autofillEl.innerText = previewText;
+        } else {
+            autofillEl.innerText = 'Nothing is waiting on an automatic fallback.';
+        }
+    }
+
+    if (buildSummaryEl) {
+        buildSummaryEl.innerText = getCharacterCreationBuildSummary(raceKey, classKey, backgroundKey, finalStats);
+    }
+}
+
 function getClassSpellSelectionState(classKey, finalStats) {
     const cls = classes[classKey];
     const spellcasting = cls?.spellcasting;
@@ -1954,6 +2294,7 @@ function updateCCPreview() {
             if (finalStats[stat]) finalStats[stat] += bonus;
         }
     }
+    updateCharacterCreationGuidance(raceKey, classKey, backgroundKey, finalStats);
     renderSkillChoices(cls, background);
     renderBonusSkillChoices(raceKey, background);
     renderBonusToolChoices(raceKey, background);
@@ -2351,6 +2692,7 @@ function finishCharacterCreation() {
     const cls = classes[classKey];
     const background = backgrounds[backgroundKey];
     const bonusSkillChoices = getBonusSkillChoiceCount(raceKey);
+    const autofillMessages = [];
 
     // 1) Stat uniqueness check
     const stats = Object.values(ccState.baseStats);
@@ -2360,25 +2702,40 @@ function finishCharacterCreation() {
         return;
     }
 
-    // 2) Auto-pick skills if none selected (helps Playwright + forgetful players)
-    if (ccState.chosenSkills.length === 0 && cls.skillProficiencies?.length) {
+    // 2) Auto-pick unfinished selections for robustness, but report what was chosen.
+    if (ccState.chosenSkills.length < (cls.skillChoices || 0) && cls.skillProficiencies?.length) {
         const max = cls.skillChoices || 2;
         const availableClassSkills = cls.skillProficiencies.filter((skill) => !(background?.skillProficiencies || []).includes(skill));
-        ccState.chosenSkills = availableClassSkills.slice(0, max);
+        const nextSkills = fillMissingSelections(ccState.chosenSkills, availableClassSkills, max);
+        if (nextSkills.length !== ccState.chosenSkills.length) {
+            autofillMessages.push(`Class skills: ${formatSelectionList(nextSkills, formatChoiceLabel)}.`);
+        }
+        ccState.chosenSkills = nextSkills;
     }
 
-    if (bonusSkillChoices > 0 && ccState.chosenBonusSkills.length === 0) {
+    if (bonusSkillChoices > 0 && ccState.chosenBonusSkills.length < bonusSkillChoices) {
         const backgroundSkills = background?.skillProficiencies || [];
         const unavailable = new Set([...(ccState.chosenSkills || []), ...backgroundSkills]);
-        const fallbackSkills = [...new Set(Object.values(classes).flatMap(entry => entry.skillProficiencies || []))]
-            .filter((skill) => !unavailable.has(skill))
-            .slice(0, bonusSkillChoices);
-        ccState.chosenBonusSkills = fallbackSkills;
+        const availableBonusSkills = [...new Set(Object.values(classes).flatMap((entry) => entry.skillProficiencies || []))]
+            .filter((skill) => !unavailable.has(skill));
+        const nextBonusSkills = fillMissingSelections(ccState.chosenBonusSkills, availableBonusSkills, bonusSkillChoices);
+        if (nextBonusSkills.length !== ccState.chosenBonusSkills.length) {
+            autofillMessages.push(`Bonus skills: ${formatSelectionList(nextBonusSkills, formatChoiceLabel)}.`);
+        }
+        ccState.chosenBonusSkills = nextBonusSkills;
     }
 
     const bonusToolChoices = getBonusToolChoiceCount(raceKey);
-    if (bonusToolChoices > 0 && ccState.chosenBonusTools.length === 0) {
-        ccState.chosenBonusTools = getBonusToolChoiceOptions(raceKey).slice(0, bonusToolChoices);
+    if (bonusToolChoices > 0 && ccState.chosenBonusTools.length < bonusToolChoices) {
+        const nextBonusTools = fillMissingSelections(
+            ccState.chosenBonusTools,
+            getBonusToolChoiceOptions(raceKey),
+            bonusToolChoices
+        );
+        if (nextBonusTools.length !== ccState.chosenBonusTools.length) {
+            autofillMessages.push(`Tools: ${formatSelectionList(nextBonusTools, formatChoiceLabel)}.`);
+        }
+        ccState.chosenBonusTools = nextBonusTools;
     }
 
     const finalStats = { ...ccState.baseStats };
@@ -2386,20 +2743,37 @@ function finishCharacterCreation() {
         finalStats[stat] += bonus;
     });
     const spellState = getClassSpellSelectionState(classKey, finalStats);
-    ccState.chosenCantrips = fillMissingSelections(ccState.chosenCantrips, spellState.cantrips, spellState.cantripCount);
+    const nextCantrips = fillMissingSelections(ccState.chosenCantrips, spellState.cantrips, spellState.cantripCount);
+    if (nextCantrips.length !== ccState.chosenCantrips.length) {
+        autofillMessages.push(`Cantrips: ${formatSelectionList(nextCantrips, (spellId) => spells[spellId]?.name || spellId)}.`);
+    }
+    ccState.chosenCantrips = nextCantrips;
     if (spellState.mode === 'spellbook') {
-        ccState.chosenSpellbook = fillMissingSelections(ccState.chosenSpellbook, spellState.spellChoices, spellState.spellCount);
+        const nextSpellbook = fillMissingSelections(ccState.chosenSpellbook, spellState.spellChoices, spellState.spellCount);
+        if (nextSpellbook.length !== ccState.chosenSpellbook.length) {
+            autofillMessages.push(`Spellbook: ${formatSelectionList(nextSpellbook, (spellId) => spells[spellId]?.name || spellId)}.`);
+        }
+        ccState.chosenSpellbook = nextSpellbook;
     } else {
-        ccState.chosenPreparedSpells = fillMissingSelections(ccState.chosenPreparedSpells, spellState.spellChoices, spellState.spellCount);
+        const nextPreparedSpells = fillMissingSelections(ccState.chosenPreparedSpells, spellState.spellChoices, spellState.spellCount);
+        if (nextPreparedSpells.length !== ccState.chosenPreparedSpells.length) {
+            autofillMessages.push(`Prepared spells: ${formatSelectionList(nextPreparedSpells, (spellId) => spells[spellId]?.name || spellId)}.`);
+        }
+        ccState.chosenPreparedSpells = nextPreparedSpells;
     }
 
     if (cls.fightingStyleChoices?.length && !ccState.chosenFightingStyle) {
         ccState.chosenFightingStyle = cls.fightingStyleChoices[0];
+        autofillMessages.push(`Fighting style: ${formatChoiceLabel(ccState.chosenFightingStyle)}.`);
     }
 
     if (cls.expertiseChoices) {
         const expertisePool = [...new Set([...(background?.skillProficiencies || []), ...ccState.chosenSkills, ...ccState.chosenBonusSkills])];
-        ccState.chosenExpertise = fillMissingSelections(ccState.chosenExpertise, expertisePool, cls.expertiseChoices);
+        const nextExpertise = fillMissingSelections(ccState.chosenExpertise, expertisePool, cls.expertiseChoices);
+        if (nextExpertise.length !== ccState.chosenExpertise.length) {
+            autofillMessages.push(`Expertise: ${formatSelectionList(nextExpertise, formatChoiceLabel)}.`);
+        }
+        ccState.chosenExpertise = nextExpertise;
     }
 
     // 4) Initialize state
@@ -2434,12 +2808,17 @@ function finishCharacterCreation() {
     goToScene(CANONICAL_START_SCENE);
 
     logMessage(`Character ${name} created. Prince Alderic awaits in Silverthorn.`, "system");
+    if (autofillMessages.length > 0) {
+        logMessage(`The unfinished creation choices were settled for you: ${autofillMessages.join(' ')}`, 'system');
+    }
 }
 
 function goToScene(sceneId) {
     const scene = getRuntimeScene(sceneId);
     if (!scene) { console.error("Scene not found:", sceneId); return; }
     const previousSceneId = gameState.currentSceneId;
+    let sceneStatusMessage = '';
+    let sceneStatusTone = 'system';
 
     gameState.story = ensureStoryState(gameState.story);
     const storyChanges = syncStoryStateForScene(gameState.story, sceneId);
@@ -2450,6 +2829,9 @@ function goToScene(sceneId) {
     const sceneContainer = document.getElementById('scene-container');
     if (sceneContainer) sceneContainer.classList.remove('hidden');
 
+    document.getElementById('start-menu').classList.add('hidden');
+    document.getElementById('char-creation-modal').classList.add('hidden');
+    setPresentationMode(false);
     window.logMessage = logToMain;
 
     const isFirstVisit = !gameState.visitedScenes.includes(sceneId);
@@ -2489,6 +2871,8 @@ function goToScene(sceneId) {
                 updateQuestStage(scene.onEnter.questUpdate.id, scene.onEnter.questUpdate.stage);
                 const q = quests[scene.onEnter.questUpdate.id];
                 logMessage(`Quest Updated: ${q.title}`, "gain");
+                sceneStatusMessage = getQuestUpdateStatusMessage(scene.onEnter.questUpdate.id, scene.onEnter.questUpdate.stage);
+                sceneStatusTone = 'gain';
             }
             if (scene.onEnter.addGold) {
                 addGold(scene.onEnter.addGold);
@@ -2514,6 +2898,17 @@ function goToScene(sceneId) {
     }
 
     logStoryProgress(storyChanges);
+    if (!sceneStatusMessage) {
+        const storyStatus = getStoryProgressStatus(storyChanges);
+        if (storyStatus) {
+            sceneStatusMessage = storyStatus;
+            sceneStatusTone = storyChanges.actChanged ? 'system' : 'gain';
+        }
+    }
+    if (sceneStatusMessage) {
+        setObjectiveStatus(sceneStatusMessage, sceneStatusTone);
+    }
+    updateObjectiveStrip();
 
     triggerAmbientByThreat(scene.location);
 
@@ -2535,6 +2930,84 @@ function goToScene(sceneId) {
 }
 
 // ... (renderChoices, handleChoice, travelTo, etc. - mostly standard) ...
+function getChoiceTimeLabel(choice) {
+    if (choice.timeCostLabel) return choice.timeCostLabel;
+    if (!choice.timeAdvance) return '';
+    if (choice.timeAdvance === 1) return 'Takes about an hour';
+    return `Takes about ${choice.timeAdvance} hours`;
+}
+
+function getChoicePriorityLabel(choice) {
+    if (choice.priority === 'recommended') {
+        return 'Recommended first step';
+    }
+    if (choice.priority === 'lead') {
+        return 'Main lead';
+    }
+    return '';
+}
+
+function createChoiceButton(choice, labelOverride = null) {
+    const btn = document.createElement('button');
+    btn.className = 'choice-button';
+    if (choice.priority === 'recommended') {
+        btn.classList.add('priority-recommended');
+    }
+
+    const title = document.createElement('span');
+    title.className = 'choice-title';
+    title.innerText = labelOverride || choice.text || 'Continue';
+    btn.appendChild(title);
+
+    if (!labelOverride && choice.hint) {
+        const hint = document.createElement('span');
+        hint.className = 'choice-hint';
+        hint.innerText = choice.hint;
+        btn.appendChild(hint);
+    }
+
+    if (!labelOverride) {
+        const meta = document.createElement('span');
+        meta.className = 'choice-meta';
+        const metaBits = [
+            getChoicePriorityLabel(choice),
+            getChoiceTimeLabel(choice),
+            choice.riskTag || '',
+            choice.cost ? `${choice.cost} gold` : ''
+        ].filter(Boolean);
+
+        metaBits.forEach((entry, index) => {
+            const pill = document.createElement('span');
+            pill.className = 'choice-pill';
+            if (index === 0 && choice.priority === 'recommended') {
+                pill.classList.add('recommended');
+            }
+            if (entry === choice.riskTag) {
+                pill.classList.add('risk');
+            }
+            pill.innerText = entry;
+            meta.appendChild(pill);
+        });
+
+        if (metaBits.length > 0) {
+            btn.appendChild(meta);
+        }
+    }
+
+    btn.onclick = () => handleChoice(choice);
+    return btn;
+}
+
+function getDefaultContinueLabel(nextSceneId) {
+    if (nextSceneId === 'SCENE_BRIEFING_2') {
+        return "Hear the rest of Alderic's charge.";
+    }
+    if (nextSceneId === 'SCENE_HUB_SILVERTHORN') {
+        return 'Step back into Silverthorn.';
+    }
+    return 'Continue';
+}
+
 function renderChoices(choices) {
     const choiceContainer = document.getElementById('choice-container');
     choiceContainer.innerHTML = '';
@@ -2542,21 +3015,19 @@ function renderChoices(choices) {
     if (choices) {
         choices.forEach((choice) => {
             if (!meetsChoiceRequirements(choice, gameState.player)) return;
-            const btn = document.createElement('button');
-            btn.innerText = choice.text + (choice.cost ? ` (${choice.cost}g)` : "");
-            btn.onclick = () => handleChoice(choice);
-            choiceContainer.appendChild(btn);
+            choiceContainer.appendChild(createChoiceButton(choice));
             renderedCount += 1;
         });
     }
 
     if (renderedCount === 0) {
-        const fallback = document.createElement('button');
         const currentScene = scenes[gameState.currentSceneId];
         const fallbackScene = currentScene?.location === 'silverthorn'
             ? 'SCENE_HUB_SILVERTHORN'
             : CANONICAL_START_SCENE;
-        fallback.innerText = currentScene?.location === 'silverthorn' ? 'Return to City Center' : 'Continue';
+        const fallback = createChoiceButton({
+            text: currentScene?.location === 'silverthorn' ? 'Return to City Center' : 'Continue'
+        });
         fallback.onclick = () => goToScene(fallbackScene);
         choiceContainer.appendChild(fallback);
         logMessage(`No valid choices were available in ${gameState.currentSceneId}, so a fallback route was opened.`, 'system');
@@ -2616,7 +3087,12 @@ function handleChoice(choice) {
                 applyEffectList(choice.onSuccess.effects, 'choice');
             }
             document.getElementById('narrative-text').innerText = choice.successText;
-            if (choice.nextSceneSuccess) renderContinueButton(choice.nextSceneSuccess);
+            if (choice.nextSceneSuccess) {
+                renderContinueButton(
+                    choice.nextSceneSuccess,
+                    choice.continueTextSuccess || choice.continueText || getDefaultContinueLabel(choice.nextSceneSuccess)
+                );
+            }
         } else {
             if (choice.skill === 'stealth' || choice.skill === 'acrobatics') {
                 adjustThreat(5, 'noise draws attention');
@@ -2625,7 +3101,12 @@ function handleChoice(choice) {
                 applyEffectList(choice.onFail.effects, 'choice');
             }
             document.getElementById('narrative-text').innerText = choice.failText;
-            if (choice.nextSceneFail) renderContinueButton(choice.nextSceneFail);
+            if (choice.nextSceneFail) {
+                renderContinueButton(
+                    choice.nextSceneFail,
+                    choice.continueTextFail || choice.continueText || getDefaultContinueLabel(choice.nextSceneFail)
+                );
+            }
         }
     } else if (choice.type === 'save') {
         const result = rollSavingThrow(gameState.player, choice.ability);
@@ -2650,11 +3131,10 @@ function handleChoice(choice) {
     }
 }
 
-function renderContinueButton(nextSceneId) {
+function renderContinueButton(nextSceneId, label = 'Continue') {
     const choiceContainer = document.getElementById('choice-container');
     choiceContainer.innerHTML = '';
-    const btn = document.createElement('button');
-    btn.innerText = "Continue";
+    const btn = createChoiceButton({ text: label }, label);
     btn.onclick = () => goToScene(nextSceneId);
     choiceContainer.appendChild(btn);
 }
@@ -3086,6 +3566,39 @@ function renderCodexFactions(container) {
 
 // --- Combat System (Updated for Party) ---
 
+function getCombatTurnSummaryText(activeCharacterId) {
+    const actionText = gameState.combat.actionsRemaining > 0 ? 'Action ready' : 'Action spent';
+    const bonusText = gameState.combat.bonusActionsRemaining > 0 ? 'Bonus action ready' : 'Bonus action spent';
+    const movementText = `${gameState.combat.movementRemaining || 0} ft movement left`;
+
+    if (gameState.combat.turnOrder[gameState.combat.turnIndex] !== activeCharacterId) {
+        return 'Hold your footing while the rest of the field moves.';
+    }
+
+    return `${actionText}. ${bonusText}. ${movementText}.`;
+}
+
+function getCombatGuidanceText(activeCharacterId, subMenu = null) {
+    if (gameState.combat.turnOrder[gameState.combat.turnIndex] !== activeCharacterId) {
+        return 'Watch who commits where, then spend your next turn with intent.';
+    }
+
+    if (subMenu === 'move' || (subMenu && subMenu.type === 'move_preview')) {
+        return 'Pick a tile, judge the threat, then confirm only when the route feels worth the risk.';
+    }
+    if (subMenu === 'attack') {
+        return 'Choose the target you can pressure cleanly from your current footing.';
+    }
+    if (subMenu === 'spells' || (subMenu && String(subMenu.type || '').startsWith('spell_'))) {
+        return 'Spell choices trade certainty for reach. Read the preview before you commit the slot.';
+    }
+    if (subMenu === 'abilities' || (subMenu && subMenu.type === 'control_target')) {
+        return 'Class features are often the answer when a plain strike is not enough or not yet wise.';
+    }
+
+    return 'Attack if the line is good, move if a better angle matters, or open Class Features and Items before you end the turn.';
+}
+
 function updateCombatUI(activeCharacterId = 'player') {
     if (!gameState.combat.active) return;
 
@@ -3123,6 +3636,8 @@ function updateCombatUI(activeCharacterId = 'player') {
     });
 
     const turnIndicator = document.getElementById('turn-indicator');
+    const turnSummary = document.getElementById('battle-turn-summary');
+    const guidanceText = document.getElementById('battle-guidance-text');
     const actionsContainer = document.getElementById('battle-actions-container');
     actionsContainer.innerHTML = '';
 
@@ -3132,20 +3647,26 @@ function updateCombatUI(activeCharacterId = 'player') {
 
     if (activeCharacterId === 'player' || gameState.party.includes(activeCharacterId)) {
         const isTurn = gameState.combat.turnOrder[gameState.combat.turnIndex] === activeCharacterId;
+        const savedSubMenu = gameState.combat.uiState?.actorId === activeCharacterId
+            ? gameState.combat.uiState?.subMenu ?? null
+            : null;
         if (isTurn) {
             turnIndicator.textContent = `${activeName}'s Turn - ${gameState.combat.movementRemaining} ft move`;
+            if (turnSummary) turnSummary.textContent = getCombatTurnSummaryText(activeCharacterId);
+            if (guidanceText) guidanceText.textContent = getCombatGuidanceText(activeCharacterId, savedSubMenu);
             setBattleActionPreview();
-            const savedSubMenu = gameState.combat.uiState?.actorId === activeCharacterId
-                ? gameState.combat.uiState?.subMenu ?? null
-                : null;
             renderPlayerActions(actionsContainer, savedSubMenu, activeCharacterId);
         } else {
             turnIndicator.textContent = "Waiting...";
+            if (turnSummary) turnSummary.textContent = getCombatTurnSummaryText(activeCharacterId);
+            if (guidanceText) guidanceText.textContent = getCombatGuidanceText(activeCharacterId, savedSubMenu);
             setBattleActionPreview();
         }
     } else {
         const enemy = gameState.combat.enemies.find(e => e.uniqueId === gameState.combat.turnOrder[gameState.combat.turnIndex]);
         turnIndicator.textContent = enemy ? `${enemy.name}'s Turn` : "Enemy's Turn";
+        if (turnSummary) turnSummary.textContent = 'Enemy action in progress.';
+        if (guidanceText) guidanceText.textContent = 'Watch the field and plan your answer before the turn comes back to you.';
         setBattleActionPreview();
     }
 
@@ -3154,13 +3675,12 @@ function updateCombatUI(activeCharacterId = 'player') {
 
 function createActionButton(label, icon, onClick, extraClass = '', disabled = false) {
     const btn = document.createElement('button');
-    btn.className = `action-btn ${extraClass}`;
+    btn.className = `battle-action-button ${extraClass}`.trim();
     if (disabled) {
-        btn.classList.add('disabled');
         btn.disabled = true;
     }
     btn.innerHTML = `
-        <span class="material-icons">${icon}</span>
+        <span class="material-symbols-outlined">${icon}</span>
         <span>${label}</span>
     `;
     btn.onclick = onClick;
@@ -3237,12 +3757,16 @@ function renderPlayerActions(container, subMenu = null, actingId = 'player') {
     container.innerHTML = '';
     const grid = document.createElement('div');
     grid.className = 'battle-actions-grid';
+    const turnSummary = document.getElementById('battle-turn-summary');
+    const guidanceText = document.getElementById('battle-guidance-text');
 
     const actor = (actingId === 'player') ? gameState.player : gameState.roster[actingId];
     const hasAction = gameState.combat.actionsRemaining > 0;
     const hasBonus = gameState.combat.bonusActionsRemaining > 0;
     const hasMovement = (gameState.combat.movementRemaining || 0) > 0;
     setCombatUiState(actingId, subMenu);
+    if (turnSummary) turnSummary.textContent = getCombatTurnSummaryText(actingId);
+    if (guidanceText) guidanceText.textContent = getCombatGuidanceText(actingId, subMenu);
     setBattleActionPreview();
 
     if (subMenu === 'move') {
@@ -3408,8 +3932,8 @@ function renderPlayerActions(container, subMenu = null, actingId = 'player') {
 
         grid.appendChild(createActionButton('Attack', 'swords', () => renderPlayerActions(container, 'attack', actingId), 'primary', !hasAction));
         grid.appendChild(createActionButton('Move', 'explore', () => renderPlayerActions(container, 'move', actingId), '', !hasMovement));
-        grid.appendChild(createActionButton('Spells', 'auto_stories', () => renderPlayerActions(container, 'spells', actingId), '', !hasSpells));
-        grid.appendChild(createActionButton('Abilities', 'star', () => renderPlayerActions(container, 'abilities', actingId)));
+        grid.appendChild(createActionButton('Cast Spell', 'auto_stories', () => renderPlayerActions(container, 'spells', actingId), '', !hasSpells));
+        grid.appendChild(createActionButton('Class Features', 'star', () => renderPlayerActions(container, 'abilities', actingId)));
         grid.appendChild(createActionButton('Defend', 'shield', () => performDefend(actingId), '', !hasAction));
         grid.appendChild(createActionButton('Items', 'local_drink', () => toggleInventory(true, actingId), '', !canUseInventory));
         grid.appendChild(createActionButton('End Turn', 'hourglass_bottom', performEndTurn, 'flee')); // Manual End Turn
@@ -3425,6 +3949,12 @@ function renderPartyCard(p, id, activeId) {
     const isPlayerTurn = (gameState.combat.turnOrder[gameState.combat.turnIndex] === id);
     const token = gameState.combat.grid?.occupied?.[id];
     const positionLabel = token ? `Pos ${token.x},${token.y}` : 'Off-grid';
+    const statusParts = [];
+    if (isPlayerTurn) statusParts.push('<span class="turn-indicator-text">Your Turn</span>');
+    statusParts.push(`<span>${positionLabel}</span>`);
+    if (actorHasStatus(p, 'hasted')) statusParts.push('<span class="status-hasted">Hasted</span>');
+    if (actorHasStatus(p, 'blessed')) statusParts.push('<span class="status-blessed">Blessed</span>');
+    if (p.hp <= 0) statusParts.push('<span class="status-down">Down</span>');
     const card = document.createElement('div');
     card.className = `party-card ${isPlayerTurn ? 'active-turn' : ''}`;
     
@@ -3452,12 +3982,8 @@ function renderPartyCard(p, id, activeId) {
             <div class="party-bar-background"><div class="party-bar-fill mana-fill" style="width: ${manaPct}%;"></div></div>
         </div>` : ''}
         <div class="party-status">
-              ${isPlayerTurn ? `<span class="turn-indicator-text">Your Turn</span>` : ''}
-              ${p.hp <= 0 ? `<span class="status-down">Down</span>` : ''}
-              <div style="font-size:0.8em; margin-top:4px;">
-                  ${positionLabel} | Act: ${gameState.combat.actionsRemaining} | Bns: ${gameState.combat.bonusActionsRemaining} | Move: ${gameState.combat.movementRemaining}
-              </div>
-          </div>
+            ${statusParts.join('')}
+        </div>
       `;
     
     // Attach click listener for selection?
@@ -3498,8 +4024,7 @@ function updateStatsUI() {
     const armorDetail = armor
         ? `${armor.armorType || 'armor'} AC ${armor.acBase}${shield ? ` + ${shield.name}` : ''}`
         : (shield ? `Unarmored + ${shield.name}` : 'base 10 + DEX');
-    document.getElementById('char-weapon').innerText = `Weapon: ${weapon ? weapon.name : 'Unarmed'} · ${weaponDetail}`;
-    document.getElementById('char-armor').innerText = `Armor: ${armor ? armor.name : 'None'} · ${armorDetail}`;
+    document.getElementById('char-loadout').innerText = `${weapon ? weapon.name : 'Unarmed'} · ${weaponDetail} | ${armor ? armor.name : 'No armor'} · ${armorDetail}`;
 
     const hpPct = Math.max(0, (p.hp / p.maxHp) * 100);
     document.getElementById('hp-bar-fill').style.width = `${hpPct}%`;
@@ -3508,6 +4033,7 @@ function updateStatsUI() {
     const xpPct = Math.max(0, (p.xp / p.xpNext) * 100);
     document.getElementById('xp-bar-fill').style.width = `${xpPct}%`;
     document.getElementById('xp-text').innerText = `XP: ${p.xp}/${p.xpNext}`;
+    updateObjectiveStrip();
 }
 
 
@@ -3535,6 +4061,7 @@ export function loadGame() {
         gameState.story = ensureStoryState(gameState.story);
         logMessage("Game Loaded.", "system");
         updateStatsUI();
+        setPresentationMode(false);
         if (gameState.combat?.active) {
             document.getElementById('scene-container')?.classList.add('hidden');
             document.getElementById('battle-screen')?.classList.remove('hidden');
@@ -3545,6 +4072,7 @@ export function loadGame() {
         // Ensure character creation is hidden
         document.getElementById('char-creation-modal').classList.add('hidden');
         document.getElementById('start-menu').classList.add('hidden');
+        updateObjectiveStrip();
         return true;
     } else {
         // No save file, go to character creation

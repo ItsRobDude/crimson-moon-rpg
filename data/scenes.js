@@ -491,6 +491,8 @@ export const scenes = {
                         { type: "relationship", npcId: "alderic", amount: 5 }
                     ]
                 },
+                continueTextSuccess: "Hear the rest of Alderic's charge.",
+                continueTextFail: "Hear the rest of Alderic's charge.",
                 nextSceneSuccess: "SCENE_BRIEFING_2", // Loop back or continue
                 nextSceneFail: "SCENE_BRIEFING_2"
             },
