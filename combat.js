@@ -426,45 +426,6 @@ function reconcileTileEffects(actorId, trigger, previousTileKey = null) {
     syncGridToken(actorId);
 }
 
-function getAvailableAdjacentTiles(targetId) {
-    const grid = gameState.combat.grid;
-    const target = getToken(grid, targetId);
-    if (!target) return [];
-
-    const candidates = [
-        { x: target.x - 1, y: target.y },
-        { x: target.x + 1, y: target.y },
-        { x: target.x, y: target.y - 1 },
-        { x: target.x, y: target.y + 1 },
-        { x: target.x - 1, y: target.y - 1 },
-        { x: target.x + 1, y: target.y - 1 },
-        { x: target.x - 1, y: target.y + 1 },
-        { x: target.x + 1, y: target.y + 1 }
-    ];
-
-    return candidates.filter(tile => {
-        if (!isWithinGrid(grid, tile.x, tile.y)) return false;
-        return !Object.values(grid.occupied).some(occupant => occupant.id !== targetId && occupant.x === tile.x && occupant.y === tile.y && occupant.hp > 0);
-    });
-}
-
-function buildPath(from, to) {
-    const path = [{ x: from.x, y: from.y }];
-    let x = from.x;
-    let y = from.y;
-
-    while (x !== to.x) {
-        x += Math.sign(to.x - x);
-        path.push({ x, y });
-    }
-    while (y !== to.y) {
-        y += Math.sign(to.y - y);
-        path.push({ x, y });
-    }
-
-    return path;
-}
-
 export function applyOpportunityAttacks(moverId, path) {
     const mover = getCombatActor(moverId);
     if (!mover || mover.combatFlags?.disengage) return;
@@ -638,13 +599,20 @@ function closeDistanceToTarget(actorId, targetId, reachFeet = 5) {
         return true;
     }
 
-    const options = getAvailableAdjacentTiles(targetId)
-        .map(tile => ({ tile, distance: getRangeDistance(actorToken, tile) }))
-        .sort((a, b) => a.distance - b.distance);
-    const best = options[0];
+    const preview = getMovementPreview(actorId);
+    if (!preview.valid) return false;
+
+    const best = preview.entries
+        .filter((entry) => getRangeDistance(entry, targetToken) <= reachTiles)
+        .sort((a, b) => (
+            a.cost - b.cost
+            || Number(a.opportunityAttackRisk) - Number(b.opportunityAttackRisk)
+            || a.y - b.y
+            || a.x - b.x
+        ))[0];
     if (!best) return false;
 
-    return moveActorAlongPath(actorId, buildPath(actorToken, best.tile));
+    return moveActorAlongPath(actorId, best.path);
 }
 
 function ensureTargetInRange(actorId, targetId, profile, options = {}) {

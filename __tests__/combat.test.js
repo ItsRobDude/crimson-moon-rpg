@@ -1155,6 +1155,138 @@ test('movement preview surfaces risky routes and moving spends only movement', (
   expect(gameState.combat.actionsRemaining).toBe(1);
 });
 
+test('auto-close melee routing can circle an occupied blocker to reach a legal attack tile', () => {
+  const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.75);
+
+  gameState.player = createActor({ name: 'Hero', classId: 'fighter' });
+  syncActorState(gameState.player);
+
+  const enemy = createActor({
+    id: 'enemy',
+    uniqueId: 'enemy_0',
+    type: 'enemy',
+    name: 'Cultist',
+    ac: 10
+  });
+  syncActorState(enemy);
+
+  gameState.combat = {
+    ...gameState.combat,
+    active: true,
+    activeActorId: 'player',
+    actionsRemaining: 1,
+    bonusActionsRemaining: 1,
+    movementRemaining: 15,
+    grid: createBattleGrid(8, 6, 5),
+    enemies: [enemy],
+    turnOrder: ['player', enemy.uniqueId]
+  };
+
+  placeToken(gameState.combat.grid, { id: 'player', x: 1, y: 2, team: 'allies', hp: gameState.player.hp, reach: 1 });
+  placeToken(gameState.combat.grid, { id: 'ally_blocker', x: 2, y: 2, team: 'allies', hp: 10, reach: 1 });
+  placeToken(gameState.combat.grid, { id: enemy.uniqueId, x: 4, y: 2, team: 'enemies', hp: enemy.hp, reach: 1 });
+
+  performAttack(enemy.uniqueId, 'player');
+
+  expect(gameState.combat.grid.occupied.player.x).toBe(3);
+  expect(gameState.combat.grid.occupied.player.y).toBe(1);
+  expect(gameState.combat.movementRemaining).toBe(5);
+
+  randomSpy.mockRestore();
+});
+
+test('auto-close melee routing prefers the nearest legal in-range tile over an occupied shortcut', () => {
+  const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.75);
+
+  gameState.player = createActor({ name: 'Hero', classId: 'fighter' });
+  syncActorState(gameState.player);
+
+  const enemy = createActor({
+    id: 'enemy',
+    uniqueId: 'enemy_0',
+    type: 'enemy',
+    name: 'Cultist',
+    ac: 10
+  });
+  syncActorState(enemy);
+
+  gameState.combat = {
+    ...gameState.combat,
+    active: true,
+    activeActorId: 'player',
+    actionsRemaining: 1,
+    bonusActionsRemaining: 1,
+    movementRemaining: 30,
+    grid: createBattleGrid(8, 8, 5),
+    enemies: [enemy],
+    turnOrder: ['player', enemy.uniqueId]
+  };
+
+  placeToken(gameState.combat.grid, { id: 'player', x: 1, y: 2, team: 'allies', hp: gameState.player.hp, reach: 1 });
+  placeToken(gameState.combat.grid, { id: 'ally_blocker', x: 2, y: 2, team: 'allies', hp: 10, reach: 1 });
+  placeToken(gameState.combat.grid, { id: 'lane_lock_north', x: 2, y: 1, team: 'allies', hp: 10, reach: 1 });
+  placeToken(gameState.combat.grid, { id: 'lane_lock_south', x: 2, y: 3, team: 'allies', hp: 10, reach: 1 });
+  placeToken(gameState.combat.grid, { id: 'range_lock_west_north', x: 3, y: 1, team: 'allies', hp: 10, reach: 1 });
+  placeToken(gameState.combat.grid, { id: 'range_lock_west_south', x: 3, y: 3, team: 'allies', hp: 10, reach: 1 });
+  placeToken(gameState.combat.grid, { id: 'range_lock_east', x: 5, y: 2, team: 'allies', hp: 10, reach: 1 });
+  placeToken(gameState.combat.grid, { id: 'range_lock_east_north', x: 5, y: 1, team: 'allies', hp: 10, reach: 1 });
+  placeToken(gameState.combat.grid, { id: 'range_lock_east_south', x: 5, y: 3, team: 'allies', hp: 10, reach: 1 });
+  placeToken(gameState.combat.grid, { id: 'range_lock_south', x: 4, y: 3, team: 'allies', hp: 10, reach: 1 });
+  placeToken(gameState.combat.grid, { id: enemy.uniqueId, x: 4, y: 2, team: 'enemies', hp: enemy.hp, reach: 1 });
+
+  performAttack(enemy.uniqueId, 'player');
+
+  expect(gameState.combat.grid.occupied.player.x).toBe(4);
+  expect(gameState.combat.grid.occupied.player.y).toBe(1);
+  expect(gameState.combat.movementRemaining).toBe(10);
+
+  randomSpy.mockRestore();
+});
+
+test('auto-close melee routing fails cleanly when no reachable tile can enter melee range', () => {
+  gameState.player = createActor({ name: 'Hero', classId: 'fighter' });
+  syncActorState(gameState.player);
+
+  const enemy = createActor({
+    id: 'enemy',
+    uniqueId: 'enemy_0',
+    type: 'enemy',
+    name: 'Cultist',
+    ac: 10
+  });
+  syncActorState(enemy);
+
+  gameState.combat = {
+    ...gameState.combat,
+    active: true,
+    activeActorId: 'player',
+    actionsRemaining: 1,
+    bonusActionsRemaining: 1,
+    movementRemaining: 30,
+    grid: createBattleGrid(8, 8, 5),
+    enemies: [enemy],
+    turnOrder: ['player', enemy.uniqueId]
+  };
+
+  placeToken(gameState.combat.grid, { id: 'player', x: 1, y: 2, team: 'allies', hp: gameState.player.hp, reach: 1 });
+  placeToken(gameState.combat.grid, { id: enemy.uniqueId, x: 4, y: 2, team: 'enemies', hp: enemy.hp, reach: 1 });
+  placeToken(gameState.combat.grid, { id: 'wall_1', x: 3, y: 1, team: 'allies', hp: 10, reach: 1 });
+  placeToken(gameState.combat.grid, { id: 'wall_2', x: 3, y: 2, team: 'allies', hp: 10, reach: 1 });
+  placeToken(gameState.combat.grid, { id: 'wall_3', x: 3, y: 3, team: 'allies', hp: 10, reach: 1 });
+  placeToken(gameState.combat.grid, { id: 'wall_4', x: 4, y: 1, team: 'allies', hp: 10, reach: 1 });
+  placeToken(gameState.combat.grid, { id: 'wall_5', x: 4, y: 3, team: 'allies', hp: 10, reach: 1 });
+  placeToken(gameState.combat.grid, { id: 'wall_6', x: 5, y: 1, team: 'allies', hp: 10, reach: 1 });
+  placeToken(gameState.combat.grid, { id: 'wall_7', x: 5, y: 2, team: 'allies', hp: 10, reach: 1 });
+  placeToken(gameState.combat.grid, { id: 'wall_8', x: 5, y: 3, team: 'allies', hp: 10, reach: 1 });
+
+  performAttack(enemy.uniqueId, 'player');
+
+  expect(gameState.combat.grid.occupied.player.x).toBe(1);
+  expect(gameState.combat.grid.occupied.player.y).toBe(2);
+  expect(gameState.combat.actionsRemaining).toBe(1);
+  expect(gameState.combat.movementRemaining).toBe(30);
+});
+
 test('fighter maneuvers can grapple a target on a successful athletics contest', () => {
   const randomSpy = jest.spyOn(Math, 'random')
     .mockReturnValueOnce(0.95)
