@@ -223,6 +223,14 @@ export const narrativeStateRegistry = {
             revealSensitivity: 'public',
             semantics: 'story_progression'
         },
+        sporefall_north_route_avoided_fight: {
+            owner: 'SCENE_SPOREFALL_NORTH_ROUTE_DISCOVERED',
+            thread: 'north_skip_route',
+            meaning: 'The player reached the northern route through the quieter evasive branch instead of the ambush fight.',
+            allowedValues: [true],
+            revealSensitivity: 'public',
+            semantics: 'optional_clue'
+        },
         hushbriar_fionnlagh_met: {
             owner: 'SCENE_FIONNLAGH_HUB',
             thread: 'aodhan_thread',

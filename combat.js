@@ -1847,9 +1847,14 @@ export function performAbility(abilityId, actorId = 'player') {
         let remainingPool = 5 * (actor.level || 1);
         const healerToken = getToken(gameState.combat.grid, actorId);
         const healedTargets = [];
-        const allies = getFriendlyIds(actorId)
+        const allies = [actorId, ...getFriendlyIds(actorId)]
+            .filter((id, index, ids) => ids.indexOf(id) === index)
             .map((id) => ({ id, actor: getCombatActor(id), token: getToken(gameState.combat.grid, id) }))
-            .filter(({ actor, token }) => actor && actor.hp > 0 && token && healerToken && (getRangeDistance(healerToken, token) * gameState.combat.grid.tileSize) <= 30)
+            .filter(({ id, actor, token }) => {
+                if (!actor || actor.hp <= 0) return false;
+                if (id === actorId) return true;
+                return !!token && !!healerToken && (getRangeDistance(healerToken, token) * gameState.combat.grid.tileSize) <= 30;
+            })
             .map(({ actor }) => actor)
             .filter((candidate) => candidate.hp < candidate.maxHp);
 

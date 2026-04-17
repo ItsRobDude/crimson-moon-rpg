@@ -45,6 +45,7 @@ If you add a new story-critical key, update both this note and the JS registry i
 | `sporefall_bridge_seen` | `SCENE_SPOREFALL_NORTH_BRIDGE` | `north_bridge` | Bridge shelter investigated. | rumor_only | optional_clue |
 | `sporefall_bridge_body_seen` | `SCENE_SPOREFALL_NORTH_BRIDGE` | `north_bridge` | Eoin's mother found under the bridge. | spoiler_sensitive | optional_clue |
 | `sporefall_north_route_open` | `SCENE_SPOREFALL_NORTH_ROUTE_DISCOVERED` | `north_skip_route` | Northern skip route opened. | public | story_progression |
+| `sporefall_north_route_avoided_fight` | `SCENE_SPOREFALL_NORTH_ROUTE_DISCOVERED` | `north_skip_route` | Northern route was reached through the evasive branch rather than the ambush. | public | optional_clue |
 | `hushbriar_fionnlagh_met` | `SCENE_FIONNLAGH_HUB` | `aodhan_thread` | Fionnlagh meeting completed and Moonwell night window opened. | public | story_progression |
 | `moonwell_night_available` | `SCENE_FIONNLAGH_HUB` | `aodhan_thread` | Moonwell night event is available before dawn. | public | story_progression |
 | `moonwell_seen` | `SCENE_MOONWELL` | `aodhan_thread` | Moonwell catastrophe witnessed directly. | spoiler_sensitive | story_progression |

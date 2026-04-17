@@ -28,5 +28,5 @@ See `notes/implementation_matrix.md` for the current shipped-state audit of expo
 See `notes/act1_canon_internal.md` for contributor-only Act I canon truths and spoiler boundaries. Do not surface that note directly in player-facing text.
 See `notes/narrative_runtime_contract.md` for runtime-authoring guardrails and fallback vocabulary.
 See `notes/narrative_state_registry.md` for story-critical flags and scene-memory ownership.
-See `notes/test_run_tonight_checklist.md` for the recommended Node/Jest/Playwright verification order.
+See `notes/test_run_tonight_checklist.md` for the recommended Node/Jest/Playwright verification order. Playwright now boots the local static server automatically via `npm run serve`, so `npm run test:e2e` and `npm run test:e2e:full` no longer require a manually started localhost server.
 See `AGENTS.md` for repo-specific guardrails before making major changes.

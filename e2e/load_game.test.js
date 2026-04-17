@@ -6,7 +6,7 @@ test.describe('Game Loading', () => {
 
   test('should load a saved game and display the correct character name', async ({ page }) => {
     // Phase 1: Create a character to generate a save file
-    await page.goto('http://localhost:8000');
+    await page.goto('/');
     await page.waitForFunction(() => window.gameReady);
 
     const characterName = 'Tester';

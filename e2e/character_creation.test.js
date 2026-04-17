@@ -14,7 +14,7 @@ test.describe('Character Creation UI', () => {
     page.on('response', response => console.log('<<', response.status(), response.url()));
 
     // Navigate to the local development server
-    await page.goto('http://localhost:8000');
+    await page.goto('/');
 
     // Wait for the game to be ready
     await page.waitForFunction(() => window.gameReady);

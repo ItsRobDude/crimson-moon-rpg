@@ -4,7 +4,7 @@ test.describe('Party Recruitment Smoke', () => {
   test.setTimeout(60000);
 
   test('seeded companion persists through save/load and appears in combat UI', async ({ page }) => {
-    await page.goto('http://localhost:8000');
+    await page.goto('/');
     await page.waitForFunction(() => window.gameReady);
 
     await page.click('#btn-start-new');

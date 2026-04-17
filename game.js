@@ -3092,8 +3092,11 @@ function updateCombatUI(activeCharacterId = 'player') {
     const partyContainer = document.getElementById('party-container');
     partyContainer.innerHTML = '';
 
-    // Render Player
+    // Render the whole active party so recruited companions stay visible in combat.
     renderPartyCard(gameState.player, 'player', activeCharacterId);
+    getActivePartyActors().forEach((companion) => {
+        renderPartyCard(companion, companion.id, activeCharacterId);
+    });
 
     const enemiesContainer = document.getElementById('enemies-container');
     enemiesContainer.innerHTML = '';

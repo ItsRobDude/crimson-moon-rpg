@@ -8,16 +8,18 @@ This machine is not the final verification environment. Use this checklist when 
 2. Run unit tests first.
 3. Fix or triage mechanics/combat/state failures before touching e2e.
 4. Run the narrow bootstrap/creation/load e2e suite after unit coverage is green.
+5. Run the broader smoke suite once the milestone path is stable.
 
 ## Commands
 
 ```powershell
 npm install
 npm test
-npx playwright test e2e/bootstrap_resilience.test.js
-npx playwright test e2e/character_creation.test.js
-npx playwright test e2e/load_game.test.js
+npm run test:e2e
+npm run test:e2e:full
 ```
+
+Playwright starts the local static server automatically through `npm run serve`; no separate `python -m http.server` step is required.
 
 If you only need the highest-signal unit suites first:
 
@@ -49,3 +51,11 @@ npx jest __tests__/mechanics.test.js __tests__/combat.test.js __tests__/game.tes
 - `e2e/bootstrap_resilience.test.js`
 - `e2e/character_creation.test.js`
 - `e2e/load_game.test.js`
+
+## Useful Script Aliases
+
+- `npm run serve`
+- `npm run test:unit`
+- `npm run test:e2e`
+- `npm run test:e2e:full`
+- `npm run test:verify`

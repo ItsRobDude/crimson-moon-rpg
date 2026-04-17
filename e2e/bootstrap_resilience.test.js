@@ -10,7 +10,7 @@ test.describe('Game Bootstrap & Resilience', () => {
   });
 
   test('Clean load should show the main menu', async ({ page }) => {
-    await page.goto('http://localhost:8000');
+    await page.goto('/');
     await page.evaluate(() => localStorage.removeItem('crimson_moon_save'));
     await page.reload();
     await page.waitForFunction(() => window.gameReady);
@@ -20,7 +20,7 @@ test.describe('Game Bootstrap & Resilience', () => {
   });
 
   test('Valid save should be available from Continue', async ({ page }) => {
-    await page.goto('http://localhost:8000');
+    await page.goto('/');
     await page.waitForFunction(() => window.gameReady);
 
     // Create a character to generate a save
@@ -45,7 +45,7 @@ test.describe('Game Bootstrap & Resilience', () => {
   });
 
   test('Corrupted save should fall back to the main menu', async ({ page }) => {
-    await page.goto('http://localhost:8000');
+    await page.goto('/');
     await page.waitForFunction(() => window.gameReady);
 
     // Inject corrupted save
@@ -65,7 +65,7 @@ test.describe('Game Bootstrap & Resilience', () => {
   });
 
   test('Parseable but unusable save payload should still disable Continue', async ({ page }) => {
-    await page.goto('http://localhost:8000');
+    await page.goto('/');
     await page.waitForFunction(() => window.gameReady);
 
     await page.evaluate(() => {
