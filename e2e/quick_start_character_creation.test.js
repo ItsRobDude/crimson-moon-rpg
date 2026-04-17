@@ -8,7 +8,7 @@ test.describe('Character Creation Quick Starts', () => {
     await page.waitForFunction(() => window.gameReady);
 
     await page.click('#btn-start-new');
-    await page.getByRole('button', { name: /steady fighter/i }).click();
+    await page.getByRole('button', { name: /road-worn fighter/i }).click();
 
     await expect(page.locator('#cc-class')).toHaveValue('fighter');
     await expect(page.locator('#cc-race')).toHaveValue('human');

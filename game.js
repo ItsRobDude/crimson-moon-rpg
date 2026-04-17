@@ -231,10 +231,30 @@ export function initUI() {
     };
     // Visual cue update happens in updateStatsUI
 
+    const closeDismissibleModal = (modal) => {
+        if (!modal) return;
+        if (['start-menu', 'char-creation-modal', 'level-up-modal'].includes(modal.id)) return;
+        modal.classList.add('hidden');
+    };
+
     document.querySelectorAll('.close-modal').forEach(btn => {
         btn.onclick = (e) => {
             e.target.closest('.modal').classList.add('hidden');
         };
+    });
+
+    document.querySelectorAll('.modal').forEach((modal) => {
+        modal.addEventListener('click', (event) => {
+            if (event.target !== modal) return;
+            closeDismissibleModal(modal);
+        });
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') return;
+        const openModals = [...document.querySelectorAll('.modal:not(.hidden)')];
+        const topModal = openModals[openModals.length - 1];
+        closeDismissibleModal(topModal);
     });
 
     // Start menu wiring
@@ -319,28 +339,28 @@ let objectiveStatusState = {
 
 const CC_QUICK_STARTS = {
     steady_fighter: {
-        label: 'Steady Fighter',
+        label: 'Road-Worn Fighter',
         raceId: 'human',
         classId: 'fighter',
         backgroundId: 'soldier',
         baseStats: { STR: 15, CON: 14, DEX: 13, WIS: 12, CHA: 10, INT: 8 }
     },
     cautious_cleric: {
-        label: 'Cautious Cleric',
+        label: 'Watchful Cleric',
         raceId: 'human',
         classId: 'cleric',
         backgroundId: 'acolyte',
         baseStats: { WIS: 15, CON: 14, DEX: 13, CHA: 12, STR: 10, INT: 8 }
     },
     clever_rogue: {
-        label: 'Clever Rogue',
+        label: 'Streetwise Rogue',
         raceId: 'elf',
         classId: 'rogue',
         backgroundId: 'criminal',
         baseStats: { DEX: 15, INT: 14, CON: 13, CHA: 12, WIS: 10, STR: 8 }
     },
     dangerous_wizard: {
-        label: 'Dangerous Wizard',
+        label: 'Spellbound Wizard',
         raceId: 'elf',
         classId: 'wizard',
         backgroundId: 'sage',
@@ -448,7 +468,7 @@ function updateObjectiveHelper() {
     }
 
     setSceneMemory('ui_silverthorn_nudge_active', true);
-    text.innerText = 'Need a nudge? Open Quests for likely next steps, or Menu > Help if you want the basics laid out plainly.';
+    text.innerText = 'If you need your bearings, Quests keeps the clearest next steps in view, and Help gathers the basics without dragging you out of the mood.';
     helper.classList.remove('hidden');
 }
 
@@ -3241,10 +3261,10 @@ function getChoiceTimeLabel(choice) {
 
 function getChoicePriorityLabel(choice) {
     if (choice.priority === 'recommended') {
-        return 'Recommended first step';
+        return 'Likely lead';
     }
     if (choice.priority === 'lead') {
-        return 'Main lead';
+        return 'Primary lead';
     }
     return '';
 }
@@ -3350,8 +3370,8 @@ function renderChoices(choices) {
         const standardChoices = visibleChoices.filter((choice) => choice.priority !== 'recommended');
 
         if (recommendedChoices.length > 0 && standardChoices.length > 0) {
-            renderedCount += appendChoiceGroup(choiceContainer, 'Best First Steps', recommendedChoices);
-            renderedCount += appendChoiceGroup(choiceContainer, 'Other Options', standardChoices);
+            renderedCount += appendChoiceGroup(choiceContainer, 'Likely Leads', recommendedChoices);
+            renderedCount += appendChoiceGroup(choiceContainer, 'Other Threads', standardChoices);
         } else {
             visibleChoices.forEach((choice) => {
                 choiceContainer.appendChild(createChoiceButton(choice));
@@ -3549,6 +3569,49 @@ function getShopPrice(item, shopId) {
     return price;
 }
 
+function getEquipmentComparisonText(item, characterId = 'player') {
+    const character = getCharacterById(characterId);
+    if (!character || !item) return '';
+
+    const slot = item.equipmentSlot || (item.type === 'shield' ? 'shield' : null);
+    if (!slot) return '';
+
+    const currentItemId = character.equipped?.[slot];
+    if (!currentItemId) {
+        return `Would fill your ${slot} slot.`;
+    }
+
+    const currentItem = items[currentItemId];
+    if (!currentItem) return '';
+    if (currentItemId === item.id) {
+        return `Already equipped in your ${slot} slot.`;
+    }
+
+    if (item.type === 'armor') {
+        const candidateAc = item.acBase || 0;
+        const currentAc = currentItem.acBase || 0;
+        const delta = candidateAc - currentAc;
+        const deltaText = delta > 0 ? `Higher base AC by ${delta}.` : delta < 0 ? `Lower base AC by ${Math.abs(delta)}.` : 'Similar base AC.';
+        return `Would replace ${currentItem.name}. ${deltaText}`;
+    }
+
+    if (item.type === 'shield') {
+        const candidateBonus = item.acBonus || 0;
+        const currentBonus = currentItem.acBonus || 0;
+        const delta = candidateBonus - currentBonus;
+        const deltaText = delta > 0 ? `Stronger shield bonus by ${delta}.` : delta < 0 ? `Lower shield bonus by ${Math.abs(delta)}.` : 'Similar shield bonus.';
+        return `Would replace ${currentItem.name}. ${deltaText}`;
+    }
+
+    if (item.type === 'weapon') {
+        const currentDamage = currentItem.damage ? `${currentItem.damage} ${currentItem.damageType}` : currentItem.name;
+        const candidateDamage = item.damage ? `${item.damage} ${item.damageType}` : item.name;
+        return `Would replace ${currentItem.name}. Current ${currentDamage}; candidate ${candidateDamage}.`;
+    }
+
+    return `Would replace ${currentItem.name}.`;
+}
+
 function renderShop(shopId) {
     const shopDef = shops[shopId];
     if (!shopDef) return;
@@ -3557,31 +3620,67 @@ function renderShop(shopId) {
     const container = document.getElementById('shop-items-container');
     const goldDisplay = document.getElementById('shop-gold-display');
     const title = document.getElementById('shop-title');
+    const subtitle = document.getElementById('shop-subtitle');
+    const status = document.getElementById('shop-status');
 
     container.innerHTML = '';
-    goldDisplay.innerText = `Gold: ${gameState.player.gold}`;
+    goldDisplay.innerText = `Party Gold: ${gameState.player.gold}`;
     if (title) title.innerText = shopDef.name || 'Shop';
+    if (subtitle) {
+        subtitle.innerText = `${shopDef.name || 'This supplier'} is selling stock today. It is not buying second-hand gear back from you in this build.`;
+    }
+    if (status) {
+        const stockCount = getShopInventory(shopDef).length;
+        status.innerText = `${stockCount} items are on offer. Weapons and armor compare against your current loadout when relevant.`;
+    }
 
     getShopInventory(shopDef).forEach(itemId => {
         const item = items[itemId];
         if (!item) return;
 
         const price = getShopPrice(item, shopId);
+        const ownedCount = getItemCount(itemId, 'player');
+        const canAfford = gameState.player.gold >= price;
+        const comparisonText = getEquipmentComparisonText(item, 'player');
+        const equipFailure = ['weapon', 'armor', 'shield'].includes(item.type) ? getItemEquipFailure(itemId, 'player') : null;
+        const frictionText = equipFailure === 'proficiency'
+            ? 'You are not proficient with this.'
+            : equipFailure === 'reqStr'
+                ? `Needs STR ${item.reqStr}.`
+                : '';
 
         const row = document.createElement('div');
         row.className = 'shop-entry';
 
         const info = document.createElement('div');
         info.className = 'shop-entry-info';
-        info.innerHTML = `<strong>${item.name}</strong><div class="inventory-meta">${getItemRulesText(item)}</div><small>${item.description}</small>`;
+        info.innerHTML = `
+            <div class="shop-entry-head">
+                <strong>${item.name}</strong>
+                <div class="shop-tags">
+                    <span class="tag">${ITEM_CATEGORY_LABELS[item.type] || 'Gear'}</span>
+                    <span class="tag">${price}g</span>
+                    ${ownedCount > 0 ? `<span class="tag">Owned x${ownedCount}</span>` : ''}
+                    ${!canAfford ? `<span class="tag tag-warning">Short ${price - gameState.player.gold}g</span>` : ''}
+                </div>
+            </div>
+            <div class="inventory-meta">${getItemRulesText(item)}</div>
+            <div class="inventory-desc">${item.description || 'No description available.'}</div>
+            ${comparisonText ? `<div class="inventory-note">${comparisonText}</div>` : ''}
+            ${frictionText ? `<div class="inventory-warning">${frictionText}</div>` : ''}
+        `;
 
         const btn = document.createElement('button');
-        btn.innerText = `Buy (${price}g)`;
+        btn.innerText = canAfford ? `Buy for ${price}g` : `Need ${price - gameState.player.gold}g`;
+        btn.disabled = !canAfford;
         btn.onclick = () => {
             if (spendGold(price)) {
                 addItem(itemId);
                 logMessage(`Bought ${item.name} for ${price}g.`, "gain");
-                goldDisplay.innerText = `Gold: ${gameState.player.gold}`;
+                if (status) {
+                    status.innerText = `${item.name} added to your pack. ${gameState.player.gold}g remain in the party purse.`;
+                }
+                renderShop(shopId);
             } else {
                 logMessage("Not enough gold.", "check-fail");
             }
@@ -3597,46 +3696,68 @@ function renderShop(shopId) {
 
 // --- Map System --- (Omitted similar to before, unchanged)
 function toggleMap() {
-    // ... (Existing logic)
     const modal = document.getElementById('map-modal');
     const list = document.getElementById('map-locations');
     const pinList = document.getElementById('pin-list');
     const addBtn = document.getElementById('btn-add-pin');
     const pinNote = document.getElementById('pin-note');
+    const summary = document.getElementById('map-summary');
     list.innerHTML = '';
     pinList.innerHTML = '';
+    const currentLocationId = scenes[gameState.currentSceneId]?.location || 'travel';
+    const discoveredLocationIds = Object.keys(locations).filter((key) => isLocationDiscovered(key));
+
+    if (summary) {
+        const currentLabel = locations[currentLocationId]?.name || 'the road';
+        summary.innerText = `You currently stand in ${currentLabel}. ${discoveredLocationIds.length} known destinations are marked on this map.`;
+    }
 
     for (const [key, loc] of Object.entries(locations)) {
         if (isLocationDiscovered(key)) {
             const div = document.createElement('div');
-            div.style.padding = "10px";
-            div.style.borderBottom = "1px solid #444";
-            div.style.display = "flex";
-            div.style.justifyContent = "space-between";
-            div.style.alignItems = "center";
+            div.className = 'map-location-row';
 
             const info = document.createElement('div');
-            info.innerHTML = `<strong>${loc.name}</strong><br><small>${loc.description}</small>`;
+            info.className = 'map-location-info';
 
             const btn = document.createElement('button');
-            btn.innerText = "Travel";
+            btn.innerText = 'Travel';
             btn.onclick = () => travelTo(key);
+
+            let stateLabel = 'Open route';
+            let stateClass = 'status-open';
 
             if (!isLocationUnlocked(key)) {
                 btn.disabled = true;
-                btn.innerText = "Locked";
-                info.innerHTML += `<br><small>${getLocationUnlockHint(key) || 'Unavailable right now.'}</small>`;
+                btn.innerText = 'Unavailable';
+                stateLabel = 'Locked for now';
+                stateClass = 'status-locked';
             }
 
             if (scenes[gameState.currentSceneId] && scenes[gameState.currentSceneId].location === key) {
                 btn.disabled = true;
-                btn.innerText = "You are here";
+                btn.innerText = 'You are here';
+                stateLabel = 'Current position';
+                stateClass = 'status-current';
             }
+
+            info.innerHTML = `
+                <strong>${loc.name}</strong>
+                <div class="map-status-line">
+                    <span class="status-chip ${stateClass}">${stateLabel}</span>
+                    ${!isLocationUnlocked(key) ? `<span>${getLocationUnlockHint(key) || 'Unavailable right now.'}</span>` : '<span>Travel is currently available from here.</span>'}
+                </div>
+                <small>${loc.description}</small>
+            `;
 
             div.appendChild(info);
             div.appendChild(btn);
             list.appendChild(div);
         }
+    }
+
+    if (!list.children.length) {
+        list.innerHTML = '<p class="empty-state">No routes are worth marking yet.</p>';
     }
 
     gameState.mapPins.forEach((pin, idx) => {
@@ -3652,20 +3773,14 @@ function toggleMap() {
         row.appendChild(rm);
         pinList.appendChild(row);
     });
-
-    const mapContainer = document.getElementById('map-container');
-    mapContainer.onclick = (e) => {
-        const note = prompt("Enter a note for this pin:", "Marked location");
-        if (note) {
-            const currentLocation = scenes[gameState.currentSceneId]?.location || 'travel';
-            addMapPin(currentLocation, note);
-            toggleMap();
-        }
-    };
+    if (!pinList.children.length) {
+        pinList.innerHTML = '<p class="empty-state">No route pins yet. Mark the current location when you want to remember a hazard, a lead, or a safe turn.</p>';
+    }
 
     addBtn.onclick = () => {
-        const currentLocation = scenes[gameState.currentSceneId]?.location || 'travel';
-        addMapPin(currentLocation, pinNote.value);
+        const trimmedNote = pinNote.value.trim();
+        const note = trimmedNote || `Keep watch near ${locations[currentLocationId]?.name || 'this road'}`;
+        addMapPin(currentLocationId, note);
         pinNote.value = '';
         toggleMap();
     };
@@ -3848,7 +3963,7 @@ function toggleCodex(tab = 'people') {
 function renderCodexPeople(container) {
     const metNpcs = getDiscoveredCodexState().knownPeople;
     if (metNpcs.length === 0) {
-        container.innerHTML = "<p style='padding:10px'>No known contacts.</p>";
+        container.innerHTML = "<p class='empty-state'>No one has left a strong enough impression to deserve a codex entry yet.</p>";
         return;
     }
 
@@ -3883,7 +3998,7 @@ function renderCodexPeople(container) {
 function renderCodexFactions(container) {
     const knownFactions = getDiscoveredCodexState().knownFactions;
     if (knownFactions.length === 0) {
-        container.innerHTML = "<p style='padding:10px'>No faction ties worth naming yet.</p>";
+        container.innerHTML = "<p class='empty-state'>No faction tie has sharpened into something worth tracking yet.</p>";
         return;
     }
     knownFactions.forEach(factId => {
@@ -4532,6 +4647,7 @@ function toggleInventory(forceOpen = null, characterId = 'player') {
     const categoryTabs = document.getElementById('inventory-category-tabs');
     const equipmentPanel = document.getElementById('inventory-equipment-panel');
     const detailPanel = document.getElementById('inventory-detail');
+    const summaryPanel = document.getElementById('inventory-summary');
 
     const isOpen = !modal.classList.contains('hidden');
 
@@ -4542,6 +4658,7 @@ function toggleInventory(forceOpen = null, characterId = 'player') {
         categoryTabs.innerHTML = '';
         equipmentPanel.innerHTML = '';
         detailPanel.innerHTML = '<p>Select an item to inspect it.</p>';
+        if (summaryPanel) summaryPanel.innerText = '';
         modal.dataset.activeCharacter = '';
         modal.dataset.activeCategory = 'all';
         modal.dataset.activeItemId = '';
@@ -4608,6 +4725,23 @@ function toggleInventory(forceOpen = null, characterId = 'player') {
         return null;
     };
 
+    const getInventoryActionHint = (item, targetId) => {
+        if (!item) return '';
+        if (item.type === 'consumable') {
+            return gameState.combat.active ? 'Can be used from this window during combat if you still have the action economy for it.' : 'Can be used directly from this window.';
+        }
+        if (item.type === 'scroll') {
+            return gameState.combat.active ? 'Can be invoked from this window if you still have the action economy for it.' : 'Can be invoked directly from this window.';
+        }
+        if (['weapon', 'armor', 'shield'].includes(item.type)) {
+            const equipFailure = getItemEquipFailure(item.id, targetId);
+            if (equipFailure === 'proficiency') return 'This character lacks the training to use it well.';
+            if (equipFailure === 'reqStr') return `This character needs STR ${item.reqStr} before it will fit cleanly into the loadout.`;
+            return 'Equip or unequip it from this window.';
+        }
+        return 'Keep it ready for checks, travel, or scene-specific use.';
+    };
+
     const renderInventory = (targetId) => {
         characterId = targetId;
         modal.dataset.activeCharacter = targetId;
@@ -4627,6 +4761,12 @@ function toggleInventory(forceOpen = null, characterId = 'player') {
             return;
         }
 
+        const allEntries = getInventoryEntries(targetId);
+        const equippedCount = Object.values(character.equipped || {}).filter(Boolean).length;
+        if (summaryPanel) {
+            summaryPanel.innerText = `Viewing ${character.name}'s kit. ${allEntries.length} carried item entries. ${equippedCount} gear slot${equippedCount === 1 ? '' : 's'} filled. Party gold: ${gameState.player.gold}.`;
+        }
+
         const renderDetail = (itemId, quantity = null) => {
             if (!itemId || !items[itemId]) {
                 detailPanel.innerHTML = '<p>Select an item to inspect it.</p>';
@@ -4639,10 +4779,18 @@ function toggleInventory(forceOpen = null, characterId = 'player') {
                 : equipFailure === 'reqStr'
                     ? `Needs STR ${item.reqStr}.`
                     : '';
+            const comparisonText = getEquipmentComparisonText(item, characterId);
+            const actionHint = getInventoryActionHint(item, characterId);
             detailPanel.innerHTML = `
                 <h3>${item.name}${quantity && quantity > 1 ? ` x${quantity}` : ''}</h3>
+                <div class="detail-tag-row">
+                    <span class="tag">${ITEM_CATEGORY_LABELS[item.type] || 'Gear'}</span>
+                    ${quantity && quantity > 1 ? `<span class="tag">Carried x${quantity}</span>` : ''}
+                </div>
                 <div class="inventory-meta">${getItemRulesText(item)}</div>
                 <p>${item.description || 'No description available.'}</p>
+                ${comparisonText ? `<p class="inventory-note">${comparisonText}</p>` : ''}
+                <p class="inventory-note">${actionHint}</p>
                 ${failureText ? `<p class="inventory-warning">${failureText}</p>` : ''}
             `;
             modal.dataset.activeItemId = itemId;
@@ -4698,7 +4846,7 @@ function toggleInventory(forceOpen = null, characterId = 'player') {
 
         const filteredEntries = entries.filter((entry) => activeCategory === 'all' || getInventoryCategory(entry.item) === activeCategory);
         if (!filteredEntries.length) {
-            list.innerHTML = '<p>No items in this category.</p>';
+            list.innerHTML = `<p class="empty-state">No ${activeCategory === 'all' ? 'items' : (ITEM_CATEGORY_LABELS[activeCategory] || activeCategory).toLowerCase()} are in ${character.name}'s pack right now.</p>`;
             renderDetail(modal.dataset.activeItemId);
             return;
         }
@@ -4720,9 +4868,14 @@ function toggleInventory(forceOpen = null, characterId = 'player') {
             const details = document.createElement('div');
             details.className = 'inventory-details';
             details.innerHTML = `
-                <strong>${item.name}</strong>
-                ${quantity > 1 ? `<span class="tag">x${quantity}</span>` : ''}
-                ${isEquipped ? '<span class="tag">Equipped</span>' : ''}
+                <div class="inventory-entry-head">
+                    <strong>${item.name}</strong>
+                    <div class="shop-tags">
+                        <span class="tag">${ITEM_CATEGORY_LABELS[item.type] || 'Gear'}</span>
+                        ${quantity > 1 ? `<span class="tag">x${quantity}</span>` : ''}
+                        ${isEquipped ? '<span class="tag">Equipped</span>' : ''}
+                    </div>
+                </div>
                 <div class="inventory-meta">${getItemRulesText(item)}</div>
                 <div class="inventory-desc">${item.description || ''}</div>
                 ${failureText ? `<div class="inventory-warning">${failureText}</div>` : ''}
@@ -4733,7 +4886,7 @@ function toggleInventory(forceOpen = null, characterId = 'player') {
 
             if (equippedSlot) {
                 const equipBtn = document.createElement('button');
-                equipBtn.innerText = isEquipped ? 'Unequip' : 'Equip';
+                equipBtn.innerText = isEquipped ? 'Unequip' : 'Equip Now';
                 equipBtn.disabled = (!isEquipped && !!equipFailure) || (gameState.combat.active && gameState.combat.actionsRemaining <= 0);
                 equipBtn.onclick = (event) => {
                     event.stopPropagation();
@@ -4755,7 +4908,7 @@ function toggleInventory(forceOpen = null, characterId = 'player') {
             if (item.type === 'consumable' || item.type === 'scroll') {
                 const useBtn = document.createElement('button');
                 const preferredCost = gameState.combat.active ? getInventoryUseCost(itemId, targetId) : 'free';
-                const costLabel = preferredCost === 'bonus' ? 'Use (Bonus)' : (item.type === 'scroll' ? 'Invoke' : 'Use');
+                const costLabel = preferredCost === 'bonus' ? 'Use Now (Bonus)' : (item.type === 'scroll' ? 'Invoke Now' : 'Use Now');
                 useBtn.innerText = costLabel;
                 useBtn.disabled = !canUseInventoryItemNow(itemId, targetId);
                 useBtn.onclick = (event) => {
@@ -4847,9 +5000,16 @@ function toggleQuestLog() {
             div.className = 'quest-entry';
             div.innerHTML = `<h4>${qData.title}</h4><p>${stage.text}</p>`;
             if (stage.suggestions.length > 0) {
-                const suggestions = document.createElement('p');
+                const suggestions = document.createElement('div');
                 suggestions.className = 'quest-suggestions';
-                suggestions.innerHTML = `<strong>Likely next steps:</strong> ${stage.suggestions.join(' ')}`;
+                suggestions.innerHTML = `<strong>Worth considering:</strong>`;
+                const listEl = document.createElement('ul');
+                stage.suggestions.forEach((entry) => {
+                    const item = document.createElement('li');
+                    item.innerText = entry;
+                    listEl.appendChild(item);
+                });
+                suggestions.appendChild(listEl);
                 div.appendChild(suggestions);
             }
             if (qData.completed) {
@@ -4862,7 +5022,7 @@ function toggleQuestLog() {
         }
     }
 
-    if (list.innerHTML === '') list.innerHTML = '<p>No active quests.</p>';
+    if (list.innerHTML === '') list.innerHTML = '<p class="empty-state">No active quests are pressing on you right now.</p>';
 }
 
 function toggleMenu() {
@@ -4933,6 +5093,7 @@ function showLevelUpModal() {
     const featuresList = document.getElementById('lu-features-list');
     const subclassSection = document.getElementById('lu-subclass-section');
     const featSection = document.getElementById('lu-feat-section');
+    const featNote = document.getElementById('lu-feat-note');
     const confirmBtn = document.getElementById('btn-confirm-level-up');
 
     const nextLevel = gameState.player.level + 1;
@@ -4988,6 +5149,9 @@ function showLevelUpModal() {
     featSection.classList.add('hidden');
     if (nextLevel % 4 === 0) { // Standard ASI levels
         featSection.classList.remove('hidden');
+        if (featNote) {
+            featNote.innerHTML = '<i>Feat choice is not implemented in this build. This level-up screen currently supports ability score increases only.</i>';
+        }
         // Populate Selects
         const stats = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
         ['asi-stat-1', 'asi-stat-2'].forEach(id => {
@@ -5001,6 +5165,8 @@ function showLevelUpModal() {
             });
         });
     }
+
+    confirmBtn.innerText = nextLevel % 4 === 0 ? 'Confirm Ability Score Increase' : 'Confirm Level Up';
 
     modal.classList.remove('hidden');
 

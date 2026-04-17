@@ -1878,7 +1878,7 @@ export function performAbility(abilityId, actorId = 'player') {
             uiHooks.logToBattle(`Channel Divinity restores ${healedTargets.join(', ')} without lifting anyone past half health.`, 'gain');
         }
     } else {
-        uiHooks.logToBattle(`Ability '${abilityId}' is not implemented yet.`, "system");
+        uiHooks.logToBattle(`'${abilityId}' is not ready in this build yet. Leave it for now and use the actions that are fully surfaced.`, "system");
     }
 
     resetCombatUiState(actorId);

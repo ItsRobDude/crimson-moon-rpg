@@ -17,11 +17,11 @@ test.describe('Silverthorn Choice Grouping', () => {
 
     const groups = page.locator('.choice-group');
     await expect(groups).toHaveCount(2);
-    await expect(groups.nth(0)).toContainText('Best First Steps');
+    await expect(groups.nth(0)).toContainText('Likely Leads');
     await expect(groups.nth(0)).toContainText('Step inside The Rusty Blade');
     await expect(groups.nth(0)).toContainText('Take the temple road');
     await expect(groups.nth(0)).toContainText('Make for the eastern gate');
-    await expect(groups.nth(1)).toContainText('Other Options');
+    await expect(groups.nth(1)).toContainText('Other Threads');
     await expect(groups.nth(1)).toContainText("Present yourself at Alderic's chamber again");
     await expect(groups.nth(1)).toContainText('Cross into the market quarter');
     await expect(groups.nth(1)).toContainText('Read what fear has posted');

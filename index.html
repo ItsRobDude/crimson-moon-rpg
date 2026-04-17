@@ -171,10 +171,10 @@
         <div class="modal-content">
             <h2>Create Your Character</h2>
             <div id="cc-quick-starts" class="cc-quick-starts">
-                <button type="button" class="cc-quick-start" data-preset="steady_fighter">Steady Fighter</button>
-                <button type="button" class="cc-quick-start" data-preset="cautious_cleric">Cautious Cleric</button>
-                <button type="button" class="cc-quick-start" data-preset="clever_rogue">Clever Rogue</button>
-                <button type="button" class="cc-quick-start" data-preset="dangerous_wizard">Dangerous Wizard</button>
+                <button type="button" class="cc-quick-start" data-preset="steady_fighter">Road-Worn Fighter</button>
+                <button type="button" class="cc-quick-start" data-preset="cautious_cleric">Watchful Cleric</button>
+                <button type="button" class="cc-quick-start" data-preset="clever_rogue">Streetwise Rogue</button>
+                <button type="button" class="cc-quick-start" data-preset="dangerous_wizard">Spellbound Wizard</button>
             </div>
             <div id="cc-guidance-panel" class="cc-guidance-panel">
                 <p id="cc-guidance-text"></p>
@@ -286,12 +286,15 @@
     <div id="codex-modal" class="modal hidden">
         <div class="modal-content">
             <h2>Codex</h2>
+            <p class="modal-subtitle">Keep track of the people and factions that have actually entered your story.</p>
             <div class="codex-tabs">
                 <button id="btn-codex-people" class="tab-active">People</button>
                 <button id="btn-codex-factions">Factions</button>
             </div>
             <div id="codex-list"></div>
-            <button class="close-modal">Close</button>
+            <div class="modal-actions">
+                <button class="close-modal">Close</button>
+            </div>
         </div>
     </div>
 
@@ -299,19 +302,24 @@
     <div id="map-modal" class="modal hidden">
         <div class="modal-content">
             <h2>World Map</h2>
+            <p class="modal-subtitle">Use the map to judge where you can travel now and to leave route notes for yourself.</p>
             <div id="map-container">
                 <img src="landscapes/inis_de_region_map.png" alt="Inis De Region Map" id="map-image">
             </div>
+            <div id="map-summary" class="modal-status"></div>
             <div id="map-locations"></div>
             <div id="map-pin-tools">
                 <h3>Route Pins</h3>
+                <p class="panel-subtitle">Mark places worth remembering. Pins are travel notes, not fast travel.</p>
                 <div class="pin-form">
-                    <input id="pin-note" type="text" placeholder="Note safe path or hazard">
-                    <button id="btn-add-pin">Add Pin</button>
+                    <input id="pin-note" type="text" placeholder="Mark the current route, hazard, or reminder">
+                    <button id="btn-add-pin">Mark Here</button>
                 </div>
                 <div id="pin-list"></div>
             </div>
-            <button class="close-modal">Close</button>
+            <div class="modal-actions">
+                <button class="close-modal">Close</button>
+            </div>
         </div>
     </div>
 
@@ -319,9 +327,13 @@
     <div id="shop-panel" class="modal hidden">
         <div class="modal-content">
             <h2 id="shop-title">Shop</h2>
-            <div id="shop-gold-display" style="text-align:right; color: gold; font-weight:bold; margin-bottom:10px;"></div>
+            <p id="shop-subtitle" class="modal-subtitle">This is a supplier's stock list. Vendors are selling today, not buying gear back.</p>
+            <div id="shop-status" class="modal-status"></div>
+            <div id="shop-gold-display" class="shop-gold-display"></div>
             <div id="shop-items-container"></div>
-            <button class="close-modal">Leave Shop</button>
+            <div class="modal-actions">
+                <button class="close-modal">Leave Shop</button>
+            </div>
         </div>
     </div>
 
@@ -329,6 +341,8 @@
     <div id="inventory-modal" class="modal hidden">
         <div class="modal-content inventory-modal-content">
             <h2>Inventory</h2>
+            <p class="modal-subtitle">Check what each party member is carrying, what is equipped, and what each item can actually do.</p>
+            <div id="inventory-summary" class="modal-status"></div>
             <div id="inventory-character-select" class="inventory-character-select">
                 <!-- Buttons/Tabs for characters will be injected here -->
             </div>
@@ -349,7 +363,9 @@
                     <div id="inventory-detail">Select an item to inspect it.</div>
                 </div>
             </div>
-            <button class="close-modal">Close</button>
+            <div class="modal-actions">
+                <button class="close-modal">Close</button>
+            </div>
         </div>
     </div>
 
@@ -357,8 +373,11 @@
     <div id="quest-modal" class="modal hidden">
         <div class="modal-content">
             <h2>Quest Log</h2>
+            <p class="modal-subtitle">This keeps your active thread clear without pretending to be a full diary of every scene.</p>
             <div id="quest-list"></div>
-            <button class="close-modal">Close</button>
+            <div class="modal-actions">
+                <button class="close-modal">Close</button>
+            </div>
         </div>
     </div>
 
@@ -366,18 +385,22 @@
     <div id="menu-modal" class="modal hidden">
         <div class="modal-content">
             <h2>Game Menu</h2>
+            <p class="modal-subtitle">Use this for save management, options, and reference tools when you want to stop and think.</p>
             <button id="btn-save">Save Game</button>
             <button id="btn-load">Load Game</button>
             <button id="btn-options">Options</button>
             <button id="btn-tutorial">Help / Tutorial</button>
-            <button id="btn-debug-toggle">Toggle Debug</button>
-            <button class="close-modal">Close</button>
+            <button id="btn-debug-toggle" class="hidden">Toggle Debug</button>
+            <div class="modal-actions">
+                <button class="close-modal">Close</button>
+            </div>
         </div>
     </div>
 
     <div id="options-modal" class="modal hidden">
         <div class="modal-content">
             <h2>Options</h2>
+            <p class="modal-subtitle">Adjust readability and display comfort without changing the game rules underneath.</p>
 
             <div class="options-section">
                 <h3>Display Mode</h3>
@@ -426,15 +449,33 @@
     <!-- Tutorial Overlay -->
     <div id="tutorial-overlay" class="modal hidden">
         <div class="modal-content">
-            <h2>How to Play</h2>
-            <ul>
-                <li><strong>Checks:</strong> d20 + Ability Mod + Proficiency.</li>
-                <li><strong>Silverthorn:</strong> You do not need to see every street. Use the current objective and quest text to choose one or two preparations before you take the eastern road.</li>
-                <li><strong>Choices:</strong> Hints under a choice tell you whether it is a lead, preparation, or something that will cost time.</li>
-                <li><strong>Combat:</strong> Each turn gives you an action, often a bonus action, and movement. Attack, move for a better angle, or open Class Features and Items if the obvious answer is not the best one.</li>
-                <li><strong>Saving:</strong> Auto-saves on scene change. Manual save in menu if you want a clean stopping point.</li>
-            </ul>
-            <button class="close-modal">Got it</button>
+            <h2>Field Notes</h2>
+            <p class="modal-subtitle">A practical reminder of what the game expects from you in your first few hours.</p>
+            <div class="tutorial-sections">
+                <div class="tutorial-section">
+                    <h3>Scene Choices</h3>
+                    <p>Read the current aim first, then the choice hint. You rarely need to clear every option before moving the story forward.</p>
+                </div>
+                <div class="tutorial-section">
+                    <h3>Checks And Consequences</h3>
+                    <p>Most checks are `d20 + ability mod + proficiency`. Failure usually redirects or costs time instead of ending the route outright.</p>
+                </div>
+                <div class="tutorial-section">
+                    <h3>Silverthorn Time</h3>
+                    <p>City actions can consume time. One or two strong preparations are often better than trying to see every street before the eastern road.</p>
+                </div>
+                <div class="tutorial-section">
+                    <h3>Combat Rhythm</h3>
+                    <p>Your turn usually means one action, often a bonus action, and movement. Read the turn summary first, then decide whether this round wants pressure, repositioning, or utility.</p>
+                </div>
+                <div class="tutorial-section">
+                    <h3>Saving And Partial Systems</h3>
+                    <p>The game auto-saves on scene change. Manual save is in the menu. Ability score improvements work at level-up; feat choice is not fully surfaced in this build yet.</p>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="close-modal">Return</button>
+            </div>
         </div>
     </div>
 
@@ -445,6 +486,7 @@
     <div id="rest-modal" class="modal hidden">
         <div class="modal-content">
             <h2>Take a Rest</h2>
+            <p class="modal-subtitle">Rest trades time for recovery. The safest choice is not always the best one for the road ahead.</p>
             <div id="rest-options">
                 <div class="rest-option">
                     <h3>Short Rest (1 Hour)</h3>
@@ -458,7 +500,9 @@
                     <button id="btn-long-rest">Begin Long Rest</button>
                 </div>
             </div>
-            <button class="close-modal">Cancel</button>
+            <div class="modal-actions">
+                <button class="close-modal">Cancel</button>
+            </div>
         </div>
     </div>
 
@@ -466,6 +510,7 @@
     <div id="level-up-modal" class="modal hidden">
         <div class="modal-content">
             <h2>Level Up!</h2>
+            <p class="modal-subtitle">Review what changed before you confirm. If this build only supports part of a system, it will say so plainly here.</p>
             <div id="level-up-summary">
                 <p>You have reached level <span id="lu-level">2</span>!</p>
                 <div class="lu-section">
@@ -492,11 +537,13 @@
                              <label>Stat 2:</label>
                              <select class="asi-select" id="asi-stat-2"></select>
                         </div>
-                        <p><i>(Feats not yet implemented)</i></p>
+                        <p id="lu-feat-note" class="system-note"><i>Feat choice is not implemented in this build. This level-up screen currently supports ability score increases only.</i></p>
                     </div>
                 </div>
             </div>
-            <button id="btn-confirm-level-up">Confirm</button>
+            <div class="modal-actions">
+                <button id="btn-confirm-level-up">Confirm</button>
+            </div>
         </div>
     </div>
 </body>

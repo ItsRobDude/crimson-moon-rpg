@@ -24,6 +24,11 @@ test.describe('Combat Guidance', () => {
     });
 
     await expect(page.locator('#battle-screen')).not.toHaveClass(/hidden/);
+    await expect(page.locator('#battle-turn-section')).toBeVisible();
+    await expect(page.locator('#battle-log-section')).toBeVisible();
+    await expect(page.locator('#party-container')).toBeVisible();
+    await expect(page.locator('#battle-enemies-section')).toBeVisible();
+    await expect(page.locator('#enemies-container')).toBeVisible();
     await expect(page.locator('#battle-turn-summary')).toContainText('Action');
     await expect(page.locator('#battle-guidance-text')).not.toBeEmpty();
     await expect(page.locator('#battle-tutorial-nudge')).toBeVisible();

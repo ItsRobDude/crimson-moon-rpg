@@ -431,13 +431,57 @@ button:hover {
     max-width: 90%;
     border-radius: 8px;
     box-shadow: 0 0 20px black;
+    max-height: 90vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
 }
 
 .modal-content h2 {
     font-family: var(--font-header);
     color: var(--accent-color);
-    margin-bottom: 20px;
+    margin-bottom: 0;
     text-align: center;
+}
+
+.modal-subtitle {
+    color: #c9c2aa;
+    line-height: 1.5;
+    text-align: center;
+}
+
+.modal-status {
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(201, 164, 69, 0.22);
+    background: rgba(201, 164, 69, 0.08);
+    color: #ddd3ba;
+    line-height: 1.45;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 4px;
+}
+
+.modal-actions button {
+    min-width: 150px;
+}
+
+.panel-subtitle {
+    color: #b9b29c;
+    font-size: 0.88rem;
+    line-height: 1.45;
+    margin-bottom: 10px;
+}
+
+.empty-state {
+    color: #b9b29c;
+    line-height: 1.5;
+    padding: 12px;
 }
 
 .inventory-modal-content {
@@ -521,6 +565,7 @@ button:hover {
 .inventory-desc {
     color: #aaa;
     font-size: 0.88rem;
+    line-height: 1.45;
 }
 
 .inventory-actions {
@@ -536,15 +581,44 @@ button:hover {
     margin-top: 6px;
 }
 
+.inventory-note {
+    color: #d8d0b8;
+    font-size: 0.86rem;
+    line-height: 1.45;
+    margin-top: 8px;
+}
+
+.detail-tag-row,
+.shop-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+}
+
+.inventory-entry-head,
+.shop-entry-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
 .tag {
     display: inline-block;
-    margin-left: 6px;
+    margin-left: 0;
     padding: 2px 6px;
     border-radius: 999px;
     background: rgba(201, 164, 69, 0.18);
     border: 1px solid rgba(201, 164, 69, 0.35);
     color: var(--accent-color);
     font-size: 0.72rem;
+}
+
+.tag-warning {
+    background: rgba(140, 59, 43, 0.22);
+    border-color: rgba(214, 123, 96, 0.35);
+    color: #f0b29a;
 }
 
 .inventory-filter-btn.active,
@@ -704,6 +778,7 @@ button:hover {
     border: 1px solid #444;
     padding: 10px;
     margin-bottom: 10px;
+    border-radius: 8px;
 }
 
 .codex-entry h4 {
@@ -736,15 +811,130 @@ button:hover {
     width: 100%;
     height: 300px;
     background-color: #111;
-    margin-bottom: 20px;
+    margin-bottom: 6px;
     border: 1px solid #555;
     position: relative;
+    border-radius: 8px;
+    overflow: hidden;
 }
 
 #map-image {
     width: 100%;
     height: 100%;
     object-fit: cover;
+}
+
+#map-locations,
+#shop-items-container,
+#quest-list,
+#codex-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.map-location-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 12px;
+    border: 1px solid #3b3421;
+    border-radius: 8px;
+    background: #171717;
+}
+
+.map-location-info {
+    flex: 1;
+}
+
+.map-location-info strong {
+    color: #f2eee2;
+}
+
+.map-location-info small {
+    display: block;
+    color: #b9b29c;
+    line-height: 1.45;
+    margin-top: 6px;
+}
+
+.map-status-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    color: #cbc190;
+    font-size: 0.82rem;
+    margin-top: 4px;
+}
+
+.status-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid rgba(201, 164, 69, 0.3);
+    background: rgba(201, 164, 69, 0.1);
+}
+
+.status-open {
+    color: #bed7a6;
+    border-color: rgba(122, 163, 116, 0.35);
+    background: rgba(55, 89, 47, 0.2);
+}
+
+.status-locked {
+    color: #f0b29a;
+    border-color: rgba(214, 123, 96, 0.35);
+    background: rgba(140, 59, 43, 0.22);
+}
+
+.status-current {
+    color: #f1df9d;
+    border-color: rgba(201, 164, 69, 0.45);
+    background: rgba(201, 164, 69, 0.18);
+}
+
+.pin-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 1px solid #353535;
+    border-radius: 8px;
+    background: #141414;
+    margin-top: 10px;
+}
+
+.shop-gold-display {
+    text-align: right;
+    color: gold;
+    font-weight: bold;
+}
+
+.tutorial-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.tutorial-section {
+    background: #1a1a1a;
+    border: 1px solid #3b3421;
+    border-radius: 8px;
+    padding: 12px 14px;
+}
+
+.tutorial-section h3 {
+    color: var(--accent-color);
+    margin-bottom: 6px;
+}
+
+.tutorial-section p,
+.system-note {
+    color: #d3cec1;
+    line-height: 1.5;
 }
 
 /* --- BATTLE UI --- */
@@ -791,6 +981,15 @@ button:hover {
     border: 1px solid rgba(201, 164, 69, 0.2);
     border-radius: 8px;
     padding: 20px;
+}
+
+#battle-turn-section {
+    background: linear-gradient(180deg, rgba(33, 25, 13, 0.9), rgba(20, 20, 20, 0.92));
+    border-color: rgba(201, 164, 69, 0.42);
+}
+
+#battle-log-section {
+    background-color: rgba(0, 0, 0, 0.14);
 }
 
 .battle-section h2, .battle-section h3 {
@@ -1039,6 +1238,7 @@ button:hover {
     padding: 12px;
     border: 1px solid rgba(201, 164, 69, 0.2);
     border-radius: 6px;
+    background: rgba(14, 14, 14, 0.82);
 }
 
 .enemy-portrait {
@@ -1517,6 +1717,15 @@ body.presentation-mode #viewport {
 .quest-suggestions {
     color: #cbc190;
     font-size: 0.9rem;
+}
+
+.quest-suggestions ul {
+    margin: 8px 0 0 18px;
+    color: #d3cec1;
+}
+
+.quest-suggestions li + li {
+    margin-top: 4px;
 }
 
 .quest-completed {
