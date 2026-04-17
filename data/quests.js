@@ -3,6 +3,7 @@ export const quests = {
         id: "investigate_whisperwood",
         title: "Investigate Whisperwood",
         description: "Travel to Sporefall and uncover what happened to Whisperwood Borough, Eoin, and Aodhan.",
+        completionStage: null,
         stages: {
             0: {
                 text: "Meet with Prince Alderic for your briefing.",

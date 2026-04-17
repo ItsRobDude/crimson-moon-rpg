@@ -757,6 +757,11 @@ function syncCompanionLevel(companionId) {
 
 // --- Standard Helpers ---
 
+function isQuestStageComplete(questDef, stageNumber) {
+    if (!questDef || !Number.isFinite(stageNumber)) return false;
+    return Number.isFinite(questDef.completionStage) && stageNumber >= questDef.completionStage;
+}
+
 export function updateQuestStage(questId, stageNumber) {
     if (!gameState.quests[questId]) {
         if (quests[questId]) {
@@ -767,11 +772,7 @@ export function updateQuestStage(questId, stageNumber) {
     }
     gameState.quests[questId].currentStage = stageNumber;
     const questDef = quests[questId];
-    const stages = Object.keys(questDef.stages).map(Number);
-    const maxStage = Math.max(...stages);
-    if (stageNumber >= maxStage) {
-        gameState.quests[questId].completed = true;
-    }
+    gameState.quests[questId].completed = isQuestStageComplete(questDef, stageNumber);
 }
 
 export function addGold(amount) {
@@ -1272,10 +1273,12 @@ function normalizeQuestState(rawQuests = {}) {
         const savedQuest = rawQuests?.[questId];
         if (!savedQuest || typeof savedQuest !== 'object') return;
 
+        const currentStage = savedQuest.currentStage ?? normalized[questId].currentStage;
+
         normalized[questId] = {
             ...normalized[questId],
-            currentStage: savedQuest.currentStage ?? normalized[questId].currentStage,
-            completed: savedQuest.completed ?? normalized[questId].completed
+            currentStage,
+            completed: isQuestStageComplete(normalized[questId], currentStage)
         };
     });
 

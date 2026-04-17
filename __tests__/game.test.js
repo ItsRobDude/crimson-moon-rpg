@@ -310,6 +310,26 @@ test('load normalizes partial legacy saves while preserving newer Sporefall and 
   expect(gameState.story.canonicalStartScene).toBe('SCENE_BRIEFING');
   expect(gameState.quests.investigate_whisperwood.currentStage).toBe(4);
   expect(gameState.quests.investigate_whisperwood.stages[4]).toBeDefined();
+  expect(gameState.quests.investigate_whisperwood.completed).toBe(false);
+});
+
+test('updateQuestStage keeps investigate_whisperwood active at stage 4 without inferring completion', async () => {
+  const { updateQuestStage } = await import('../data/gameState.js');
+
+  initializeNewGame(
+    'Kest',
+    'human',
+    'fighter',
+    'soldier',
+    { STR: 15, DEX: 12, CON: 14, INT: 10, WIS: 10, CHA: 8 },
+    ['athletics', 'survival'],
+    []
+  );
+
+  updateQuestStage('investigate_whisperwood', 4);
+
+  expect(gameState.quests.investigate_whisperwood.currentStage).toBe(4);
+  expect(gameState.quests.investigate_whisperwood.completed).toBe(false);
 });
 
 test('save and load preserves concentration markers and Sporefall route flags', () => {
