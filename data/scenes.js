@@ -809,7 +809,9 @@ export const scenes = {
                 successText: "There are no wounds, no sign of struggle, only the mold spreading from every place breath once passed. Whatever killed him was already in the air.",
                 failText: "Your stomach turns before you can learn much beyond the mold and the wrong sweetness in the air.",
                 nextSceneSuccess: "SCENE_SPOREFALL_WAKE",
-                nextSceneFail: "SCENE_SPOREFALL_WAKE"
+                nextSceneFail: "SCENE_SPOREFALL_WAKE",
+                continueTextSuccess: "Turn toward the coughing in the haze.",
+                continueTextFail: "Turn toward the coughing in the haze."
             },
             {
                 text: "Call toward the coughing in the brush",
@@ -835,7 +837,9 @@ export const scenes = {
                 successText: "You force yourself to count breaths and details instead of fear. The panic eases just enough for you to think.",
                 failText: "The spores catch in your throat and the sight of the dead things around you makes your stomach lurch before you can steady yourself.",
                 nextSceneSuccess: "SCENE_ARRIVAL_WHISPERWOOD",
-                nextSceneFail: "SCENE_ARRIVAL_WHISPERWOOD"
+                nextSceneFail: "SCENE_ARRIVAL_WHISPERWOOD",
+                continueTextSuccess: "Rise and take in what remains of the borough.",
+                continueTextFail: "Rise and take in what remains of the borough."
             },
             {
                 text: "Lie still and listen to the new forest (Perception)",
@@ -845,7 +849,9 @@ export const scenes = {
                 successText: "Somewhere beyond the haze, something large moves with a wet, dragging rhythm. You mark the sound and plan your first steps carefully.",
                 failText: "The woods answer only with the whisper of spores and a silence that feels too attentive.",
                 nextSceneSuccess: "SCENE_ARRIVAL_WHISPERWOOD",
-                nextSceneFail: "SCENE_ARRIVAL_WHISPERWOOD"
+                nextSceneFail: "SCENE_ARRIVAL_WHISPERWOOD",
+                continueTextSuccess: "Move deeper into the ruined streets.",
+                continueTextFail: "Move deeper into the ruined streets."
             }
         ]
     },
@@ -873,7 +879,9 @@ export const scenes = {
                     ]
                 },
                 nextSceneSuccess: "SCENE_MEET_EOIN",
-                nextSceneFail: "SCENE_SPOREFALL_STREET_SEARCH"
+                nextSceneFail: "SCENE_SPOREFALL_STREET_SEARCH",
+                continueTextSuccess: "Follow the pale figure behind the house.",
+                continueTextFail: "Push deeper into the silent street."
             },
             {
                 text: "Move between the ruined homes",
@@ -919,7 +927,9 @@ export const scenes = {
                 successText: "You ease back, keeping low. The beast's head swings the other way as you clear the worst of the spores.",
                 failText: "You stumble on slick moss. The beast lunges toward the noise!",
                 nextSceneSuccess: "SCENE_SKIRT_BEAST",
-                nextSceneFail: "SCENE_FUNGAL_AMBUSH"
+                nextSceneFail: "SCENE_FUNGAL_AMBUSH",
+                continueTextSuccess: "Slip past before it catches your scent.",
+                continueTextFail: "Brace for the charge."
             },
             {
                 text: "Throw a stone to distract it",
@@ -990,7 +1000,9 @@ export const scenes = {
                     ]
                 },
                 nextSceneSuccess: "SCENE_EOIN_TALK",
-                nextSceneFail: "SCENE_ALONE_AGAIN"
+                nextSceneFail: "SCENE_ALONE_AGAIN",
+                continueTextSuccess: "Let Eoin find the words.",
+                continueTextFail: "Watch him retreat into the ruin-shadow."
             },
             {
                 text: "\"Stop shaking and tell me what happened here.\"",
@@ -1202,7 +1214,9 @@ export const scenes = {
                 successText: "The whispers do not mourn you. They warn someone deeper inside that you have arrived.",
                 failText: "The whispering overlaps until grief itself becomes a language you cannot quite understand.",
                 nextSceneSuccess: "SCENE_SPOREFALL_CATHEDRAL_VISION",
-                nextSceneFail: "SCENE_SPOREFALL_CATHEDRAL_VISION"
+                nextSceneFail: "SCENE_SPOREFALL_CATHEDRAL_VISION",
+                continueTextSuccess: "Follow the warning deeper inside.",
+                continueTextFail: "Endure the sound and press inward."
             },
             {
                 text: "Withdraw to the cathedral steps",
@@ -1263,7 +1277,9 @@ export const scenes = {
                     ]
                 },
                 nextSceneSuccess: "SCENE_SPOREFALL_OVERSEER_DOOR",
-                nextSceneFail: "SCENE_SPOREFALL_OVERSEER_DOOR"
+                nextSceneFail: "SCENE_SPOREFALL_OVERSEER_DOOR",
+                continueTextSuccess: "Look again with the pattern in mind.",
+                continueTextFail: "Look again before you trust your hands."
             },
             {
                 text: "Trace the carved grooves (Investigation)",
@@ -1278,7 +1294,9 @@ export const scenes = {
                     ]
                 },
                 nextSceneSuccess: "SCENE_SPOREFALL_OVERSEER_DOOR",
-                nextSceneFail: "SCENE_SPOREFALL_OVERSEER_DOOR"
+                nextSceneFail: "SCENE_SPOREFALL_OVERSEER_DOOR",
+                continueTextSuccess: "Trace the pattern once more.",
+                continueTextFail: "Step back and study the door again."
             },
             {
                 text: "Scratch out the Wolf and Serpent runes",

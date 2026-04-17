@@ -85,6 +85,10 @@
                             <h3 id="turn-indicator">Player's Turn</h3>
                             <p id="battle-turn-summary" class="battle-turn-summary"></p>
                             <p id="battle-guidance-text" class="battle-guidance-text"></p>
+                            <div id="battle-tutorial-nudge" class="inline-nudge hidden">
+                                <p id="battle-tutorial-text"></p>
+                                <button id="battle-tutorial-dismiss" type="button">Dismiss</button>
+                            </div>
                             <div id="battle-actions-container" class="battle-actions-grid">
                                 <!-- Action buttons go here -->
                             </div>
@@ -120,6 +124,10 @@
                     <p class="objective-label">Current Aim</p>
                     <p id="objective-text"></p>
                     <p id="objective-status" class="hidden"></p>
+                </div>
+                <div id="objective-helper" class="inline-nudge hidden">
+                    <p id="objective-helper-text"></p>
+                    <button id="objective-helper-dismiss" type="button">Dismiss</button>
                 </div>
                 <div id="narrative-box">
                     <p id="narrative-text">Welcome to Prophecies: Crimson Moon.</p>
@@ -162,6 +170,12 @@
     <div id="char-creation-modal" class="modal hidden">
         <div class="modal-content">
             <h2>Create Your Character</h2>
+            <div id="cc-quick-starts" class="cc-quick-starts">
+                <button type="button" class="cc-quick-start" data-preset="steady_fighter">Steady Fighter</button>
+                <button type="button" class="cc-quick-start" data-preset="cautious_cleric">Cautious Cleric</button>
+                <button type="button" class="cc-quick-start" data-preset="clever_rogue">Clever Rogue</button>
+                <button type="button" class="cc-quick-start" data-preset="dangerous_wizard">Dangerous Wizard</button>
+            </div>
             <div id="cc-guidance-panel" class="cc-guidance-panel">
                 <p id="cc-guidance-text"></p>
                 <p id="cc-selection-summary" class="cc-selection-summary"></p>
@@ -183,6 +197,7 @@
                     <div class="form-group">
                         <label>Class:</label>
                         <select id="cc-class"></select>
+                        <p id="cc-class-summary" class="desc-text cc-class-summary"></p>
                         <p id="cc-class-desc" class="desc-text"></p>
                     </div>
                     <div class="form-group">

@@ -18,11 +18,16 @@ test.describe('Opening Guidance', () => {
     await expect(page.locator('#objective-strip')).toBeVisible();
     await expect(page.locator('#objective-text')).toContainText('Prepare in Silverthorn');
     await expect(page.locator('#objective-text')).toContainText('Rusty Blade');
-    await expect(page.locator('.choice-pill.recommended')).toHaveCount(2);
+    await expect(page.locator('#objective-helper')).toBeVisible();
+    await expect(page.locator('#choice-container')).toContainText('Best First Steps');
+    await expect(page.locator('#choice-container')).toContainText('Other Options');
+    await expect(page.locator('.choice-pill.recommended')).toHaveCount(3);
     await expect(page.locator('#choice-container')).toContainText('Step inside The Rusty Blade');
     await expect(page.locator('#choice-container')).toContainText('Take the temple road');
+    await expect(page.locator('#choice-container')).toContainText('Make for the eastern gate');
 
     await page.click('#btn-quests');
-    await expect(page.locator('#quest-list')).toContainText('The Rusty Blade, the temple road, and the market quarter');
+    await expect(page.locator('#quest-list')).toContainText('Likely next steps');
+    await expect(page.locator('#quest-list')).toContainText('The Rusty Blade is a strong first stop');
   });
 });

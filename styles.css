@@ -1431,3 +1431,170 @@ body.presentation-mode #viewport {
         padding: 16px;
     }
 }
+
+.choice-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+.choice-group + .choice-group {
+    margin-top: 6px;
+}
+
+.choice-group-title {
+    margin: 0;
+    color: #d9cb9b;
+    font-size: 0.82rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.choice-group-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.cc-quick-starts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.cc-quick-start {
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(201, 164, 69, 0.32);
+    background: linear-gradient(180deg, rgba(34, 34, 34, 0.94), rgba(19, 19, 19, 0.98));
+    color: #f1ede2;
+    text-align: left;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.cc-quick-start:hover {
+    border-color: rgba(201, 164, 69, 0.7);
+    box-shadow: 0 0 14px rgba(201, 164, 69, 0.18);
+    transform: translateY(-1px);
+}
+
+.cc-quick-start.active {
+    border-color: rgba(201, 164, 69, 0.92);
+    box-shadow: inset 0 0 0 1px rgba(201, 164, 69, 0.26), 0 0 16px rgba(201, 164, 69, 0.16);
+    background: linear-gradient(180deg, rgba(54, 42, 20, 0.95), rgba(24, 21, 16, 0.98));
+}
+
+.cc-class-summary {
+    color: #cbc190;
+    line-height: 1.45;
+    min-height: 1.5em;
+}
+
+.advanced-section h3 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.cc-section-toggle {
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(201, 164, 69, 0.3);
+    background: rgba(201, 164, 69, 0.08);
+    color: #d9cb9b;
+    font-size: 0.76rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.advanced-section.collapsed > :not(h3) {
+    display: none !important;
+}
+
+.quest-suggestions {
+    color: #cbc190;
+    font-size: 0.9rem;
+}
+
+.quest-completed {
+    display: inline-block;
+    margin-top: 8px;
+    color: #d9cb9b;
+}
+
+.inline-nudge {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(201, 164, 69, 0.24);
+    background: linear-gradient(135deg, rgba(40, 32, 20, 0.9), rgba(18, 18, 18, 0.92));
+}
+
+.inline-nudge p {
+    margin: 0;
+    color: #ddd3ba;
+    font-size: 0.88rem;
+    line-height: 1.45;
+}
+
+.inline-nudge button {
+    flex: 0 0 auto;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(201, 164, 69, 0.3);
+    background: rgba(201, 164, 69, 0.08);
+    color: #f1ede2;
+}
+
+.tactical-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 999px;
+    border: 1px solid rgba(201, 164, 69, 0.2);
+    background: rgba(201, 164, 69, 0.08);
+    color: #d9cb9b;
+    font-size: 0.72rem;
+}
+
+.tag-engaged {
+    border-color: rgba(214, 123, 96, 0.35);
+    background: rgba(140, 59, 43, 0.22);
+    color: #f0b29a;
+}
+
+.tag-cover {
+    border-color: rgba(122, 163, 116, 0.35);
+    background: rgba(55, 89, 47, 0.2);
+    color: #bed7a6;
+}
+
+.tag-exposed {
+    border-color: rgba(182, 156, 90, 0.35);
+    background: rgba(99, 79, 33, 0.22);
+    color: #ebd792;
+}
+
+.tag-down {
+    border-color: rgba(120, 130, 152, 0.35);
+    background: rgba(52, 56, 68, 0.22);
+    color: #cbd2e0;
+}
+
+.enemy-tags,
+.party-status {
+    gap: 8px;
+}
+
+@media (max-width: 768px) {
+    .cc-quick-starts {
+        grid-template-columns: 1fr;
+    }
+}

@@ -25,7 +25,8 @@ test.describe('Combat Guidance', () => {
 
     await expect(page.locator('#battle-screen')).not.toHaveClass(/hidden/);
     await expect(page.locator('#battle-turn-summary')).toContainText('Action');
-    await expect(page.locator('#battle-guidance-text')).toContainText('Attack');
+    await expect(page.locator('#battle-guidance-text')).not.toBeEmpty();
+    await expect(page.locator('#battle-tutorial-nudge')).toBeVisible();
 
     const actionContainer = page.locator('#battle-actions-container');
     for (const label of ['Attack', 'Move', 'Cast Spell', 'Class Features', 'Items', 'Defend', 'End Turn']) {
@@ -36,5 +37,8 @@ test.describe('Combat Guidance', () => {
       els.length > 0 && els.every((el) => getComputedStyle(el).fontFamily.toLowerCase().includes('material symbols outlined'))
     ));
     expect(iconsUseMaterialSymbols).toBe(true);
+
+    await page.click('#battle-tutorial-dismiss');
+    await expect(page.locator('#battle-tutorial-nudge')).toBeHidden();
   });
 });

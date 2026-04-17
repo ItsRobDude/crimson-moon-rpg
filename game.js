@@ -17,6 +17,7 @@ import { CANONICAL_START_SCENE, ensureStoryState, getLocationStoryRequirement, g
 import { addEffectToActor, getActorTraitDefinitions, getBonusSkillChoiceCount, getBonusToolChoiceCount, getBonusToolChoiceOptions, getDerivedActorState, getRaceTraitDefinitions, removeEffectFromActor } from './data/mechanics.js';
 import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod, generateScaledStats, getPlayerAC } from './rules.js';
 import { getMovementPreview, getSpellTargetingPreview, initCombatSystem, startCombat, performAttack, performCastSpell, performAbility, performCombatManeuver, performDefend, performEscape, performFlee, performEndTurn, performActionSurge, performCunningAction, performMove, performStand, uiHooks } from './combat.js';
+import { getCoverBetween, getToken, isAdjacent } from './battlegrid.js';
 import { clearTrackedTimeout, scheduleTrackedTimeout } from './timers.js';
 
 const DEFAULT_PORTRAIT_PATH = 'portraits/npc_male_placeholder_portrait.png';
@@ -277,6 +278,12 @@ export function initUI() {
     document.getElementById('btn-tutorial').onclick = () => {
         document.getElementById('tutorial-overlay').classList.remove('hidden');
     };
+    document.getElementById('objective-helper-dismiss').onclick = dismissObjectiveHelper;
+    document.getElementById('battle-tutorial-dismiss').onclick = dismissBattleTutorialNudge;
+
+    document.querySelectorAll('#cc-quick-starts .cc-quick-start').forEach((button) => {
+        button.onclick = () => applyCharacterQuickStart(button.dataset.preset);
+    });
 }
 
 // ... (Character Creation Logic remains same) ...
@@ -291,6 +298,10 @@ let ccState = {
     chosenExpertise: [],
     chosenFightingStyle: null
 };
+let ccUiState = {
+    selectedPreset: null,
+    expandedSections: new Set()
+};
 
 const SETTINGS_STORAGE_KEY = 'crimson_moon_settings';
 const defaultGameSettings = {
@@ -304,6 +315,37 @@ let gameSettings = { ...defaultGameSettings };
 let objectiveStatusState = {
     message: '',
     tone: 'system'
+};
+
+const CC_QUICK_STARTS = {
+    steady_fighter: {
+        label: 'Steady Fighter',
+        raceId: 'human',
+        classId: 'fighter',
+        backgroundId: 'soldier',
+        baseStats: { STR: 15, CON: 14, DEX: 13, WIS: 12, CHA: 10, INT: 8 }
+    },
+    cautious_cleric: {
+        label: 'Cautious Cleric',
+        raceId: 'human',
+        classId: 'cleric',
+        backgroundId: 'acolyte',
+        baseStats: { WIS: 15, CON: 14, DEX: 13, CHA: 12, STR: 10, INT: 8 }
+    },
+    clever_rogue: {
+        label: 'Clever Rogue',
+        raceId: 'elf',
+        classId: 'rogue',
+        backgroundId: 'criminal',
+        baseStats: { DEX: 15, INT: 14, CON: 13, CHA: 12, WIS: 10, STR: 8 }
+    },
+    dangerous_wizard: {
+        label: 'Dangerous Wizard',
+        raceId: 'elf',
+        classId: 'wizard',
+        backgroundId: 'sage',
+        baseStats: { INT: 15, DEX: 14, CON: 13, WIS: 12, CHA: 10, STR: 8 }
+    }
 };
 
 function loadGameSettings() {
@@ -332,6 +374,122 @@ function setObjectiveStatus(message = '', tone = 'system') {
         tone
     };
     updateObjectiveStrip();
+}
+
+function getQuestStageData(stageEntry) {
+    if (!stageEntry) {
+        return { text: '', suggestions: [] };
+    }
+    if (typeof stageEntry === 'string') {
+        return { text: stageEntry, suggestions: [] };
+    }
+    return {
+        text: stageEntry.text || '',
+        suggestions: Array.isArray(stageEntry.suggestions) ? stageEntry.suggestions : []
+    };
+}
+
+function isBriefingScene(sceneId = gameState.currentSceneId) {
+    return [
+        'SCENE_BRIEFING',
+        'SCENE_ALDERIC_REACTION',
+        'SCENE_BRIEFING_2',
+        'SCENE_BRIEFING_INFO',
+        'SCENE_BRIEFING_DISMISSAL'
+    ].includes(sceneId);
+}
+
+function getDiscoveredCodexState() {
+    const knownPeople = Object.entries(gameState.relationships || {})
+        .filter(([npcId, score]) => {
+            const baseline = npcs[npcId]?.relationshipStart ?? 0;
+            return score !== baseline;
+        })
+        .map(([npcId]) => npcId);
+    const knownFactions = Object.entries(gameState.reputation || {})
+        .filter(([factionId, score]) => {
+            const baseline = factions[factionId]?.neutral ?? 0;
+            return score !== baseline;
+        })
+        .map(([factionId]) => factionId);
+    return { knownPeople, knownFactions };
+}
+
+function updateHudButtons() {
+    const mapButton = document.getElementById('btn-map');
+    const codexButton = document.getElementById('btn-codex');
+    const showMap = !isBriefingScene();
+    const codexState = getDiscoveredCodexState();
+    const showCodex = (codexState.knownPeople.length + codexState.knownFactions.length) > 0;
+
+    if (mapButton) mapButton.classList.toggle('hidden', !showMap);
+    if (codexButton) codexButton.classList.toggle('hidden', !showCodex);
+}
+
+function updateObjectiveHelper() {
+    const helper = document.getElementById('objective-helper');
+    const text = document.getElementById('objective-helper-text');
+    if (!helper || !text || document.body.classList.contains('presentation-mode')) {
+        helper?.classList.add('hidden');
+        return;
+    }
+
+    const shouldShowSilverthornHint = gameState.currentSceneId === 'SCENE_HUB_SILVERTHORN'
+        && gameState.quests?.investigate_whisperwood?.currentStage === 1
+        && (!getSceneMemory('ui_silverthorn_nudge_seen') || getSceneMemory('ui_silverthorn_nudge_active'));
+
+    if (!shouldShowSilverthornHint) {
+        if (getSceneMemory('ui_silverthorn_nudge_active')) {
+            setSceneMemory('ui_silverthorn_nudge_active', false);
+            setSceneMemory('ui_silverthorn_nudge_seen', true);
+        }
+        helper.classList.add('hidden');
+        return;
+    }
+
+    setSceneMemory('ui_silverthorn_nudge_active', true);
+    text.innerText = 'Need a nudge? Open Quests for likely next steps, or Menu > Help if you want the basics laid out plainly.';
+    helper.classList.remove('hidden');
+}
+
+function dismissObjectiveHelper() {
+    setSceneMemory('ui_silverthorn_nudge_seen', true);
+    setSceneMemory('ui_silverthorn_nudge_active', false);
+    document.getElementById('objective-helper')?.classList.add('hidden');
+}
+
+function updateBattleTutorialNudge(activeCharacterId = 'player') {
+    const nudge = document.getElementById('battle-tutorial-nudge');
+    const text = document.getElementById('battle-tutorial-text');
+    if (!nudge || !text || !gameState.combat?.active) {
+        nudge?.classList.add('hidden');
+        return;
+    }
+
+    const isPlayerSideTurn = gameState.combat.turnOrder[gameState.combat.turnIndex] === activeCharacterId
+        && (activeCharacterId === 'player' || gameState.party.includes(activeCharacterId));
+    if (!isPlayerSideTurn) {
+        if (getSceneMemory('ui_combat_nudge_active')) {
+            setSceneMemory('ui_combat_nudge_active', false);
+            setSceneMemory('ui_combat_nudge_seen', true);
+        }
+        nudge.classList.add('hidden');
+        return;
+    }
+    if (getSceneMemory('ui_combat_nudge_seen') && !getSceneMemory('ui_combat_nudge_active')) {
+        nudge.classList.add('hidden');
+        return;
+    }
+
+    setSceneMemory('ui_combat_nudge_active', true);
+    text.innerText = 'Take stock before you commit: if an enemy is already on you, answer that pressure first; if not, move for a better angle before you spend your action.';
+    nudge.classList.remove('hidden');
+}
+
+function dismissBattleTutorialNudge() {
+    setSceneMemory('ui_combat_nudge_seen', true);
+    setSceneMemory('ui_combat_nudge_active', false);
+    document.getElementById('battle-tutorial-nudge')?.classList.add('hidden');
 }
 
 function getQuestUpdateStatusMessage(questId, stage) {
@@ -395,7 +553,7 @@ function getCurrentObjectiveCopy() {
         return "Choose which quarter of Sporefall to press: the cathedral, the overseer's row, or the northern streets.";
     }
 
-    return quest.stages?.[quest.currentStage] || quest.description || '';
+    return getQuestStageData(quest.stages?.[quest.currentStage]).text || quest.description || '';
 }
 
 function updateObjectiveStrip() {
@@ -427,6 +585,8 @@ function updateObjectiveStrip() {
         statusEl.innerText = '';
         statusEl.classList.add('hidden');
     }
+
+    updateObjectiveHelper();
 }
 
 function setStartMenuStatus(message = '') {
@@ -558,6 +718,10 @@ function resetCharacterCreationState() {
         chosenExpertise: [],
         chosenFightingStyle: null
     };
+    ccUiState = {
+        selectedPreset: null,
+        expandedSections: new Set()
+    };
 }
 
 function showStartMenu() {
@@ -565,6 +729,7 @@ function showStartMenu() {
     document.getElementById('options-modal').classList.add('hidden');
     document.getElementById('start-menu').classList.remove('hidden');
     setPresentationMode(true);
+    updateHudButtons();
     refreshStartMenuState();
     setStartMenuStatus('');
 }
@@ -779,12 +944,6 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
                 inSilverthorn: true,
                 hint: 'Good for supplies, steel, and a measure of the city mood.'
             }),
-            createChoice('Seek supplies at the General Store', 'SCENE_SILVERTHORN_GENERAL_STORE', {
-                timeAdvance: 1,
-                timeReason: 'You stop to resupply.',
-                inSilverthorn: true,
-                hint: 'The plainest way to stock bandages, oil, and road necessities.'
-            }),
             createChoice('Step inside The Rusty Blade', 'SCENE_RUSTY_BLADE_INN', {
                 timeAdvance: 1,
                 timeReason: 'You spend time in the inn.',
@@ -812,6 +971,7 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
                 timeReason: 'You cross Silverthorn toward the eastern gate.',
                 inSilverthorn: true,
                 hint: 'When you are ready to leave the city behind and judge the road for yourself.',
+                priority: 'recommended',
                 riskTag: 'Leaves Silverthorn'
             })
         ];
@@ -1952,6 +2112,7 @@ function getLocationLockMessage(locationId) {
 export function showCharacterCreation() {
     document.getElementById('start-menu').classList.add('hidden');
     setPresentationMode(true);
+    updateHudButtons();
     resetCharacterCreationState();
     const raceSelect = document.getElementById('cc-race');
     const classSelect = document.getElementById('cc-class');
@@ -1978,12 +2139,15 @@ export function showCharacterCreation() {
         backgroundSelect.appendChild(opt);
     }
     renderAbilityScoreUI();
+    initializeCharacterCreationSections();
     raceSelect.onchange = () => {
+        ccUiState.selectedPreset = null;
         ccState.chosenBonusSkills = [];
         ccState.chosenBonusTools = [];
         updateCCPreview();
     };
     classSelect.onchange = () => {
+        ccUiState.selectedPreset = null;
         ccState.chosenSkills = [];
         ccState.chosenCantrips = [];
         ccState.chosenPreparedSpells = [];
@@ -1992,9 +2156,26 @@ export function showCharacterCreation() {
         ccState.chosenFightingStyle = null;
         updateCCPreview();
     };
-    backgroundSelect.onchange = updateCCPreview;
+    backgroundSelect.onchange = () => {
+        ccUiState.selectedPreset = null;
+        updateCCPreview();
+    };
     updateCCPreview();
     document.getElementById('char-creation-modal').classList.remove('hidden');
+}
+
+function syncCharacterCreationAbilityInputs() {
+    const container = document.getElementById('cc-abilities-container');
+    const selectedValues = { ...ccState.baseStats };
+    container.querySelectorAll('select[data-stat]').forEach((select) => {
+        const stat = select.dataset.stat;
+        Array.from(select.options).forEach((option) => {
+            const value = parseInt(option.value, 10);
+            const usedElsewhere = Object.entries(selectedValues).some(([otherStat, otherValue]) => otherStat !== stat && otherValue === value);
+            option.disabled = usedElsewhere;
+        });
+        select.value = String(ccState.baseStats[stat]);
+    });
 }
 
 function renderAbilityScoreUI() {
@@ -2003,19 +2184,6 @@ function renderAbilityScoreUI() {
     const standardArray = [15, 14, 13, 12, 10, 8];
     const stats = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
     ccState.baseStats = { STR: 15, DEX: 14, CON: 13, INT: 12, WIS: 10, CHA: 8 };
-
-    const syncAbilityScoreOptions = () => {
-        const selectedValues = { ...ccState.baseStats };
-        container.querySelectorAll('select[data-stat]').forEach((select) => {
-            const stat = select.dataset.stat;
-            Array.from(select.options).forEach((option) => {
-                const value = parseInt(option.value, 10);
-                const usedElsewhere = Object.entries(selectedValues).some(([otherStat, otherValue]) => otherStat !== stat && otherValue === value);
-                option.disabled = usedElsewhere;
-            });
-            select.value = String(ccState.baseStats[stat]);
-        });
-    };
 
     stats.forEach((stat, index) => {
         const row = document.createElement('div');
@@ -2032,15 +2200,16 @@ function renderAbilityScoreUI() {
             select.appendChild(opt);
         });
         select.onchange = (e) => {
+            ccUiState.selectedPreset = null;
             ccState.baseStats[stat] = parseInt(e.target.value);
-            syncAbilityScoreOptions();
+            syncCharacterCreationAbilityInputs();
             updateCCPreview();
         };
         row.appendChild(label);
         row.appendChild(select);
         container.appendChild(row);
     });
-    syncAbilityScoreOptions();
+    syncCharacterCreationAbilityInputs();
 }
 
 function formatChoiceLabel(value) {
@@ -2061,6 +2230,124 @@ function fillMissingSelections(current, available, count) {
 
 function formatSelectionList(values = [], formatter = formatChoiceLabel) {
     return values.map((value) => formatter(value)).join(', ');
+}
+
+function initializeCharacterCreationSections() {
+    [
+        'cc-bonus-skills-section',
+        'cc-bonus-tools-section',
+        'cc-fighting-style-section',
+        'cc-expertise-section',
+        'cc-cantrips-section',
+        'cc-spells-section'
+    ].forEach((sectionId) => {
+        const section = document.getElementById(sectionId);
+        const heading = section?.querySelector('h3');
+        if (!section || !heading || heading.querySelector('.cc-section-toggle')) return;
+
+        section.classList.add('advanced-section');
+        const toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'cc-section-toggle';
+        toggle.onclick = () => {
+            const nextExpanded = !ccUiState.expandedSections.has(sectionId);
+            setCharacterCreationSectionExpanded(sectionId, nextExpanded);
+        };
+        heading.appendChild(toggle);
+        setCharacterCreationSectionExpanded(sectionId, false);
+    });
+}
+
+function setCharacterCreationSectionExpanded(sectionId, expanded) {
+    const section = document.getElementById(sectionId);
+    if (!section) return;
+    const toggle = section.querySelector('.cc-section-toggle');
+    if (expanded) {
+        ccUiState.expandedSections.add(sectionId);
+    } else {
+        ccUiState.expandedSections.delete(sectionId);
+    }
+    section.classList.toggle('collapsed', !expanded);
+    if (toggle) {
+        toggle.textContent = expanded ? 'Hide' : 'Review';
+    }
+}
+
+function updateCharacterCreationSectionState(sectionId, visible) {
+    const section = document.getElementById(sectionId);
+    if (!section) return;
+    if (!visible) {
+        section.classList.add('hidden');
+        return;
+    }
+    section.classList.remove('hidden');
+    if (!ccUiState.expandedSections.has(sectionId)) {
+        section.classList.add('collapsed');
+        const toggle = section.querySelector('.cc-section-toggle');
+        if (toggle) toggle.textContent = 'Review';
+    }
+}
+
+function getDefaultSelectionsForBuild(raceKey, classKey, backgroundKey, baseStats) {
+    const background = backgrounds[backgroundKey];
+    const cls = classes[classKey];
+    const finalStats = { ...baseStats };
+    Object.entries(races[raceKey]?.abilityBonuses || {}).forEach(([stat, bonus]) => {
+        finalStats[stat] += bonus;
+    });
+
+    const chosenSkills = fillMissingSelections(
+        [],
+        (cls.skillProficiencies || []).filter((skill) => !(background?.skillProficiencies || []).includes(skill)),
+        cls.skillChoices || 0
+    );
+    const chosenBonusSkills = fillMissingSelections(
+        [],
+        [...new Set(Object.values(classes).flatMap((entry) => entry.skillProficiencies || []))]
+            .filter((skill) => !new Set([...(background?.skillProficiencies || []), ...chosenSkills]).has(skill)),
+        getBonusSkillChoiceCount(raceKey)
+    );
+    const chosenBonusTools = fillMissingSelections([], getBonusToolChoiceOptions(raceKey), getBonusToolChoiceCount(raceKey));
+    const spellState = getClassSpellSelectionState(classKey, finalStats);
+    const chosenCantrips = fillMissingSelections([], spellState.cantrips, spellState.cantripCount);
+    const chosenSpellbook = spellState.mode === 'spellbook'
+        ? fillMissingSelections([], spellState.spellChoices, spellState.spellCount)
+        : [];
+    const chosenPreparedSpells = spellState.mode === 'prepared'
+        ? fillMissingSelections([], spellState.spellChoices, spellState.spellCount)
+        : [];
+    const expertisePool = [...new Set([...(background?.skillProficiencies || []), ...chosenSkills, ...chosenBonusSkills])];
+    return {
+        chosenSkills,
+        chosenBonusSkills,
+        chosenBonusTools,
+        chosenCantrips,
+        chosenPreparedSpells,
+        chosenSpellbook,
+        chosenExpertise: fillMissingSelections([], expertisePool, cls.expertiseChoices || 0),
+        chosenFightingStyle: cls.fightingStyleChoices?.[0] || null
+    };
+}
+
+function applyCharacterQuickStart(presetId) {
+    const preset = CC_QUICK_STARTS[presetId];
+    if (!preset) return;
+
+    const raceSelect = document.getElementById('cc-race');
+    const classSelect = document.getElementById('cc-class');
+    const backgroundSelect = document.getElementById('cc-background');
+
+    raceSelect.value = preset.raceId;
+    classSelect.value = preset.classId;
+    backgroundSelect.value = preset.backgroundId;
+    ccState.baseStats = { ...preset.baseStats };
+    Object.assign(ccState, getDefaultSelectionsForBuild(preset.raceId, preset.classId, preset.backgroundId, preset.baseStats));
+    ccUiState.selectedPreset = presetId;
+    syncCharacterCreationAbilityInputs();
+    document.querySelectorAll('#cc-quick-starts .cc-quick-start').forEach((button) => {
+        button.classList.toggle('active', button.dataset.preset === presetId);
+    });
+    updateCCPreview();
 }
 
 function getAutofillPreview(selectionKey, raceKey, classKey, backgroundKey, finalStats) {
@@ -2206,6 +2493,7 @@ function updateCharacterCreationGuidance(raceKey, classKey, backgroundKey, final
     const summaryEl = document.getElementById('cc-selection-summary');
     const autofillEl = document.getElementById('cc-autofill-note');
     const buildSummaryEl = document.getElementById('cc-build-summary');
+    const classSummaryEl = document.getElementById('cc-class-summary');
     const pickState = getCharacterCreationPickState(raceKey, classKey, backgroundKey, finalStats);
 
     const defaultGuidance = 'If you want the steadiest first road, a fighter is the safest opening hand: heavier armor, cleaner weapon choices, and fewer fragile early decisions.';
@@ -2215,9 +2503,18 @@ function updateCharacterCreationGuidance(raceKey, classKey, backgroundKey, final
         cleric: 'A cleric gives you steel, prayer, and room to recover from bad luck. It asks for a little spell attention, but rewards caution well.',
         wizard: 'A wizard begins powerful and brittle. If you choose this road, think ahead and let positioning protect what robes cannot.'
     };
+    const classSummary = {
+        fighter: 'Survivability: high. Complexity: low. Style: front-line steel.',
+        cleric: 'Survivability: high. Complexity: medium. Style: prayer, support, and steady armor.',
+        rogue: 'Survivability: medium. Complexity: medium. Style: stealth, angles, and precise strikes.',
+        wizard: 'Survivability: low. Complexity: high. Style: spell reach and careful positioning.'
+    };
 
     if (guidanceEl) {
         guidanceEl.innerText = classGuidance[classKey] || defaultGuidance;
+    }
+    if (classSummaryEl) {
+        classSummaryEl.innerText = classSummary[classKey] || '';
     }
 
     if (summaryEl) {
@@ -2232,14 +2529,14 @@ function updateCharacterCreationGuidance(raceKey, classKey, backgroundKey, final
                 .map((section) => {
                     const preview = section.preview.slice(0, section.remaining);
                     if (!preview.length) {
-                        return `${section.remaining} ${section.label}${section.remaining === 1 ? '' : 's'} will be settled automatically.`;
+                        return `${section.remaining} ${section.label}${section.remaining === 1 ? '' : 's'} will be filled in if you would rather begin now.`;
                     }
-                    return `${section.label.charAt(0).toUpperCase() + section.label.slice(1)}${section.remaining === 1 ? '' : 's'} will default to ${formatSelectionList(preview, section.formatter)}.`;
+                    return `${section.label.charAt(0).toUpperCase() + section.label.slice(1)}${section.remaining === 1 ? '' : 's'} can default to ${formatSelectionList(preview, section.formatter)} if you want the short road into the game.`;
                 })
                 .join(' ');
             autofillEl.innerText = previewText;
         } else {
-            autofillEl.innerText = 'Nothing is waiting on an automatic fallback.';
+            autofillEl.innerText = 'Nothing important is waiting on a fallback. You can begin as-is or keep shaping the build.';
         }
     }
 
@@ -2294,6 +2591,9 @@ function updateCCPreview() {
             if (finalStats[stat]) finalStats[stat] += bonus;
         }
     }
+    document.querySelectorAll('#cc-quick-starts .cc-quick-start').forEach((button) => {
+        button.classList.toggle('active', button.dataset.preset === ccUiState.selectedPreset);
+    });
     updateCharacterCreationGuidance(raceKey, classKey, backgroundKey, finalStats);
     renderSkillChoices(cls, background);
     renderBonusSkillChoices(raceKey, background);
@@ -2422,12 +2722,12 @@ function renderBonusSkillChoices(raceId, background) {
     document.getElementById('cc-bonus-skill-count').innerText = max;
 
     if (max <= 0) {
-        section.classList.add('hidden');
+        updateCharacterCreationSectionState('cc-bonus-skills-section', false);
         ccState.chosenBonusSkills = [];
         return;
     }
 
-    section.classList.remove('hidden');
+    updateCharacterCreationSectionState('cc-bonus-skills-section', true);
     const availableSkills = [...new Set(Object.values(classes).flatMap(entry => entry.skillProficiencies || []))]
         .filter(skill => !grantedSkills.has(skill));
 
@@ -2469,12 +2769,12 @@ function renderBonusToolChoices(raceId, background) {
     container.innerHTML = '';
     document.getElementById('cc-bonus-tool-count').innerText = max;
     if (max <= 0 || availableTools.length === 0) {
-        section.classList.add('hidden');
+        updateCharacterCreationSectionState('cc-bonus-tools-section', false);
         ccState.chosenBonusTools = [];
         return;
     }
 
-    section.classList.remove('hidden');
+    updateCharacterCreationSectionState('cc-bonus-tools-section', true);
     ccState.chosenBonusTools = ccState.chosenBonusTools.filter((tool) => availableTools.includes(tool)).slice(0, max);
 
     availableTools.forEach((tool) => {
@@ -2510,12 +2810,12 @@ function renderFightingStyleChoices(cls) {
     container.innerHTML = '';
 
     if (!cls?.fightingStyleChoices?.length) {
-        section.classList.add('hidden');
+        updateCharacterCreationSectionState('cc-fighting-style-section', false);
         ccState.chosenFightingStyle = null;
         return;
     }
 
-    section.classList.remove('hidden');
+    updateCharacterCreationSectionState('cc-fighting-style-section', true);
     const currentChoice = cls.fightingStyleChoices.includes(ccState.chosenFightingStyle)
         ? ccState.chosenFightingStyle
         : (ccState.chosenFightingStyle = cls.fightingStyleChoices[0]);
@@ -2546,7 +2846,7 @@ function renderExpertiseChoices(cls, background) {
     container.innerHTML = '';
 
     if (!cls?.expertiseChoices) {
-        section.classList.add('hidden');
+        updateCharacterCreationSectionState('cc-expertise-section', false);
         ccState.chosenExpertise = [];
         return;
     }
@@ -2557,7 +2857,7 @@ function renderExpertiseChoices(cls, background) {
         ...(ccState.chosenBonusSkills || [])
     ])];
     const max = cls.expertiseChoices;
-    section.classList.remove('hidden');
+    updateCharacterCreationSectionState('cc-expertise-section', true);
     document.getElementById('cc-expertise-count').innerText = max;
     ccState.chosenExpertise = ccState.chosenExpertise.filter((skill) => availableSkills.includes(skill)).slice(0, max);
 
@@ -2595,12 +2895,12 @@ function renderCantripChoices(classKey, finalStats) {
     container.innerHTML = '';
 
     if (!state.cantripCount || state.cantrips.length === 0) {
-        section.classList.add('hidden');
+        updateCharacterCreationSectionState('cc-cantrips-section', false);
         ccState.chosenCantrips = [];
         return;
     }
 
-    section.classList.remove('hidden');
+    updateCharacterCreationSectionState('cc-cantrips-section', true);
     document.getElementById('cc-cantrip-count').innerText = state.cantripCount;
     ccState.chosenCantrips = ccState.chosenCantrips.filter((spellId) => state.cantrips.includes(spellId)).slice(0, state.cantripCount);
 
@@ -2642,13 +2942,13 @@ function renderSpellChoices(classKey, finalStats) {
     const state = getClassSpellSelectionState(classKey, finalStats);
 
     if (state.spellChoices.length === 0 || state.spellCount <= 0) {
-        section.classList.add('hidden');
+        updateCharacterCreationSectionState('cc-spells-section', false);
         ccState.chosenPreparedSpells = [];
         ccState.chosenSpellbook = [];
         return;
     }
 
-    section.classList.remove('hidden');
+    updateCharacterCreationSectionState('cc-spells-section', true);
     title.innerText = state.spellLabel;
     count.innerText = state.spellCount;
 
@@ -2832,6 +3132,7 @@ function goToScene(sceneId) {
     document.getElementById('start-menu').classList.add('hidden');
     document.getElementById('char-creation-modal').classList.add('hidden');
     setPresentationMode(false);
+    updateHudButtons();
     window.logMessage = logToMain;
 
     const isFirstVisit = !gameState.visitedScenes.includes(sceneId);
@@ -2840,6 +3141,7 @@ function goToScene(sceneId) {
     }
 
     gameState.currentSceneId = sceneId;
+    updateHudButtons();
     if (scene.location) discoverLocation(scene.location);
     if (previousSceneId && previousSceneId !== sceneId) {
         const expired = processNarrativeTrigger('scene_change', { previousSceneId, sceneId });
@@ -2999,13 +3301,43 @@ function createChoiceButton(choice, labelOverride = null) {
 }
 
 function getDefaultContinueLabel(nextSceneId) {
+    const nextScene = scenes[nextSceneId];
     if (nextSceneId === 'SCENE_BRIEFING_2') {
         return "Hear the rest of Alderic's charge.";
     }
     if (nextSceneId === 'SCENE_HUB_SILVERTHORN') {
         return 'Step back into Silverthorn.';
     }
+    if (nextSceneId === 'SCENE_ARRIVAL_WHISPERWOOD') {
+        return 'Step deeper beneath the crimson moon.';
+    }
+    if (nextSceneId === 'SCENE_MEET_EOIN') {
+        return 'Follow the human trace through the ruin.';
+    }
+    if (nextScene?.location === 'shadowmire') {
+        return 'Continue down the road.';
+    }
+    if (nextScene?.location === 'whisperwood') {
+        return 'Press on through Sporefall.';
+    }
     return 'Continue';
+}
+
+function appendChoiceGroup(container, title, choices) {
+    if (!choices.length) return 0;
+    const group = document.createElement('div');
+    group.className = 'choice-group';
+    const heading = document.createElement('p');
+    heading.className = 'choice-group-title';
+    heading.innerText = title;
+    group.appendChild(heading);
+
+    const grid = document.createElement('div');
+    grid.className = 'choice-group-grid';
+    choices.forEach((choice) => grid.appendChild(createChoiceButton(choice)));
+    group.appendChild(grid);
+    container.appendChild(group);
+    return choices.length;
 }
 
 function renderChoices(choices) {
@@ -3013,11 +3345,19 @@ function renderChoices(choices) {
     choiceContainer.innerHTML = '';
     let renderedCount = 0;
     if (choices) {
-        choices.forEach((choice) => {
-            if (!meetsChoiceRequirements(choice, gameState.player)) return;
-            choiceContainer.appendChild(createChoiceButton(choice));
-            renderedCount += 1;
-        });
+        const visibleChoices = choices.filter((choice) => meetsChoiceRequirements(choice, gameState.player));
+        const recommendedChoices = visibleChoices.filter((choice) => choice.priority === 'recommended');
+        const standardChoices = visibleChoices.filter((choice) => choice.priority !== 'recommended');
+
+        if (recommendedChoices.length > 0 && standardChoices.length > 0) {
+            renderedCount += appendChoiceGroup(choiceContainer, 'Best First Steps', recommendedChoices);
+            renderedCount += appendChoiceGroup(choiceContainer, 'Other Options', standardChoices);
+        } else {
+            visibleChoices.forEach((choice) => {
+                choiceContainer.appendChild(createChoiceButton(choice));
+                renderedCount += 1;
+            });
+        }
     }
 
     if (renderedCount === 0) {
@@ -3127,7 +3467,7 @@ function handleChoice(choice) {
                 applyStatusEffect(choice.failEffect.id);
             }
         }
-        if (choice.nextScene) renderContinueButton(choice.nextScene);
+        if (choice.nextScene) renderContinueButton(choice.nextScene, choice.continueText || getDefaultContinueLabel(choice.nextScene));
     }
 }
 
@@ -3485,6 +3825,11 @@ function toggleCodex(tab = 'people') {
     const list = document.getElementById('codex-list');
     const btnPeople = document.getElementById('btn-codex-people');
     const btnFactions = document.getElementById('btn-codex-factions');
+    const codexState = getDiscoveredCodexState();
+
+    if (tab === 'people' && codexState.knownPeople.length === 0 && codexState.knownFactions.length > 0) {
+        tab = 'factions';
+    }
 
     modal.classList.remove('hidden');
     list.innerHTML = '';
@@ -3501,7 +3846,7 @@ function toggleCodex(tab = 'people') {
 }
 
 function renderCodexPeople(container) {
-    const metNpcs = Object.keys(gameState.relationships);
+    const metNpcs = getDiscoveredCodexState().knownPeople;
     if (metNpcs.length === 0) {
         container.innerHTML = "<p style='padding:10px'>No known contacts.</p>";
         return;
@@ -3536,7 +3881,12 @@ function renderCodexPeople(container) {
 }
 
 function renderCodexFactions(container) {
-    Object.keys(gameState.reputation).forEach(factId => {
+    const knownFactions = getDiscoveredCodexState().knownFactions;
+    if (knownFactions.length === 0) {
+        container.innerHTML = "<p style='padding:10px'>No faction ties worth naming yet.</p>";
+        return;
+    }
+    knownFactions.forEach(factId => {
         const fact = factions[factId];
         const score = getReputation(factId);
         if (!fact) return;
@@ -3578,10 +3928,73 @@ function getCombatTurnSummaryText(activeCharacterId) {
     return `${actionText}. ${bonusText}. ${movementText}.`;
 }
 
+function getCombatActorById(actorId) {
+    if (actorId === 'player') return gameState.player;
+    if (gameState.roster[actorId]) return gameState.roster[actorId];
+    return gameState.combat.enemies.find((enemy) => enemy.uniqueId === actorId) || null;
+}
+
+function getCombatTacticalState(actorId, actor = getCombatActorById(actorId)) {
+    const grid = gameState.combat.grid;
+    const actorToken = grid ? getToken(grid, actorId) : null;
+    const hostileEntries = actorToken
+        ? Object.entries(grid?.occupied || {}).filter(([tokenId, token]) => (
+            tokenId !== actorId &&
+            token.team !== actorToken.team &&
+            token.hp > 0
+        ))
+        : [];
+    const hostileIds = hostileEntries.map(([tokenId]) => tokenId);
+    const adjacentHostiles = grid
+        ? hostileIds.filter((hostileId) => isAdjacent(grid, actorId, hostileId))
+        : [];
+    const hasCover = grid
+        ? hostileIds.some((hostileId) => getCoverBetween(grid, hostileId, actorId) !== 'none')
+        : false;
+    const isDown = !actor || actor.hp <= 0;
+    const isProne = !!actor && actorHasStatus(actor, 'prone');
+    const isGrappled = !!actor && actorHasStatus(actor, 'grappled');
+    const isRestrained = !!actor && actorHasStatus(actor, 'restrained');
+    const labels = [];
+
+    if (isDown) {
+        labels.push('Down');
+    } else {
+        if (adjacentHostiles.length > 0) labels.push('Engaged');
+        if (hasCover) labels.push('Cover');
+        if (!hasCover && hostileIds.length > 0 && adjacentHostiles.length === 0) labels.push('Exposed');
+    }
+
+    return {
+        actor,
+        actorToken,
+        hostileIds,
+        adjacentHostiles,
+        hasCover,
+        isDown,
+        isProne,
+        isGrappled,
+        isRestrained,
+        labels,
+        actionReady: gameState.combat.actionsRemaining > 0,
+        bonusReady: gameState.combat.bonusActionsRemaining > 0,
+        movementRemaining: gameState.combat.movementRemaining || 0
+    };
+}
+
+function renderCombatTagHtml(labels) {
+    return labels.map((label) => {
+        const cssLabel = label.toLowerCase();
+        return `<span class="tactical-tag tag-${cssLabel}">${label}</span>`;
+    }).join('');
+}
+
 function getCombatGuidanceText(activeCharacterId, subMenu = null) {
     if (gameState.combat.turnOrder[gameState.combat.turnIndex] !== activeCharacterId) {
         return 'Watch who commits where, then spend your next turn with intent.';
     }
+
+    const tacticalState = getCombatTacticalState(activeCharacterId);
 
     if (subMenu === 'move' || (subMenu && subMenu.type === 'move_preview')) {
         return 'Pick a tile, judge the threat, then confirm only when the route feels worth the risk.';
@@ -3596,7 +4009,29 @@ function getCombatGuidanceText(activeCharacterId, subMenu = null) {
         return 'Class features are often the answer when a plain strike is not enough or not yet wise.';
     }
 
-    return 'Attack if the line is good, move if a better angle matters, or open Class Features and Items before you end the turn.';
+    if (tacticalState.isProne) {
+        return 'You are prone. Stand up first unless you are willing to let the field keep dictating the exchange.';
+    }
+    if (tacticalState.isGrappled || tacticalState.isRestrained) {
+        return 'You are being held in place. Break free before you spend the turn chasing a line you cannot actually take.';
+    }
+    if (!tacticalState.actionReady) {
+        const remaining = [];
+        if (tacticalState.bonusReady) remaining.push('a bonus action');
+        if (tacticalState.movementRemaining > 0) remaining.push(`${tacticalState.movementRemaining} feet of movement`);
+        if (remaining.length > 0) {
+            return `Your action is spent. You still have ${remaining.join(' and ')} to salvage the turn before you end it.`;
+        }
+        return 'Your action is spent and little remains to shape the exchange. End the turn once the field is where you can live with it.';
+    }
+    if (tacticalState.adjacentHostiles.length > 0) {
+        return 'An enemy is already on you. Attack if the trade is clean, or use Class Features to break the pressure before the line closes tighter.';
+    }
+    if (tacticalState.hasCover) {
+        return 'No one is in melee reach yet, and cover favors you. Pressure at range or move only if the next angle is clearly better.';
+    }
+
+    return 'No enemy is in melee reach. Move for a better angle, open with ranged pressure or spellwork, then settle before the line reaches you.';
 }
 
 function updateCombatUI(activeCharacterId = 'player') {
@@ -3620,6 +4055,8 @@ function updateCombatUI(activeCharacterId = 'player') {
         const enemyHpPct = Math.max(0, (enemy.hp / enemy.maxHp) * 100);
         const enemyToken = gameState.combat.grid?.occupied?.[enemy.uniqueId];
         const positionLabel = enemyToken ? `Pos ${enemyToken.x},${enemyToken.y}` : '';
+        const tacticalState = getCombatTacticalState(enemy.uniqueId, enemy);
+        const detailBits = [positionLabel, enemy.intent || ''].filter(Boolean);
 
         enemyCard.innerHTML = `
             <div class="enemy-portrait" style='background-image: url("${enemy.portrait}");'></div>
@@ -3628,8 +4065,8 @@ function updateCombatUI(activeCharacterId = 'player') {
                 <div class="enemy-bar-background">
                     <div class="enemy-bar-fill" style="width: ${enemyHpPct}%;"></div>
                 </div>
-                <div class="enemy-status">${positionLabel}</div>
-                <div class="enemy-status">${enemy.intent || ''}</div>
+                <div class="enemy-status">${detailBits.join(' · ')}</div>
+                <div class="enemy-status enemy-tags">${renderCombatTagHtml(tacticalState.labels)}</div>
             </div>
         `;
         enemiesContainer.appendChild(enemyCard);
@@ -3669,6 +4106,8 @@ function updateCombatUI(activeCharacterId = 'player') {
         if (guidanceText) guidanceText.textContent = 'Watch the field and plan your answer before the turn comes back to you.';
         setBattleActionPreview();
     }
+
+    updateBattleTutorialNudge(activeCharacterId);
 
     document.getElementById('battle-scene-image').style.backgroundImage = "url('landscapes/battle_placeholder.webp')";
 }
@@ -3949,12 +4388,13 @@ function renderPartyCard(p, id, activeId) {
     const isPlayerTurn = (gameState.combat.turnOrder[gameState.combat.turnIndex] === id);
     const token = gameState.combat.grid?.occupied?.[id];
     const positionLabel = token ? `Pos ${token.x},${token.y}` : 'Off-grid';
+    const tacticalState = getCombatTacticalState(id, p);
     const statusParts = [];
     if (isPlayerTurn) statusParts.push('<span class="turn-indicator-text">Your Turn</span>');
     statusParts.push(`<span>${positionLabel}</span>`);
+    if (tacticalState.labels.length > 0) statusParts.push(renderCombatTagHtml(tacticalState.labels));
     if (actorHasStatus(p, 'hasted')) statusParts.push('<span class="status-hasted">Hasted</span>');
     if (actorHasStatus(p, 'blessed')) statusParts.push('<span class="status-blessed">Blessed</span>');
-    if (p.hp <= 0) statusParts.push('<span class="status-down">Down</span>');
     const card = document.createElement('div');
     card.className = `party-card ${isPlayerTurn ? 'active-turn' : ''}`;
     
@@ -4033,6 +4473,7 @@ function updateStatsUI() {
     const xpPct = Math.max(0, (p.xp / p.xpNext) * 100);
     document.getElementById('xp-bar-fill').style.width = `${xpPct}%`;
     document.getElementById('xp-text').innerText = `XP: ${p.xp}/${p.xpNext}`;
+    updateHudButtons();
     updateObjectiveStrip();
 }
 
@@ -4062,6 +4503,7 @@ export function loadGame() {
         logMessage("Game Loaded.", "system");
         updateStatsUI();
         setPresentationMode(false);
+        updateHudButtons();
         if (gameState.combat?.active) {
             document.getElementById('scene-container')?.classList.add('hidden');
             document.getElementById('battle-screen')?.classList.remove('hidden');
@@ -4400,10 +4842,22 @@ function toggleQuestLog() {
 
     for (const [qid, qData] of Object.entries(gameState.quests)) {
         if (qData.currentStage > 0) {
+            const stage = getQuestStageData(qData.stages[qData.currentStage]);
             const div = document.createElement('div');
             div.className = 'quest-entry';
-            div.innerHTML = `<h4>${qData.title}</h4><p>${qData.stages[qData.currentStage]}</p>`;
-            if (qData.completed) div.innerHTML += ` <span style='color:gold'>(Completed)</span>`;
+            div.innerHTML = `<h4>${qData.title}</h4><p>${stage.text}</p>`;
+            if (stage.suggestions.length > 0) {
+                const suggestions = document.createElement('p');
+                suggestions.className = 'quest-suggestions';
+                suggestions.innerHTML = `<strong>Likely next steps:</strong> ${stage.suggestions.join(' ')}`;
+                div.appendChild(suggestions);
+            }
+            if (qData.completed) {
+                const completed = document.createElement('span');
+                completed.className = 'quest-completed';
+                completed.innerText = '(Completed)';
+                div.appendChild(completed);
+            }
             list.appendChild(div);
         }
     }
