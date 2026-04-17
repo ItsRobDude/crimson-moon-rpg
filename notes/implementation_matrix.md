@@ -97,7 +97,7 @@ Statuses:
 | Area | Status | Notes |
 | --- | --- | --- |
 | Movement previews | partial | Reachable tiles, cost, threat, cover, and melee-angle previews are now surfaced in battle UI, but the presentation is still text-first rather than a true visual grid widget. |
-| Mid-combat save foundation | partial | Combat save data now preserves stable UI state and strips transient previews, and load can restore back into battle mode; full mid-combat save support still needs runtime verification and broader state audit. |
+| Mid-combat save foundation | partial | Combat save data preserves stable UI state, strips transient previews, and now sanitizes invalid saved submenu payloads before restoring back into battle mode; broader runtime verification across more exotic combat states is still needed. |
 
 ## Verification Notes
 

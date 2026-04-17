@@ -28,7 +28,7 @@ Statuses:
 | Shop / supplier panel | Shop scenes -> `#shop-panel` | Read stock, prices, and gear fit, then buy what matters | `partial` | Buy-only is finally explicit, but comparison remains textual and the panel still lacks richer category navigation or stock filters. | Players can now tell selling is absent by design, but not yet compare whole loadouts at a glance. | No selling model in the current build; comparison is intentionally light. | Keep the buy-only model explicit and add only small scanability upgrades before considering sell-back or deeper merchant logic. | `P1` |
 | Rest modal | Rest actions -> `#rest-modal` | Trade time for recovery while judging ambush risk | `partial` | Clearer than before, but still generic across many contexts and does not explain resource recovery per class/feature in detail. | A player still has to infer some class-specific recovery nuance from outcomes rather than the surface itself. | Depends on future per-class rest text if needed. | Keep the modal compact and add context-specific warning copy only where danger or story pressure materially changes the decision. | `P2` |
 | Level-up modal | Click `#char-level` when `pendingLevelUp` is true | Review gains and confirm level advancement | `unfinished` | The surface is honest now, but feat selection is still not implemented and subclass selection is still basic. | Without the explicit note, players would mistake the missing feat path for a bug; the note is necessary because the system is genuinely incomplete. | Feat-choice UI/logic is not implemented yet. | Keep the explicit note, preserve ASI support, and do not expose fuller feat expectations until the path actually exists. | `P1` |
-| Battle UI | Combat scenes -> `#battle-screen` | Read turn state, threats, actions, party status, and battle log | `partial` | The hierarchy is improved, but placeholder art and a few unsupported ability states still remind the player that combat presentation is ahead of some combat feature coverage. | Some class abilities still surface as unavailable instead of offering a full action path. | Battle placeholder background, placeholder portraits, and not-yet-surfaced ability flows. | Keep improving clarity and tactical labels while leaving full visual battlegrid and unsupported ability branches for separate focused work. | `P1` |
+| Battle UI | Combat scenes -> `#battle-screen` | Read turn state, threats, actions, party status, and battle log | `partial` | The hierarchy now reads more honestly and surfaced class-feature paths restore cleanly after load, but placeholder art still keeps combat presentation visibly provisional. | Action menus are cleaner now, though the presentation is still text-first rather than a full visual grid experience. | Battle placeholder background and placeholder portraits. | Keep improving clarity and tactical labels while leaving full visual battlegrid and art replacement for separate focused work. | `P1` |
 
 ## Incomplete Or Placeholder Markers Still Exposed
 
@@ -41,7 +41,7 @@ Statuses:
 ### Partial system messaging
 
 - Level-up feat choice is still intentionally unavailable, now called out directly in [C:/Users/Rob/Documents/dev/crimson-moon-rpg/index.html](C:/Users/Rob/Documents/dev/crimson-moon-rpg/index.html) and [C:/Users/Rob/Documents/dev/crimson-moon-rpg/game.js](C:/Users/Rob/Documents/dev/crimson-moon-rpg/game.js).
-- Some combat abilities can still surface the “not ready in this build yet” message in [C:/Users/Rob/Documents/dev/crimson-moon-rpg/combat.js](C:/Users/Rob/Documents/dev/crimson-moon-rpg/combat.js). This is now honest, but it still marks unfinished combat branches.
+- Unsupported combat branches should now stay off the exposed action surface in [C:/Users/Rob/Documents/dev/crimson-moon-rpg/game.js](C:/Users/Rob/Documents/dev/crimson-moon-rpg/game.js), but broader non-demo combat depth is still intentionally out of scope for this audit.
 
 ### Utility and platform limits
 
@@ -55,5 +55,5 @@ Revisit this audit after the next pass that touches one of these areas:
 - feat selection or subclass flow
 - travel-map depth
 - codex category expansion
-- combat presentation art or unsupported ability coverage
+- combat presentation art or broader non-demo combat coverage
 - Silverthorn or Act I UI surfaces that add new player-facing windows

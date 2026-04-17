@@ -1282,6 +1282,70 @@ function normalizeQuestState(rawQuests = {}) {
     return normalized;
 }
 
+function normalizeCombatSubMenu(rawSubMenu) {
+    if (rawSubMenu === null || rawSubMenu === undefined) {
+        return null;
+    }
+
+    if (typeof rawSubMenu === 'string') {
+        return ['move', 'attack', 'spells', 'abilities'].includes(rawSubMenu)
+            ? rawSubMenu
+            : null;
+    }
+
+    if (!rawSubMenu || typeof rawSubMenu !== 'object') {
+        return null;
+    }
+
+    if (rawSubMenu.type === 'move_preview') {
+        const destination = rawSubMenu.destination;
+        if (Number.isFinite(destination?.x) && Number.isFinite(destination?.y)) {
+            return {
+                type: 'move_preview',
+                destination: {
+                    x: destination.x,
+                    y: destination.y
+                }
+            };
+        }
+        return null;
+    }
+
+    if (rawSubMenu.type === 'control_target') {
+        return ['shove', 'grapple'].includes(rawSubMenu.maneuver)
+            ? { type: 'control_target', maneuver: rawSubMenu.maneuver }
+            : null;
+    }
+
+    if (rawSubMenu.type === 'spell_target' && typeof rawSubMenu.spellId === 'string' && rawSubMenu.spellId.length > 0) {
+        return {
+            type: 'spell_target',
+            spellId: rawSubMenu.spellId
+        };
+    }
+
+    if (rawSubMenu.type === 'spell_preview' && typeof rawSubMenu.spellId === 'string' && rawSubMenu.spellId.length > 0) {
+        const selection = rawSubMenu.selection;
+        if (typeof selection?.targetId === 'string' && selection.targetId.length > 0) {
+            return {
+                type: 'spell_preview',
+                spellId: rawSubMenu.spellId,
+                selection: { targetId: selection.targetId }
+            };
+        }
+        if (['north', 'east', 'south', 'west'].includes(selection?.facing)) {
+            return {
+                type: 'spell_preview',
+                spellId: rawSubMenu.spellId,
+                selection: { facing: selection.facing }
+            };
+        }
+        return null;
+    }
+
+    return null;
+}
+
 function normalizeCombatState(rawCombat = {}) {
     const combat = {
         ...defaultGameState.combat,
@@ -1298,8 +1362,10 @@ function normalizeCombatState(rawCombat = {}) {
     combat.movementRemaining = Math.max(0, Number.isFinite(combat.movementRemaining) ? combat.movementRemaining : defaultGameState.combat.movementRemaining);
     combat.encounterFlags = combat.encounterFlags && typeof combat.encounterFlags === 'object' ? combat.encounterFlags : {};
     combat.uiState = {
-        actorId: combat.uiState?.actorId || null,
-        subMenu: combat.uiState?.subMenu ?? null
+        actorId: typeof combat.uiState?.actorId === 'string' && combat.uiState.actorId.length > 0
+            ? combat.uiState.actorId
+            : null,
+        subMenu: normalizeCombatSubMenu(combat.uiState?.subMenu)
     };
     combat.transientPreview = null;
     combat.grid = combat.grid && typeof combat.grid === 'object'

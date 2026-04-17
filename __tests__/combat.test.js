@@ -556,6 +556,35 @@ test('channel divinity heals without exceeding half health', () => {
   expect(gameState.player.hp).toBe(10);
 });
 
+test('unsupported combat ability guards do not spend actions or resources', () => {
+  gameState.player = createActor({
+    name: 'Veteran',
+    classId: 'fighter',
+    level: 2,
+    resources: {
+      second_wind: { current: 1, max: 1 }
+    }
+  });
+  syncActorState(gameState.player);
+
+  gameState.combat = {
+    ...gameState.combat,
+    active: true,
+    activeActorId: 'player',
+    actionsRemaining: 1,
+    bonusActionsRemaining: 1,
+    grid: createBattleGrid(8, 6, 5),
+    enemies: [],
+    turnOrder: ['player']
+  };
+
+  performAbility('maneuvering_attack', 'player');
+
+  expect(gameState.combat.actionsRemaining).toBe(1);
+  expect(gameState.combat.bonusActionsRemaining).toBe(1);
+  expect(gameState.player.resources.second_wind.current).toBe(1);
+});
+
 test('ray of frost applies its speed-reducing rider on hit', () => {
   const randomSpy = jest.spyOn(Math, 'random')
     .mockReturnValueOnce(0.70)
@@ -1124,6 +1153,42 @@ test('fighter maneuvers can grapple a target on a successful athletics contest',
   expect(gameState.combat.enemies[0].mechanics.activeEffects.some((effect) => effect.id === 'grappled')).toBe(true);
 
   randomSpy.mockRestore();
+});
+
+test('unsupported combat maneuvers do not spend the action budget', () => {
+  gameState.player = createActor({
+    name: 'Brawler',
+    classId: 'fighter',
+    abilities: { STR: 16, DEX: 12, CON: 14, INT: 10, WIS: 10, CHA: 8 }
+  });
+  syncActorState(gameState.player);
+
+  const enemy = createActor({
+    id: 'enemy',
+    uniqueId: 'enemy_0',
+    type: 'enemy',
+    name: 'Cultist'
+  });
+  syncActorState(enemy);
+
+  gameState.combat = {
+    ...gameState.combat,
+    active: true,
+    activeActorId: 'player',
+    actionsRemaining: 1,
+    bonusActionsRemaining: 1,
+    grid: createBattleGrid(8, 6, 5),
+    enemies: [enemy],
+    turnOrder: ['player', enemy.uniqueId]
+  };
+
+  placeToken(gameState.combat.grid, { id: 'player', x: 1, y: 2, team: 'allies', hp: gameState.player.hp, reach: 1 });
+  placeToken(gameState.combat.grid, { id: enemy.uniqueId, x: 2, y: 2, team: 'enemies', hp: enemy.hp, reach: 1 });
+
+  expect(performCombatManeuver('trip', enemy.uniqueId, 'player')).toBe(false);
+  expect(gameState.combat.actionsRemaining).toBe(1);
+  expect(gameState.combat.enemies[0].mechanics.activeEffects.some((effect) => effect.id === 'prone')).toBe(false);
+  expect(gameState.combat.enemies[0].mechanics.activeEffects.some((effect) => effect.id === 'grappled')).toBe(false);
 });
 
 test('rogue hide uses a stealth contest instead of granting hidden automatically', () => {

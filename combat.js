@@ -1463,6 +1463,10 @@ export function performCombatManeuver(type, targetId, actorId = 'player') {
     const actor = getCombatActor(actorId);
     const target = getCombatActor(targetId);
     if (!actor || !target) return false;
+    if (type !== 'shove' && type !== 'grapple') {
+        uiHooks.logToBattle(`${actor.name} has no surfaced ${type} maneuver to use from this menu.`, 'system');
+        return false;
+    }
     if (!canActorTakeActions(actor)) {
         uiHooks.logToBattle(`${actor.name} cannot force the issue right now.`, 'check-fail');
         return false;
@@ -1507,10 +1511,6 @@ export function performCombatManeuver(type, targetId, actorId = 'player') {
             durationType: 'turns'
         });
         uiHooks.logToBattle(`${actor.name} locks ${target.name} in a brutal hold.`, 'gain');
-    } else {
-        uiHooks.logToBattle(`${actor.name} attempts an unsupported maneuver.`, 'check-fail');
-        uiHooks.updateCombatUI(actorId);
-        return false;
     }
 
     syncActorState(target);
@@ -1809,13 +1809,19 @@ export function performCastSpell(spellId, targetId, actorId = 'player') {
 export function performAbility(abilityId, actorId = 'player') {
     const actor = getCombatActor(actorId);
     if (!actor) return;
+    const supportedAbilityCosts = {
+        second_wind: 'bonus',
+        channel_divinity: 'action'
+    };
+    const cost = supportedAbilityCosts[abilityId];
+    if (!cost) {
+        uiHooks.logToBattle(`${actor.name} has no surfaced combat feature for ${abilityId}.`, 'system');
+        return;
+    }
     if (!canActorTakeActions(actor)) {
         uiHooks.logToBattle(`${actor.name} cannot use abilities right now.`, 'check-fail');
         return;
     }
-
-    let cost = 'action';
-    if (abilityId === 'second_wind') cost = 'bonus';
 
     if (cost === 'action' && gameState.combat.actionsRemaining <= 0) {
         uiHooks.logToBattle("No Action remaining!", "check-fail");
@@ -1877,8 +1883,6 @@ export function performAbility(abilityId, actorId = 'player') {
         } else {
             uiHooks.logToBattle(`Channel Divinity restores ${healedTargets.join(', ')} without lifting anyone past half health.`, 'gain');
         }
-    } else {
-        uiHooks.logToBattle(`'${abilityId}' is not ready in this build yet. Leave it for now and use the actions that are fully surfaced.`, "system");
     }
 
     resetCombatUiState(actorId);

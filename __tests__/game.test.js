@@ -414,3 +414,40 @@ test('save strips transient combat previews but preserves stable combat ui state
   expect(gameState.combat.uiState.subMenu).toEqual({ type: 'move_preview', destination: { x: 2, y: 1 } });
   expect(gameState.combat.transientPreview).toBeNull();
 });
+
+test('load normalizes malformed combat ui state into a safe neutral submenu', () => {
+  initializeNewGame(
+    'Mira',
+    'human',
+    'cleric',
+    'acolyte',
+    { STR: 12, DEX: 10, CON: 14, INT: 10, WIS: 15, CHA: 13 },
+    ['medicine', 'religion'],
+    []
+  );
+
+  const storedState = JSON.parse(JSON.stringify(gameState));
+  storedState.combat = {
+    ...storedState.combat,
+    active: true,
+    activeActorId: 'player',
+    turnOrder: ['player'],
+    uiState: {
+      actorId: 42,
+      subMenu: { type: 'unsupported_preview', destination: { x: 'bad', y: 1 } }
+    },
+    transientPreview: {
+      destination: { x: 9, y: 9 }
+    }
+  };
+
+  localStorage.setItem(SAVE_STORAGE_KEY, JSON.stringify(storedState));
+
+  resetGameState();
+  expect(loadGame()).toBe(true);
+  expect(gameState.combat.uiState).toEqual({
+    actorId: null,
+    subMenu: null
+  });
+  expect(gameState.combat.transientPreview).toBeNull();
+});

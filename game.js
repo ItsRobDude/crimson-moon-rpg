@@ -4199,19 +4199,21 @@ function updateCombatUI(activeCharacterId = 'player') {
 
     if (activeCharacterId === 'player' || gameState.party.includes(activeCharacterId)) {
         const isTurn = gameState.combat.turnOrder[gameState.combat.turnIndex] === activeCharacterId;
+        const activeActor = activeCharacterId === 'player' ? gameState.player : gameState.roster[activeCharacterId];
         const savedSubMenu = gameState.combat.uiState?.actorId === activeCharacterId
             ? gameState.combat.uiState?.subMenu ?? null
             : null;
+        const sanitizedSubMenu = sanitizeCombatSubMenu(savedSubMenu, activeActor, activeCharacterId, actionsContainer);
         if (isTurn) {
             turnIndicator.textContent = `${activeName}'s Turn - ${gameState.combat.movementRemaining} ft move`;
             if (turnSummary) turnSummary.textContent = getCombatTurnSummaryText(activeCharacterId);
-            if (guidanceText) guidanceText.textContent = getCombatGuidanceText(activeCharacterId, savedSubMenu);
+            if (guidanceText) guidanceText.textContent = getCombatGuidanceText(activeCharacterId, sanitizedSubMenu);
             setBattleActionPreview();
-            renderPlayerActions(actionsContainer, savedSubMenu, activeCharacterId);
+            renderPlayerActions(actionsContainer, sanitizedSubMenu, activeCharacterId);
         } else {
             turnIndicator.textContent = "Waiting...";
             if (turnSummary) turnSummary.textContent = getCombatTurnSummaryText(activeCharacterId);
-            if (guidanceText) guidanceText.textContent = getCombatGuidanceText(activeCharacterId, savedSubMenu);
+            if (guidanceText) guidanceText.textContent = getCombatGuidanceText(activeCharacterId, sanitizedSubMenu);
             setBattleActionPreview();
         }
     } else {
@@ -4307,6 +4309,170 @@ function getMovementPreviewText(option) {
     return `Move to (${option.x},${option.y}) for ${option.cost} feet, leaving ${option.remainingAfter} feet after the step. ${threatLine} ${meleeLine} ${coverLine}`;
 }
 
+function getCombatActionSpells(actor) {
+    return getActorCastableSpells(actor, { combatOnly: true }).filter((spellId) => (spells[spellId]?.castingTime || 'action') !== 'reaction');
+}
+
+function canCastSpellFromCombatMenu(actor, spellId, { hasAction, hasBonus }) {
+    const spell = spells[spellId];
+    if (!spell) return false;
+    const cost = spell.castingTime || 'action';
+    const canPayCost = (cost === 'action' && hasAction) || (cost === 'bonus' && hasBonus);
+    if (!canPayCost) return false;
+    return spell.level === 0 || ((actor.currentSlots?.[spell.level] || 0) > 0);
+}
+
+function getCombatFeatureOptions(actor, actingId, container) {
+    if (!actor) return [];
+
+    const hasAction = gameState.combat.actionsRemaining > 0;
+    const hasBonus = gameState.combat.bonusActionsRemaining > 0;
+    const options = [];
+
+    if (actorHasStatus(actor, 'prone')) {
+        options.push({
+            key: 'stand_up',
+            label: 'Stand Up',
+            icon: 'vertical_align_top',
+            disabled: false,
+            onClick: () => performStand(actingId)
+        });
+    }
+
+    if (actorHasStatus(actor, 'grappled') || actorHasStatus(actor, 'restrained')) {
+        options.push({
+            key: 'break_free',
+            label: 'Break Free',
+            icon: 'fitness_center',
+            disabled: !hasAction,
+            onClick: () => performEscape(actingId)
+        });
+    }
+
+    if (actor.level >= 2 && actor.classId === 'rogue') {
+        options.push({
+            key: 'dash_bonus',
+            label: 'Dash (Bonus)',
+            icon: 'directions_run',
+            disabled: !hasBonus,
+            onClick: () => performCunningAction('dash', actingId)
+        });
+        options.push({
+            key: 'disengage_bonus',
+            label: 'Disengage (Bonus)',
+            icon: 'do_not_step',
+            disabled: !hasBonus,
+            onClick: () => performCunningAction('disengage', actingId)
+        });
+        options.push({
+            key: 'hide_bonus',
+            label: 'Hide (Bonus)',
+            icon: 'visibility_off',
+            disabled: !hasBonus,
+            onClick: () => performCunningAction('hide', actingId)
+        });
+    }
+
+    if (actor.level >= 2 && actor.classId === 'fighter') {
+        const actionSurge = actor.resources?.action_surge;
+        options.push({
+            key: 'action_surge',
+            label: 'Action Surge',
+            icon: 'bolt',
+            disabled: !actionSurge || actionSurge.current <= 0,
+            onClick: () => performActionSurge(actingId)
+        });
+        options.push({
+            key: 'shove',
+            label: 'Shove',
+            icon: 'front_hand',
+            disabled: !hasAction,
+            onClick: () => renderPlayerActions(container, { type: 'control_target', maneuver: 'shove' }, actingId)
+        });
+        options.push({
+            key: 'grapple',
+            label: 'Grapple',
+            icon: 'sports_mma',
+            disabled: !hasAction,
+            onClick: () => renderPlayerActions(container, { type: 'control_target', maneuver: 'grapple' }, actingId)
+        });
+    }
+
+    if (actor.classId === 'fighter') {
+        const secondWind = actor.resources?.second_wind;
+        options.push({
+            key: 'second_wind',
+            label: 'Second Wind',
+            icon: 'healing',
+            disabled: !secondWind || secondWind.current <= 0 || !hasBonus,
+            onClick: () => performAbility('second_wind', actingId)
+        });
+    }
+
+    if (actor.classId === 'cleric' && actor.level >= 2) {
+        const channelDivinity = actor.resources?.channel_divinity;
+        options.push({
+            key: 'channel_divinity',
+            label: 'Channel Divinity',
+            icon: 'flare',
+            disabled: !channelDivinity || channelDivinity.current <= 0 || !hasAction,
+            onClick: () => performAbility('channel_divinity', actingId)
+        });
+    }
+
+    return options;
+}
+
+function getCombatFeaturePreviewText(options) {
+    const readyOptions = options.filter((option) => !option.disabled).map((option) => option.label);
+    if (readyOptions.length === 0) {
+        return 'Nothing in your class kit is currently open. Hold the line with what remains of the turn, or end it cleanly.';
+    }
+    if (readyOptions.length === 1) {
+        return `${readyOptions[0]} is the one class-feature line still open to you right now.`;
+    }
+    return `Choose how to shape the turn: ${readyOptions.slice(0, 2).join(' or ')}${readyOptions.length > 2 ? ', or another ready option below' : ''}. Greyed options are spent, empty, or not presently possible.`;
+}
+
+function sanitizeCombatSubMenu(subMenu, actor, actingId, container) {
+    if (!subMenu || !actor) return null;
+
+    const hasAction = gameState.combat.actionsRemaining > 0;
+    const hasBonus = gameState.combat.bonusActionsRemaining > 0;
+    const hasMovement = (gameState.combat.movementRemaining || 0) > 0;
+    const actionSpells = getCombatActionSpells(actor);
+    const hasReadySpell = actionSpells.some((spellId) => canCastSpellFromCombatMenu(actor, spellId, { hasAction, hasBonus }));
+    const featureOptions = getCombatFeatureOptions(actor, actingId, container);
+    const hasReadyFeature = featureOptions.some((option) => !option.disabled);
+    const hasLivingEnemy = gameState.combat.enemies.some((enemy) => enemy.hp > 0);
+
+    if (subMenu === 'move') return hasMovement ? 'move' : null;
+    if (subMenu === 'attack') return hasAction && hasLivingEnemy ? 'attack' : null;
+    if (subMenu === 'spells') return hasReadySpell ? 'spells' : null;
+    if (subMenu === 'abilities') return hasReadyFeature ? 'abilities' : null;
+    if (typeof subMenu !== 'object') return null;
+
+    if (subMenu.type === 'move_preview') {
+        return hasMovement ? subMenu : null;
+    }
+
+    if (subMenu.type === 'control_target') {
+        const option = featureOptions.find((entry) => entry.key === subMenu.maneuver);
+        return option && !option.disabled && hasLivingEnemy
+            ? subMenu
+            : (hasReadyFeature ? 'abilities' : null);
+    }
+
+    if (subMenu.type === 'spell_target' || subMenu.type === 'spell_preview') {
+        if (!actionSpells.includes(subMenu.spellId) || !canCastSpellFromCombatMenu(actor, subMenu.spellId, { hasAction, hasBonus })) {
+            return hasReadySpell ? 'spells' : null;
+        }
+        return subMenu;
+    }
+
+    return null;
+}
+
 function renderPlayerActions(container, subMenu = null, actingId = 'player') {
     container.innerHTML = '';
     const grid = document.createElement('div');
@@ -4318,6 +4484,7 @@ function renderPlayerActions(container, subMenu = null, actingId = 'player') {
     const hasAction = gameState.combat.actionsRemaining > 0;
     const hasBonus = gameState.combat.bonusActionsRemaining > 0;
     const hasMovement = (gameState.combat.movementRemaining || 0) > 0;
+    subMenu = sanitizeCombatSubMenu(subMenu, actor, actingId, container);
     setCombatUiState(actingId, subMenu);
     if (turnSummary) turnSummary.textContent = getCombatTurnSummaryText(actingId);
     if (guidanceText) guidanceText.textContent = getCombatGuidanceText(actingId, subMenu);
@@ -4354,17 +4521,13 @@ function renderPlayerActions(container, subMenu = null, actingId = 'player') {
         grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, null, actingId), 'flee'));
     } else if (subMenu === 'spells') {
         setBattleActionPreview('Choose a spell. Area spells now preview legal tiles before you confirm them.');
-        const spellList = getActorCastableSpells(actor, { combatOnly: true }).filter((spellId) => (spells[spellId]?.castingTime || 'action') !== 'reaction');
+        const spellList = getCombatActionSpells(actor);
         spellList.forEach(spellId => {
             const spell = spells[spellId];
             if (!spell) return;
-            const cost = spell.castingTime || 'action';
-            const canCast = (cost === 'action' && hasAction) || (cost === 'bonus' && hasBonus);
-
-            const hasSlots = spell.level === 0 || (actor.currentSlots[spell.level] && actor.currentSlots[spell.level] > 0);
             grid.appendChild(createActionButton(spell.name, 'auto_stories', () => {
                  renderPlayerActions(container, { type: 'spell_target', spellId: spellId }, actingId);
-            }, '', !hasSlots || !canCast));
+            }, '', !canCastSpellFromCombatMenu(actor, spellId, { hasAction, hasBonus })));
         });
         grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, null, actingId), 'flee'));
     } else if (subMenu && subMenu.type === 'spell_preview') {
@@ -4428,51 +4591,17 @@ function renderPlayerActions(container, subMenu = null, actingId = 'player') {
         });
         grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, 'abilities', actingId), 'flee'));
     } else if (subMenu === 'abilities') {
-        // Render Class Features
-        if (actorHasStatus(actor, 'prone')) {
-            grid.appendChild(createActionButton('Stand Up', 'vertical_align_top', () => performStand(actingId)));
-        }
-        if (actorHasStatus(actor, 'grappled') || actorHasStatus(actor, 'restrained')) {
-            grid.appendChild(createActionButton('Break Free', 'fitness_center', () => performEscape(actingId), '', !hasAction));
-        }
-
-        // Cunning Action (Rogue)
-        if (actor.level >= 2 && actor.classId === 'rogue') {
-             grid.appendChild(createActionButton('Dash (Bonus)', 'directions_run', () => performCunningAction('dash', actingId), '', !hasBonus));
-             grid.appendChild(createActionButton('Disengage (Bonus)', 'do_not_step', () => performCunningAction('disengage', actingId), '', !hasBonus));
-             grid.appendChild(createActionButton('Hide (Bonus)', 'visibility_off', () => performCunningAction('hide', actingId), '', !hasBonus));
-        }
-
-        // Action Surge (Fighter)
-        if (actor.level >= 2 && actor.classId === 'fighter') {
-            const res = actor.resources['action_surge'];
-            const available = res && res.current > 0;
-            grid.appendChild(createActionButton('Action Surge', 'bolt', () => performActionSurge(actingId), '', !available));
-            grid.appendChild(createActionButton('Shove', 'front_hand', () => renderPlayerActions(container, { type: 'control_target', maneuver: 'shove' }, actingId), '', !hasAction));
-            grid.appendChild(createActionButton('Grapple', 'sports_mma', () => renderPlayerActions(container, { type: 'control_target', maneuver: 'grapple' }, actingId), '', !hasAction));
-        }
-
-        // Second Wind (Fighter)
-        if (actor.classId === 'fighter') {
-            const res = actor.resources['second_wind'];
-            const available = res && res.current > 0;
-            grid.appendChild(createActionButton('Second Wind', 'healing', () => performAbility('second_wind', actingId), '', !available || !hasBonus));
-        }
-
-        if (actor.classId === 'cleric' && actor.level >= 2) {
-            const res = actor.resources['channel_divinity'];
-            const available = res && res.current > 0;
-            grid.appendChild(createActionButton('Channel Divinity', 'flare', () => performAbility('channel_divinity', actingId), '', !available || !hasAction));
-        }
+        const featureOptions = getCombatFeatureOptions(actor, actingId, container);
+        setBattleActionPreview(getCombatFeaturePreviewText(featureOptions));
+        featureOptions.forEach((option) => {
+            grid.appendChild(createActionButton(option.label, option.icon, option.onClick, '', option.disabled));
+        });
 
         grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, null, actingId), 'flee'));
     } else {
         // Main Menu
-        const actionSpells = getActorCastableSpells(actor, { combatOnly: true }).filter((spellId) => (spells[spellId]?.castingTime || 'action') !== 'reaction');
-        const hasSpells = actionSpells.some((spellId) => {
-            const spell = spells[spellId];
-            return spell.level === 0 || ((actor.currentSlots?.[spell.level] || 0) > 0);
-        });
+        const actionSpells = getCombatActionSpells(actor);
+        const hasSpells = actionSpells.some((spellId) => canCastSpellFromCombatMenu(actor, spellId, { hasAction, hasBonus }));
         const usableInventoryEntries = getInventoryEntries(actingId).filter((entry) => {
             const item = items[entry.itemId];
             return item && (item.type === 'consumable' || item.type === 'scroll');
@@ -4483,11 +4612,16 @@ function renderPlayerActions(container, subMenu = null, actingId = 'player') {
             if (preferredCost === 'bonus' && hasBonus) return true;
             return hasAction;
         });
+        const featureOptions = getCombatFeatureOptions(actor, actingId, container);
+        const hasFeatureOptions = featureOptions.length > 0;
+        const hasReadyFeature = featureOptions.some((option) => !option.disabled);
 
         grid.appendChild(createActionButton('Attack', 'swords', () => renderPlayerActions(container, 'attack', actingId), 'primary', !hasAction));
         grid.appendChild(createActionButton('Move', 'explore', () => renderPlayerActions(container, 'move', actingId), '', !hasMovement));
         grid.appendChild(createActionButton('Cast Spell', 'auto_stories', () => renderPlayerActions(container, 'spells', actingId), '', !hasSpells));
-        grid.appendChild(createActionButton('Class Features', 'star', () => renderPlayerActions(container, 'abilities', actingId)));
+        if (hasFeatureOptions) {
+            grid.appendChild(createActionButton('Class Features', 'star', () => renderPlayerActions(container, 'abilities', actingId), '', !hasReadyFeature));
+        }
         grid.appendChild(createActionButton('Defend', 'shield', () => performDefend(actingId), '', !hasAction));
         grid.appendChild(createActionButton('Items', 'local_drink', () => toggleInventory(true, actingId), '', !canUseInventory));
         grid.appendChild(createActionButton('End Turn', 'hourglass_bottom', performEndTurn, 'flee')); // Manual End Turn
