@@ -1871,7 +1871,8 @@ export function performStand(actorId = 'player') {
     const standingSnapshot = JSON.parse(JSON.stringify(actor));
     removeEffectFromActor(standingSnapshot, 'prone');
     syncActorState(standingSnapshot);
-    const normalSpeed = Math.max(0, getDerivedActorState(standingSnapshot).speed || actor?.mechanics?.baseSpeed || 0);
+    const snapshotSpeed = getDerivedActorState(standingSnapshot).speed;
+    const normalSpeed = Math.max(0, Number.isFinite(snapshotSpeed) ? snapshotSpeed : (actor?.mechanics?.baseSpeed || 0));
     const standingCost = Math.max(1, Math.floor(normalSpeed / 2));
     const equivalentRemaining = preStandSpeed > 0
         ? Math.floor(currentRemaining * (normalSpeed / preStandSpeed))
