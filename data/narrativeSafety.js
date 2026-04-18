@@ -87,18 +87,10 @@ export const narrativeStateRegistry = {
             revealSensitivity: 'public',
             semantics: 'story_progression'
         },
-        sporefall_eoin_fed: {
+        sporefall_eoin_comforted: {
             owner: 'SCENE_MEET_EOIN / SCENE_EOIN_TALK',
             thread: 'eoin_thread',
-            meaning: 'The player gave Eoin food, changing later text and survivor tone.',
-            allowedValues: [true],
-            revealSensitivity: 'public',
-            semantics: 'optional_clue'
-        },
-        sporefall_eoin_treated: {
-            owner: 'SCENE_MEET_EOIN / SCENE_EOIN_TALK',
-            thread: 'eoin_thread',
-            meaning: 'The player treated Eoin, changing later text and survivor tone.',
+            meaning: 'The player offered Eoin a small symbolic kindness, changing later text and survivor tone.',
             allowedValues: [true],
             revealSensitivity: 'public',
             semantics: 'optional_clue'

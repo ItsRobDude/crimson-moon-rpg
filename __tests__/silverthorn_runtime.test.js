@@ -71,14 +71,34 @@ test('Silverthorn rumor surfaces carry relic tension and the vanished-borough pa
   expect(rumors.text).toContain('Durnhelm');
   expect(rumors.text).toContain('relic');
   expect(rumors.text).toContain('Whisperwood');
+  expect(rumors.text).toContain('patrols vanish');
   expect(rumors.text).not.toContain('Underdark');
   expect(rumors.text).not.toContain('Ciara');
+  expect(rumors.text).not.toContain('hide the relic first');
+  expect(rumors.text).not.toContain('left pieces of themselves');
 
   expect(notices.text).toContain('Whisperwood');
-  expect(notices.text).toContain('taken whole');
+  expect(notices.text).toContain('eastern milestones');
   expect(notices.text).not.toContain('portal');
+  expect(notices.text).not.toContain('ordinary means');
+  expect(notices.text).not.toContain('taken whole');
 
   expect(gateCaptain.text).toContain('Durnhelm');
   expect(gateCaptain.text).toContain('Whisperwood');
   expect(gateCaptain.text).not.toContain('Liam');
+  expect(gateCaptain.text).not.toContain('Whisperwood is gone');
+  expect(gateCaptain.text).not.toContain('spores darken');
+});
+
+test('early plague descriptions follow the black dust and lung-first infection canon', () => {
+  const haze = getRuntimeScene('SCENE_SHADOWMIRE_HAZE');
+  const birds = getRuntimeScene('SCENE_SHADOWMIRE_DYING_BIRDS');
+  const wake = getRuntimeScene('SCENE_SPOREFALL_WAKE');
+
+  expect(haze.text).toContain('dark purple it reads black');
+  expect(birds.text).toContain('black-purple dust');
+  expect(birds.choices[0].failText).toContain('lungs seize');
+  expect(birds.choices[0].failText).toContain('spit');
+  expect(wake.text).toContain('Black-purple dust');
+  expect(wake.text).not.toContain('blue-violet plants glow through the drifting spores');
 });

@@ -36,7 +36,7 @@ test('Silverthorn runtime scenes keep fear socially grounded instead of flatteni
   expect(hubChoices).not.toContain('Visit Notice Board');
   expect(hubChoices).not.toContain('Continue');
 
-  expect(rumors.text).toContain('left pieces of themselves somewhere beneath the trees');
+  expect(rumors.text).toContain('too short of breath');
   expect(rumors.text).not.toContain('mysterious danger');
 
   expect(gate.text).toContain('two scarred fingers');

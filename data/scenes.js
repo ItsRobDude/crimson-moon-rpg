@@ -657,7 +657,7 @@ export const scenes = {
         id: "SCENE_RUSTY_BLADE_RUMORS",
         location: "silverthorn",
         background: "landscapes/silverthorn_market_avenue.png",
-        text: "Most of what you hear is frightened speculation, but the useful thread repeats itself often enough: caravans from the east have stopped arriving, and every survivor who does return speaks of drifting red spores, missing patrols, and whole glades gone silent overnight.",
+        text: "Most of what you hear is frightened speculation, but the useful thread repeats itself often enough: caravans from the east have stopped arriving, patrols vanish on the road, and the few people who stagger back do so feverish, breathless, and in no shape to explain what found them under the trees.",
         choices: [
             { text: "Return to the common room", nextScene: "SCENE_RUSTY_BLADE_INN" },
             { text: "Head for the city gates", nextScene: "SCENE_SILVERTHORN_GATES" }
@@ -678,7 +678,7 @@ export const scenes = {
         id: "SCENE_SILVERTHORN_TEMPLE_COUNSEL",
         location: "silverthorn",
         background: "landscapes/silverthorn_market_avenue.png",
-        text: "The healers warn that anything tied to Whisperwood should be treated with suspicion. They urge you to keep antitoxin close, burn tainted cloth, and trust no stream that runs red beneath the moon.",
+        text: "The healers warn that anything tied to Whisperwood should be treated with suspicion. They tell travelers to keep distance from the fevered, carry clean cloth and bitter draughts, and turn back from any road where the air itself starts tasting wrong.",
         choices: [
             { text: "Remain in the temple a while longer", nextScene: "SCENE_SILVERTHORN_TEMPLE" },
             { text: "Return to City Center", nextScene: "SCENE_HUB_SILVERTHORN" }
@@ -740,7 +740,7 @@ export const scenes = {
         id: "SCENE_SILVERTHORN_GATE_CAPTAIN",
         location: "silverthorn",
         background: "landscapes/silverthorn_market_avenue.png",
-        text: "The captain taps the route on your writ. 'Stay on the road until the fog thickens, then trust your footing more than your eyes. If you see red drifting across the path, cover your mouth and keep moving. No patrol we sent past the old mile-stone has returned unchanged.'",
+        text: "The captain taps the route on your writ. 'Stay on the road until the fog thickens, then trust your footing more than your eyes. If the air turns foul, cover your mouth and keep moving. No patrol we sent past the old mile-stone has returned unchanged.'",
         choices: [
             { text: "Leave Silverthorn now", nextScene: "SCENE_TRAVEL_SHADOWMIRE" },
             { text: "Return to the gate plaza", nextScene: "SCENE_SILVERTHORN_GATES" }
@@ -750,7 +750,7 @@ export const scenes = {
         id: "SCENE_TRAVEL_SHADOWMIRE",
         location: "shadowmire",
         background: "landscapes/forest_walk.png",
-        text: "You leave Silverthorn behind and follow the eastern road beneath the living canopy of Shadowmire Forest. Pine and damp earth fill the air. Songbirds trade calls overhead, and for a few miles the road almost feels ordinary again despite the weight of Alderic's mission on your back.",
+        text: "You leave Silverthorn behind and follow the eastern road beneath the living canopy of Shadowmire Forest. Pine and damp earth fill the air, but the quiet never settles cleanly. Even before the road begins to climb, the birdsong comes thin and scattered, as though the forest has already started holding its breath around you.",
         onEnter: {
             questUpdate: { id: "investigate_whisperwood", stage: 2 }
         },
@@ -765,7 +765,7 @@ export const scenes = {
         id: "SCENE_SHADOWMIRE_HAZE",
         location: "shadowmire",
         background: "landscapes/foggy_forest.png",
-        text: "Hours later the light begins to flatten. A chill breeze slides through the trees, and a strange violet haze starts gathering low between the trunks. The birds go quiet one by one. Then a whole flock bursts upward at once, beating the air in panic over the road ahead.",
+        text: "Hours later the light begins to flatten. A chill breeze slides through the trees, and a dust begins gathering low between the trunks, so dark purple it reads black until stray light catches it. The birds go quiet one by one. Then a whole flock bursts upward at once, beating the air in panic over the road ahead.",
         choices: [
             {
                 text: "Watch the treetops and listen for what scared them",
@@ -781,7 +781,7 @@ export const scenes = {
         id: "SCENE_SHADOWMIRE_DYING_BIRDS",
         location: "shadowmire",
         background: "landscapes/dying_bird_scene.png",
-        text: "Before anyone can speak, the flock drops out of the purple haze like stones. Birds strike branch and earth alike, dead before they land. The air suddenly tastes wrong, sweet and rotten at once, and your eyes begin to sting as the mist thickens around the road.",
+        text: "Before anyone can speak, the flock drops through the black-purple dust like stones. Birds strike branch and earth alike, dead before they land. The air suddenly tastes wrong, sweet and rotten at once, and the first full breath scorches your throat while your eyes begin to sting as the drifting plague thickens around the road.",
         choices: [
             {
                 text: "Fight for one clean breath (CON Save)",
@@ -789,7 +789,7 @@ export const scenes = {
                 ability: "CON",
                 dc: 12,
                 successText: "You clamp a sleeve over your face and stay on your feet a little longer, but the world is already starting to tilt.",
-                failText: "Your lungs seize on the first breath you take. You cough violently as the haze floods your senses and the world folds into darkness.",
+                failText: "Your lungs seize on the first full breath you take. You cough violently, and something thick drags up into your spit as the black-purple dust floods your senses and the world folds into darkness.",
                 failEffect: { type: "status", id: "spore_sickness" },
                 nextScene: "SCENE_SPOREFALL_WAKE"
             }
@@ -799,15 +799,15 @@ export const scenes = {
         id: "SCENE_SHADOWMIRE_ROADSIDE_CORPSE",
         location: "shadowmire",
         background: "landscapes/foggy_forest.png",
-        text: "Two more hard hours pass beneath a forest that no longer feels alive. Near sunset you find a body in the middle of the road, black mold slick around the eyes, nose, and mouth. From the brush nearby comes a ragged cough, then another, then the wet sweetness of the spores rolling over everything at once.",
+        text: "Two more hard hours pass beneath a forest that no longer feels alive. Near sunset you find a body in the middle of the road, black sludge dried around the eyes, nose, and mouth where the infection has already pushed its way back out. Rot has split the flesh beneath it. From the brush nearby comes a ragged cough, then another, then the wet sweetness of the black-purple dust rolling over everything at once.",
         choices: [
             {
                 text: "Examine the body before the haze closes in (Medicine)",
                 type: "skillCheck",
                 skill: "medicine",
                 dc: 11,
-                successText: "There are no wounds, no sign of struggle, only the mold spreading from every place breath once passed. Whatever killed him was already in the air.",
-                failText: "Your stomach turns before you can learn much beyond the mold and the wrong sweetness in the air.",
+                successText: "There are no wounds, no sign of struggle. Whatever took him started in the lungs, then forced its way outward until black sludge crusted every place breath once passed.",
+                failText: "Your stomach turns before you can learn much beyond the rot, the black seep at the face, and the wrong sweetness in the air.",
                 nextSceneSuccess: "SCENE_SPOREFALL_WAKE",
                 nextSceneFail: "SCENE_SPOREFALL_WAKE",
                 continueTextSuccess: "Turn toward the coughing in the haze.",
@@ -823,7 +823,7 @@ export const scenes = {
         id: "SCENE_SPOREFALL_WAKE",
         location: "whisperwood",
         background: "landscapes/sporefall_crimson_frontier.png",
-        text: "When your eyes snap open, the sky above you is black and a swollen crimson moon hangs where daylight should be. Dead birds and small animals lie scattered around the road. Strange blue-violet plants glow through the drifting spores, and the memory of healthy Shadowmire already feels impossibly far away.",
+        text: "When your eyes snap open, the sky above you is black and a swollen crimson moon hangs where daylight should be. Dead birds and small animals lie scattered around the road. Black-purple dust drifts through the street, dull as soot until it catches the moon. Strange plants shine through it in sickly color, and the memory of healthy Shadowmire already feels impossibly far away.",
         onEnter: {
             once: true,
             questUpdate: { id: "investigate_whisperwood", stage: 2 }
@@ -835,7 +835,7 @@ export const scenes = {
                 skill: "insight",
                 dc: 11,
                 successText: "You force yourself to count breaths and details instead of fear. The panic eases just enough for you to think.",
-                failText: "The spores catch in your throat and the sight of the dead things around you makes your stomach lurch before you can steady yourself.",
+                failText: "The black dust catches in your throat, and each breath feels thick enough to drown on. The sight of the dead things around you makes your stomach lurch before you can steady yourself.",
                 nextSceneSuccess: "SCENE_ARRIVAL_WHISPERWOOD",
                 nextSceneFail: "SCENE_ARRIVAL_WHISPERWOOD",
                 continueTextSuccess: "Rise and take in what remains of the borough.",
@@ -847,7 +847,7 @@ export const scenes = {
                 skill: "perception",
                 dc: 12,
                 successText: "Somewhere beyond the haze, something large moves with a wet, dragging rhythm. You mark the sound and plan your first steps carefully.",
-                failText: "The woods answer only with the whisper of spores and a silence that feels too attentive.",
+                failText: "The woods answer only with the dry hiss of black dust moving over stone and a silence that feels too attentive.",
                 nextSceneSuccess: "SCENE_ARRIVAL_WHISPERWOOD",
                 nextSceneFail: "SCENE_ARRIVAL_WHISPERWOOD",
                 continueTextSuccess: "Move deeper into the ruined streets.",
@@ -941,7 +941,7 @@ export const scenes = {
         id: "SCENE_FUNGAL_AMBUSH",
         location: "whisperwood",
         background: "landscapes/sporefall_outskirt_encounter.png",
-        text: "The Fungal Beast erupts from the haze, spores streaming from its matted hide as it barrels toward you!",
+        text: "The Fungal Beast erupts from the haze, black-purple dust and wet fungal slurry streaming from its matted hide as it barrels toward you!",
         type: "combat",
         enemies: ["fungal_beast"],
         winScene: "SCENE_VICTORY",
@@ -951,7 +951,7 @@ export const scenes = {
         id: "SCENE_SKIRT_BEAST",
         location: "whisperwood",
         background: "landscapes/sporefall_crimson_frontier.png",
-        text: "You give the creature a wide berth, easing between the trees while it snorts and tears at the moss with blind, furious weight. Wet spores cling to your cloak and wrists, cold as breath from an opened grave, and every step away feels less like escape than permission borrowed a heartbeat at a time. The beast does fall behind, but the road ahead does not let you forget what nearly touched you.",
+        text: "You give the creature a wide berth, easing between the trees while it snorts and tears at the moss with blind, furious weight. Wet black residue clings to your cloak and wrists, cold as breath from an opened grave, and every step away feels less like escape than permission borrowed a heartbeat at a time. The beast does fall behind, but the road ahead does not let you forget what nearly touched you.",
         onEnter: {
             questUpdate: { id: "investigate_whisperwood", stage: 3 },
             once: true
@@ -1184,7 +1184,7 @@ export const scenes = {
         id: "SCENE_SPOREFALL_CATHEDRAL_APPROACH",
         location: "whisperwood",
         background: "landscapes/sporefall_whisperwood_reveal.png",
-        text: "The western avenue climbs toward the Cathedral of Bone. Before the stairs, a blackened corpse lies slumped beside a torn courier's bag, its contents scattered across stone dust and spore-moss.",
+        text: "The western avenue climbs toward the Cathedral of Bone. Before the stairs, a blackened corpse lies slumped beside a torn courier's bag, its contents scattered across stone dust and black fungal rot.",
         choices: [
             {
                 text: "Search the courier's bag",
@@ -1508,7 +1508,7 @@ export const scenes = {
         id: "SCENE_DEFEAT",
         location: "whisperwood",
         background: "landscapes/sporefall_outskirt_encounter.png",
-        text: "Your vision fades as the spores overtake you...",
+        text: "Your vision fades as the black dust chokes the last clean breath out of you...",
         choices: [
             {
                 text: "Reload Save",

@@ -1618,6 +1618,25 @@ body.presentation-mode #viewport {
         padding: 12px;
     }
 
+    #objective-strip {
+        gap: 4px;
+        padding: 10px 12px;
+    }
+
+    .objective-label {
+        font-size: 0.68rem;
+    }
+
+    #objective-text,
+    #objective-status {
+        line-height: 1.35;
+    }
+
+    #objective-helper {
+        padding: 10px 12px;
+        gap: 8px;
+    }
+
     .hud-bars .bar-container {
         width: 100%;
     }
@@ -1625,10 +1644,40 @@ body.presentation-mode #viewport {
     #choice-container .choice-button {
         flex-basis: 100%;
         min-height: 0;
+        gap: 6px;
+        padding: 13px 14px;
     }
 
     #narrative-section {
-        padding: 16px;
+        padding: 14px;
+        gap: 12px;
+    }
+
+    #narrative-box {
+        font-size: 1rem;
+        line-height: 1.5;
+    }
+
+    .choice-hint {
+        font-size: 0.86rem;
+        line-height: 1.35;
+    }
+
+    .choice-meta {
+        gap: 6px;
+    }
+
+    .choice-pill {
+        padding: 3px 7px;
+        font-size: 0.7rem;
+    }
+
+    .choice-group {
+        gap: 8px;
+    }
+
+    .choice-group-grid {
+        gap: 10px;
     }
 }
 

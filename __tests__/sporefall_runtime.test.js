@@ -32,7 +32,7 @@ test('sporefall arrival routes early perception success to eoin and failure to a
   expect(searchChoice.nextSceneFail).toBe('SCENE_SPOREFALL_STREET_SEARCH');
 });
 
-test('torchlight opens a stronger arrival read and spare rations can be offered to Eoin', () => {
+test('torchlight opens a stronger arrival read and Eoin only allows the symbolic ration comfort beat', () => {
   addEffectToActor(gameState.player, 'torchlight', {
     id: 'torchlight',
     name: 'Torchlight',
@@ -41,12 +41,17 @@ test('torchlight opens a stronger arrival read and spare rations can be offered 
     modifiers: []
   });
   addItem('rations');
+  addItem('antitoxin');
+  addItem('healer_kit');
 
   let scene = getRuntimeScene('SCENE_ARRIVAL_WHISPERWOOD');
   expect(scene.choices.some((choice) => choice.text.includes('torch high'))).toBe(true);
 
   scene = getRuntimeScene('SCENE_MEET_EOIN');
-  expect(scene.choices.some((choice) => choice.text.includes('Offer him a ration'))).toBe(true);
+  const labels = scene.choices.map((choice) => choice.text);
+  expect(labels.some((label) => label.includes('ration'))).toBe(true);
+  expect(labels.some((label) => label.includes('antitoxin'))).toBe(false);
+  expect(labels.some((label) => label.includes('healer kit'))).toBe(false);
 });
 
 test('post-eoin sporefall hub exposes directional cathedral, house, and north routes', () => {
@@ -155,6 +160,29 @@ test('Eoin dialogue reacts to discovered cathedral and north-side clues', () => 
 
   expect(scene.text).toContain("grips the broken spear");
   expect(scene.text).toContain("hopeful and sick");
+});
+
+test('Eoin comfort follow-up stays symbolic and never implies treatment or recovery', () => {
+  gameState.flags.sporefall_eoin_met = true;
+  gameState.flags.sporefall_eoin_talked = true;
+  gameState.flags.sporefall_eoin_comforted = true;
+
+  const talkScene = getRuntimeScene('SCENE_EOIN_TALK');
+  const hubScene = getRuntimeScene('SCENE_HUB_SPOREFALL');
+  const arrivalScene = getRuntimeScene('SCENE_ARRIVAL_WHISPERWOOD');
+
+  expect(talkScene.text).toContain('untouched and useless');
+  expect(talkScene.text).not.toContain('lighter now');
+  expect(talkScene.text).not.toContain('breathing');
+  expect(talkScene.text).not.toContain('meal');
+
+  expect(hubScene.text).toContain('startled gratitude');
+  expect(hubScene.text).not.toContain('meal in him');
+  expect(hubScene.text).not.toContain('steadied enough');
+
+  expect(arrivalScene.text).toContain('untouched ration beside Eoin');
+  expect(arrivalScene.text).not.toContain('devour the ration');
+  expect(arrivalScene.text).not.toContain('steadiness in his breath');
 });
 
 test('north approach exposes stonework reading and bridge investigation that fits Eoin lore', () => {

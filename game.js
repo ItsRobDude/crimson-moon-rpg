@@ -562,7 +562,7 @@ function getCurrentObjectiveCopy() {
     }
 
     if (quest.currentStage === 2) {
-        return 'Take the eastern road through Shadowmire and reach the ruins of Whisperwood alive.';
+        return 'Take the eastern road through Shadowmire and reach Whisperwood alive.';
     }
 
     if (quest.currentStage === 3) {
@@ -1061,7 +1061,7 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
 
         if (!getSceneMemory('silverthorn_general_store_seen')) {
             setSceneMemory('silverthorn_general_store_seen', true);
-            scene.text = `${baseScene.text} The shopkeeper keeps one ear on the street and mutters that half the city has discovered a sudden need for bandages, lamp oil, clean cloth, and antitoxin.`;
+            scene.text = `${baseScene.text} The shopkeeper keeps one ear on the street and mutters that half the city has discovered a sudden need for bandages, lamp oil, clean cloth, and anything sold as a fever draught.`;
         }
         scene.choices = [
             createChoice('Step back into the market quarter', 'SCENE_SILVERTHORN_MARKET'),
@@ -1112,8 +1112,8 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
         const heardBefore = !!getSceneMemory('silverthorn_rumors_heard');
         setSceneMemory('silverthorn_rumors_heard', true);
         scene.text = heardBefore
-            ? "On repetition the room grows no kinder. The names change hands, but the shape of the dread remains the same: dwarves unearthed something in Durnhelm that should have stayed buried, every realm now eyes every other realm for the coming quarrel, and Whisperwood vanished at the exact hour the first war-rumors began to harden into plans. No one says they expect peace. They only argue over what will break first."
-            : "You keep your cup low and listen. One table swears Durnhelm found a relic powerful enough to bend kingdoms into war. Another says Whisperwood vanished because it tried to hide the relic first. A caravan master spits and says that is court-bred nonsense, but even he lowers his voice when he admits the eastern road has started bringing back men who talk as though they left pieces of themselves somewhere beneath the trees. The room cannot agree on the truth. It agrees perfectly on the danger.";
+            ? "On repetition the room grows no kinder. The names change hands, but the shape of the dread remains the same: dwarves unearthed something in Durnhelm that may yet drag the realms into war, Whisperwood stopped answering the road, and every telling ends with someone feverish, missing, or buried before they can say what happened beneath the trees. No one says they expect peace. They only argue over what will break first."
+            : "You keep your cup low and listen. One table swears the dwarves found a relic in Durnhelm powerful enough to drag every realm into a fresh quarrel. Another spits that the relic talk is court poison and the real terror is simpler: caravans stop reaching Whisperwood, patrols vanish on the road, and the few souls who stagger back are already burning with fever and too short of breath to say much before the healers carry them away. The room cannot agree on the truth. It agrees perfectly on the danger.";
         scene.choices = [
             createChoice('Return to the common room', 'SCENE_RUSTY_BLADE_INN'),
             createChoice('Head for the eastern gate', 'SCENE_SILVERTHORN_GATES')
@@ -1144,7 +1144,7 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
         setSceneMemory('silverthorn_temple_counsel', true);
         const hasTempleWard = !!gameState.flags.silverthorn_temple_ward_taken;
         scene.text = hasTempleWard
-            ? `${baseScene.text} One of the healers recognizes the juniper-and-ash ward already drying on your gloves and tells you not to waste the blessing before the road truly turns cruel.`
+            ? `${baseScene.text} One of the healers recognizes the juniper-and-ash ward already drying on your gloves and tells you not to waste the blessing before the eastern road turns fouler still.`
             : `${baseScene.text} One of the senior healers lingers over a brazier of juniper, ash, and bitter herbs, offering a ward to travelers willing to take the warning seriously.`;
         scene.choices = [];
 
@@ -1157,7 +1157,7 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
                 timeReason: 'You stay while the healers prepare a proper road ward.',
                 inSilverthorn: true,
                 successText: 'You match the healer prayer for prayer. Juniper smoke stings your eyes, but the ward settles into memory and breath alike. The temple sends you toward the road better braced for poison and panic.',
-                failText: 'The words catch and fray before they can settle. The healer finishes the rite anyway, but only presses a small vial of antitoxin into your hand and tells you not to mistake good intent for preparedness.',
+                failText: 'The words catch and fray before they can settle. The healer finishes the rite anyway, but only presses a bitter travel tonic into your hand and tells you not to mistake good intent for preparedness.',
                 onSuccess: {
                     effects: [
                         {
@@ -1211,7 +1211,7 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
 
     if (sceneId === 'SCENE_SILVERTHORN_NOTICE_WHISPERWOOD') {
         setSceneMemory('silverthorn_notice_whisperwood', true);
-        scene.text = "The postings have been layered one over another until the whole board feels swollen with panic. Patrol rosters stop mid-name. Three merchant families ask after kin who never came back from Whisperwood. A militia order warns that the borough can no longer be reached by ordinary means, though no officer will say what that sentence is meant to mean. At the bottom, someone has scrawled in shaking charcoal: 'The town did not fall silent. It was taken whole.'";
+        scene.text = "The postings have been layered one over another until the whole board feels swollen with panic. Patrol rosters stop mid-name. Three merchant families ask after kin who never came back from Whisperwood. A militia order warns travelers not to press past the eastern milestones without writ or escort. At the bottom, someone has scrawled in shaking charcoal: 'Nothing good is coming back down that road.'";
         return scene;
     }
 
@@ -1242,8 +1242,8 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
         scene.text = warnedAlready
             ? hasRouteBriefing
                 ? "The captain recognizes you at once and taps the same route marks you already copied into memory. 'Then keep them straight in your head,' he says. 'The council can argue over relics and borders after we stop losing patrols. Out there, one bad landmark costs more than pride.'"
-                : "The captain recognizes you at once. 'Same road, same warning: keep your faces covered if the spores darken, trust your footing more than your sight, and if the forest goes too quiet, do not mistake that for mercy. And if anyone on the road starts asking what Durnhelm found, keep walking.'"
-            : "The captain studies you for a beat longer than courtesy allows, then opens the route ledger with two scarred fingers. 'We lose scouts to the east and patience to the north,' he says. 'Whisperwood is gone, Durnhelm has half the realm whispering about relic-war, and every fool with a horse thinks fear can be outrun if he leaves before dusk. It cannot. So listen closely.'";
+                : "The captain recognizes you at once. 'Same road, same warning: keep your faces covered if the air turns foul, trust your footing more than your sight, and if the forest goes too quiet, do not mistake that for mercy. And if anyone on the road starts asking what Durnhelm found, keep walking.'"
+            : "The captain studies you for a beat longer than courtesy allows, then opens the route ledger with two scarred fingers. 'We lose scouts to the east and patience to the north,' he says. 'Whisperwood stopped answering the road, Durnhelm has half the realm whispering about relic-war, and every fool with a horse thinks fear can be outrun if he leaves before dusk. It cannot. So listen closely.'";
         scene.choices = [];
 
         if (!hasRouteBriefing) {
@@ -1254,7 +1254,7 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
                 timeAdvance: 1,
                 timeReason: 'You spend time memorizing landmarks and danger signs beyond the eastern gate.',
                 inSilverthorn: true,
-                successText: "You force the landmarks into order: the split ash at the old mile-stone, the washout where carts drift south, the bend where the spores start riding the wind. When you step away from the map, the road feels less unknown.",
+                successText: "You force the landmarks into order: the split ash at the old mile-stone, the washout where carts drift south, the bend where the air first starts turning foul. When you step away from the map, the road feels less unknown.",
                 failText: "The landmarks refuse to stay orderly in your head. The captain eventually rolls the map shut and tells you not to trust memory alone once the forest starts lying.",
                 onSuccess: {
                     effects: [
@@ -1303,8 +1303,7 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
     if (sceneId === 'SCENE_ARRIVAL_WHISPERWOOD') {
         if (state.eoinMet) {
             const eoinState = [
-                state.eoinFed ? 'You can still picture the way Eoin tried not to devour the ration too quickly.' : null,
-                state.eoinTreated ? 'The borrowed steadiness in his breath has taken some of the panic out of the street.' : null
+                state.eoinComforted ? 'You can still picture the untouched ration beside Eoin, absurd and human and somehow enough to make him look at you differently.' : null
             ].filter(Boolean).join(' ');
             scene.text = `You stand once more in Sporefall's central street, where the silence no longer feels abandoned so much as watched. Doors hang open to rooms no one had time to close. A butcher's awning has fused to its frame in black curls. The red light on the stones makes every threshold look blood-washed whether blood touched it or not. The borough still opens west toward the cathedral quarter, east toward the overseer's row, and north toward the bridge Eoin named.${eoinState ? ` ${eoinState}` : ''}`;
             scene.choices = [
@@ -1315,7 +1314,7 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
         }
 
         const torchlit = hasStatusEffect('torchlight');
-        scene.text = "You wake into a borough that feels like it should still be asleep, yet nothing here carries the peace of sleep. The houses lean inward as though bracing against some pressure still building beneath the earth. Ash and spore-clotted rain have dried in dark seams between the stones. A door nearby stands open on a room whose walls are striped by dragged fingertips. Somewhere close, something wooden taps softly in the wind, and every sound after that feels like a mistake for existing.";
+        scene.text = "You wake into a borough that feels like it should still be asleep, yet nothing here carries the peace of sleep. The houses lean inward as though bracing against some pressure still building beneath the earth. Ash and black-purple sludge have dried in dark seams between the stones. A door nearby stands open on a room whose walls are striped by dragged fingertips. Somewhere close, something wooden taps softly in the wind, and every sound after that feels like a mistake for existing.";
         scene.choices = [
             createChoice('Search the nearest street for survivors (Perception)', null, {
                 type: 'skillCheck',
@@ -1384,7 +1383,7 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
                 statusAid: {
                     statusId: 'torchlight',
                     bonus: 1,
-                    logText: 'The light lets you separate blood, ash, and spore-stain before they blur together.'
+                    logText: 'The light lets you separate blood, ash, and black fungal smear before they blur together.'
                 },
                 successText: 'The signs resolve into a pattern: whoever is hiding here is frightened, feverish, and still trying not to lead anything back to their shelter.',
                 failText: 'You find traces of panic, blood, and hurried movement, but not enough to read what kind of life is still hiding here.',
@@ -1402,12 +1401,12 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
         } else {
             scene.text = "A boy rises from the lee of a ruined wall with a broken spear half-lifted, breathing as if every breath has to be bargained for first. His sleeves are shredded at the cuffs, and the grime ground into them looks older than tonight. He watches you the way starving children watch food they suspect is poisoned: wanting to believe, unable to afford it.";
         }
-        if (!state.eoinFed && actorHasItem('player', 'rations')) {
-            scene.choices.unshift(createChoice('Offer him a ration before you ask anything', 'SCENE_EOIN_TALK', {
+        if (!state.eoinComforted && actorHasItem('player', 'rations')) {
+            scene.choices.unshift(createChoice('Offer him a ration anyway, if only to give him one human thing to hold', 'SCENE_EOIN_TALK', {
                 effects: [
-                    { type: 'consumeItem', itemId: 'rations', quantity: 1, logText: 'You hand over one day of rations.' },
+                    { type: 'consumeItem', itemId: 'rations', quantity: 1, logText: 'You leave one day of rations with Eoin, though comfort is all it can buy here.' },
                     { type: 'relationship', npcId: 'eoin', amount: 1 },
-                    { type: 'flag', flagId: 'sporefall_eoin_fed', value: true }
+                    { type: 'flag', flagId: 'sporefall_eoin_comforted', value: true }
                 ]
             }));
         }
@@ -1433,8 +1432,7 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
             }
             const suffix = reactions.length > 0 ? ` ${reactions.join(' ')}` : '';
             const comfortBeat = [
-                state.eoinFed ? 'The memory of the food you gave him lingers in the way he has stopped apologizing before he speaks.' : null,
-                state.eoinTreated ? 'The rasp in his breath is lighter now, though the fear behind it has nowhere to go.' : null
+                state.eoinComforted ? 'The ration still lies where you left it, untouched and useless except for the fact that he has stopped bracing for cruelty every time you speak.' : null
             ].filter(Boolean).join(' ');
             const recruitBeat = gameState.flags.eoin_recruited
                 ? 'He still startles at every noise, but now he waits for your next move instead of curling back into the cellar mouth.'
@@ -1448,23 +1446,6 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
             scene.text = "Once the spear lowers a little, the story comes out in broken pieces: quarantine lines, prayers that turned into orders, a mum he lost near the northern bridge where they used to sleep under the stonework, and a town that seemed to sicken all at once after the moon rose wrong. He still calls the place Whisperwood when he forgets himself. He speaks like a child afraid the whole truth might hear its name and come back.";
         }
 
-        if (!state.eoinTreated && actorHasItem('player', 'antitoxin')) {
-            scene.choices.unshift(createChoice('Press antitoxin into his hands and tell him to drink', 'SCENE_EOIN_TALK', {
-                effects: [
-                    { type: 'consumeItem', itemId: 'antitoxin', quantity: 1, logText: 'You part with one vial of antitoxin.' },
-                    { type: 'relationship', npcId: 'eoin', amount: 2 },
-                    { type: 'flag', flagId: 'sporefall_eoin_treated', value: true }
-                ]
-            }));
-        } else if (!state.eoinTreated && actorHasItem('player', 'healer_kit')) {
-            scene.choices.unshift(createChoice('Use your healer kit to steady his shaking hands', 'SCENE_EOIN_TALK', {
-                effects: [
-                    { type: 'consumeItem', itemId: 'healer_kit', quantity: 1, logText: 'You use up a healer kit patching cracked skin and binding the worst of the raw places.' },
-                    { type: 'relationship', npcId: 'eoin', amount: 1 },
-                    { type: 'flag', flagId: 'sporefall_eoin_treated', value: true }
-                ]
-            }));
-        }
         if (!recruitmentResolved) {
             scene.choices.push(createChoice("\"All right. Stay close to me and don't fall behind.\"", 'SCENE_EOIN_RECRUITED', {
                 effects: [
@@ -1517,8 +1498,7 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
         if (state.cathedralMasonryRead) clueBeat.push('the broken masonry has already told you the cathedral began failing before the panic');
         if (state.bridgeBodySeen) clueBeat.push("the north bridge now carries the shape of Eoin's loss");
         const survivorBeat = [
-            state.eoinFed ? 'Eoin has at least one meal in him now.' : null,
-            state.eoinTreated ? 'His breathing has steadied enough to trust him with a longer watch.' : null
+            state.eoinComforted ? 'Eoin still looks half-lost, but he watches you now with the startled gratitude of someone who was not expecting kindness to survive in this place.' : null
         ].filter(Boolean).join(' ');
         const suffix = clueBeat.length > 0 ? ` Already, ${clueBeat.join(', and ')}.` : '';
 
@@ -3272,25 +3252,29 @@ function getChoicePriorityLabel(choice) {
 function createChoiceButton(choice, labelOverride = null) {
     const btn = document.createElement('button');
     btn.className = 'choice-button';
+    const buttonLabel = labelOverride || choice.text || 'Continue';
+    btn.setAttribute('aria-label', buttonLabel);
     if (choice.priority === 'recommended') {
         btn.classList.add('priority-recommended');
     }
 
     const title = document.createElement('span');
     title.className = 'choice-title';
-    title.innerText = labelOverride || choice.text || 'Continue';
+    title.innerText = buttonLabel;
     btn.appendChild(title);
 
     if (!labelOverride && choice.hint) {
         const hint = document.createElement('span');
         hint.className = 'choice-hint';
         hint.innerText = choice.hint;
+        hint.setAttribute('aria-hidden', 'true');
         btn.appendChild(hint);
     }
 
     if (!labelOverride) {
         const meta = document.createElement('span');
         meta.className = 'choice-meta';
+        meta.setAttribute('aria-hidden', 'true');
         const metaBits = [
             getChoicePriorityLabel(choice),
             getChoiceTimeLabel(choice),
@@ -5401,8 +5385,7 @@ function getSporefallState() {
         eoinMet: !!gameState.flags.sporefall_eoin_met,
         eoinTalked: !!gameState.flags.sporefall_eoin_talked,
         eoinGlimpsed: !!gameState.flags.sporefall_eoin_glimpsed,
-        eoinFed: !!gameState.flags.sporefall_eoin_fed,
-        eoinTreated: !!gameState.flags.sporefall_eoin_treated,
+        eoinComforted: !!gameState.flags.sporefall_eoin_comforted,
         cathedralLetterFound: !!gameState.flags.sporefall_cathedral_letter_found,
         cathedralVisionSeen: !!gameState.flags.sporefall_cathedral_vision_seen,
         cathedralMasonryRead: !!gameState.flags.sporefall_cathedral_masonry_read,

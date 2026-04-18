@@ -1,0 +1,73 @@
+{
+  "desktop": {
+    "objectiveText": "Prepare in Silverthorn before you take the eastern gate. The Rusty Blade and temple road are the surest first reads.",
+    "helperText": "If you need your bearings, Quests keeps the clearest next steps in view, and Help gathers the basics without dragging you out of the mood.",
+    "recommendedChoices": [
+      "Likely lead",
+      "Likely lead",
+      "Likely lead"
+    ],
+    "choiceGroups": [
+      "Likely Leads",
+      "Other Threads"
+    ],
+    "hudButtons": [
+      "Map",
+      "Inventory",
+      "Quests",
+      "Codex",
+      "Menu"
+    ],
+    "narrativePreview": "You step out of Alderic's chamber and into the living heart of Silverthorn. Messengers cut through the crowd, temple bells carry over the rooftops, and every street seems to offer another lead, errand, or place to prepare before taking the eastern road. It is Day 1 - Midday. Silverthorn remains orderly, but every patrol, lowered voice, and hurried prayer suggests the order is being held in place by effort alone.",
+    "overlayCoverage": {
+      "objectivePct": 7.8,
+      "choicePct": 47.57,
+      "choiceBottomPx": 1052.3
+    },
+    "menuSubtitle": "Use this for save management, options, and reference tools when you want to stop and think.",
+    "tutorialHeading": "Field Notes",
+    "tutorialSections": [
+      "Scene Choices",
+      "Checks And Consequences",
+      "Silverthorn Time",
+      "Combat Rhythm",
+      "Saving And Partial Systems"
+    ],
+    "mapSummary": "You currently stand in Silverthorn. 1 known destinations are marked on this map.",
+    "innNarrativePreview": "The Rusty Blade is half tavern, half barracks overflow, and all of it feels one bad rumor away from turning into a war room. Couriers, sellswords, caravan hands, and merchants crowd the common room in damp wool and travel dust, drinking low and watching one another over their cups. Behind the bar, the barkeep polishes tankards with the steady calm of someone who has learned that dangerous news arrives disguised as conversation. The inn feels like a pressure valve for the whole city, full of half-finished briefings, guarded glances, and rumors spoken into cups rather than across tables.",
+    "choiceCountInInn": 3,
+    "innChoices": [
+      "Take a room and rest",
+      "Listen for what the room fears to say aloudTakes about an hour",
+      "Return to the market quarter"
+    ]
+  },
+  "mobile": {
+    "objectiveText": "Prepare in Silverthorn before you take the eastern gate. The Rusty Blade and temple road are the surest first reads.",
+    "hudButtons": [
+      "Map",
+      "Inventory",
+      "Quests",
+      "Codex",
+      "Menu"
+    ],
+    "narrativePreview": "You step out of Alderic's chamber and into the living heart of Silverthorn. Messengers cut through the crowd, temple bells carry over the rooftops, and every street seems to offer another lead, errand, or place to prepare before taking the eastern road. It is Day 1 - Midday. Silverthorn remains orderly, but every patrol, lowered voice, and hurried prayer suggests the order is being held in place by effort alone.",
+    "overlayCoverage": {
+      "objectivePct": 20.89,
+      "choicePct": 127.96,
+      "choiceBottomPx": 1744
+    },
+    "pageHeight": 727,
+    "viewportHeight": 727,
+    "bodyClasses": "text-size-normal",
+    "choiceButtonCount": 6,
+    "groupTitles": [
+      "Likely Leads",
+      "Other Threads"
+    ],
+    "menuVisible": true
+  },
+  "consoleErrors": [],
+  "pageErrors": [],
+  "requestFailures": []
+}

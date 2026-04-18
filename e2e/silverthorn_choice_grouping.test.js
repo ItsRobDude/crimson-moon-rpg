@@ -34,4 +34,27 @@ test.describe('Silverthorn Choice Grouping', () => {
     await page.evaluate(() => window.goToScene('SCENE_HUB_SILVERTHORN'));
     await expect(page.locator('#objective-helper')).toBeHidden();
   });
+
+  test('choice buttons keep action-only accessible names and mobile still surfaces the current aim', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/');
+    await page.waitForFunction(() => window.gameReady);
+
+    await page.click('#btn-start-new');
+    await page.fill('#cc-name', 'SilverthornMobile');
+    await page.click('#btn-start-game');
+
+    await page.getByRole('button', { name: /enough ceremony/i }).click();
+    await page.getByRole('button', { name: /i hear the order/i }).click();
+    await page.getByRole('button', { name: /step back into silverthorn/i }).click();
+
+    const rustyBladeChoice = page.getByRole('button', { name: 'Step inside The Rusty Blade' });
+    await expect(rustyBladeChoice).toHaveAccessibleName('Step inside The Rusty Blade');
+    await expect(rustyBladeChoice).toBeVisible();
+
+    await expect(page.locator('#objective-strip')).toBeInViewport();
+    await expect(page.locator('.choice-group-title').first()).toHaveText('Likely Leads');
+    await expect(page.locator('.choice-pill.recommended')).toHaveCount(3);
+    await expect(page.getByRole('button', { name: 'Take the temple road' })).toBeVisible();
+  });
 });
