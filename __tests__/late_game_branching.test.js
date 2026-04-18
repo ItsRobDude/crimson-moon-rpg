@@ -59,17 +59,22 @@ test('Hushbriar now opens on the canonical town route and the post-Moonwell cont
   expect(scenes.SCENE_AFTERMATH.choices.some((choice) => choice.nextScene === 'SCENE_HUSHBRIAR_AFTERMATH_HUNT')).toBe(true);
   expect(scenes.SCENE_HUSHBRIAR_LEDGER.onEnter.effects).toContainEqual({ type: 'flag', flagId: 'hushbriar_guild_ledger_found', value: true });
   expect(scenes.SCENE_ELARA_HIDEAWAY.onEnter.effects).toContainEqual({ type: 'flag', flagId: 'elara_met', value: true });
+  expect(scenes.SCENE_ELARA_COUNSEL.choices.some((choice) => choice.nextScene === 'SCENE_ELARA_STONE_DECISION')).toBe(true);
+  expect(scenes.SCENE_HUSHBRIAR_AFTERMATH_HUNT.background).not.toBe('landscapes/silverthorn_market_avenue.png');
+  expect(scenes.SCENE_ELARA_STONE_DECISION.background).not.toBe('landscapes/silverthorn_market_avenue.png');
 });
 
 test('Elara route now converges on a stone decision or an Aodhan-still-holds-the-stone warning', () => {
   const elaraChoices = scenes.SCENE_ELARA_HIDEAWAY.choices;
   const stoneChoice = elaraChoices.find((choice) => choice.text.includes('I have the Stone'));
   const aodhanChoice = elaraChoices.find((choice) => choice.text.includes('Aodhan still carries the Stone'));
+  const counselChoices = scenes.SCENE_ELARA_COUNSEL.choices;
   const stoneDecisionChoices = scenes.SCENE_ELARA_STONE_DECISION.choices;
   const warningChoices = scenes.SCENE_ELARA_AODHAN_WARNING.choices;
 
   expect(stoneChoice.requires.itemId).toBe('stone_of_oblivion');
   expect(aodhanChoice.requires.notFlag).toBe('aodhan_dead');
+  expect(counselChoices[0].nextScene).toBe('SCENE_ELARA_STONE_DECISION');
 
   expect(stoneDecisionChoices[0].effects).toContainEqual({ type: 'flag', flagId: 'elara_choice_spared', value: true });
   expect(stoneDecisionChoices[1].effects).toContainEqual({ type: 'flag', flagId: 'elara_choice_sacrifice_declared', value: true });
@@ -121,6 +126,7 @@ test('route-status note documents the new canonical continuation, aligned altern
   expect(storySceneTriggers.SCENE_AFTERMATH.unlock).toEqual(['hushbriar_elara_resolution']);
   expect(storySceneTriggers.SCENE_HUSHBRIAR_AFTERMATH_HUNT.activate).toEqual(['hushbriar_elara_resolution']);
   expect(storySceneTriggers.SCENE_THIEVES_HIDEOUT.activate).toEqual(['hushbriar_elara_resolution']);
+  expect(storySceneTriggers.SCENE_ELARA_COUNSEL.activate).toEqual(['hushbriar_elara_resolution']);
   expect(storySceneTriggers.SCENE_HUSHBRIAR_PROCESSING_REVELATION.complete).toEqual(['hushbriar_elara_resolution']);
 });
 

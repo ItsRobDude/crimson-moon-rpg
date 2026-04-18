@@ -163,7 +163,8 @@ test('Moonwell route now hands off into the canonical Elara continuation instead
   ]);
   expect(scenes.SCENE_HUSHBRIAR_AFTERMATH_HUNT.text).toContain('the girl the town failed to hide');
   expect(scenes.SCENE_HUSHBRIAR_DOCK.choices.some((choice) => choice.nextScene === 'SCENE_THIEVES_HIDEOUT')).toBe(true);
-  expect(scenes.SCENE_ELARA_HIDEAWAY.choices.some((choice) => choice.nextScene === 'SCENE_ELARA_STONE_DECISION')).toBe(true);
+  expect(scenes.SCENE_ELARA_HIDEAWAY.choices.some((choice) => choice.nextScene === 'SCENE_ELARA_COUNSEL')).toBe(true);
+  expect(scenes.SCENE_ELARA_COUNSEL.text).toContain('The Stone between you has already made the air sound like judgment');
   expect(scenes.SCENE_HUSHBRIAR_PROCESSING_REVELATION.text).toContain('strong and healthy');
   expect(scenes.SCENE_HUSHBRIAR_PROCESSING_REVELATION.text).toContain('Soul Mill');
 });

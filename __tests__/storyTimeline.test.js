@@ -150,6 +150,7 @@ test('post-Moonwell continuation stays on the canonical Elara route and keeps do
     'SCENE_HUSHBRIAR_LEDGER',
     'SCENE_THIEVES_HIDEOUT',
     'SCENE_ELARA_HIDEAWAY',
+    'SCENE_ELARA_COUNSEL',
     'SCENE_ELARA_STONE_DECISION',
     'SCENE_HUSHBRIAR_PROCESSING_REVELATION'
   ].forEach((sceneId) => {

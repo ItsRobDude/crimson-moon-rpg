@@ -352,7 +352,11 @@ export const scenes = {
     "SCENE_MOONWELL": {
         id: "SCENE_MOONWELL",
         location: "hushbriar",
-        background: "landscapes/forest_walk_alt.png",
+        background: "landscapes/aodhan_at_moonwell.png",
+        displayPages: [
+            "The Moonwell should be a place of still water and prayer. Tonight it looks flayed open. Black ripples keep disturbing the surface from below, though nothing breaks it. Two small bodies wrapped in spider silk hang above the well, turning slowly in the wind like accusations no god has answered.",
+            "Beneath them stands Aodhan, head bowed, the Stone of Oblivion rising and falling in his hand as if grief has left the motion behind after everything else. Around the clearing the air feels wrong, stretched thin and tearing. Somewhere far beyond the trees, the world is darkening in earnest. He does not turn when he speaks. 'There should have been time,' he says quietly. 'For them. For all of this.'"
+        ],
         text: "The Moonwell should be a place of still water and prayer. Tonight it looks flayed open. Black ripples keep disturbing the surface from below, though nothing breaks it. Two small bodies wrapped in spider silk hang above the well, turning slowly in the wind like accusations no god has answered. Beneath them stands Aodhan, head bowed, the Stone of Oblivion rising and falling in his hand as if grief has left the motion behind after everything else. Around the clearing the air feels wrong, stretched thin and tearing. Somewhere far beyond the trees, the world is darkening in earnest. He does not turn when he speaks. 'There should have been time,' he says quietly. 'For them. For all of this.'",
         onEnter: {
             once: true,
@@ -370,8 +374,12 @@ export const scenes = {
     "SCENE_AODHAN_TALK": {
         id: "SCENE_AODHAN_TALK",
         location: "hushbriar",
-        background: "landscapes/forest_walk_alt.png",
+        background: "landscapes/aodhan_at_moonwell.png",
         npcPortrait: "portraits/npc_male_placeholder_portrait.png",
+        displayPages: [
+            "Aodhan closes his hand around the Stone of Oblivion and turns at last. Moonlight catches the ruin in his face before anger can hide it. 'Sad, isn't it?' he says quietly, glancing once at the silk-wrapped bodies above the well. 'To die that young. To spend years praying the world kinder, then watch it bare its teeth in one night. Liam should have had more than this.'",
+            "His eyes settle on you, fever-bright with exhaustion and fury. 'I held Sporefall shut for as long as I could. Do you feel it? The last ring of the spell is gone. The barrier around the borough has broken. The Underdark is spilling through at full strength now, and the plague is running with it. This is the moment it stops being contained. This is the moment the dark wins ground.'"
+        ],
         text: "Aodhan closes his hand around the Stone of Oblivion and turns at last. Moonlight catches the ruin in his face before anger can hide it. 'Sad, isn't it?' he says quietly, glancing once at the silk-wrapped bodies above the well. 'To die that young. To spend years praying the world kinder, then watch it bare its teeth in one night. Liam should have had more than this.' His eyes settle on you, fever-bright with exhaustion and fury. 'I held Sporefall shut for as long as I could. Do you feel it? The last ring of the spell is gone. The barrier around the borough has broken. The Underdark is spilling through at full strength now, and the plague is running with it. This is the moment it stops being contained. This is the moment the dark wins ground.'",
         choices: [
             {
@@ -387,7 +395,7 @@ export const scenes = {
     "SCENE_AODHAN_COMBAT": {
         id: "SCENE_AODHAN_COMBAT",
         location: "hushbriar",
-        background: "landscapes/forest_walk_alt.png",
+        background: "landscapes/aodhan_at_moonwell.png",
         text: "Something inside Aodhan gives way. Grief breaks open into violence, and dark power gathers around his arm like smoke learning how to bite.",
         type: "combat",
         enemies: ["aodhan"],
@@ -397,7 +405,7 @@ export const scenes = {
     "SCENE_AODHAN_DEFEAT": {
         id: "SCENE_AODHAN_DEFEAT",
         location: "hushbriar",
-        background: "landscapes/forest_walk_alt.png",
+        background: "landscapes/aodhan_at_moonwell.png",
         text: "Aodhan falls to his knees first, as though his body has only now remembered how tired it has always been. When he finally hits the earth, the Stone of Oblivion slips from his hand into the grass. The moment you take it, the ground answers with a low shudder, as if something far beneath the roots has felt the change and turned in its sleep.",
         onEnter: {
             addItem: "stone_of_oblivion",
@@ -413,7 +421,11 @@ export const scenes = {
     "SCENE_AFTERMATH": {
         id: "SCENE_AFTERMATH",
         location: "hushbriar",
-        background: "landscapes/forest_walk.png",
+        background: "landscapes/foggy_forest.png",
+        displayPages: [
+            "Morning does not come. The darkness above the trees deepens until the moon bleeds red enough to stain the clouds around it, and Hushbriar answers the broken night with bells, steel, and screams too small to matter against what has already slipped loose.",
+            "Whether Aodhan lives or dies, Sporefall is open now. Whatever had been buried beneath old stories and older prayers is buried no longer. It is here, and the world has already begun changing around that fact. Back in town, somebody is still being hunted hard enough to turn the streets into a battlefield."
+        ],
         text: "Morning does not come. The darkness above the trees deepens until the moon bleeds red enough to stain the clouds around it, and Hushbriar answers the broken night with bells, steel, and screams too small to matter against what has already slipped loose. Whether Aodhan lives or dies, Sporefall is open now. Whatever had been buried beneath old stories and older prayers is buried no longer. It is here, and the world has already begun changing around that fact. Back in town, somebody is still being hunted hard enough to turn the streets into a battlefield.",
         choices: [
             {
@@ -425,7 +437,11 @@ export const scenes = {
     "SCENE_HUSHBRIAR_AFTERMATH_HUNT": {
         id: "SCENE_HUSHBRIAR_AFTERMATH_HUNT",
         location: "hushbriar",
-        background: "landscapes/silverthorn_market_avenue.png",
+        background: "landscapes/foggy_forest.png",
+        displayPages: [
+            "The road back into Hushbriar looks worse in false dawn than it did by torchlight. Townsfolk run in bursts between shuttered doors while Silverthorn soldiers drag the stubborn, the wounded, and the merely unlucky into separate lines with all the tenderness of men sorting livestock.",
+            "Near the square, a rag-wrapped doomsayer keeps shouting about prophecy, blood, and the girl the town failed to hide. Nobody stops to argue. Too many faces keep cutting toward the bridge, the river docks, and the trail of smashed doors leading that way."
+        ],
         text: "The road back into Hushbriar looks worse in false dawn than it did by torchlight. Townsfolk run in bursts between shuttered doors while Silverthorn soldiers drag the stubborn, the wounded, and the merely unlucky into separate lines with all the tenderness of men sorting livestock. Near the square, a rag-wrapped doomsayer keeps shouting about prophecy, blood, and the girl the town failed to hide. Nobody stops to argue. Too many faces keep cutting toward the bridge, the river docks, and the trail of smashed doors leading that way.",
         choices: [
             {
@@ -1985,7 +2001,7 @@ export const scenes = {
     "SCENE_HUSHBRIAR_DOCK": {
         id: "SCENE_HUSHBRIAR_DOCK",
         location: "hushbriar",
-        background: "landscapes/silverthorn_market_avenue.png",
+        background: "landscapes/aodhan_house.png",
         text: "Beneath the bridge, river rot mingles with lamp oil and damp hemp. A small rowboat knocks softly against the pilings, half-hidden behind stacked crates, boot-scuffs, and the kind of hurried drag marks panic leaves when it has to move something alive. One ledger lies open beneath a weighted stone, its wet pages curling as if someone had to abandon it faster than they liked.",
         choices: [
             { text: "Read the ledger before the river takes the ink", nextScene: "SCENE_HUSHBRIAR_LEDGER" },
@@ -1995,7 +2011,7 @@ export const scenes = {
     "SCENE_HUSHBRIAR_LEDGER": {
         id: "SCENE_HUSHBRIAR_LEDGER",
         location: "hushbriar",
-        background: "landscapes/silverthorn_market_avenue.png",
+        background: "landscapes/aodhan_house.png",
         text: "The handwriting is hurried, angry, and afraid. One line has been underlined so hard it nearly tears the page: 'Move our precious cargo, quickly. It's only a matter of time before that murderous bastard or the Blackened King's soldiers show up at our doorstep.' Whatever the guild is protecting, they fear Aodhan and Alderic's men in equal measure, and the word cargo has been forced hard enough to sound like blasphemy.",
         onEnter: {
             once: true,
@@ -2011,7 +2027,7 @@ export const scenes = {
     "SCENE_THIEVES_HIDEOUT": {
         id: "SCENE_THIEVES_HIDEOUT",
         location: "hushbriar",
-        background: "landscapes/silverthorn_market_avenue.png",
+        background: "landscapes/aodhan_study.png",
         npcPortrait: "portraits/npc_female_placeholder_portrait.png",
         text: "The dock trail ends at a low, screened chamber built into the underside of the bridge itself. Neala steps out first with her blade already bare, anger arriving a heartbeat before the rest of her. Liobhán follows in silence so controlled it feels practiced. Neither woman looks surprised to see you. 'You nose through our bridge, touch our ledger, and come walking deeper like you think that makes you brave,' Neala says. Liobhán's gaze moves from your hands to your throat and back again. 'It only makes your next sentence expensive,' she says quietly. 'Spend it well.'",
         choices: [
@@ -2052,7 +2068,7 @@ export const scenes = {
     "SCENE_GUILD_BARGAIN": {
         id: "SCENE_GUILD_BARGAIN",
         location: "hushbriar",
-        background: "landscapes/silverthorn_market_avenue.png",
+        background: "landscapes/aodhan_study.png",
         npcPortrait: "portraits/npc_female_placeholder_portrait.png",
         text: "Once they stop treating you like a body to dispose of, the truth comes in pieces and barbs. The cargo is not contraband at all but a person, and not merely a person: Elara, the prophesied demigod. Neala says the word like daring you to act shocked. The guild is not protecting her out of kindness. A demigod who lives because of them owes a debt no king, priest, or butcher can ignore. 'That's leverage,' Neala says bluntly. Liobhán's mouth hardly moves when she answers, 'That is survival with a shape ugly enough to be honest.'",
         choices: [
@@ -2067,7 +2083,7 @@ export const scenes = {
     "SCENE_GUILD_REFUSAL": {
         id: "SCENE_GUILD_REFUSAL",
         location: "hushbriar",
-        background: "landscapes/silverthorn_market_avenue.png",
+        background: "landscapes/aodhan_study.png",
         npcPortrait: "portraits/npc_female_placeholder_portrait.png",
         text: "Trust dies quickly in the hideout. Neala wants you thrown back to the river with your curiosity split open beside you. Liobhán wants to know whether your ignorance is real or merely badly performed. Then another shout rises out in town, followed by the crack of something magical striking timber hard enough to shake dust from the bridge overhead. Liobhán's eyes sharpen at once. 'Fine,' she says. 'You do not deserve the truth. But if Aodhan or the King's men are already tearing the lanes apart for her, we no longer have time to keep you ignorant.'",
         choices: [
@@ -2081,8 +2097,12 @@ export const scenes = {
     "SCENE_ELARA_HIDEAWAY": {
         id: "SCENE_ELARA_HIDEAWAY",
         location: "hushbriar",
-        background: "landscapes/silverthorn_market_avenue.png",
-        npcPortrait: "portraits/npc_female_placeholder_portrait.png",
+        background: "landscapes/aodhan_study.png",
+        npcPortrait: "landscapes/elara_portrait.png",
+        displayPages: [
+            "Elara is hidden in the innermost chamber behind stacked crates, damp blankets, and a ward circle drawn by hands too tired to trust their own lines. She looks younger than prophecy has any right to allow and far more exhausted by fear than any holy story would ever admit.",
+            "Sleep has been losing to dread for days. When her eyes catch the mark you carry, her whole body tightens around a recognition she has been waiting her life to dread. She knows what relic was found. She knows why men will come for her blood. Shame and terror chase each other across her face as she speaks the truth she has never managed to live with: she is torn between dying for the world and running until someone crueller chooses for her."
+        ],
         text: "Elara is hidden in the innermost chamber behind stacked crates, damp blankets, and a ward circle drawn by hands too tired to trust their own lines. She looks younger than prophecy has any right to allow and far more exhausted by fear than any holy story would ever admit. Sleep has been losing to dread for days. When her eyes catch the mark you carry, her whole body tightens around a recognition she has been waiting her life to dread. She knows what relic was found. She knows why men will come for her blood. Shame and terror chase each other across her face as she speaks the truth she has never managed to live with: she is torn between dying for the world and running until someone crueller chooses for her.",
         onEnter: {
             once: true,
@@ -2094,7 +2114,7 @@ export const scenes = {
             {
                 text: "\"I have the Stone. Before the blood dries, we decide what it will cost.\"",
                 requires: { itemId: "stone_of_oblivion" },
-                nextScene: "SCENE_ELARA_STONE_DECISION"
+                nextScene: "SCENE_ELARA_COUNSEL"
             },
             {
                 text: "\"Aodhan still carries the Stone. Tell me how close his hunt runs behind us.\"",
@@ -2103,11 +2123,28 @@ export const scenes = {
             }
         ]
     },
+    "SCENE_ELARA_COUNSEL": {
+        id: "SCENE_ELARA_COUNSEL",
+        location: "hushbriar",
+        background: "landscapes/aodhan_study.png",
+        npcPortrait: "landscapes/elara_portrait.png",
+        text: "For one frail minute no one reaches for the choice itself. Neala turns away first and plants both hands on the nearest crate like the wood is the only thing in the room she trusts not to beg. Liobhán watches Elara instead, not with pity but with the flinty patience of someone forcing herself to count every cost before she names one aloud. Elara says nothing. Her breathing alone makes the room feel smaller. The Stone between you has already made the air sound like judgment.",
+        choices: [
+            {
+                text: "Make them say the cost plainly before the room loses its nerve.",
+                nextScene: "SCENE_ELARA_STONE_DECISION"
+            }
+        ]
+    },
     "SCENE_ELARA_STONE_DECISION": {
         id: "SCENE_ELARA_STONE_DECISION",
         location: "hushbriar",
-        background: "landscapes/silverthorn_market_avenue.png",
-        npcPortrait: "portraits/npc_female_placeholder_portrait.png",
+        background: "landscapes/aodhan_study.png",
+        npcPortrait: "landscapes/elara_portrait.png",
+        displayPages: [
+            "The Stone of Oblivion feels heavier in the hideout than it ever did under the moon. Elara watches it the way condemned people watch an executioner testing the edge. Even Neala's anger has gone still around it.",
+            "Liobhán looks from the Stone to Elara and back again, doing the arithmetic no decent person should ever have to say aloud. 'If there is a choice worth the name,' she says quietly, 'it lives here. Now. Before the blood dries and the world chooses for us.'"
+        ],
         text: "The Stone of Oblivion feels heavier in the hideout than it ever did under the moon. Elara watches it the way condemned people watch an executioner testing the edge. Even Neala's anger has gone still around it. Liobhán looks from the Stone to Elara and back again, doing the arithmetic no decent person should ever have to say aloud. 'If there is a choice worth the name,' she says quietly, 'it lives here. Now. Before the blood dries and the world chooses for us.'",
         choices: [
             {
@@ -2132,8 +2169,8 @@ export const scenes = {
     "SCENE_ELARA_AODHAN_WARNING": {
         id: "SCENE_ELARA_AODHAN_WARNING",
         location: "hushbriar",
-        background: "landscapes/silverthorn_market_avenue.png",
-        npcPortrait: "portraits/npc_female_placeholder_portrait.png",
+        background: "landscapes/aodhan_study.png",
+        npcPortrait: "landscapes/elara_portrait.png",
         text: "At Aodhan's name, every lantern in the hideout seems to shrink. Elara folds in on herself at once. Neala curses under her breath. Liobhán says nothing for a long time, then finally answers with the bleak clarity of someone who has no use left for false comfort. 'Then the Stone is still in motion, and the choice it forces is not ours tonight,' she says. 'That does not save her. It only means the blood and the bargain are both still hunting us.'",
         choices: [
             {
@@ -2150,8 +2187,12 @@ export const scenes = {
     "SCENE_HUSHBRIAR_PROCESSING_REVELATION": {
         id: "SCENE_HUSHBRIAR_PROCESSING_REVELATION",
         location: "hushbriar",
-        background: "landscapes/silverthorn_market_avenue.png",
-        npcPortrait: "portraits/npc_female_placeholder_portrait.png",
+        background: "landscapes/aodhan_study.png",
+        npcPortrait: "landscapes/elara_portrait.png",
+        displayPages: [
+            "The silence after the choice is worse than the argument before it. At last Liobhán breaks it. 'You think the King means to hold Hushbriar?' she asks. 'He means to empty it.'",
+            "Neala answers this part like spitting poison. The strong and healthy are being marched toward Silverthorn for processing. The sick, the weak, and anyone too contaminated to be useful are being sent to the Soul Mill instead. Whatever mercy Hushbriar still hoped for has already been sorted into carts, columns, and smoke."
+        ],
         text: "The silence after the choice is worse than the argument before it. At last Liobhán breaks it. 'You think the King means to hold Hushbriar?' she asks. 'He means to empty it.' Neala answers this part like spitting poison. The strong and healthy are being marched toward Silverthorn for processing. The sick, the weak, and anyone too contaminated to be useful are being sent to the Soul Mill instead. Whatever mercy Hushbriar still hoped for has already been sorted into carts, columns, and smoke.",
         onEnter: {
             once: true,

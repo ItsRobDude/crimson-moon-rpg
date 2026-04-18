@@ -323,6 +323,10 @@ export const storySceneTriggers = {
         activate: ['hushbriar_elara_resolution'],
         actId: 'act_5_hushbriar_endgame'
     },
+    SCENE_ELARA_COUNSEL: {
+        activate: ['hushbriar_elara_resolution'],
+        actId: 'act_5_hushbriar_endgame'
+    },
     SCENE_ELARA_STONE_DECISION: {
         activate: ['hushbriar_elara_resolution'],
         actId: 'act_5_hushbriar_endgame'
@@ -611,6 +615,17 @@ export const sceneSafetyPolicies = {
         ifReachedTooEarly: 'Do not reveal Elara before the aftermath clue path and hideout access earn her.',
         ifPartiallyInformed: 'Keep Elara as a hunted demigod under immediate pressure, not a management node or exposition hub.',
         onRevisit: 'Avoid turning Elara into a comfort scene or repeatable utility stop.',
+        neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
+    },
+    SCENE_ELARA_COUNSEL: {
+        thread: 'hushbriar_elara_resolution',
+        prerequisites: {
+            storyEvents: ['hushbriar_elara_resolution']
+        },
+        fallbackMode: SCENE_FALLBACK_MODES.DEGRADE,
+        ifReachedTooEarly: 'Do not surface the breathing-space counsel beat before Elara herself has been reached through the aftermath route.',
+        ifPartiallyInformed: 'Keep the pause focused on immediate human cost, not on opening new branches or future destinations.',
+        onRevisit: 'Let the room keep its tension; do not turn this into a reusable deliberation hub.',
         neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
     },
     SCENE_ELARA_STONE_DECISION: {

@@ -201,6 +201,11 @@ export function initUI() {
     document.getElementById('btn-menu').onclick = toggleMenu;
     document.getElementById('btn-map').onclick = toggleMap;
     document.getElementById('btn-codex').onclick = () => toggleCodex('people');
+    document.getElementById('btn-menu-inventory').onclick = () => openUtilityFromMenu(() => toggleInventory());
+    document.getElementById('btn-menu-quests').onclick = () => openUtilityFromMenu(toggleQuestLog);
+    document.getElementById('btn-menu-map').onclick = () => openUtilityFromMenu(toggleMap);
+    document.getElementById('btn-menu-codex').onclick = () => openUtilityFromMenu(() => toggleCodex('people'));
+    document.getElementById('btn-menu-log').onclick = () => openUtilityFromMenu(toggleStoryLog);
     document.getElementById('btn-codex-people').onclick = () => toggleCodex('people');
     document.getElementById('btn-codex-factions').onclick = () => toggleCodex('factions');
 
@@ -328,13 +333,20 @@ const defaultGameSettings = {
     displayMode: 'windowed',
     textSize: 'normal',
     uiScale: 'normal',
-    showLog: true
+    showLog: false
 };
 
 let gameSettings = { ...defaultGameSettings };
 let objectiveStatusState = {
     message: '',
     tone: 'system'
+};
+let narrativeUiState = {
+    currentSceneId: null,
+    scenePages: [],
+    scenePageIndex: 0,
+    choicePages: [],
+    choicePageIndex: 0
 };
 
 const CC_QUICK_STARTS = {
@@ -438,12 +450,157 @@ function getDiscoveredCodexState() {
 function updateHudButtons() {
     const mapButton = document.getElementById('btn-map');
     const codexButton = document.getElementById('btn-codex');
+    const mapMenuButton = document.getElementById('btn-menu-map');
+    const codexMenuButton = document.getElementById('btn-menu-codex');
     const showMap = !isBriefingScene();
     const codexState = getDiscoveredCodexState();
     const showCodex = (codexState.knownPeople.length + codexState.knownFactions.length) > 0;
 
     if (mapButton) mapButton.classList.toggle('hidden', !showMap);
     if (codexButton) codexButton.classList.toggle('hidden', !showCodex);
+    if (mapMenuButton) mapMenuButton.classList.toggle('hidden', !showMap);
+    if (codexMenuButton) codexMenuButton.classList.toggle('hidden', !showCodex);
+}
+
+function openUtilityFromMenu(openFn) {
+    document.getElementById('menu-modal')?.classList.add('hidden');
+    openFn();
+}
+
+function getNarrativeTextLimit() {
+    return window.innerWidth <= 768 ? 220 : 360;
+}
+
+function getChoicePageSize() {
+    return window.innerWidth <= 768 ? 2 : 3;
+}
+
+function splitParagraphIntoPages(paragraph, maxChars) {
+    const sentences = paragraph
+        .split(/(?<=[.!?]["']?)\s+/)
+        .map((sentence) => sentence.trim())
+        .filter(Boolean);
+
+    if (sentences.length <= 1 && paragraph.length <= maxChars) {
+        return [paragraph];
+    }
+
+    const pages = [];
+    let current = '';
+
+    const flush = () => {
+        if (current.trim()) {
+            pages.push(current.trim());
+            current = '';
+        }
+    };
+
+    sentences.forEach((sentence) => {
+        if (!current) {
+            current = sentence;
+            return;
+        }
+        if ((current.length + sentence.length + 1) <= maxChars) {
+            current = `${current} ${sentence}`;
+            return;
+        }
+        flush();
+        current = sentence;
+    });
+
+    flush();
+    return pages.length ? pages : [paragraph];
+}
+
+function buildSceneDisplayPages(scene) {
+    if (Array.isArray(scene.displayPages) && scene.displayPages.length > 0) {
+        return scene.displayPages.filter(Boolean);
+    }
+
+    const text = scene.text || '';
+    if (!text.trim()) return [''];
+
+    const maxChars = getNarrativeTextLimit();
+    const paragraphs = text
+        .split(/\n{2,}/)
+        .map((paragraph) => paragraph.trim())
+        .filter(Boolean);
+
+    const pages = [];
+    let current = '';
+
+    const pushCurrent = () => {
+        if (current.trim()) {
+            pages.push(current.trim());
+            current = '';
+        }
+    };
+
+    paragraphs.forEach((paragraph) => {
+        const paragraphPages = paragraph.length > maxChars
+            ? splitParagraphIntoPages(paragraph, maxChars)
+            : [paragraph];
+
+        paragraphPages.forEach((pageText) => {
+            if (!current) {
+                current = pageText;
+                return;
+            }
+            if ((current.length + pageText.length + 2) <= maxChars) {
+                current = `${current}\n\n${pageText}`;
+                return;
+            }
+            pushCurrent();
+            current = pageText;
+        });
+    });
+
+    pushCurrent();
+    return pages.length ? pages : [text];
+}
+
+function setChoiceGridColumns(count) {
+    const choiceContainer = document.getElementById('choice-container');
+    if (!choiceContainer) return;
+    const columns = window.innerWidth <= 768 ? 1 : Math.max(1, Math.min(count || 1, 3));
+    choiceContainer.style.gridTemplateColumns = `repeat(${columns}, minmax(0, 1fr))`;
+}
+
+function setNarrativeText(text) {
+    const narrativeText = document.getElementById('narrative-text');
+    if (narrativeText) narrativeText.innerText = text;
+}
+
+function prepareNarrativeScene(scene) {
+    narrativeUiState.currentSceneId = scene.id;
+    narrativeUiState.scenePages = buildSceneDisplayPages(scene);
+    narrativeUiState.scenePageIndex = 0;
+    narrativeUiState.choicePages = [];
+    narrativeUiState.choicePageIndex = 0;
+}
+
+function buildChoicePages(choices = []) {
+    const pageSize = getChoicePageSize();
+    const visibleChoices = choices.filter((choice) => meetsChoiceRequirements(choice, gameState.player));
+    const recommendedChoices = visibleChoices.filter((choice) => choice.priority === 'recommended');
+    const standardChoices = visibleChoices.filter((choice) => choice.priority !== 'recommended');
+    const groups = recommendedChoices.length > 0 && standardChoices.length > 0
+        ? [
+            { title: 'Likely Leads', choices: recommendedChoices },
+            { title: 'Other Threads', choices: standardChoices }
+        ]
+        : [{ title: '', choices: visibleChoices }];
+
+    const pages = [];
+    groups.forEach((group) => {
+        for (let start = 0; start < group.choices.length; start += pageSize) {
+            pages.push({
+                title: group.title,
+                choices: group.choices.slice(start, start + pageSize)
+            });
+        }
+    });
+    return pages;
 }
 
 function updateObjectiveHelper() {
@@ -468,7 +625,7 @@ function updateObjectiveHelper() {
     }
 
     setSceneMemory('ui_silverthorn_nudge_active', true);
-    text.innerText = 'If you need your bearings, Quests keeps the clearest next steps in view, and Help gathers the basics without dragging you out of the mood.';
+    text.innerText = 'If you need your bearings, open Menu for Quests, Help, and the other tools without crowding the scene.';
     helper.classList.remove('hidden');
 }
 
@@ -3153,7 +3310,7 @@ function goToScene(sceneId) {
     } else {
         portraitContainer.classList.add('hidden');
     }
-    document.getElementById('narrative-text').innerText = scene.text;
+    prepareNarrativeScene(scene);
 
     if (scene.onEnter) {
         const runOnEnter = !scene.onEnter.once || isFirstVisit;
@@ -3210,12 +3367,13 @@ function goToScene(sceneId) {
     } else if (scene.type === 'shop') {
         renderShop(scene.shopId);
         gameState.combat.active = false;
+        setNarrativeText(scene.text || '');
         renderChoices(scene.choices);
         saveGame();
     } else {
         document.getElementById('shop-panel').classList.add('hidden');
         gameState.combat.active = false;
-        renderChoices(scene.choices);
+        renderScenePage(scene);
         saveGame();
     }
 }
@@ -3316,44 +3474,94 @@ function getDefaultContinueLabel(nextSceneId) {
     return 'Continue';
 }
 
-function appendChoiceGroup(container, title, choices) {
-    if (!choices.length) return 0;
-    const group = document.createElement('div');
-    group.className = 'choice-group';
-    const heading = document.createElement('p');
-    heading.className = 'choice-group-title';
-    heading.innerText = title;
-    group.appendChild(heading);
+function renderChoicePagination(canGoBack, canGoForward) {
+    const pagination = document.getElementById('choice-pagination');
+    if (!pagination) return;
+    pagination.innerHTML = '';
 
-    const grid = document.createElement('div');
-    grid.className = 'choice-group-grid';
-    choices.forEach((choice) => grid.appendChild(createChoiceButton(choice)));
-    group.appendChild(grid);
-    container.appendChild(group);
-    return choices.length;
+    if (!canGoBack && !canGoForward) {
+        pagination.classList.add('hidden');
+        return;
+    }
+
+    if (canGoBack) {
+        const prev = document.createElement('button');
+        prev.className = 'choice-nav-button';
+        prev.innerText = 'Previous Options';
+        prev.onclick = () => {
+            narrativeUiState.choicePageIndex = Math.max(0, narrativeUiState.choicePageIndex - 1);
+            renderChoices();
+        };
+        pagination.appendChild(prev);
+    }
+
+    if (canGoForward) {
+        const next = document.createElement('button');
+        next.className = 'choice-nav-button';
+        next.innerText = 'More Options';
+        next.onclick = () => {
+            narrativeUiState.choicePageIndex = Math.min(narrativeUiState.choicePages.length - 1, narrativeUiState.choicePageIndex + 1);
+            renderChoices();
+        };
+        pagination.appendChild(next);
+    }
+
+    pagination.classList.remove('hidden');
 }
 
-function renderChoices(choices) {
-    const choiceContainer = document.getElementById('choice-container');
-    choiceContainer.innerHTML = '';
-    let renderedCount = 0;
-    if (choices) {
-        const visibleChoices = choices.filter((choice) => meetsChoiceRequirements(choice, gameState.player));
-        const recommendedChoices = visibleChoices.filter((choice) => choice.priority === 'recommended');
-        const standardChoices = visibleChoices.filter((choice) => choice.priority !== 'recommended');
+function renderScenePage(scene) {
+    const pages = narrativeUiState.scenePages?.length ? narrativeUiState.scenePages : [scene.text || ''];
+    const currentPage = pages[narrativeUiState.scenePageIndex] || '';
+    setNarrativeText(currentPage);
 
-        if (recommendedChoices.length > 0 && standardChoices.length > 0) {
-            renderedCount += appendChoiceGroup(choiceContainer, 'Likely Leads', recommendedChoices);
-            renderedCount += appendChoiceGroup(choiceContainer, 'Other Threads', standardChoices);
+    if (narrativeUiState.scenePageIndex < pages.length - 1) {
+        renderContinueButton(null, 'Continue', () => {
+            narrativeUiState.scenePageIndex += 1;
+            renderScenePage(scene);
+        });
+        return;
+    }
+
+    renderChoices(scene.choices);
+}
+
+function renderChoices(choices = null) {
+    const choiceContainer = document.getElementById('choice-container');
+    const choicePageLabel = document.getElementById('choice-page-label');
+    if (choices) {
+        narrativeUiState.choicePages = buildChoicePages(choices);
+        narrativeUiState.choicePageIndex = 0;
+    }
+    choiceContainer.innerHTML = '';
+    const pages = narrativeUiState.choicePages || [];
+    const page = pages[narrativeUiState.choicePageIndex] || null;
+    const pageChoices = page?.choices || [];
+
+    if (choicePageLabel) {
+        if (page?.title) {
+            choicePageLabel.innerText = page.title;
+            choicePageLabel.classList.remove('hidden');
         } else {
-            visibleChoices.forEach((choice) => {
-                choiceContainer.appendChild(createChoiceButton(choice));
-                renderedCount += 1;
-            });
+            choicePageLabel.innerText = '';
+            choicePageLabel.classList.add('hidden');
         }
     }
 
-    if (renderedCount === 0) {
+    if (pageChoices.length > 0) {
+        setChoiceGridColumns(pageChoices.length);
+        pageChoices.forEach((choice) => choiceContainer.appendChild(createChoiceButton(choice)));
+        renderChoicePagination(narrativeUiState.choicePageIndex > 0, narrativeUiState.choicePageIndex < pages.length - 1);
+        return;
+    }
+
+    renderChoicePagination(false, false);
+    setChoiceGridColumns(1);
+    if (choicePageLabel) {
+        choicePageLabel.innerText = '';
+        choicePageLabel.classList.add('hidden');
+    }
+
+    if (pageChoices.length === 0) {
         const currentScene = scenes[gameState.currentSceneId];
         const fallbackScene = currentScene?.location === 'silverthorn'
             ? 'SCENE_HUB_SILVERTHORN'
@@ -3423,7 +3631,7 @@ function handleChoice(choice) {
             if (choice.onSuccess && choice.onSuccess.effects) {
                 applyEffectList(choice.onSuccess.effects, 'choice');
             }
-            document.getElementById('narrative-text').innerText = choice.successText;
+            setNarrativeText(choice.successText);
             if (choice.nextSceneSuccess) {
                 renderContinueButton(
                     choice.nextSceneSuccess,
@@ -3437,7 +3645,7 @@ function handleChoice(choice) {
             if (choice.onFail && choice.onFail.effects) {
                 applyEffectList(choice.onFail.effects, 'choice');
             }
-            document.getElementById('narrative-text').innerText = choice.failText;
+            setNarrativeText(choice.failText);
             if (choice.nextSceneFail) {
                 renderContinueButton(
                     choice.nextSceneFail,
@@ -3450,9 +3658,9 @@ function handleChoice(choice) {
         const success = result.total >= choice.dc;
         logMessage(`Save (${choice.ability}): ${result.total} (DC ${choice.dc})`, success ? "check-success" : "check-fail");
         if (success) {
-            document.getElementById('narrative-text').innerText = choice.successText;
+            setNarrativeText(choice.successText);
         } else {
-            document.getElementById('narrative-text').innerText = choice.failText;
+            setNarrativeText(choice.failText);
             if (choice.failEffect?.type === 'damage') {
                 const dmg = rollDiceExpression(choice.failEffect.amount).total;
                 gameState.player.hp -= dmg;
@@ -3468,11 +3676,19 @@ function handleChoice(choice) {
     }
 }
 
-function renderContinueButton(nextSceneId, label = 'Continue') {
+function renderContinueButton(nextSceneId, label = 'Continue', handler = null) {
     const choiceContainer = document.getElementById('choice-container');
+    const choicePageLabel = document.getElementById('choice-page-label');
+    const pagination = document.getElementById('choice-pagination');
     choiceContainer.innerHTML = '';
+    if (choicePageLabel) {
+        choicePageLabel.innerText = '';
+        choicePageLabel.classList.add('hidden');
+    }
+    pagination?.classList.add('hidden');
+    setChoiceGridColumns(1);
     const btn = createChoiceButton({ text: label }, label);
-    btn.onclick = () => goToScene(nextSceneId);
+    btn.onclick = handler || (() => goToScene(nextSceneId));
     choiceContainer.appendChild(btn);
 }
 
@@ -5137,6 +5353,12 @@ function toggleMenu() {
     modal.classList.toggle('hidden');
 }
 
+function toggleStoryLog() {
+    const modal = document.getElementById('log-modal');
+    if (!modal) return;
+    modal.classList.toggle('hidden');
+}
+
 function getLongRestAmbushChance() {
     const baseChance = Math.max(0, gameState.threat.level || 0);
     if (!actorHasTrait(gameState.player, 'trance')) {
@@ -5331,12 +5553,17 @@ function showLevelUpModal() {
 // ... (Logging functions same as before) ...
 
 function logToMain(msg, type) {
-    const logContent = document.getElementById('log-content');
-    const entry = document.createElement('div');
-    entry.className = `log-entry ${type}`;
-    entry.innerText = msg;
-    logContent.appendChild(entry);
-    logContent.scrollTop = logContent.scrollHeight;
+    const appendEntry = (container) => {
+        if (!container) return;
+        const entry = document.createElement('div');
+        entry.className = `log-entry ${type}`;
+        entry.innerText = msg;
+        container.appendChild(entry);
+        container.scrollTop = container.scrollHeight;
+    };
+
+    appendEntry(document.getElementById('log-content'));
+    appendEntry(document.getElementById('log-modal-content'));
     console.log(`[Main Log - ${type}] ${msg}`);
 }
 

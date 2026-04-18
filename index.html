@@ -42,10 +42,10 @@
             <div class="hud-secondary">
                 <span id="char-loadout">Unarmed and no armor worth naming.</span>
                 <div class="stat-group buttons">
-                    <button id="btn-map">Map</button>
-                    <button id="btn-inventory">Inventory</button>
-                    <button id="btn-quests">Quests</button>
-                    <button id="btn-codex">Codex</button>
+                    <button id="btn-map" class="utility-launch">Map</button>
+                    <button id="btn-inventory" class="utility-launch">Inventory</button>
+                    <button id="btn-quests" class="utility-launch">Quests</button>
+                    <button id="btn-codex" class="utility-launch">Codex</button>
                     <button id="btn-menu">Menu</button>
                 </div>
             </div>
@@ -118,6 +118,16 @@
                 <div id="center-stage"></div>
             </div>
 
+            <div id="choice-layer">
+                <p id="choice-page-label" class="hidden"></p>
+                <div id="choice-container">
+                    <!-- Buttons injected by JS -->
+                </div>
+                <div id="choice-pagination" class="hidden">
+                    <!-- Paging buttons injected by JS -->
+                </div>
+            </div>
+
             <!-- Dialogue & Interaction Section (Bottom) -->
             <div id="narrative-section">
                 <div id="objective-strip" class="hidden">
@@ -132,9 +142,6 @@
                 <div id="narrative-box">
                     <p id="narrative-text">Welcome to Prophecies: Crimson Moon.</p>
                 </div>
-                <div id="choice-container">
-                    <!-- Buttons injected by JS -->
-                </div>
             </div>
         </main>
 
@@ -142,7 +149,7 @@
         <aside id="game-log-panel">
             <h3>Game Log</h3>
             <div id="log-content">
-                <div class="log-entry system">Initializing game engine...</div>
+                <div class="log-entry system">The road is quiet for now.</div>
             </div>
         </aside>
 
@@ -385,7 +392,14 @@
     <div id="menu-modal" class="modal hidden">
         <div class="modal-content">
             <h2>Game Menu</h2>
-            <p class="modal-subtitle">Use this for save management, options, and reference tools when you want to stop and think.</p>
+            <p class="modal-subtitle">Use this for save management, reference tools, and anything that should sit behind the story instead of beside it.</p>
+            <div class="menu-tool-grid">
+                <button id="btn-menu-inventory">Inventory</button>
+                <button id="btn-menu-quests">Quests</button>
+                <button id="btn-menu-map">Map</button>
+                <button id="btn-menu-codex">Codex</button>
+                <button id="btn-menu-log">Log</button>
+            </div>
             <button id="btn-save">Save Game</button>
             <button id="btn-load">Load Game</button>
             <button id="btn-options">Options</button>
@@ -433,7 +447,7 @@
                 </label>
                 <label class="option-toggle">
                     <input type="checkbox" id="opt-show-log" checked>
-                    <span>Show game log panel</span>
+                    <span>Keep the side log visible during story scenes</span>
                 </label>
             </div>
 
@@ -543,6 +557,18 @@
             </div>
             <div class="modal-actions">
                 <button id="btn-confirm-level-up">Confirm</button>
+            </div>
+        </div>
+    </div>
+    <div id="log-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>Story Log</h2>
+            <p class="modal-subtitle">Recent system notes, route updates, and consequences live here when you want to retrace the road.</p>
+            <div id="log-modal-content" class="log-modal-content">
+                <div class="log-entry system">The road is quiet for now.</div>
+            </div>
+            <div class="modal-actions">
+                <button class="close-modal">Close</button>
             </div>
         </div>
     </div>

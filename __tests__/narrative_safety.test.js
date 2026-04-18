@@ -92,6 +92,7 @@ test('late Hushbriar spine and retired teaser branches carry explicit safety pol
     'SCENE_HUSHBRIAR_AFTERMATH_HUNT',
     'SCENE_THIEVES_HIDEOUT',
     'SCENE_ELARA_HIDEAWAY',
+    'SCENE_ELARA_COUNSEL',
     'SCENE_ELARA_STONE_DECISION',
     'SCENE_HUSHBRIAR_PROCESSING_REVELATION'
   ].forEach((sceneId) => {
@@ -100,6 +101,7 @@ test('late Hushbriar spine and retired teaser branches carry explicit safety pol
 
   expect(sceneSafetyPolicies.SCENE_HUSHBRIAR_AFTERMATH_HUNT.fallbackMode).toBe(SCENE_FALLBACK_MODES.DEGRADE);
   expect(sceneSafetyPolicies.SCENE_THIEVES_HIDEOUT.fallbackMode).toBe(SCENE_FALLBACK_MODES.DEGRADE);
+  expect(sceneSafetyPolicies.SCENE_ELARA_COUNSEL.fallbackMode).toBe(SCENE_FALLBACK_MODES.DEGRADE);
   expect(sceneSafetyPolicies.SCENE_ELARA_STONE_DECISION.fallbackMode).toBe(SCENE_FALLBACK_MODES.DEGRADE);
   expect(sceneSafetyPolicies.SCENE_HUSHBRIAR_PROCESSING_REVELATION.fallbackMode).toBe(SCENE_FALLBACK_MODES.DEGRADE);
 });

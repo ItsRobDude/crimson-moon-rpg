@@ -1,5 +1,24 @@
 import { test, expect } from '@playwright/test';
 
+async function advanceSceneUntilChoice(page, choiceName) {
+  for (let attempts = 0; attempts < 8; attempts += 1) {
+    const choice = page.getByRole('button', { name: choiceName });
+    if (await choice.isVisible().catch(() => false)) {
+      return choice;
+    }
+
+    const continueButton = page.getByRole('button', { name: /^continue$/i });
+    if (await continueButton.isVisible().catch(() => false)) {
+      await continueButton.click();
+      continue;
+    }
+
+    break;
+  }
+
+  return page.getByRole('button', { name: choiceName });
+}
+
 async function reachSilverthorn(page, characterName = 'SurfaceTester') {
   await page.goto('/');
   await page.waitForFunction(() => window.gameReady);
@@ -8,9 +27,10 @@ async function reachSilverthorn(page, characterName = 'SurfaceTester') {
   await page.fill('#cc-name', characterName);
   await page.click('#btn-start-game');
 
-  await page.getByRole('button', { name: /enough ceremony/i }).click();
-  await page.getByRole('button', { name: /i hear the order/i }).click();
-  await page.getByRole('button', { name: /step back into silverthorn/i }).click();
+  await (await advanceSceneUntilChoice(page, /enough ceremony/i)).click();
+  await (await advanceSceneUntilChoice(page, /i hear the order/i)).click();
+  await (await advanceSceneUntilChoice(page, /step back into silverthorn/i)).click();
+  await advanceSceneUntilChoice(page, /step inside the rusty blade/i);
 }
 
 test.describe('UI Surface Cleanup', () => {
@@ -40,14 +60,16 @@ test.describe('UI Surface Cleanup', () => {
     await page.keyboard.press('Escape');
     await expect(page.locator('#menu-modal')).toBeHidden();
 
-    await page.click('#btn-quests');
+    await page.click('#btn-menu');
+    await page.click('#btn-menu-quests');
     await expect(page.locator('#quest-modal')).toBeVisible();
     await expect(page.locator('#quest-list')).toContainText('Worth considering');
     await expect(page.locator('#quest-list')).toContainText('Temple Road offers blessing');
     await page.keyboard.press('Escape');
     await expect(page.locator('#quest-modal')).toBeHidden();
 
-    await page.click('#btn-map');
+    await page.click('#btn-menu');
+    await page.click('#btn-menu-map');
     await expect(page.locator('#map-modal')).toBeVisible();
     await expect(page.locator('#map-summary')).toContainText('currently stand in Silverthorn');
     await expect(page.locator('#map-locations')).toContainText('You are here');
@@ -57,11 +79,19 @@ test.describe('UI Surface Cleanup', () => {
     await page.keyboard.press('Escape');
     await expect(page.locator('#map-modal')).toBeHidden();
 
-    await page.click('#btn-codex');
+    await page.click('#btn-menu');
+    await page.click('#btn-menu-codex');
     await expect(page.locator('#codex-modal')).toBeVisible();
     await expect(page.locator('#codex-list')).toContainText('Alderic');
     await page.click('#btn-codex-factions');
     await expect(page.locator('#codex-list')).toContainText('Silverthorn');
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#codex-modal')).toBeHidden();
+
+    await page.click('#btn-menu');
+    await page.click('#btn-menu-log');
+    await expect(page.locator('#log-modal')).toBeVisible();
+    await expect(page.locator('#log-modal-content')).toContainText('Story Thread Advanced');
   });
 
   test('shop and inventory surfaces explain tradeoffs, buying limits, and item actions', async ({ page }) => {
@@ -93,7 +123,8 @@ test.describe('UI Surface Cleanup', () => {
 
     await page.click('#shop-panel .close-modal');
     await expect(page.locator('#shop-panel')).toBeHidden();
-    await page.click('#btn-inventory');
+    await page.click('#btn-menu');
+    await page.click('#btn-menu-inventory');
     await expect(page.locator('#inventory-modal')).toBeVisible();
     await expect(page.locator('#inventory-summary')).toContainText("Viewing Quartermaster's kit");
 
@@ -121,7 +152,7 @@ test.describe('UI Surface Cleanup', () => {
     await reachSilverthorn(page, 'LevelTester');
 
     await page.getByRole('button', { name: /step inside the rusty blade/i }).click();
-    await page.getByRole('button', { name: /take a room and rest/i }).click();
+    await (await advanceSceneUntilChoice(page, /take a room and rest/i)).click();
     await expect(page.locator('#rest-modal')).toBeVisible();
     await expect(page.locator('#rest-modal .modal-subtitle')).toContainText('Rest trades time for recovery');
     await expect(page.locator('#btn-short-rest')).toHaveText('Begin Short Rest');

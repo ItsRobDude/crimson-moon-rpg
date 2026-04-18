@@ -10,6 +10,9 @@
     --fail-color: #f44336;
     --font-main: 'Lato', sans-serif;
     --font-header: 'Cinzel', serif;
+    --narrative-band-height: 20vh;
+    --choice-layer-offset: calc(var(--narrative-band-height) + 20px);
+    --choice-gap: 12px;
 }
 
 * {
@@ -158,9 +161,7 @@ button:hover {
 #viewport {
     grid-area: viewport;
     position: relative;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end; /* Dialogue at bottom */
+    display: block;
     overflow: hidden;
 }
 
@@ -178,11 +179,12 @@ button:hover {
 }
 
 #scene-content {
-    flex-grow: 1;
+    position: relative;
+    height: 100%;
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    padding: 20px;
+    align-items: flex-end;
+    padding: 24px;
     pointer-events: none; /* Let clicks pass through */
 }
 
@@ -242,38 +244,99 @@ button:hover {
 
 /* Narrative Section */
 #narrative-section {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
     background: linear-gradient(to top, rgba(0,0,0,0.95), rgba(0,0,0,0.8));
     border-top: 1px solid var(--accent-color);
-    padding: 20px;
-    min-height: 250px;
+    padding: 10px 20px 14px;
+    min-height: 0;
+    height: var(--narrative-band-height);
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 8px;
+    justify-content: flex-start;
+    z-index: 3;
+    overflow: hidden;
 }
 
 #narrative-box {
-    font-size: 1.1rem;
-    line-height: 1.6;
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    align-items: flex-start;
+    overflow: hidden;
+    font-size: 1.05rem;
+    line-height: 1.4;
+}
+
+#narrative-text {
+    width: min(92%, 980px);
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
+}
+
+#choice-layer {
+    position: absolute;
+    left: 20px;
+    right: 20px;
+    bottom: var(--choice-layer-offset);
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    z-index: 4;
+    pointer-events: none;
+}
+
+#choice-page-label {
+    align-self: flex-start;
+    margin: 0;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(14, 14, 14, 0.88);
+    border: 1px solid rgba(201, 164, 69, 0.26);
+    color: #d9cb9b;
+    font-size: 0.74rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-family: var(--font-header);
 }
 
 #choice-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
+    display: grid;
+    gap: var(--choice-gap);
+    pointer-events: auto;
 }
 
 #choice-container button {
-    flex: 1 1 40%; /* 2 per row roughly */
-    padding: 15px;
-    background: rgba(40, 40, 40, 0.8);
-    border: 1px solid var(--accent-color);
+    padding: 15px 16px;
+    background: rgba(18, 18, 18, 0.94);
+    border: 1px solid rgba(201, 164, 69, 0.55);
+    border-radius: 14px;
     font-size: 1rem;
     text-align: left;
+    box-shadow: 0 16px 30px rgba(0, 0, 0, 0.32);
 }
 
 #choice-container button:hover {
-    background: rgba(60, 60, 60, 0.9);
-    box-shadow: 0 0 10px var(--accent-color);
+    background: rgba(32, 28, 20, 0.98);
+    box-shadow: 0 0 12px rgba(201, 164, 69, 0.24);
+}
+
+#choice-pagination {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    pointer-events: auto;
+}
+
+#choice-pagination button {
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(201, 164, 69, 0.32);
+    background: rgba(15, 15, 15, 0.9);
+    color: #f1ede2;
 }
 
 /* Game Log */
@@ -1319,6 +1382,10 @@ button:hover {
     justify-content: flex-end;
 }
 
+.utility-launch {
+    display: none;
+}
+
 .hud-identity {
     display: flex;
     flex-direction: column;
@@ -1358,6 +1425,17 @@ button:hover {
     max-width: 360px;
 }
 
+.menu-tool-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.menu-tool-grid button {
+    width: 100%;
+}
+
 .stat-group.buttons {
     flex-wrap: wrap;
     justify-content: flex-end;
@@ -1384,32 +1462,35 @@ body.presentation-mode #viewport {
 }
 
 #objective-strip {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    padding: 12px 14px;
-    border: 1px solid rgba(201, 164, 69, 0.32);
-    border-radius: 10px;
-    background: linear-gradient(135deg, rgba(33, 25, 13, 0.92), rgba(20, 20, 20, 0.86));
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 4px 12px;
+    padding: 7px 10px;
+    border: 1px solid rgba(201, 164, 69, 0.28);
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(25, 20, 13, 0.92), rgba(15, 15, 15, 0.84));
 }
 
 .objective-label {
     color: #d8c68a;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    font-size: 0.74rem;
+    font-size: 0.68rem;
     font-family: var(--font-header);
+    grid-row: 1 / span 2;
+    align-self: start;
 }
 
 #objective-text {
     color: #f0ece0;
-    line-height: 1.45;
+    line-height: 1.3;
+    font-size: 0.95rem;
 }
 
 #objective-status {
-    font-size: 0.9rem;
-    line-height: 1.45;
+    font-size: 0.82rem;
+    line-height: 1.3;
 }
 
 #objective-status.tone-system {
@@ -1429,15 +1510,14 @@ body.presentation-mode #viewport {
 }
 
 #choice-container .choice-button {
-    flex: 1 1 calc(50% - 10px);
     display: flex;
     flex-direction: column;
     gap: 8px;
-    min-height: 108px;
-    padding: 16px;
+    min-height: 96px;
+    padding: 15px 16px;
     background: linear-gradient(180deg, rgba(40, 40, 40, 0.92), rgba(22, 22, 22, 0.95));
     border: 1px solid rgba(201, 164, 69, 0.55);
-    border-radius: 10px;
+    border-radius: 14px;
     text-align: left;
     line-height: 1.45;
 }
@@ -1459,7 +1539,8 @@ body.presentation-mode #viewport {
 
 .choice-hint {
     color: #bdb5a0;
-    font-size: 0.9rem;
+    font-size: 0.84rem;
+    line-height: 1.35;
 }
 
 .choice-meta {
@@ -1611,20 +1692,31 @@ body.presentation-mode #viewport {
     .battle-layout {
         flex-direction: column;
     }
+
+    .menu-tool-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 @media (max-width: 768px) {
+    :root {
+        --narrative-band-height: 24vh;
+        --choice-layer-offset: calc(var(--narrative-band-height) + 14px);
+        --choice-gap: 10px;
+    }
+
     #stats-bar {
         padding: 12px;
     }
 
     #objective-strip {
-        gap: 4px;
+        grid-template-columns: 1fr;
         padding: 10px 12px;
     }
 
     .objective-label {
         font-size: 0.68rem;
+        grid-row: auto;
     }
 
     #objective-text,
@@ -1641,21 +1733,25 @@ body.presentation-mode #viewport {
         width: 100%;
     }
 
+    #choice-layer {
+        left: 14px;
+        right: 14px;
+    }
+
     #choice-container .choice-button {
-        flex-basis: 100%;
         min-height: 0;
         gap: 6px;
         padding: 13px 14px;
     }
 
     #narrative-section {
-        padding: 14px;
-        gap: 12px;
+        padding: 12px 14px 14px;
+        gap: 10px;
     }
 
     #narrative-box {
         font-size: 1rem;
-        line-height: 1.5;
+        line-height: 1.42;
     }
 
     .choice-hint {
@@ -1682,10 +1778,7 @@ body.presentation-mode #viewport {
 }
 
 .choice-group {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    width: 100%;
+    display: none;
 }
 
 .choice-group + .choice-group {
@@ -1693,17 +1786,11 @@ body.presentation-mode #viewport {
 }
 
 .choice-group-title {
-    margin: 0;
-    color: #d9cb9b;
-    font-size: 0.82rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    display: none;
 }
 
 .choice-group-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
+    display: none;
 }
 
 .cc-quick-starts {
@@ -1809,6 +1896,16 @@ body.presentation-mode #viewport {
     border: 1px solid rgba(201, 164, 69, 0.3);
     background: rgba(201, 164, 69, 0.08);
     color: #f1ede2;
+}
+
+.log-modal-content {
+    max-height: min(56vh, 540px);
+    overflow-y: auto;
+    padding: 12px;
+    border-radius: 10px;
+    background: rgba(13, 13, 13, 0.86);
+    border: 1px solid rgba(201, 164, 69, 0.18);
+    font-family: monospace;
 }
 
 .tactical-tag {
