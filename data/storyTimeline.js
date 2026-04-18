@@ -24,17 +24,17 @@ export const storyActs = [
     {
         id: 'act_3_shattered_routes',
         title: 'Act III - Shattered Routes',
-        summary: 'After the confrontation with Aodhan, the party follows the Durnhelm and Lament Hill leads.'
+        summary: 'Sporefall clues push the party north into Durnhelm, where Aodhan\'s trail and the relic\'s cost become clearer.'
     },
     {
         id: 'act_4_lament_hill_truth',
         title: 'Act IV - Lament Hill Truth',
-        summary: 'Aine and the Forbidden Archives reveal the truth about Alderic, Ciara, and the Stone of Oblivion.'
+        summary: 'Aine and the Forbidden Archives reveal the mark, the Stone of Oblivion, and the danger pressing toward Hushbriar.'
     },
     {
         id: 'act_5_hushbriar_endgame',
         title: 'Act V - Hushbriar Endgame',
-        summary: 'The demigod hunt and Hushbriar faction struggle become the endgame sandbox for Part I.'
+        summary: 'Hushbriar, Moonwell, and the demigod pressure become the late Part I sandbox once the draft route reaches the coast.'
     }
 ];
 
@@ -71,15 +71,15 @@ export const storyEvents = {
     },
     aodhan_thread: {
         id: 'aodhan_thread',
-        actId: 'act_2_sporefall_revelations',
+        actId: 'act_3_shattered_routes',
         title: 'Trace Aodhan',
-        summary: 'Cathedral and manor leads point the party toward Aodhan and the Stone of Oblivion.'
+        summary: 'Sporefall clues, Durnhelm, and Hushbriar all advance the hunt for Aodhan and the Stone of Oblivion.'
     },
     durnhelm_thread: {
         id: 'durnhelm_thread',
         actId: 'act_3_shattered_routes',
         title: 'Durnhelm Lead',
-        summary: 'The dwarven route explains the relic, the city\'s fall, and where Aodhan went next.'
+        summary: 'The dwarven route confirms the Stone of Oblivion, Durnhelm\'s fall, and the road that leads on toward Lament Hill.'
     },
     lament_hill_thread: {
         id: 'lament_hill_thread',
@@ -97,7 +97,7 @@ export const storyEvents = {
         id: 'hushbriar_demigod_thread',
         actId: 'act_5_hushbriar_endgame',
         title: 'Hushbriar Demigod Hunt',
-        summary: 'The sandbox endgame centers on Hushbriar, the guild, and the demigod needed to empower the stone.'
+        summary: 'The late Hushbriar route centers on the occupied town, Moonwell, and the demigod pressure opened by Aine\'s warning.'
     }
 };
 
@@ -109,17 +109,19 @@ export const locationStoryRequirements = {
     lament_hill: { id: 'lament_hill_thread', oneOf: [STORY_EVENT_STATUS.AVAILABLE, STORY_EVENT_STATUS.ACTIVE, STORY_EVENT_STATUS.COMPLETED] },
     hushbriar: { id: 'hushbriar_demigod_thread', oneOf: [STORY_EVENT_STATUS.AVAILABLE, STORY_EVENT_STATUS.ACTIVE, STORY_EVENT_STATUS.COMPLETED] },
     thieves_hideout: { id: 'hushbriar_demigod_thread', oneOf: [STORY_EVENT_STATUS.AVAILABLE, STORY_EVENT_STATUS.ACTIVE, STORY_EVENT_STATUS.COMPLETED] },
-    soul_mill: { id: 'hushbriar_demigod_thread', oneOf: [STORY_EVENT_STATUS.AVAILABLE, STORY_EVENT_STATUS.ACTIVE, STORY_EVENT_STATUS.COMPLETED] }
+    soul_mill: { id: 'hushbriar_demigod_thread', oneOf: [STORY_EVENT_STATUS.AVAILABLE, STORY_EVENT_STATUS.ACTIVE, STORY_EVENT_STATUS.COMPLETED] },
+    solasmor: { id: 'hushbriar_demigod_thread', oneOf: [STORY_EVENT_STATUS.AVAILABLE, STORY_EVENT_STATUS.ACTIVE, STORY_EVENT_STATUS.COMPLETED] }
 };
 
 export const locationUnlockHints = {
     shadowmire: 'Leave Silverthorn after Alderic briefs you.',
     whisperwood: 'Push the Whisperwood investigation past the road into Sporefall.',
-    durnhelm: 'Reach the post-Aodhan branching point to follow the dwarven lead.',
-    lament_hill: 'Reach the post-Aodhan branching point to follow the Lament Hill lead.',
-    hushbriar: 'Advance the Lament Hill thread until the Hushbriar lead opens.',
-    thieves_hideout: 'Open the Hushbriar demigod thread before searching the guild route.',
-    soul_mill: 'Open the Hushbriar endgame thread before heading toward the Soul Mill.'
+    durnhelm: 'Push the Sporefall investigation far enough to confirm Aodhan as the next lead.',
+    lament_hill: 'Finish Cathal\'s Durnhelm lead to open the witch on Lament Hill.',
+    hushbriar: 'Advance Lament Hill until Aine opens the Hushbriar demigod lead.',
+    thieves_hideout: 'This route is retired until it is rewritten to fit the draft-first Hushbriar order.',
+    soul_mill: 'This route is dormant until it is rewritten into a draft-aligned late Hushbriar branch.',
+    solasmor: 'This route is dormant until it is rewritten into a draft-aligned late Hushbriar branch.'
 };
 
 export const storySceneTriggers = {
@@ -186,48 +188,45 @@ export const storySceneTriggers = {
     },
     SCENE_SPOREFALL_CATHEDRAL_VISION: {
         complete: ['sporefall_investigation'],
-        unlock: ['aodhan_thread'],
-        actId: 'act_2_sporefall_revelations'
+        unlock: ['aodhan_thread', 'durnhelm_thread'],
+        actId: 'act_3_shattered_routes'
     },
     SCENE_SPOREFALL_OVERSEER_JOURNAL: {
         complete: ['sporefall_investigation'],
-        unlock: ['aodhan_thread'],
-        actId: 'act_2_sporefall_revelations'
+        unlock: ['aodhan_thread', 'durnhelm_thread'],
+        actId: 'act_3_shattered_routes'
     },
     SCENE_SPOREFALL_OVERSEER_CORRESPONDENCE: {
         complete: ['sporefall_investigation'],
-        unlock: ['aodhan_thread'],
-        actId: 'act_2_sporefall_revelations'
+        unlock: ['aodhan_thread', 'durnhelm_thread'],
+        actId: 'act_3_shattered_routes'
     },
     SCENE_SPOREFALL_NORTH_ROUTE_DISCOVERED: {
         complete: ['sporefall_investigation'],
-        unlock: ['aodhan_thread'],
-        actId: 'act_2_sporefall_revelations'
-    },
-    SCENE_MOONWELL: {
-        activate: ['aodhan_thread'],
-        actId: 'act_2_sporefall_revelations'
+        unlock: ['aodhan_thread', 'durnhelm_thread'],
+        actId: 'act_3_shattered_routes'
     },
     SCENE_AODHAN_TALK: {
         complete: ['aodhan_thread'],
-        unlock: ['durnhelm_thread', 'lament_hill_thread'],
-        actId: 'act_3_shattered_routes'
+        actId: 'act_5_hushbriar_endgame'
     },
     SCENE_AODHAN_DEFEAT: {
         complete: ['aodhan_thread'],
-        unlock: ['durnhelm_thread', 'lament_hill_thread'],
-        actId: 'act_3_shattered_routes'
+        actId: 'act_5_hushbriar_endgame'
     },
     SCENE_AFTERMATH: {
         complete: ['aodhan_thread'],
-        unlock: ['durnhelm_thread', 'lament_hill_thread'],
-        actId: 'act_3_shattered_routes'
+        actId: 'act_5_hushbriar_endgame'
     },
     SCENE_DURNHELM_GATES: {
         activate: ['durnhelm_thread'],
         actId: 'act_3_shattered_routes'
     },
     SCENE_DURNHELM_ENTRY: {
+        activate: ['durnhelm_thread'],
+        actId: 'act_3_shattered_routes'
+    },
+    SCENE_DURNHELM_CATHAL: {
         complete: ['durnhelm_thread'],
         unlock: ['lament_hill_thread'],
         actId: 'act_3_shattered_routes'
@@ -258,28 +257,40 @@ export const storySceneTriggers = {
         actId: 'act_4_lament_hill_truth'
     },
     SCENE_ARRIVAL_HUSHBRIAR: {
-        actId: 'act_2_sporefall_revelations'
+        activate: ['hushbriar_demigod_thread'],
+        actId: 'act_5_hushbriar_endgame'
     },
     SCENE_HUSHBRIAR_TOWN: {
-        actId: 'act_2_sporefall_revelations'
+        activate: ['hushbriar_demigod_thread'],
+        actId: 'act_5_hushbriar_endgame'
     },
     SCENE_BRIARWOOD_INN: {
-        actId: 'act_2_sporefall_revelations'
+        activate: ['hushbriar_demigod_thread'],
+        actId: 'act_5_hushbriar_endgame'
     },
     SCENE_FIONNLAGH_HUB: {
-        actId: 'act_2_sporefall_revelations'
+        activate: ['hushbriar_demigod_thread'],
+        actId: 'act_5_hushbriar_endgame'
     },
     SCENE_HUSHBRIAR_SCREAMS: {
-        actId: 'act_2_sporefall_revelations'
+        activate: ['hushbriar_demigod_thread'],
+        actId: 'act_5_hushbriar_endgame'
     },
     SCENE_INVESTIGATION: {
-        actId: 'act_2_sporefall_revelations'
+        activate: ['hushbriar_demigod_thread'],
+        actId: 'act_5_hushbriar_endgame'
     },
     SCENE_TRACKING_CHOLDRITHS: {
-        actId: 'act_2_sporefall_revelations'
+        activate: ['hushbriar_demigod_thread'],
+        actId: 'act_5_hushbriar_endgame'
     },
     SCENE_HUSHBRIAR_MORNING_SETUP: {
-        actId: 'act_2_sporefall_revelations'
+        activate: ['hushbriar_demigod_thread'],
+        actId: 'act_5_hushbriar_endgame'
+    },
+    SCENE_MOONWELL: {
+        activate: ['hushbriar_demigod_thread'],
+        actId: 'act_5_hushbriar_endgame'
     },
     SCENE_HUSHBRIAR_GUILD_ROAD: {
         activate: ['hushbriar_demigod_thread'],
@@ -294,6 +305,10 @@ export const storySceneTriggers = {
         actId: 'act_5_hushbriar_endgame'
     },
     SCENE_ELARA_HIDEAWAY: {
+        activate: ['hushbriar_demigod_thread'],
+        actId: 'act_5_hushbriar_endgame'
+    },
+    SCENE_SOLASMOR_APPROACH: {
         activate: ['hushbriar_demigod_thread'],
         actId: 'act_5_hushbriar_endgame'
     }
@@ -485,6 +500,116 @@ export const sceneSafetyPolicies = {
         ifReachedTooEarly: 'The skip route may stay viable, but should not collapse the larger clue structure.',
         ifPartiallyInformed: 'Treat it as a speed-over-certainty branch rather than a hidden-truth shortcut.',
         onRevisit: 'Keep the route open without repeating its discovery reward.',
+        neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
+    },
+    SCENE_ARRIVAL_HUSHBRIAR: {
+        thread: 'hushbriar_demigod_thread',
+        prerequisites: {
+            storyEvents: ['hushbriar_demigod_thread']
+        },
+        fallbackMode: SCENE_FALLBACK_MODES.REDIRECT,
+        ifReachedTooEarly: 'Keep Hushbriar closed until the draft route opens it through Aine or the Archives.',
+        ifPartiallyInformed: 'Use occupation pressure, guard suspicion, and civic dread before Moonwell or guild stakes surface.',
+        onRevisit: 'Treat first arrival as a committed late-route handoff rather than a reusable travel beat.',
+        neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
+    },
+    SCENE_HUSHBRIAR_TOWN: {
+        thread: 'hushbriar_demigod_thread',
+        prerequisites: {
+            storyEvents: ['hushbriar_demigod_thread']
+        },
+        fallbackMode: SCENE_FALLBACK_MODES.DEGRADE,
+        ifReachedTooEarly: 'Do not surface Hushbriar before the Lament Hill truth opens the demigod route.',
+        ifPartiallyInformed: 'Keep the town focused on occupation, fear, and the pressure leading toward Fionnlagh and Moonwell.',
+        onRevisit: 'Maintain town pressure without replacing the Moonwell hinge with guild-first detours.',
+        neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
+    },
+    SCENE_BRIARWOOD_INN: {
+        thread: 'hushbriar_demigod_thread',
+        prerequisites: {
+            storyEvents: ['hushbriar_demigod_thread']
+        },
+        fallbackMode: SCENE_FALLBACK_MODES.DEGRADE,
+        ifReachedTooEarly: 'Keep the inn unavailable until Hushbriar itself is legitimately open.',
+        ifPartiallyInformed: 'Center refugees, pilgrim fear, Fionnlagh, and the missable Moonwell night pressure.',
+        onRevisit: 'Revisit text may adapt, but the inn should not become a generic services node.',
+        neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
+    },
+    SCENE_HUSHBRIAR_SCREAMS: {
+        thread: 'hushbriar_demigod_thread',
+        prerequisites: {
+            storyEvents: ['hushbriar_demigod_thread']
+        },
+        fallbackMode: SCENE_FALLBACK_MODES.DELAY,
+        ifReachedTooEarly: 'Keep the Moonwell hinge gated behind the late Hushbriar route, not available from older drifted branches.',
+        ifPartiallyInformed: 'Let the lane violence point toward choldriths and Moonwell without skipping the town pressure that earns it.',
+        onRevisit: 'Once resolved, do not turn the scream path back into a repeatable action surface.',
+        neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
+    },
+    SCENE_MOONWELL: {
+        thread: 'hushbriar_demigod_thread',
+        prerequisites: {
+            storyEvents: ['hushbriar_demigod_thread']
+        },
+        fallbackMode: SCENE_FALLBACK_MODES.DEGRADE,
+        ifReachedTooEarly: 'Do not surface Moonwell before the late Hushbriar spine earns it through town pressure and the night event.',
+        ifPartiallyInformed: 'Keep Moonwell as a protected emotional hinge, not a bypass to earlier route knowledge.',
+        onRevisit: 'Preserve the weight of the set piece and avoid flattening it into a generic boss room.',
+        neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
+    },
+    SCENE_HUSHBRIAR_GUILD_ROAD: {
+        thread: 'retired_hushbriar_guild_branch',
+        prerequisites: {
+            storyEvents: ['hushbriar_demigod_thread']
+        },
+        fallbackMode: SCENE_FALLBACK_MODES.REDIRECT,
+        ifReachedTooEarly: 'Retire this guild-first route until it is rewritten to fit the draft-first Hushbriar order.',
+        ifPartiallyInformed: 'Do not let this branch replace the canonical town, inn, Fionnlagh, and Moonwell spine.',
+        onRevisit: 'Redirect interest back toward canonical Hushbriar until the branch is formally realigned.',
+        neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
+    },
+    SCENE_THIEVES_HIDEOUT: {
+        thread: 'retired_hushbriar_guild_branch',
+        prerequisites: {
+            storyEvents: ['hushbriar_demigod_thread']
+        },
+        fallbackMode: SCENE_FALLBACK_MODES.REDIRECT,
+        ifReachedTooEarly: 'Keep the retired hideout branch off the active route.',
+        ifPartiallyInformed: 'Do not surface it as the default late-route destination until rewritten and documented as aligned.',
+        onRevisit: 'Redirect to canonical Hushbriar rather than treating this as a live hub.',
+        neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
+    },
+    SCENE_ELARA_HIDEAWAY: {
+        thread: 'retired_hushbriar_guild_branch',
+        prerequisites: {
+            storyEvents: ['hushbriar_demigod_thread']
+        },
+        fallbackMode: SCENE_FALLBACK_MODES.REDIRECT,
+        ifReachedTooEarly: 'Retire the holdfast-management branch until it is rewritten into draft-first order.',
+        ifPartiallyInformed: 'Keep Elara out of the active route until her branch is canon-aligned and documented.',
+        onRevisit: 'Do not route normal hub travel here.',
+        neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
+    },
+    SCENE_SOUL_MILL_APPROACH: {
+        thread: 'dormant_hushbriar_future_route',
+        prerequisites: {
+            storyEvents: ['hushbriar_demigod_thread']
+        },
+        fallbackMode: SCENE_FALLBACK_MODES.REDIRECT,
+        ifReachedTooEarly: 'Keep the Soul Mill dormant until its late Hushbriar role is draft-aligned and documented.',
+        ifPartiallyInformed: 'Do not let teaser surfaces behave like active destinations.',
+        onRevisit: 'Redirect to canonical Hushbriar until the route is promoted out of dormant status.',
+        neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
+    },
+    SCENE_SOLASMOR_APPROACH: {
+        thread: 'dormant_hushbriar_future_route',
+        prerequisites: {
+            storyEvents: ['hushbriar_demigod_thread']
+        },
+        fallbackMode: SCENE_FALLBACK_MODES.REDIRECT,
+        ifReachedTooEarly: 'Keep Solasmor dormant until its late Hushbriar role is draft-aligned and documented.',
+        ifPartiallyInformed: 'Do not let a teaser monastery route compete with the canonical Moonwell pressure.',
+        onRevisit: 'Redirect to canonical Hushbriar until the route is promoted out of dormant status.',
         neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
     }
 };

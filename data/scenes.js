@@ -1790,7 +1790,7 @@ export const scenes = {
         background: "landscapes/forest_walk.png",
         text: "Aine's stare stays fixed on the mark until anger spends itself and leaves only exhaustion behind. 'Mark of Ciara,' she says at last, like each word tastes foul. 'Blackened Queen. Depth-rot made holy.' She laughs once, without humor, and presses a shaking hand over her mouth before she can lose more of herself than she means to. What follows comes badly, in pieces she clearly wishes she could choke back down. Aodhan came to her for the Stone of Oblivion. He wanted not merely its name, but the key to waking it. When she refused him, he bound her where she stood and burned her children before her eyes so she would hear them die and still not be able to move. The telling breaks there. When she forces herself onward again, her voice is hoarse and hollow. The stone will not wake for prayer, or for common slaughter. It must drink divine blood. A god could rouse it. A demigod could suffice. She bought time by sending Aodhan toward the Forbidden Archives, but only time. 'So choose,' Aine says, looking suddenly older than the hill around her. 'Hushbriar if you mean to deny him the blood. The Archives if you mean to learn what sort of ruin he has already embraced.'",
         choices: [
-            { text: "\"Then Hushbriar first. He doesn't get her blood.\"", nextScene: "SCENE_HUSHBRIAR_GUILD_ROAD" },
+            { text: "\"Then Hushbriar first. He doesn't get her blood.\"", nextScene: "SCENE_ARRIVAL_HUSHBRIAR" },
             { text: "\"I'll take the Archives truth before I follow him lower.\"", nextScene: "SCENE_ARCHIVES_APPROACH" }
         ]
     },
@@ -1863,7 +1863,7 @@ export const scenes = {
         text: "The Archives are older than comfort and grander than mercy. Dark shelves climb into shadow, pale lights drift between them like captive moons, and every step sounds indecently loud, as though the dead in the walls resent being reminded of the living. Thalion leads you to a lectern where a silver-and-midnight tome lies open beside diagrams that never seem to hold still long enough to be safely understood. He does not give the answer as a scholar would. He gives it like testimony. The Stone of Oblivion does not wake for prayer, nor for ordinary slaughter. What stirs in the margins of the pages is holier and fouler than that. It must drink divinity. A god could rouse it. A demigod could suffice. Only after letting that sentence bruise the air between you does Thalion admit, with loathing that points inward, that he knows because he once committed such a sin himself and bought eternity at the price of becoming the warning now speaking to you.",
         choices: [
             { text: "\"Then answer what you still can before you close your mouth to me.\"", nextScene: "SCENE_ARCHIVES_AUDIENCE" },
-            { text: "\"That is enough. Hushbriar cannot wait.\"", nextScene: "SCENE_HUSHBRIAR_GUILD_ROAD" }
+            { text: "\"That is enough. Hushbriar cannot wait.\"", nextScene: "SCENE_ARRIVAL_HUSHBRIAR" }
         ]
     },
     "SCENE_ARCHIVES_AUDIENCE": {
@@ -1948,7 +1948,7 @@ export const scenes = {
                 effects: [
                     { type: "flag", flagId: "archives_thalion_audience_closed", value: true }
                 ],
-                nextScene: "SCENE_HUSHBRIAR_GUILD_ROAD"
+                nextScene: "SCENE_ARRIVAL_HUSHBRIAR"
             }
         ]
     },
@@ -1958,7 +1958,7 @@ export const scenes = {
         background: "landscapes/forest_walk_alt.png",
         text: "Once you step away from the lectern, the Archives become colder and less welcoming, as though the place itself has agreed with Thalion that the richest truths have already been spent on you. The road back down the hill waits in storm-dark silence, with Hushbriar looming now not as rumor but as obligation.",
         choices: [
-            { text: "Descend toward Hushbriar and the demigod lead", nextScene: "SCENE_HUSHBRIAR_GUILD_ROAD" },
+            { text: "Descend toward Hushbriar and the demigod lead", nextScene: "SCENE_ARRIVAL_HUSHBRIAR" },
             { text: "Climb back toward Aine's hill and reconsider", nextScene: "SCENE_LAMENT_HILL_APPROACH" }
         ]
     },

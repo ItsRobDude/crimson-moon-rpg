@@ -1509,9 +1509,6 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
             createChoice(state.northRouteOpen ? 'Take the northern skip route again' : 'Head north through the broken market road', 'SCENE_SPOREFALL_NORTH_APPROACH'),
             createChoice(gameState.flags.eoin_recruited ? "Check on Eoin before you choose a road" : "Return to Eoin's hiding place", 'SCENE_EOIN_TALK')
         ];
-        if (clueNotes.length > 0) {
-            scene.choices.push(createChoice("Leave Sporefall behind and follow Aodhan's trail toward Hushbriar", 'SCENE_ARRIVAL_HUSHBRIAR'));
-        }
         if (gameState.flags.eoin_recruited) {
             scene.choices.unshift(createChoice("Ask Eoin to show you the way north how he remembers it. (Survival)", null, {
                 type: 'skillCheck',
@@ -3900,22 +3897,18 @@ export function getHubSceneForLocation(locationId) {
         return 'SCENE_SILVERTHORN_QUARANTINE';
     }
     if (locationId === 'hushbriar') {
-        return 'SCENE_HUSHBRIAR_GUILD_ROAD';
+        return 'SCENE_HUSHBRIAR_TOWN';
     }
     if (locationId === 'thieves_hideout') {
-        if (gameState.flags['elara_route_protect']) return 'SCENE_ELARA_PROTECT_ROUTE';
-        if (gameState.flags['elara_route_stone_hunt_declared']) return 'SCENE_ELARA_STONE_ROUTE';
-        if (gameState.flags['elara_route_aodhan_lured']) return 'SCENE_ELARA_BETRAY_ROUTE';
-        return 'SCENE_THIEVES_HIDEOUT';
+        return 'SCENE_HUSHBRIAR_TOWN';
     }
     if (locationId === 'silverthorn') return 'SCENE_HUB_SILVERTHORN';
     if (locationId === 'whisperwood') return 'SCENE_ARRIVAL_WHISPERWOOD';
     if (locationId === 'shadowmire') return 'SCENE_TRAVEL_SHADOWMIRE';
     if (locationId === 'durnhelm') return 'SCENE_DURNHELM_GATES';
     if (locationId === 'lament_hill') return 'SCENE_LAMENT_HILL_APPROACH';
-    if (locationId === 'solasmor') return 'SCENE_SOLASMOR_APPROACH';
-    if (locationId === 'soul_mill') return 'SCENE_SOUL_MILL_APPROACH';
-    if (locationId === 'thieves_hideout') return 'SCENE_THIEVES_HIDEOUT';
+    if (locationId === 'solasmor') return 'SCENE_HUSHBRIAR_TOWN';
+    if (locationId === 'soul_mill') return 'SCENE_HUSHBRIAR_TOWN';
     return 'SCENE_BRIEFING';
 }
 

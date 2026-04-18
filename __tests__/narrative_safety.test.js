@@ -82,6 +82,28 @@ test('critical Act I safety coverage exists for the fragile early-route scenes',
   });
 });
 
+test('late Hushbriar spine and retired teaser branches carry explicit safety policy coverage', () => {
+  [
+    'SCENE_ARRIVAL_HUSHBRIAR',
+    'SCENE_HUSHBRIAR_TOWN',
+    'SCENE_BRIARWOOD_INN',
+    'SCENE_HUSHBRIAR_SCREAMS',
+    'SCENE_MOONWELL',
+    'SCENE_HUSHBRIAR_GUILD_ROAD',
+    'SCENE_THIEVES_HIDEOUT',
+    'SCENE_ELARA_HIDEAWAY',
+    'SCENE_SOUL_MILL_APPROACH',
+    'SCENE_SOLASMOR_APPROACH'
+  ].forEach((sceneId) => {
+    expect(sceneSafetyPolicies[sceneId]).toBeDefined();
+  });
+
+  expect(sceneSafetyPolicies.SCENE_HUSHBRIAR_GUILD_ROAD.fallbackMode).toBe(SCENE_FALLBACK_MODES.REDIRECT);
+  expect(sceneSafetyPolicies.SCENE_THIEVES_HIDEOUT.fallbackMode).toBe(SCENE_FALLBACK_MODES.REDIRECT);
+  expect(sceneSafetyPolicies.SCENE_SOUL_MILL_APPROACH.fallbackMode).toBe(SCENE_FALLBACK_MODES.REDIRECT);
+  expect(sceneSafetyPolicies.SCENE_SOLASMOR_APPROACH.fallbackMode).toBe(SCENE_FALLBACK_MODES.REDIRECT);
+});
+
 test('early-route runtime scenes stay free of hidden ritual spoiler terms across current variants', () => {
   freshState();
   expectNoForbiddenSpoilers(getRuntimeScene('SCENE_HUB_SILVERTHORN'));

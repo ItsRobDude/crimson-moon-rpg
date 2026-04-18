@@ -95,6 +95,7 @@ Before changing major story flow, timing, or city content, check:
 
 - `dnd-original-campaign-draft`
 - `notes/story_timeline_model.md`
+- `notes/campaign_route_status.md`
 - `readme.txt`
 - `notes/narrative_tone_guide.md` for prose-tone guardrails and anti-drift rules
 - `notes/act1_canon_internal.md` for contributor-only canon truths and spoiler boundaries
@@ -112,7 +113,7 @@ Canon priority rule:
 
 - `dnd-original-campaign-draft` is bible unless Rob explicitly says otherwise
 - if current implementation, notes, or scene text drift from the campaign draft, tighten them back toward the draft unless Rob has overruled it
-- when fallback ordering is needed, prefer: `dnd-original-campaign-draft` -> timeline/canon notes -> current authored scene text/runtime behavior
+- when fallback ordering is needed, prefer: `dnd-original-campaign-draft` -> route/timeline notes -> current authored scene text -> runtime behavior
 
 Do not invent contradictory lore if an existing source already answers it.
 
@@ -137,6 +138,32 @@ Current naming rule:
 
 - present-tense horror scenes can use `Sporefall`
 - memory fragments, older records, and pre-ritual references should usually use `Whisperwood`
+
+## Route Governance
+
+Use `notes/campaign_route_status.md` before adding, restoring, or expanding routes.
+
+Valid route classes are:
+
+- `canonical`
+- `alternate_aligned`
+- `dormant`
+- `retired`
+
+Rules:
+
+- `canonical` routes are the draft-backed mission spine and must remain the default playable path.
+- `alternate_aligned` routes may exist only if they do not conflict with draft order, named locations, NPC identity, or timeline logic.
+- `dormant` and `retired` routes must not be normal hub destinations, map defaults, or casual "while you're here" expansions.
+- if a route is incomplete or not canon-aligned, document it as `dormant` or `retired` before shipping more content into it.
+
+Any new side quest or alternate route must:
+
+- start from a canonical mission beat
+- stay within existing world locations named by the draft or canon notes
+- use only canon-named NPCs in ways consistent with their identity and goals
+- be documented in `notes/campaign_route_status.md` with status and completion percentage before it becomes playable
+- never change an established NPC's personality, identity, motive, or timeline role
 
 ## Tone Preservation
 

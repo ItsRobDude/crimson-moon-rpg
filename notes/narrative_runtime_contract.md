@@ -4,7 +4,10 @@ This note is for contributors and coding agents working on story flow, runtime-a
 
 Use this contract together with:
 
+- `dnd-original-campaign-draft`
 - `notes/act1_canon_internal.md`
+- `notes/story_timeline_model.md`
+- `notes/campaign_route_status.md`
 - `notes/narrative_state_registry.md`
 - `data/narrativeSafety.js`
 - `data/storyTimeline.js`
@@ -13,16 +16,58 @@ Use this contract together with:
 
 Use these layers in this order:
 
-1. `notes/act1_canon_internal.md`
-   Contributor-only hidden truth and spoiler boundaries.
-2. `data/scenes.js`
+1. `dnd-original-campaign-draft`
+   Route order, character purpose, city usage, and mission spine.
+2. `notes/act1_canon_internal.md`
+   Contributor-only hidden truth, spoiler boundaries, and identity guardrails.
+3. `notes/story_timeline_model.md` and `notes/campaign_route_status.md`
+   Approved route ordering, route class, and playable-vs-dormant status.
+4. `data/scenes.js`
    Stable player-facing authored prose, scene ids, and baseline choice structure.
-3. `data/storyTimeline.js`
+5. `data/storyTimeline.js`
    Event availability, act progression, and scene safety policy metadata.
-4. `game.js`
+6. `game.js`
    Runtime variation, soft-gating, fallback selection, and systemic choice assembly.
 
 Do not let `game.js` become the only place where a scene's meaning, prerequisite, or spoiler boundary exists.
+
+If these sources conflict, tighten back toward the campaign draft and route-status note unless Rob has explicitly overruled them.
+
+## Route Governance
+
+Before adding, restoring, or expanding a route, check `notes/campaign_route_status.md`.
+
+Only these route classes are valid:
+
+- `canonical`
+- `alternate_aligned`
+- `dormant`
+- `retired`
+
+Rules:
+
+- `canonical` routes are the draft-backed main path and must remain playable.
+- `alternate_aligned` routes may be playable, but only if they preserve draft order, named locations, and NPC identity/goals.
+- `dormant` and `retired` routes must not be normal hub destinations or default location returns.
+- if a branch is incomplete or not yet canon-aligned, it must be documented as `dormant` or `retired` before any further runtime expansion.
+
+Any new side quest or alternate route must:
+
+- start from a canonical mission beat
+- stay inside named locations already established by draft or canon notes
+- use only canon-named NPCs in ways consistent with their identity and goals
+- be added to `notes/campaign_route_status.md` before it becomes reachable
+
+## NPC Identity Safety
+
+NPC identity is a canon safety issue, not a flavor suggestion.
+
+Contributors must not:
+
+- change an established NPC's core personality
+- change an established NPC's long-term goals
+- rewrite an NPC into a different route role than the draft assigns
+- use alternate routes as an excuse to soften, flatten, or repurpose an NPC into a generic helper
 
 ## Where Player-Facing Text Should Live
 
@@ -140,6 +185,7 @@ Current migration candidates:
 - Silverthorn rumor and prep variants
 - early Sporefall hub variants
 - Eoin branch state handling
+- retired Hushbriar guild-first and Elara holdfast branches
 
 ## Validation Expectations
 
@@ -153,3 +199,5 @@ Any narrative safety work should preserve:
 - no tonal drift that replaces concrete horror with generic mood language in protected scenes
 - no runtime variant that strips physical aftermath, social fear, or grief from the authored baseline
 - no protected NPC voice drifting into polished exposition, modern helper phrasing, or emotionally detached summary
+- no dormant or retired route becoming the active hub/default destination
+- no new side route becoming playable without a matching `notes/campaign_route_status.md` entry

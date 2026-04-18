@@ -1,18 +1,25 @@
 import { gameState, resetGameState } from '../data/gameState.js';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { scenes } from '../data/scenes.js';
 import { storySceneTriggers } from '../data/storyTimeline.js';
 import { getHubSceneForLocation } from '../game.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const routeStatusNote = fs.readFileSync(path.join(__dirname, '..', 'notes', 'campaign_route_status.md'), 'utf8');
 
 beforeEach(() => {
   resetGameState();
   gameState.flags = {};
 });
 
-test('Aine now points directly into authored Archives and Hushbriar late-game routes', () => {
+test('Aine now points directly into authored Archives and canonical Hushbriar arrival routes', () => {
   const aineChoices = scenes.SCENE_LAMENT_AINE_REVEAL.choices;
 
   expect(aineChoices.some((choice) => choice.nextScene === 'SCENE_ARCHIVES_APPROACH')).toBe(true);
-  expect(aineChoices.some((choice) => choice.nextScene === 'SCENE_HUSHBRIAR_GUILD_ROAD')).toBe(true);
+  expect(aineChoices.some((choice) => choice.nextScene === 'SCENE_ARRIVAL_HUSHBRIAR')).toBe(true);
   expect(aineChoices.some((choice) => choice.action === 'openMap')).toBe(false);
 });
 
@@ -43,8 +50,9 @@ test('Thalion audience contains one-pass missable truth gates and a closing flag
   expect(leaveChoice.effects).toContainEqual({ type: 'flag', flagId: 'archives_thalion_audience_closed', value: true });
 });
 
-test('Hushbriar now opens on the guild-investigation route and the ledger/Elara flags exist', () => {
-  expect(getHubSceneForLocation('hushbriar')).toBe('SCENE_HUSHBRIAR_GUILD_ROAD');
+test('Hushbriar now opens on the canonical town route and the draft-late route scenes remain authored', () => {
+  expect(getHubSceneForLocation('hushbriar')).toBe('SCENE_HUSHBRIAR_TOWN');
+  expect(scenes.SCENE_ARRIVAL_HUSHBRIAR.choices.some((choice) => choice.nextScene === 'SCENE_HUSHBRIAR_GATES')).toBe(true);
   expect(scenes.SCENE_HUSHBRIAR_LEDGER.onEnter.effects).toContainEqual({ type: 'flag', flagId: 'hushbriar_guild_ledger_found', value: true });
   expect(scenes.SCENE_ELARA_HIDEAWAY.onEnter.effects).toContainEqual({ type: 'flag', flagId: 'elara_met', value: true });
 });
@@ -64,17 +72,10 @@ test('Elara route choices differ based on Stone possession and whether Aodhan st
   expect(protectChoice.effects).toContainEqual({ type: 'flag', flagId: 'elara_route_protect', value: true });
 });
 
-test('thieves hideout travel resolves to the committed Elara route state', () => {
-  expect(getHubSceneForLocation('thieves_hideout')).toBe('SCENE_THIEVES_HIDEOUT');
-
-  gameState.flags.elara_route_protect = true;
-  expect(getHubSceneForLocation('thieves_hideout')).toBe('SCENE_ELARA_PROTECT_ROUTE');
-
-  gameState.flags = { elara_route_stone_hunt_declared: true };
-  expect(getHubSceneForLocation('thieves_hideout')).toBe('SCENE_ELARA_STONE_ROUTE');
-
-  gameState.flags = { elara_route_aodhan_lured: true };
-  expect(getHubSceneForLocation('thieves_hideout')).toBe('SCENE_ELARA_BETRAY_ROUTE');
+test('retired and dormant late routes no longer resolve as default hubs', () => {
+  expect(getHubSceneForLocation('thieves_hideout')).toBe('SCENE_HUSHBRIAR_TOWN');
+  expect(getHubSceneForLocation('soul_mill')).toBe('SCENE_HUSHBRIAR_TOWN');
+  expect(getHubSceneForLocation('solasmor')).toBe('SCENE_HUSHBRIAR_TOWN');
 });
 
 test('remaining late-route surfaces no longer collapse into pure map-bounce placeholders', () => {
@@ -93,4 +94,28 @@ test('Elara protect route now holds inside the hideout instead of exposing unfin
     expect.stringContaining('guild is whispering'),
     expect.stringContaining('ward circle')
   ]));
+});
+
+test('route-status note documents canonical, retired, and dormant late branches', () => {
+  [
+    'silverthorn_sporefall_opening',
+    'durnhelm_relic_lead',
+    'lament_hill_truth',
+    'archives_truth_branch',
+    'hushbriar_moonwell_spine',
+    'hushbriar_guild_bridge_loop',
+    'elara_holdfast_loop',
+    'solasmor_late_teaser',
+    'soul_mill_processing_route'
+  ].forEach((routeId) => {
+    expect(routeStatusNote).toContain(`\`${routeId}\``);
+  });
+
+  expect(routeStatusNote).toContain('`retired`');
+  expect(routeStatusNote).toContain('`dormant`');
+  expect(routeStatusNote).toContain('`alternate_aligned`');
+
+  expect(storySceneTriggers.SCENE_DURNHELM_GATES.activate).toEqual(['durnhelm_thread']);
+  expect(storySceneTriggers.SCENE_LAMENT_AINE_REVEAL.unlock).toEqual(['archives_truth', 'hushbriar_demigod_thread']);
+  expect(storySceneTriggers.SCENE_ARRIVAL_HUSHBRIAR.activate).toEqual(['hushbriar_demigod_thread']);
 });
