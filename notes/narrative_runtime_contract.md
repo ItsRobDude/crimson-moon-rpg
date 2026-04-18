@@ -8,6 +8,7 @@ Use this contract together with:
 - `notes/act1_canon_internal.md`
 - `notes/story_timeline_model.md`
 - `notes/campaign_route_status.md`
+- `notes/route_packets/`
 - `notes/narrative_state_registry.md`
 - `data/narrativeSafety.js`
 - `data/storyTimeline.js`
@@ -50,6 +51,7 @@ Rules:
 - `alternate_aligned` routes may be playable, but only if they preserve draft order, named locations, and NPC identity/goals.
 - `dormant` and `retired` routes must not be normal hub destinations or default location returns.
 - if a branch is incomplete or not yet canon-aligned, it must be documented as `dormant` or `retired` before any further runtime expansion.
+- dormant or retired late routes with named destinations must also have a matching design packet in `notes/route_packets/` before contributors extend them again.
 
 Any new side quest or alternate route must:
 

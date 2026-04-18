@@ -43,6 +43,9 @@ test('late-game locations stay locked until their story threads open', () => {
 
   expect(meetsStoryRequirement(storyState, getLocationStoryRequirement('durnhelm'))).toBe(false);
   expect(meetsStoryRequirement(storyState, getLocationStoryRequirement('hushbriar'))).toBe(false);
+  expect(meetsStoryRequirement(storyState, getLocationStoryRequirement('thieves_hideout'))).toBe(false);
+  expect(meetsStoryRequirement(storyState, getLocationStoryRequirement('solasmor'))).toBe(false);
+  expect(meetsStoryRequirement(storyState, getLocationStoryRequirement('soul_mill'))).toBe(false);
 
   syncStoryStateForScene(storyState, 'SCENE_BRIEFING');
   syncStoryStateForScene(storyState, 'SCENE_HUB_SILVERTHORN');
@@ -67,6 +70,9 @@ test('late-game locations stay locked until their story threads open', () => {
   syncStoryStateForScene(storyState, 'SCENE_LAMENT_AINE_REVEAL');
 
   expect(meetsStoryRequirement(storyState, getLocationStoryRequirement('hushbriar'))).toBe(true);
+  expect(meetsStoryRequirement(storyState, getLocationStoryRequirement('thieves_hideout'))).toBe(false);
+  expect(meetsStoryRequirement(storyState, getLocationStoryRequirement('solasmor'))).toBe(false);
+  expect(meetsStoryRequirement(storyState, getLocationStoryRequirement('soul_mill'))).toBe(false);
 });
 
 test('sporefall investigation now unlocks Aodhan and Durnhelm before Lament Hill or Hushbriar open', () => {
@@ -96,4 +102,6 @@ test('sporefall investigation now unlocks Aodhan and Durnhelm before Lament Hill
   expect(getStoryEventStatus(storyState, 'durnhelm_thread')).toBe(STORY_EVENT_STATUS.AVAILABLE);
   expect(getStoryEventStatus(storyState, 'lament_hill_thread')).toBe(STORY_EVENT_STATUS.LOCKED);
   expect(getStoryEventStatus(storyState, 'hushbriar_demigod_thread')).toBe(STORY_EVENT_STATUS.LOCKED);
+  expect(getStoryEventStatus(storyState, 'retired_hushbriar_guild_branch')).toBe(STORY_EVENT_STATUS.LOCKED);
+  expect(getStoryEventStatus(storyState, 'dormant_hushbriar_future_route')).toBe(STORY_EVENT_STATUS.LOCKED);
 });

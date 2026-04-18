@@ -9,6 +9,9 @@ import { getHubSceneForLocation } from '../game.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const routeStatusNote = fs.readFileSync(path.join(__dirname, '..', 'notes', 'campaign_route_status.md'), 'utf8');
+const solasmorPacket = fs.readFileSync(path.join(__dirname, '..', 'notes', 'route_packets', 'solasmor_route.md'), 'utf8');
+const soulMillPacket = fs.readFileSync(path.join(__dirname, '..', 'notes', 'route_packets', 'soul_mill_route.md'), 'utf8');
+const elaraPacket = fs.readFileSync(path.join(__dirname, '..', 'notes', 'route_packets', 'elara_future_branch.md'), 'utf8');
 
 beforeEach(() => {
   resetGameState();
@@ -35,7 +38,7 @@ test('Archives route is authored and archives_truth completes at the truth chamb
 
 test('Thalion audience contains one-pass missable truth gates and a closing flag', () => {
   const audienceChoices = scenes.SCENE_ARCHIVES_AUDIENCE.choices;
-  const aldericChoice = audienceChoices.find((choice) => choice.text.includes('Alderic buy for himself'));
+  const aldericChoice = audienceChoices.find((choice) => choice.text.includes('Alderic been reaching'));
   const confessionChoice = audienceChoices.find((choice) => choice.text.includes('sin chained you'));
   const leaveChoice = audienceChoices.find((choice) => choice.text.includes('Bow out before he decides'));
 
@@ -114,8 +117,36 @@ test('route-status note documents canonical, retired, and dormant late branches'
   expect(routeStatusNote).toContain('`retired`');
   expect(routeStatusNote).toContain('`dormant`');
   expect(routeStatusNote).toContain('`alternate_aligned`');
+  expect(routeStatusNote).toContain('notes/route_packets/solasmor_route.md');
+  expect(routeStatusNote).toContain('notes/route_packets/soul_mill_route.md');
+  expect(routeStatusNote).toContain('notes/route_packets/elara_future_branch.md');
 
   expect(storySceneTriggers.SCENE_DURNHELM_GATES.activate).toEqual(['durnhelm_thread']);
   expect(storySceneTriggers.SCENE_LAMENT_AINE_REVEAL.unlock).toEqual(['archives_truth', 'hushbriar_demigod_thread']);
   expect(storySceneTriggers.SCENE_ARRIVAL_HUSHBRIAR.activate).toEqual(['hushbriar_demigod_thread']);
+  expect(storySceneTriggers.SCENE_HUSHBRIAR_GUILD_ROAD.activate).toEqual(['retired_hushbriar_guild_branch']);
+  expect(storySceneTriggers.SCENE_THIEVES_HIDEOUT.activate).toEqual(['retired_hushbriar_guild_branch']);
+  expect(storySceneTriggers.SCENE_SOUL_MILL_APPROACH.activate).toEqual(['dormant_hushbriar_future_route']);
+  expect(storySceneTriggers.SCENE_SOLASMOR_APPROACH.activate).toEqual(['dormant_hushbriar_future_route']);
+});
+
+test('dormant and retired late routes have design packets with status and completion targets', () => {
+  [
+    solasmorPacket,
+    soulMillPacket,
+    elaraPacket
+  ].forEach((packet) => {
+    expect(packet).toContain('Route status:');
+    expect(packet).toContain('Completion target:');
+    expect(packet).toContain('Allowed entry beat:');
+    expect(packet).toContain('Named NPC rules:');
+    expect(packet).toContain('## Required Before Promotion');
+  });
+
+  expect(solasmorPacket).toContain('Route status: `dormant`');
+  expect(solasmorPacket).toContain('Allowed cities: `Solasmor`');
+  expect(soulMillPacket).toContain('Route status: `dormant`');
+  expect(soulMillPacket).toContain('Allowed cities: `Hushbriar`, `Soul Mill`');
+  expect(elaraPacket).toContain('Route status: `retired`');
+  expect(elaraPacket).toContain('`Elara`, `Neala`, and `Liobhan`');
 });

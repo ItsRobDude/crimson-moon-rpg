@@ -104,6 +104,33 @@ test('late Hushbriar spine and retired teaser branches carry explicit safety pol
   expect(sceneSafetyPolicies.SCENE_SOLASMOR_APPROACH.fallbackMode).toBe(SCENE_FALLBACK_MODES.REDIRECT);
 });
 
+test('late-route registry ownership matches the draft-first Hushbriar split', () => {
+  [
+    'hushbriar_fionnlagh_met',
+    'moonwell_night_available',
+    'moonwell_seen',
+    'moonwell_missed',
+    'moonwell_morning_setup_seen'
+  ].forEach((flagId) => {
+    expect(narrativeStateRegistry.flags[flagId].thread).toBe('hushbriar_demigod_thread');
+  });
+
+  [
+    'hushbriar_guild_ledger_found',
+    'hushbriar_guild_trusted',
+    'hushbriar_guild_hostile',
+    'elara_met',
+    'elara_route_protect',
+    'neala_recruited',
+    'neala_refused',
+    'neala_bonded',
+    'elara_route_stone_hunt_declared',
+    'elara_route_aodhan_lured'
+  ].forEach((flagId) => {
+    expect(narrativeStateRegistry.flags[flagId].thread).toBe('retired_hushbriar_guild_branch');
+  });
+});
+
 test('early-route runtime scenes stay free of hidden ritual spoiler terms across current variants', () => {
   freshState();
   expectNoForbiddenSpoilers(getRuntimeScene('SCENE_HUB_SILVERTHORN'));

@@ -45,26 +45,26 @@ If you add a new story-critical key, update both this note and the JS registry i
 | `sporefall_bridge_body_seen` | `SCENE_SPOREFALL_NORTH_BRIDGE` | `north_bridge` | Eoin's mother found under the bridge. | spoiler_sensitive | optional_clue |
 | `sporefall_north_route_open` | `SCENE_SPOREFALL_NORTH_ROUTE_DISCOVERED` | `north_skip_route` | Northern skip route opened. | public | story_progression |
 | `sporefall_north_route_avoided_fight` | `SCENE_SPOREFALL_NORTH_ROUTE_DISCOVERED` | `north_skip_route` | Northern route was reached through the evasive branch rather than the ambush. | public | optional_clue |
-| `hushbriar_fionnlagh_met` | `SCENE_FIONNLAGH_HUB` | `aodhan_thread` | Fionnlagh meeting completed and Moonwell night window opened. | public | story_progression |
-| `moonwell_night_available` | `SCENE_FIONNLAGH_HUB` | `aodhan_thread` | Moonwell night event is available before dawn. | public | story_progression |
-| `moonwell_seen` | `SCENE_MOONWELL` | `aodhan_thread` | Moonwell catastrophe witnessed directly. | spoiler_sensitive | story_progression |
-| `moonwell_missed` | `SCENE_HUSHBRIAR_MORNING_SETUP` | `aodhan_thread` | Player missed the night Moonwell encounter and hit the morning-after setup instead. | spoiler_sensitive | one_time_outcome |
-| `moonwell_morning_setup_seen` | `SCENE_HUSHBRIAR_MORNING_SETUP` | `aodhan_thread` | Morning-after Hushbriar commotion and three-way conflict setup seen. | spoiler_sensitive | story_progression |
+| `hushbriar_fionnlagh_met` | `SCENE_FIONNLAGH_HUB` | `hushbriar_demigod_thread` | Fionnlagh meeting completed and Moonwell night window opened. | public | story_progression |
+| `moonwell_night_available` | `SCENE_FIONNLAGH_HUB` | `hushbriar_demigod_thread` | Moonwell night event is available before dawn. | public | story_progression |
+| `moonwell_seen` | `SCENE_MOONWELL` | `hushbriar_demigod_thread` | Moonwell catastrophe witnessed directly. | spoiler_sensitive | story_progression |
+| `moonwell_missed` | `SCENE_HUSHBRIAR_MORNING_SETUP` | `hushbriar_demigod_thread` | Player missed the night Moonwell encounter and hit the morning-after setup instead. | spoiler_sensitive | one_time_outcome |
+| `moonwell_morning_setup_seen` | `SCENE_HUSHBRIAR_MORNING_SETUP` | `hushbriar_demigod_thread` | Morning-after Hushbriar commotion and three-way conflict setup seen. | spoiler_sensitive | story_progression |
 | `archives_thalion_audience_closed` | `SCENE_ARCHIVES_AUDIENCE` | `archives_truth` | First decisive Thalion audience exhausted. | spoiler_sensitive | one_time_outcome |
-| `archives_alderic_truth_learned` | `SCENE_ARCHIVES_ALDERIC_TRUTH` | `archives_truth` | Higher-value Alderic/Ciara truth extracted. | spoiler_sensitive | optional_clue |
-| `archives_alderic_truth_missed` | `SCENE_ARCHIVES_ALDERIC_REBUFF` | `archives_truth` | Deeper Alderic/Ciara truth permanently missed. | spoiler_sensitive | one_time_outcome |
+| `archives_alderic_truth_learned` | `SCENE_ARCHIVES_ALDERIC_TRUTH` | `archives_truth` | Deeper Alderic truth extracted without frontloading later lore. | spoiler_sensitive | optional_clue |
+| `archives_alderic_truth_missed` | `SCENE_ARCHIVES_ALDERIC_REBUFF` | `archives_truth` | Deeper Alderic truth permanently missed. | spoiler_sensitive | one_time_outcome |
 | `archives_thalion_confession_learned` | `SCENE_ARCHIVES_THALION_CONFESSION` | `archives_truth` | Thalion's personal confession learned. | spoiler_sensitive | optional_clue |
 | `archives_thalion_confession_missed` | `SCENE_ARCHIVES_THALION_REBUFF` | `archives_truth` | Thalion's personal confession permanently missed. | spoiler_sensitive | one_time_outcome |
-| `hushbriar_guild_ledger_found` | `SCENE_HUSHBRIAR_LEDGER` | `hushbriar_demigod_thread` | Loading-dock ledger clue found. | public | optional_clue |
-| `hushbriar_guild_trusted` | `SCENE_THIEVES_HIDEOUT` | `hushbriar_demigod_thread` | Guild trust earned enough to reach Elara. | public | story_progression |
-| `hushbriar_guild_hostile` | `SCENE_THIEVES_HIDEOUT` | `hushbriar_demigod_thread` | Guild relationship turned openly hostile. | public | story_progression |
-| `elara_met` | `SCENE_ELARA_HIDEAWAY` | `hushbriar_demigod_thread` | Elara personally encountered. | spoiler_sensitive | story_progression |
-| `elara_route_protect` | `SCENE_ELARA_PROTECT_ROUTE` | `hushbriar_demigod_thread` | Party committed to protecting and hiding Elara. | spoiler_sensitive | story_progression |
-| `neala_recruited` | `SCENE_ELARA_PROTECT_ROUTE` | `hushbriar_demigod_thread` | Neala joined the party to guide the Elara protection route. | spoiler_sensitive | story_progression |
-| `neala_refused` | `SCENE_ELARA_PROTECT_ROUTE` | `hushbriar_demigod_thread` | Player chose to leave Neala guarding the hideout instead of recruiting her. | public | one_time_outcome |
-| `neala_bonded` | `SCENE_ELARA_PROTECT_ROUTE` | `hushbriar_demigod_thread` | Neala trusts the party enough to share guild routecraft. | spoiler_sensitive | optional_clue |
-| `elara_route_stone_hunt_declared` | `SCENE_ELARA_STONE_ROUTE` | `hushbriar_demigod_thread` | Party declared intent to use Elara's blood for the Stone. | spoiler_sensitive | story_progression |
-| `elara_route_aodhan_lured` | `SCENE_ELARA_BETRAY_ROUTE` | `hushbriar_demigod_thread` | Party chose to lead or lure Aodhan to Elara. | spoiler_sensitive | story_progression |
+| `hushbriar_guild_ledger_found` | `SCENE_HUSHBRIAR_LEDGER` | `retired_hushbriar_guild_branch` | Loading-dock ledger clue found. | public | optional_clue |
+| `hushbriar_guild_trusted` | `SCENE_THIEVES_HIDEOUT` | `retired_hushbriar_guild_branch` | Guild trust earned enough to reach Elara. | public | story_progression |
+| `hushbriar_guild_hostile` | `SCENE_THIEVES_HIDEOUT` | `retired_hushbriar_guild_branch` | Guild relationship turned openly hostile. | public | story_progression |
+| `elara_met` | `SCENE_ELARA_HIDEAWAY` | `retired_hushbriar_guild_branch` | Elara personally encountered. | spoiler_sensitive | story_progression |
+| `elara_route_protect` | `SCENE_ELARA_PROTECT_ROUTE` | `retired_hushbriar_guild_branch` | Party committed to protecting and hiding Elara. | spoiler_sensitive | story_progression |
+| `neala_recruited` | `SCENE_ELARA_PROTECT_ROUTE` | `retired_hushbriar_guild_branch` | Neala joined the party to guide the Elara protection route. | spoiler_sensitive | story_progression |
+| `neala_refused` | `SCENE_ELARA_PROTECT_ROUTE` | `retired_hushbriar_guild_branch` | Player chose to leave Neala guarding the hideout instead of recruiting her. | public | one_time_outcome |
+| `neala_bonded` | `SCENE_ELARA_PROTECT_ROUTE` | `retired_hushbriar_guild_branch` | Neala trusts the party enough to share guild routecraft. | spoiler_sensitive | optional_clue |
+| `elara_route_stone_hunt_declared` | `SCENE_ELARA_STONE_ROUTE` | `retired_hushbriar_guild_branch` | Party declared intent to use Elara's blood for the Stone. | spoiler_sensitive | story_progression |
+| `elara_route_aodhan_lured` | `SCENE_ELARA_BETRAY_ROUTE` | `retired_hushbriar_guild_branch` | Party chose to lead or lure Aodhan to Elara. | spoiler_sensitive | story_progression |
 
 ## Scene Memory
 

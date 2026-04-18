@@ -225,7 +225,7 @@ export const narrativeStateRegistry = {
         },
         hushbriar_fionnlagh_met: {
             owner: 'SCENE_FIONNLAGH_HUB',
-            thread: 'aodhan_thread',
+            thread: 'hushbriar_demigod_thread',
             meaning: 'The player reached Fionnlagh and opened the missable Moonwell night window.',
             allowedValues: [true],
             revealSensitivity: 'public',
@@ -233,7 +233,7 @@ export const narrativeStateRegistry = {
         },
         moonwell_night_available: {
             owner: 'SCENE_FIONNLAGH_HUB',
-            thread: 'aodhan_thread',
+            thread: 'hushbriar_demigod_thread',
             meaning: 'The Moonwell night event is currently available if the player investigates Hushbriar before dawn.',
             allowedValues: [true],
             revealSensitivity: 'public',
@@ -241,7 +241,7 @@ export const narrativeStateRegistry = {
         },
         moonwell_seen: {
             owner: 'SCENE_MOONWELL',
-            thread: 'aodhan_thread',
+            thread: 'hushbriar_demigod_thread',
             meaning: 'The player reached the Moonwell and saw the containment collapse in person.',
             allowedValues: [true],
             revealSensitivity: 'spoiler_sensitive',
@@ -249,7 +249,7 @@ export const narrativeStateRegistry = {
         },
         moonwell_missed: {
             owner: 'SCENE_HUSHBRIAR_MORNING_SETUP',
-            thread: 'aodhan_thread',
+            thread: 'hushbriar_demigod_thread',
             meaning: 'The player missed the first Moonwell night encounter and instead hit the morning-after consequence setup.',
             allowedValues: [true],
             revealSensitivity: 'spoiler_sensitive',
@@ -257,7 +257,7 @@ export const narrativeStateRegistry = {
         },
         moonwell_morning_setup_seen: {
             owner: 'SCENE_HUSHBRIAR_MORNING_SETUP',
-            thread: 'aodhan_thread',
+            thread: 'hushbriar_demigod_thread',
             meaning: 'The player has seen the morning-after Hushbriar commotion that sets up the deferred three-way conflict.',
             allowedValues: [true],
             revealSensitivity: 'spoiler_sensitive',
@@ -274,7 +274,7 @@ export const narrativeStateRegistry = {
         archives_alderic_truth_learned: {
             owner: 'SCENE_ARCHIVES_ALDERIC_TRUTH',
             thread: 'archives_truth',
-            meaning: 'The player extracted the higher-value Alderic and Ciara alliance details from Thalion.',
+            meaning: 'The player extracted the deeper Alderic truth that the Archives allow at this stage.',
             allowedValues: [true],
             revealSensitivity: 'spoiler_sensitive',
             semantics: 'optional_clue'
@@ -282,7 +282,7 @@ export const narrativeStateRegistry = {
         archives_alderic_truth_missed: {
             owner: 'SCENE_ARCHIVES_ALDERIC_REBUFF',
             thread: 'archives_truth',
-            meaning: 'The player failed to win the deeper Alderic/Ciara truth during the one-pass Thalion audience.',
+            meaning: 'The player failed to win the deeper Alderic truth during the one-pass Thalion audience.',
             allowedValues: [true],
             revealSensitivity: 'spoiler_sensitive',
             semantics: 'one_time_outcome'
@@ -305,7 +305,7 @@ export const narrativeStateRegistry = {
         },
         hushbriar_guild_ledger_found: {
             owner: 'SCENE_HUSHBRIAR_LEDGER',
-            thread: 'hushbriar_demigod_thread',
+            thread: 'retired_hushbriar_guild_branch',
             meaning: 'The player found the loading-dock ledger pointing toward the guild\'s hidden cargo.',
             allowedValues: [true],
             revealSensitivity: 'public',
@@ -313,7 +313,7 @@ export const narrativeStateRegistry = {
         },
         hushbriar_guild_trusted: {
             owner: 'SCENE_THIEVES_HIDEOUT',
-            thread: 'hushbriar_demigod_thread',
+            thread: 'retired_hushbriar_guild_branch',
             meaning: 'The guild has accepted the party as useful enough to risk showing them Elara.',
             allowedValues: [true],
             revealSensitivity: 'public',
@@ -321,7 +321,7 @@ export const narrativeStateRegistry = {
         },
         hushbriar_guild_hostile: {
             owner: 'SCENE_THIEVES_HIDEOUT',
-            thread: 'hushbriar_demigod_thread',
+            thread: 'retired_hushbriar_guild_branch',
             meaning: 'The party has lost the guild\'s trust and future contact should stay hostile or coercive.',
             allowedValues: [true],
             revealSensitivity: 'public',
@@ -329,7 +329,7 @@ export const narrativeStateRegistry = {
         },
         elara_met: {
             owner: 'SCENE_ELARA_HIDEAWAY',
-            thread: 'hushbriar_demigod_thread',
+            thread: 'retired_hushbriar_guild_branch',
             meaning: 'The party reached Elara\'s hiding place and the demigod route is now personal rather than rumor-level.',
             allowedValues: [true],
             revealSensitivity: 'spoiler_sensitive',
@@ -337,7 +337,7 @@ export const narrativeStateRegistry = {
         },
         elara_route_protect: {
             owner: 'SCENE_ELARA_PROTECT_ROUTE',
-            thread: 'hushbriar_demigod_thread',
+            thread: 'retired_hushbriar_guild_branch',
             meaning: 'The party committed to keeping Elara hidden and resisting those who would spend her life.',
             allowedValues: [true],
             revealSensitivity: 'spoiler_sensitive',
@@ -345,7 +345,7 @@ export const narrativeStateRegistry = {
         },
         neala_recruited: {
             owner: 'SCENE_ELARA_PROTECT_ROUTE',
-            thread: 'hushbriar_demigod_thread',
+            thread: 'retired_hushbriar_guild_branch',
             meaning: 'Neala has joined the active party to guide the Elara protection route through guild ground.',
             allowedValues: [true],
             revealSensitivity: 'spoiler_sensitive',
@@ -353,7 +353,7 @@ export const narrativeStateRegistry = {
         },
         neala_refused: {
             owner: 'SCENE_ELARA_PROTECT_ROUTE',
-            thread: 'hushbriar_demigod_thread',
+            thread: 'retired_hushbriar_guild_branch',
             meaning: 'The player chose to leave Neala at the hideout instead of bringing her into the field.',
             allowedValues: [true],
             revealSensitivity: 'public',
@@ -361,7 +361,7 @@ export const narrativeStateRegistry = {
         },
         neala_bonded: {
             owner: 'SCENE_ELARA_PROTECT_ROUTE',
-            thread: 'hushbriar_demigod_thread',
+            thread: 'retired_hushbriar_guild_branch',
             meaning: 'Neala trusts the party enough to share route knowledge and patrol reads on the road.',
             allowedValues: [true],
             revealSensitivity: 'spoiler_sensitive',
@@ -369,7 +369,7 @@ export const narrativeStateRegistry = {
         },
         elara_route_stone_hunt_declared: {
             owner: 'SCENE_ELARA_STONE_ROUTE',
-            thread: 'hushbriar_demigod_thread',
+            thread: 'retired_hushbriar_guild_branch',
             meaning: 'The party revealed an intent to use Elara\'s blood to empower the Stone of Oblivion.',
             allowedValues: [true],
             revealSensitivity: 'spoiler_sensitive',
@@ -377,7 +377,7 @@ export const narrativeStateRegistry = {
         },
         elara_route_aodhan_lured: {
             owner: 'SCENE_ELARA_BETRAY_ROUTE',
-            thread: 'hushbriar_demigod_thread',
+            thread: 'retired_hushbriar_guild_branch',
             meaning: 'The party chose to bring or bait the living Aodhan toward Elara\'s hiding place.',
             allowedValues: [true],
             revealSensitivity: 'spoiler_sensitive',

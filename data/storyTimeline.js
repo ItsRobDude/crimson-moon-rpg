@@ -91,13 +91,25 @@ export const storyEvents = {
         id: 'archives_truth',
         actId: 'act_4_lament_hill_truth',
         title: 'Forbidden Archives Truth',
-        summary: 'The archives confirm how the Stone of Oblivion works and expose Alderic\'s alliance with Ciara.'
+        summary: 'The archives confirm how the Stone of Oblivion works and deepen suspicion around Alderic without replacing Hushbriar\'s role.'
     },
     hushbriar_demigod_thread: {
         id: 'hushbriar_demigod_thread',
         actId: 'act_5_hushbriar_endgame',
         title: 'Hushbriar Demigod Hunt',
         summary: 'The late Hushbriar route centers on the occupied town, Moonwell, and the demigod pressure opened by Aine\'s warning.'
+    },
+    retired_hushbriar_guild_branch: {
+        id: 'retired_hushbriar_guild_branch',
+        actId: 'act_5_hushbriar_endgame',
+        title: 'Retired Hushbriar Guild Branch',
+        summary: 'The guild-first bridge and Elara holdfast branch remains authored but intentionally off-route until rewritten into draft order.'
+    },
+    dormant_hushbriar_future_route: {
+        id: 'dormant_hushbriar_future_route',
+        actId: 'act_5_hushbriar_endgame',
+        title: 'Dormant Hushbriar Future Routes',
+        summary: 'Solasmor and the Soul Mill remain documented late-route hooks, but must stay unreachable until they have draft-safe entry beats.'
     }
 };
 
@@ -108,9 +120,9 @@ export const locationStoryRequirements = {
     durnhelm: { id: 'durnhelm_thread', oneOf: [STORY_EVENT_STATUS.AVAILABLE, STORY_EVENT_STATUS.ACTIVE, STORY_EVENT_STATUS.COMPLETED] },
     lament_hill: { id: 'lament_hill_thread', oneOf: [STORY_EVENT_STATUS.AVAILABLE, STORY_EVENT_STATUS.ACTIVE, STORY_EVENT_STATUS.COMPLETED] },
     hushbriar: { id: 'hushbriar_demigod_thread', oneOf: [STORY_EVENT_STATUS.AVAILABLE, STORY_EVENT_STATUS.ACTIVE, STORY_EVENT_STATUS.COMPLETED] },
-    thieves_hideout: { id: 'hushbriar_demigod_thread', oneOf: [STORY_EVENT_STATUS.AVAILABLE, STORY_EVENT_STATUS.ACTIVE, STORY_EVENT_STATUS.COMPLETED] },
-    soul_mill: { id: 'hushbriar_demigod_thread', oneOf: [STORY_EVENT_STATUS.AVAILABLE, STORY_EVENT_STATUS.ACTIVE, STORY_EVENT_STATUS.COMPLETED] },
-    solasmor: { id: 'hushbriar_demigod_thread', oneOf: [STORY_EVENT_STATUS.AVAILABLE, STORY_EVENT_STATUS.ACTIVE, STORY_EVENT_STATUS.COMPLETED] }
+    thieves_hideout: { id: 'retired_hushbriar_guild_branch', oneOf: [STORY_EVENT_STATUS.AVAILABLE, STORY_EVENT_STATUS.ACTIVE, STORY_EVENT_STATUS.COMPLETED] },
+    soul_mill: { id: 'dormant_hushbriar_future_route', oneOf: [STORY_EVENT_STATUS.AVAILABLE, STORY_EVENT_STATUS.ACTIVE, STORY_EVENT_STATUS.COMPLETED] },
+    solasmor: { id: 'dormant_hushbriar_future_route', oneOf: [STORY_EVENT_STATUS.AVAILABLE, STORY_EVENT_STATUS.ACTIVE, STORY_EVENT_STATUS.COMPLETED] }
 };
 
 export const locationUnlockHints = {
@@ -119,9 +131,9 @@ export const locationUnlockHints = {
     durnhelm: 'Push the Sporefall investigation far enough to confirm Aodhan as the next lead.',
     lament_hill: 'Finish Cathal\'s Durnhelm lead to open the witch on Lament Hill.',
     hushbriar: 'Advance Lament Hill until Aine opens the Hushbriar demigod lead.',
-    thieves_hideout: 'This route is retired until it is rewritten to fit the draft-first Hushbriar order.',
-    soul_mill: 'This route is dormant until it is rewritten into a draft-aligned late Hushbriar branch.',
-    solasmor: 'This route is dormant until it is rewritten into a draft-aligned late Hushbriar branch.'
+    thieves_hideout: 'This route is retired until the guild-first bridge branch is rewritten to fit the draft-first Hushbriar order.',
+    soul_mill: 'This route is dormant until its design packet is implemented through a draft-aligned late Hushbriar entry beat.',
+    solasmor: 'This route is dormant until its design packet is implemented through a draft-aligned late Hushbriar entry beat.'
 };
 
 export const storySceneTriggers = {
@@ -293,23 +305,23 @@ export const storySceneTriggers = {
         actId: 'act_5_hushbriar_endgame'
     },
     SCENE_HUSHBRIAR_GUILD_ROAD: {
-        activate: ['hushbriar_demigod_thread'],
+        activate: ['retired_hushbriar_guild_branch'],
         actId: 'act_5_hushbriar_endgame'
     },
     SCENE_SOUL_MILL_APPROACH: {
-        activate: ['hushbriar_demigod_thread'],
+        activate: ['dormant_hushbriar_future_route'],
         actId: 'act_5_hushbriar_endgame'
     },
     SCENE_THIEVES_HIDEOUT: {
-        activate: ['hushbriar_demigod_thread'],
+        activate: ['retired_hushbriar_guild_branch'],
         actId: 'act_5_hushbriar_endgame'
     },
     SCENE_ELARA_HIDEAWAY: {
-        activate: ['hushbriar_demigod_thread'],
+        activate: ['retired_hushbriar_guild_branch'],
         actId: 'act_5_hushbriar_endgame'
     },
     SCENE_SOLASMOR_APPROACH: {
-        activate: ['hushbriar_demigod_thread'],
+        activate: ['dormant_hushbriar_future_route'],
         actId: 'act_5_hushbriar_endgame'
     }
 };
@@ -560,7 +572,7 @@ export const sceneSafetyPolicies = {
     SCENE_HUSHBRIAR_GUILD_ROAD: {
         thread: 'retired_hushbriar_guild_branch',
         prerequisites: {
-            storyEvents: ['hushbriar_demigod_thread']
+            storyEvents: ['retired_hushbriar_guild_branch']
         },
         fallbackMode: SCENE_FALLBACK_MODES.REDIRECT,
         ifReachedTooEarly: 'Retire this guild-first route until it is rewritten to fit the draft-first Hushbriar order.',
@@ -571,7 +583,7 @@ export const sceneSafetyPolicies = {
     SCENE_THIEVES_HIDEOUT: {
         thread: 'retired_hushbriar_guild_branch',
         prerequisites: {
-            storyEvents: ['hushbriar_demigod_thread']
+            storyEvents: ['retired_hushbriar_guild_branch']
         },
         fallbackMode: SCENE_FALLBACK_MODES.REDIRECT,
         ifReachedTooEarly: 'Keep the retired hideout branch off the active route.',
@@ -582,7 +594,7 @@ export const sceneSafetyPolicies = {
     SCENE_ELARA_HIDEAWAY: {
         thread: 'retired_hushbriar_guild_branch',
         prerequisites: {
-            storyEvents: ['hushbriar_demigod_thread']
+            storyEvents: ['retired_hushbriar_guild_branch']
         },
         fallbackMode: SCENE_FALLBACK_MODES.REDIRECT,
         ifReachedTooEarly: 'Retire the holdfast-management branch until it is rewritten into draft-first order.',
@@ -593,7 +605,7 @@ export const sceneSafetyPolicies = {
     SCENE_SOUL_MILL_APPROACH: {
         thread: 'dormant_hushbriar_future_route',
         prerequisites: {
-            storyEvents: ['hushbriar_demigod_thread']
+            storyEvents: ['dormant_hushbriar_future_route']
         },
         fallbackMode: SCENE_FALLBACK_MODES.REDIRECT,
         ifReachedTooEarly: 'Keep the Soul Mill dormant until its late Hushbriar role is draft-aligned and documented.',
@@ -604,7 +616,7 @@ export const sceneSafetyPolicies = {
     SCENE_SOLASMOR_APPROACH: {
         thread: 'dormant_hushbriar_future_route',
         prerequisites: {
-            storyEvents: ['hushbriar_demigod_thread']
+            storyEvents: ['dormant_hushbriar_future_route']
         },
         fallbackMode: SCENE_FALLBACK_MODES.REDIRECT,
         ifReachedTooEarly: 'Keep Solasmor dormant until its late Hushbriar role is draft-aligned and documented.',

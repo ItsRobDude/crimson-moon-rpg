@@ -927,14 +927,6 @@ function applyPartySceneVariation(sceneId, scene) {
         return scene;
     }
 
-    if (sceneId === 'SCENE_HUSHBRIAR_GUILD_ROAD' || sceneId === 'SCENE_ELARA_PROTECT_ROUTE') {
-        const roadBeat = hasNeala
-            ? 'Neala keeps reading the walls, culverts, and mooring posts without slowing, lips tightening whenever a mark has been moved or muddied by the wrong hands.'
-            : `${partyNames} make for a harder shape to hide, and every bend in the road feels built to ask whether your numbers are shelter or invitation.`;
-        scene.text = `${scene.text} ${roadBeat}`;
-        return scene;
-    }
-
     if (scene.location === 'travel' && !sceneId.startsWith('SCENE_TRAVEL_EVENT_')) {
         scene.text = `${scene.text} ${partyNames} have learned to keep their voices low enough that even relief sounds like conspiracy.`;
     }
@@ -3793,8 +3785,8 @@ export function getTravelEventPool(locationId) {
 function getTravelEventChance(locationId) {
     let chance = 12 + Math.min(18, Math.floor(gameState.threat.level / 4));
     if (getActivePartyActors().length > 0) chance += 6;
-    if (['whisperwood', 'hushbriar', 'thieves_hideout', 'soul_mill'].includes(locationId)) chance += 8;
-    if (gameState.flags.elara_route_aodhan_lured && ['hushbriar', 'thieves_hideout', 'soul_mill'].includes(locationId)) chance += 6;
+    if (['whisperwood', 'hushbriar'].includes(locationId)) chance += 8;
+    if (gameState.flags.elara_route_aodhan_lured && locationId === 'hushbriar') chance += 6;
     return Math.max(10, Math.min(55, chance));
 }
 
@@ -3803,7 +3795,7 @@ function buildTravelEventText(event) {
     if (partyActors.length === 0) return event.text;
 
     const partyNames = formatNameList(partyActors.map((actor) => actor.name));
-    if (actorHasCompanion('neala') && ['hushbriar', 'thieves_hideout', 'solasmor', 'soul_mill'].some((id) => event.destinations?.includes(id))) {
+    if (actorHasCompanion('neala') && event.destinations?.includes('hushbriar')) {
         return `${event.text} Neala keeps cutting her eyes toward the margins of the road, reading the places where a guild scout or a hunter would choose to wait.`;
     }
     if (actorHasCompanion('eoin') && event.destinations?.includes('whisperwood')) {

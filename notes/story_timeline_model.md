@@ -22,6 +22,7 @@ Use this note together with:
 - `notes/act1_canon_internal.md`
 - `notes/narrative_runtime_contract.md`
 - `notes/campaign_route_status.md`
+- `notes/route_packets/`
 
 ## Canonical Route
 
@@ -80,6 +81,7 @@ Any new side quest or alternate route must:
 * stay inside named world locations already established by draft or canon notes
 * use only canon-named NPCs in ways that preserve their existing identity and goals
 * be documented in `notes/campaign_route_status.md` before it becomes playable
+* include or update a matching design packet in `notes/route_packets/` if it is dormant, retired, or otherwise not yet fully implemented
 * avoid conflicting with the campaign draft's suggested route order or outcome logic
 
 ## Event Gating Rules

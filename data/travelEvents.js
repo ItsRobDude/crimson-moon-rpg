@@ -72,7 +72,7 @@ export const travelEvents = [
     },
     {
         id: 'hushbriar_search_party',
-        destinations: ['hushbriar', 'thieves_hideout'],
+        destinations: ['hushbriar'],
         text: 'Well before Hushbriar comes into view, you find the latest proof that the roads are being hunted: boot prints fanning out from a dead fire, a snapped spearshaft, and interrogation blood darkening the grass beside a milestone.',
         type: 'skillCheck',
         skill: 'survival',
@@ -92,7 +92,7 @@ export const travelEvents = [
     },
     {
         id: 'hushbriar_burned_shelter',
-        destinations: ['hushbriar', 'thieves_hideout'],
+        destinations: ['hushbriar'],
         text: 'A shelter of driftwood and sailcloth has been burned down to wet black ribs. In the ash you find prayer beads fused to glass and the stink of medicine boiled far past usefulness.',
         type: 'discovery',
         effects: [
@@ -101,7 +101,7 @@ export const travelEvents = [
     },
     {
         id: 'elara_route_guild_marks',
-        destinations: ['hushbriar', 'thieves_hideout', 'solasmor', 'soul_mill'],
+        destinations: ['thieves_hideout'],
         requiresFlag: ['elara_route_protect'],
         text: 'Thorne Guild chalk marks start appearing where only smugglers or mourners would ever think to look: under culverts, inside shrine niches, and on the blind side of abandoned ferries. Someone is moving Elara\'s route ahead of you even when you cannot see them.',
         type: 'discovery',
@@ -111,7 +111,7 @@ export const travelEvents = [
     },
     {
         id: 'stone_hunters_on_the_road',
-        destinations: ['hushbriar', 'thieves_hideout', 'soul_mill'],
+        destinations: ['thieves_hideout'],
         requiresFlag: ['elara_route_stone_hunt_declared'],
         text: 'The black roads are busier now. Not with refugees, but with the sort of armed quiet that means word of a relic has spread faster than mercy.',
         type: 'combat',

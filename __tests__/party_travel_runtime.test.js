@@ -98,6 +98,9 @@ test('travel event pool filters by route, party state, and Elara protection flag
 
   gameState.flags.elara_route_protect = true;
   pool = getTravelEventPool('hushbriar');
+  expect(pool.some((event) => event.id === 'elara_route_guild_marks')).toBe(false);
+
+  pool = getTravelEventPool('thieves_hideout');
   expect(pool.some((event) => event.id === 'elara_route_guild_marks')).toBe(true);
 });
 

@@ -1643,7 +1643,7 @@ export const scenes = {
         id: "SCENE_DURNHELM_GATES",
         location: "durnhelm",
         background: "landscapes/road_to_durnhelm.png",
-        text: "Durnhelm rises from the mountain like a fortress-temple, but the beauty of the approach dies in the last mile. Broken wagons, splintered trees, and dwarven dead choke the road beneath the gates. Some bodies are burned to charcoal, some hacked apart, and some look as though the fight simply tore the shape of them apart mid-breath.",
+        text: "Durnhelm rises from the mountain like a fortress-temple, but the beauty of the approach dies in the last mile. Broken wagons, splintered trees, and dwarven dead choke the road beneath the gates. One perimeter guard lies where he tried to turn the last wagon back, hand still locked around a warning horn he never had breath left to sound. Some bodies are burned to charcoal, some hacked apart, and some look as though the fight simply tore the shape of them apart mid-breath.",
         choices: [
             {
                 text: "Read the slaughter outside the gates before you enter (Perception)",
@@ -1663,7 +1663,7 @@ export const scenes = {
         id: "SCENE_DURNHELM_ENTRY",
         location: "durnhelm",
         background: "landscapes/near_durnhelm.png",
-        text: "Inside the walls, Durnhelm is not empty. It is worse: alive enough to bury its dead. Survivors drag wrapped bodies toward pyres, a smashed storefront near the gate leaks ruined trade goods into the street, and every whispered conversation seems to end on the same pair of words: the forge. Someone finally tells you the worst of the fighting ran east, where the holy fire still burns beside the shattered temple.",
+        text: "Inside the walls, Durnhelm is not empty. It is worse: alive enough to bury its dead. Survivors drag wrapped bodies toward pyres, a smashed storefront near the gate leaks ruined trade goods into the street, and every whispered conversation seems to end on the same pair of words: the forge. A soot-caked smith who gives his name as Sven jerks his chin east and says the dark-haired wizard came through like weather with a purpose, demanded answers about the relic, and left Cathal buried under the wreckage when he rode on. It is the closest thing to a road witness Durnhelm has left, and it points you straight toward the holy fire still burning beside the shattered temple.",
         choices: [
             { text: "Search the wrecked gate-quarter shops for context", nextScene: "SCENE_DURNHELM_MARKET_RUINS" },
             { text: "Head east toward the holy forge", nextScene: "SCENE_DURNHELM_FORGE_APPROACH" },
@@ -1705,7 +1705,7 @@ export const scenes = {
         location: "durnhelm",
         background: "landscapes/outside_dwarf_cave.png",
         npcPortrait: "portraits/npc_male_placeholder_portrait.png",
-        text: "You find the forgemaster under a spill of broken timber and cracked stone, drunk enough to slur and furious enough to stay awake through it. Cathal Ó Taidhg spits pink into the dirt, swears at the sky, at Aodhan, at kings, at relics, and only then at you for arriving late enough to ask questions. When the rage burns thin, he gives the thing its name at last: the Stone of Oblivion. Aodhan stole it after badgering him for how it might be woken. Alderic, Cathal says, took far too keen an interest in the relic long before the courts agreed to leave it in dwarven hands. If anyone living can still tell you what sort of damnation the stone invites, it may be the witch on Lament Hill. 'So go on, then,' Cathal snarls, wiping his mouth with the back of one scarred hand. 'Take your answers where the dead haven't finished with 'em yet.'",
+        text: "You find the forgemaster under a spill of broken timber and cracked stone, drunk enough to slur and furious enough to stay awake through it. Cathal Ó Taidhg spits pink into the dirt, swears at the sky, at Aodhan, at kings, at relics, and only then at you for arriving late enough to ask questions. Sven's version of the story was only the roadmark. Cathal gives you the wound itself. When the rage burns thin, he gives the thing its name at last: the Stone of Oblivion. Aodhan stole it after badgering him for how it might be woken. Alderic, Cathal says, took far too keen an interest in the relic long before the courts agreed to leave it in dwarven hands. If anyone living can still tell you what sort of damnation the stone invites, it may be the witch on Lament Hill. 'So go on, then,' Cathal snarls, wiping his mouth with the back of one scarred hand. 'Take your answers where the dead haven't finished with 'em yet.'",
         choices: [
             { text: "\"Then Lament Hill is next.\"", nextScene: "SCENE_LAMENT_HILL_APPROACH" },
             { text: "\"If I turn back toward Silverthorn, what meets me there?\"", nextScene: "SCENE_SILVERTHORN_QUARANTINE" },
@@ -1860,7 +1860,7 @@ export const scenes = {
         location: "lament_hill",
         background: "landscapes/forest_walk_alt.png",
         npcPortrait: "portraits/npc_male_placeholder_portrait.png",
-        text: "The Archives are older than comfort and grander than mercy. Dark shelves climb into shadow, pale lights drift between them like captive moons, and every step sounds indecently loud, as though the dead in the walls resent being reminded of the living. Thalion leads you to a lectern where a silver-and-midnight tome lies open beside diagrams that never seem to hold still long enough to be safely understood. He does not give the answer as a scholar would. He gives it like testimony. The Stone of Oblivion does not wake for prayer, nor for ordinary slaughter. What stirs in the margins of the pages is holier and fouler than that. It must drink divinity. A god could rouse it. A demigod could suffice. Only after letting that sentence bruise the air between you does Thalion admit, with loathing that points inward, that he knows because he once committed such a sin himself and bought eternity at the price of becoming the warning now speaking to you.",
+        text: "The Archives are older than comfort and grander than mercy. Dark shelves climb into shadow, pale lights drift between them like captive moons, and every step sounds indecently loud, as though the dead in the walls resent being reminded of the living. Thalion leads you to a lectern where a silver-and-midnight tome lies open beside diagrams that never seem to hold still long enough to be safely understood. He does not give the answer as a scholar would. He gives it like testimony. The Stone of Oblivion does not wake for prayer, nor for ordinary slaughter. What stirs in the margins of the pages is holier and fouler than that. It must drink divinity. A god could rouse it. A demigod could suffice. Only after letting that sentence bruise the air between you does Thalion admit, with loathing that points inward, that he knows because he once helped profane a divine life and bought eternity at the price of becoming the warning now speaking to you.",
         choices: [
             { text: "\"Then answer what you still can before you close your mouth to me.\"", nextScene: "SCENE_ARCHIVES_AUDIENCE" },
             { text: "\"That is enough. Hushbriar cannot wait.\"", nextScene: "SCENE_ARRIVAL_HUSHBRIAR" }
@@ -1874,15 +1874,15 @@ export const scenes = {
         text: "Thalion's patience is not endless, but for one narrow window he permits questions. Even now he answers like a man measuring out confession by the drop: every truth weighed, every silence deliberate, every glance a reminder that some doors are merciful only once.",
         choices: [
             {
-                text: "\"What name did Alderic buy for himself in the depths?\" (Persuasion)",
+                text: "\"How long has Alderic been reaching for what lies beneath us?\" (Persuasion)",
                 type: "skillCheck",
                 skill: "persuasion",
                 dc: 14,
                 requires: {
                     notFlag: ["archives_thalion_audience_closed", "archives_alderic_truth_learned", "archives_alderic_truth_missed"]
                 },
-                successText: "At last Thalion relents. Alderic's legend in the depths was a mask; the prince vanished not to survive Ciara's armies but to bargain with them. What Silverthorn remembers as heroism was the first layer of a treachery that now threatens the whole realm.",
-                failText: "Thalion's mouth hardens. 'You have asked for a confession that belongs to the dead and the damned. I have given you enough to know the prince is false. The rest you failed to win.'",
+                successText: "At last Thalion relents. Alderic sought forbidden counsel long before Silverthorn named him savior. The prince did not merely survive what waited below; he brought some part of its appetite back with him, and the court mistook that stain for strength.",
+                failText: "Thalion's mouth hardens. 'You have asked for a confession that belongs to the dead and the damned. I have given you enough to know the prince is not clean. The rest you failed to win.'",
                 onSuccess: {
                     effects: [
                         { type: "flag", flagId: "archives_alderic_truth_learned", value: true }
