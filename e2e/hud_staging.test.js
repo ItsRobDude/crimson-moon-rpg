@@ -43,9 +43,9 @@ test.describe('HUD Staging', () => {
     await expect(page.locator('#btn-menu-codex')).toBeHidden();
     await page.keyboard.press('Escape');
 
-    await (await advanceSceneUntilChoice(page, /enough ceremony/i)).click();
-    await (await advanceSceneUntilChoice(page, /i hear the order/i)).click();
-    await (await advanceSceneUntilChoice(page, /step back into silverthorn/i)).click();
+    await (await advanceSceneUntilChoice(page, /press alderic/i)).click();
+    await (await advanceSceneUntilChoice(page, /accept the charge/i)).click();
+    await (await advanceSceneUntilChoice(page, /exit alderic's chamber/i)).click();
     await advanceSceneUntilChoice(page, /step inside the rusty blade/i);
 
     await expect(page.locator('#btn-map')).toBeHidden();

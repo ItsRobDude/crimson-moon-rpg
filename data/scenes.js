@@ -511,6 +511,7 @@ export const scenes = {
             },
             {
                 text: "Say nothing and read the room before he reads you.",
+                buttonText: "Read the room",
                 type: "skillCheck",
                 skill: "perception",
                 dc: 12,
@@ -528,6 +529,7 @@ export const scenes = {
             },
             {
                 text: "\"Enough ceremony. Tell me what matters.\"",
+                buttonText: "Press Alderic",
                 nextScene: "SCENE_BRIEFING_2"
             }
         ]
@@ -551,6 +553,7 @@ export const scenes = {
         choices: [
             {
                 text: "\"I hear the order. I will see it done.\"",
+                buttonText: "Accept the charge",
                 effects: [
                     { type: "relationship", npcId: "alderic", amount: 10 },
                     { type: "reputation", factionId: "silverthorn", amount: 5 }
@@ -559,6 +562,7 @@ export const scenes = {
             },
             {
                 text: "\"Before I go, tell me what sort of man Aodhan is now.\"",
+                buttonText: "Ask about Aodhan",
                 effects: [
                     { type: "relationship", npcId: "alderic", amount: 5 }
                 ],
@@ -575,6 +579,7 @@ export const scenes = {
         choices: [
             {
                 text: "\"That is enough. I will go.\"",
+                buttonText: "Leave with the writ",
                 effects: [
                     { type: "relationship", npcId: "alderic", amount: 5 }
                 ],
@@ -582,6 +587,7 @@ export const scenes = {
             },
             {
                 text: "\"A writ and a warning are thin armor. Send me better than that.\"",
+                buttonText: "Ask for better aid",
                 requires: {
                     relationship: { npcId: "alderic", min: 5 }
                 },
@@ -602,6 +608,7 @@ export const scenes = {
         choices: [
             {
                 text: "Take the writ and step back into Silverthorn.",
+                buttonText: "Exit Alderic's Chamber",
                 nextScene: "SCENE_HUB_SILVERTHORN"
             }
         ]
@@ -615,10 +622,12 @@ export const scenes = {
         choices: [
             {
                 text: "\"State the charge again.\"",
+                buttonText: "Hear the charge again",
                 nextScene: "SCENE_ALDERIC_MISSION_REMINDER"
             },
             {
                 text: "Leave him to his dispatches.",
+                buttonText: "Leave the chamber",
                 nextScene: "SCENE_HUB_SILVERTHORN"
             }
         ]
@@ -632,6 +641,7 @@ export const scenes = {
         choices: [
             {
                 text: "Return to the city.",
+                buttonText: "Back to Silverthorn",
                 nextScene: "SCENE_HUB_SILVERTHORN"
             }
         ]
@@ -644,8 +654,8 @@ export const scenes = {
         choices: [
             { text: "Browse the General Store", nextScene: "SCENE_SILVERTHORN_GENERAL_STORE" },
             { text: "Visit the blacksmith", nextScene: "SCENE_SILVERTHORN_BLACKSMITH" },
-            { text: "Step into The Rusty Blade", nextScene: "SCENE_RUSTY_BLADE_INN" },
-            { text: "Return to City Center", nextScene: "SCENE_HUB_SILVERTHORN" }
+            { text: "Step into The Rusty Blade", buttonText: "Step Inside the Rusty Blade", nextScene: "SCENE_RUSTY_BLADE_INN" },
+            { text: "Return to City Center", buttonText: "Back to City Center", nextScene: "SCENE_HUB_SILVERTHORN" }
         ]
     },
     "SCENE_SILVERTHORN_GENERAL_STORE": {
@@ -656,8 +666,8 @@ export const scenes = {
         type: "shop",
         shopId: "silverthorn_general_store",
         choices: [
-            { text: "Step back into the market district", nextScene: "SCENE_SILVERTHORN_MARKET" },
-            { text: "Return to City Center", nextScene: "SCENE_HUB_SILVERTHORN" }
+            { text: "Step back into the market district", buttonText: "Back to Market", nextScene: "SCENE_SILVERTHORN_MARKET" },
+            { text: "Return to City Center", buttonText: "Back to City Center", nextScene: "SCENE_HUB_SILVERTHORN" }
         ]
     },
     "SCENE_SILVERTHORN_BLACKSMITH": {
@@ -668,8 +678,8 @@ export const scenes = {
         type: "shop",
         shopId: "silverthorn_armorer",
         choices: [
-            { text: "Return to the market district", nextScene: "SCENE_SILVERTHORN_MARKET" },
-            { text: "Head back to City Center", nextScene: "SCENE_HUB_SILVERTHORN" }
+            { text: "Return to the market district", buttonText: "Back to Market", nextScene: "SCENE_SILVERTHORN_MARKET" },
+            { text: "Head back to City Center", buttonText: "Back to City Center", nextScene: "SCENE_HUB_SILVERTHORN" }
         ]
     },
     "SCENE_RUSTY_BLADE_INN": {
@@ -678,9 +688,9 @@ export const scenes = {
         background: "landscapes/silverthorn_market_avenue.png",
         text: "The Rusty Blade is half tavern, half barracks overflow, and all of it feels one bad rumor away from turning into a war room. Couriers, sellswords, caravan hands, and merchants crowd the common room in damp wool and travel dust, drinking low and watching one another over their cups. Behind the bar, the barkeep polishes tankards with the steady calm of someone who has learned that dangerous news arrives disguised as conversation.",
         choices: [
-            { text: "Take a room and rest", action: "longRest" },
-            { text: "Listen for rumors about Whisperwood", nextScene: "SCENE_RUSTY_BLADE_RUMORS" },
-            { text: "Return to the market district", nextScene: "SCENE_SILVERTHORN_MARKET" }
+            { text: "Take a room and rest", buttonText: "Take a Room", action: "longRest" },
+            { text: "Listen for rumors about Whisperwood", buttonText: "Hear the Rumors", nextScene: "SCENE_RUSTY_BLADE_RUMORS" },
+            { text: "Return to the market district", buttonText: "Back to Market", nextScene: "SCENE_SILVERTHORN_MARKET" }
         ]
     },
     "SCENE_RUSTY_BLADE_RUMORS": {
@@ -699,9 +709,9 @@ export const scenes = {
         background: "landscapes/silverthorn_market_avenue.png",
         text: "The Temple of Dawn is quieter than the market, filled with low prayer, warm candlelight, and the smell of incense. A few healers move between benches offering comfort to worried families and soldiers bound for the road.",
         choices: [
-            { text: "Speak with the healers about the road ahead", nextScene: "SCENE_SILVERTHORN_TEMPLE_COUNSEL" },
-            { text: "Offer a quiet prayer before you depart", nextScene: "SCENE_SILVERTHORN_TEMPLE_PRAYER" },
-            { text: "Return to City Center", nextScene: "SCENE_HUB_SILVERTHORN" }
+            { text: "Speak with the healers about the road ahead", buttonText: "Speak with the Healers", nextScene: "SCENE_SILVERTHORN_TEMPLE_COUNSEL" },
+            { text: "Offer a quiet prayer before you depart", buttonText: "Offer a Prayer", nextScene: "SCENE_SILVERTHORN_TEMPLE_PRAYER" },
+            { text: "Return to City Center", buttonText: "Back to City Center", nextScene: "SCENE_HUB_SILVERTHORN" }
         ]
     },
     "SCENE_SILVERTHORN_TEMPLE_COUNSEL": {
@@ -710,8 +720,8 @@ export const scenes = {
         background: "landscapes/silverthorn_market_avenue.png",
         text: "The healers warn that anything tied to Whisperwood should be treated with suspicion. They tell travelers to keep distance from the fevered, carry clean cloth and bitter draughts, and turn back from any road where the air itself starts tasting wrong.",
         choices: [
-            { text: "Remain in the temple a while longer", nextScene: "SCENE_SILVERTHORN_TEMPLE" },
-            { text: "Return to City Center", nextScene: "SCENE_HUB_SILVERTHORN" }
+            { text: "Remain in the temple a while longer", buttonText: "Stay in the Temple", nextScene: "SCENE_SILVERTHORN_TEMPLE" },
+            { text: "Return to City Center", buttonText: "Back to City Center", nextScene: "SCENE_HUB_SILVERTHORN" }
         ]
     },
     "SCENE_SILVERTHORN_TEMPLE_PRAYER": {
@@ -720,8 +730,8 @@ export const scenes = {
         background: "landscapes/silverthorn_market_avenue.png",
         text: "You kneel beneath the stained glass and let the city's noise recede to candle-pop, distant footfall, and the soft labor of people praying because they have run out of cleaner defenses. The stillness helps, but only honestly: not by making the road kinder, only by giving your fear a smaller room to echo in for a few breaths before you have to stand back up.",
         choices: [
-            { text: "Step back into the temple hall", nextScene: "SCENE_SILVERTHORN_TEMPLE" },
-            { text: "Return to City Center", nextScene: "SCENE_HUB_SILVERTHORN" }
+            { text: "Step back into the temple hall", buttonText: "Back to the Temple", nextScene: "SCENE_SILVERTHORN_TEMPLE" },
+            { text: "Return to City Center", buttonText: "Back to City Center", nextScene: "SCENE_HUB_SILVERTHORN" }
         ]
     },
     "SCENE_SILVERTHORN_NOTICE_BOARD": {
@@ -730,9 +740,9 @@ export const scenes = {
         background: "landscapes/silverthorn_market_avenue.png",
         text: "A broad notice board stands near the square, layered with militia summons, missing-person sketches, merchant warnings, and handwritten pleas from families with kin somewhere beyond the eastern road.",
         choices: [
-            { text: "Read the Whisperwood notices", nextScene: "SCENE_SILVERTHORN_NOTICE_WHISPERWOOD" },
-            { text: "Read the city contracts and bounties", nextScene: "SCENE_SILVERTHORN_NOTICE_CONTRACTS" },
-            { text: "Return to City Center", nextScene: "SCENE_HUB_SILVERTHORN" }
+            { text: "Read the Whisperwood notices", buttonText: "Read Whisperwood Notices", nextScene: "SCENE_SILVERTHORN_NOTICE_WHISPERWOOD" },
+            { text: "Read the city contracts and bounties", buttonText: "Read Contracts and Bounties", nextScene: "SCENE_SILVERTHORN_NOTICE_CONTRACTS" },
+            { text: "Return to City Center", buttonText: "Back to City Center", nextScene: "SCENE_HUB_SILVERTHORN" }
         ]
     },
     "SCENE_SILVERTHORN_NOTICE_WHISPERWOOD": {
@@ -1573,30 +1583,37 @@ export const scenes = {
         choices: [
             {
                 text: "Return to Alderic's chamber",
+                buttonText: "Alderic's Chamber",
                 nextScene: "SCENE_ALDERIC_CHAMBER_RETURN"
             },
             {
                 text: "Walk to the market district",
+                buttonText: "Market District",
                 nextScene: "SCENE_SILVERTHORN_MARKET"
             },
             {
                 text: "Visit the General Store",
+                buttonText: "General Store",
                 nextScene: "SCENE_SILVERTHORN_GENERAL_STORE"
             },
             {
                 text: "Enter The Rusty Blade",
+                buttonText: "Step Inside the Rusty Blade",
                 nextScene: "SCENE_RUSTY_BLADE_INN"
             },
             {
                 text: "Stop at the Temple of Dawn",
+                buttonText: "Temple of Dawn",
                 nextScene: "SCENE_SILVERTHORN_TEMPLE"
             },
             {
                 text: "Read the notice board",
+                buttonText: "Notice Board",
                 nextScene: "SCENE_SILVERTHORN_NOTICE_BOARD"
             },
             {
                 text: "Head for the city gates",
+                buttonText: "Eastern Gate",
                 nextScene: "SCENE_SILVERTHORN_GATES"
             }
         ]

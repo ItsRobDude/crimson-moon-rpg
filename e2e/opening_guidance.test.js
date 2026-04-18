@@ -22,7 +22,7 @@ async function advanceSceneUntilChoice(page, choiceName) {
 test.describe('Opening Guidance', () => {
   test.setTimeout(60000);
 
-  test('Silverthorn opening surfaces a current aim and recommended first steps', async ({ page }) => {
+  test('Silverthorn opening keeps the screen focused on prose and concise VN choices', async ({ page }) => {
     await page.goto('/');
     await page.waitForFunction(() => window.gameReady);
 
@@ -30,28 +30,28 @@ test.describe('Opening Guidance', () => {
     await page.fill('#cc-name', 'GuidanceTester');
     await page.click('#btn-start-game');
 
-    await (await advanceSceneUntilChoice(page, /enough ceremony/i)).click();
-    await (await advanceSceneUntilChoice(page, /i hear the order/i)).click();
-    await (await advanceSceneUntilChoice(page, /step back into silverthorn/i)).click();
+    await (await advanceSceneUntilChoice(page, /press alderic/i)).click();
+    await (await advanceSceneUntilChoice(page, /accept the charge/i)).click();
+    await (await advanceSceneUntilChoice(page, /exit alderic's chamber/i)).click();
     await advanceSceneUntilChoice(page, /step inside the rusty blade/i);
 
-    await expect(page.locator('#objective-strip')).toBeVisible();
-    await expect(page.locator('#objective-text')).toContainText('Prepare in Silverthorn');
-    await expect(page.locator('#objective-text')).toContainText('Rusty Blade');
-    await expect(page.locator('#objective-helper')).toBeVisible();
-    await expect(page.locator('#choice-page-label')).toContainText(/likely leads/i);
-    await expect(page.locator('.choice-pill.recommended')).toHaveCount(3);
-    await expect(page.locator('#choice-container')).toContainText('Step inside The Rusty Blade');
-    await expect(page.locator('#choice-container')).toContainText('Take the temple road');
-    await expect(page.locator('#choice-container')).toContainText('Make for the eastern gate');
+    await expect(page.locator('#objective-strip')).toHaveCount(0);
+    await expect(page.locator('#objective-helper')).toHaveCount(0);
+    await expect(page.locator('#choice-page-label')).toHaveCount(0);
+    await expect(page.locator('.choice-pill')).toHaveCount(0);
     await expect(page.locator('#choice-container .choice-button')).toHaveCount(3);
-    await expect(page.locator('#choice-pagination')).toContainText('More Options');
+    await expect(page.getByRole('button', { name: 'Step Inside the Rusty Blade' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Temple of Dawn' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Eastern Gate' })).toBeVisible();
+    await expect(page.locator('#choice-container')).not.toContainText('A strong first read');
+    await expect(page.locator('#choice-pagination')).toContainText('More');
     const narrativeOverflow = await page.locator('#narrative-section').evaluate((node) => window.getComputedStyle(node).overflowY);
     expect(['hidden', 'clip']).toContain(narrativeOverflow);
 
-    await page.getByRole('button', { name: /more options/i }).click();
-    await expect(page.locator('#choice-page-label')).toContainText(/other threads/i);
-    await expect(page.locator('#choice-container')).toContainText("Present yourself at Alderic's chamber again");
+    await page.getByRole('button', { name: /^more$/i }).click();
+    await expect(page.getByRole('button', { name: "Alderic's Chamber" })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Market District' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Notice Board' })).toBeVisible();
 
     await page.click('#btn-menu');
     await page.click('#btn-menu-quests');

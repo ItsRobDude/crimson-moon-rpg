@@ -27,9 +27,9 @@ async function reachSilverthorn(page, characterName = 'SurfaceTester') {
   await page.fill('#cc-name', characterName);
   await page.click('#btn-start-game');
 
-  await (await advanceSceneUntilChoice(page, /enough ceremony/i)).click();
-  await (await advanceSceneUntilChoice(page, /i hear the order/i)).click();
-  await (await advanceSceneUntilChoice(page, /step back into silverthorn/i)).click();
+  await (await advanceSceneUntilChoice(page, /press alderic/i)).click();
+  await (await advanceSceneUntilChoice(page, /accept the charge/i)).click();
+  await (await advanceSceneUntilChoice(page, /exit alderic's chamber/i)).click();
   await advanceSceneUntilChoice(page, /step inside the rusty blade/i);
 }
 
@@ -152,7 +152,7 @@ test.describe('UI Surface Cleanup', () => {
     await reachSilverthorn(page, 'LevelTester');
 
     await page.getByRole('button', { name: /step inside the rusty blade/i }).click();
-    await (await advanceSceneUntilChoice(page, /take a room and rest/i)).click();
+    await (await advanceSceneUntilChoice(page, /take a room/i)).click();
     await expect(page.locator('#rest-modal')).toBeVisible();
     await expect(page.locator('#rest-modal .modal-subtitle')).toContainText('Rest trades time for recovery');
     await expect(page.locator('#btn-short-rest')).toHaveText('Begin Short Rest');

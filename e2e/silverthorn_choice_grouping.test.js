@@ -22,7 +22,7 @@ async function advanceSceneUntilChoice(page, choiceName) {
 test.describe('Silverthorn Choice Grouping', () => {
   test.setTimeout(60000);
 
-  test('recommended first steps are separated from secondary hub options', async ({ page }) => {
+  test('Silverthorn opening uses concise button labels with pager-only overflow', async ({ page }) => {
     await page.goto('/');
     await page.waitForFunction(() => window.gameReady);
 
@@ -30,34 +30,27 @@ test.describe('Silverthorn Choice Grouping', () => {
     await page.fill('#cc-name', 'SilverthornTester');
     await page.click('#btn-start-game');
 
-    await (await advanceSceneUntilChoice(page, /enough ceremony/i)).click();
-    await (await advanceSceneUntilChoice(page, /i hear the order/i)).click();
-    await (await advanceSceneUntilChoice(page, /step back into silverthorn/i)).click();
+    await (await advanceSceneUntilChoice(page, /press alderic/i)).click();
+    await (await advanceSceneUntilChoice(page, /accept the charge/i)).click();
+    await (await advanceSceneUntilChoice(page, /exit alderic's chamber/i)).click();
     await advanceSceneUntilChoice(page, /step inside the rusty blade/i);
 
-    await expect(page.locator('#choice-page-label')).toContainText(/likely leads/i);
+    await expect(page.locator('#choice-page-label')).toHaveCount(0);
+    await expect(page.locator('.choice-pill')).toHaveCount(0);
     await expect(page.locator('#choice-container .choice-button')).toHaveCount(3);
-    await expect(page.locator('#choice-container')).toContainText('Step inside The Rusty Blade');
-    await expect(page.locator('#choice-container')).toContainText('Take the temple road');
-    await expect(page.locator('#choice-container')).toContainText('Make for the eastern gate');
-    await expect(page.locator('#choice-container')).not.toContainText('Seek supplies at the General Store');
-    await expect(page.locator('#choice-pagination')).toContainText('More Options');
+    await expect(page.getByRole('button', { name: 'Step Inside the Rusty Blade' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Temple of Dawn' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Eastern Gate' })).toBeVisible();
+    await expect(page.locator('#choice-container')).not.toContainText('A strong first read');
+    await expect(page.locator('#choice-pagination')).toContainText('More');
 
-    await expect(page.locator('#objective-helper')).toBeVisible();
-    await page.click('#objective-helper-dismiss');
-    await expect(page.locator('#objective-helper')).toBeHidden();
-
-    await page.getByRole('button', { name: /more options/i }).click();
-    await expect(page.locator('#choice-page-label')).toContainText(/other threads/i);
-    await expect(page.locator('#choice-container')).toContainText("Present yourself at Alderic's chamber again");
-    await expect(page.locator('#choice-container')).toContainText('Cross into the market quarter');
-    await expect(page.locator('#choice-container')).toContainText('Read what fear has posted');
-
-    await page.evaluate(() => window.goToScene('SCENE_HUB_SILVERTHORN'));
-    await expect(page.locator('#objective-helper')).toBeHidden();
+    await page.getByRole('button', { name: /^more$/i }).click();
+    await expect(page.getByRole('button', { name: "Alderic's Chamber" })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Market District' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Notice Board' })).toBeVisible();
   });
 
-  test('choice buttons keep action-only accessible names and mobile still surfaces the current aim', async ({ page }) => {
+  test('choice buttons keep concise accessible names and mobile still pages choices cleanly', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/');
     await page.waitForFunction(() => window.gameReady);
@@ -66,20 +59,20 @@ test.describe('Silverthorn Choice Grouping', () => {
     await page.fill('#cc-name', 'SilverthornMobile');
     await page.click('#btn-start-game');
 
-    await (await advanceSceneUntilChoice(page, /enough ceremony/i)).click();
-    await (await advanceSceneUntilChoice(page, /i hear the order/i)).click();
-    await (await advanceSceneUntilChoice(page, /step back into silverthorn/i)).click();
+    await (await advanceSceneUntilChoice(page, /press alderic/i)).click();
+    await (await advanceSceneUntilChoice(page, /accept the charge/i)).click();
+    await (await advanceSceneUntilChoice(page, /exit alderic's chamber/i)).click();
     await advanceSceneUntilChoice(page, /step inside the rusty blade/i);
 
-    const rustyBladeChoice = page.getByRole('button', { name: 'Step inside The Rusty Blade' });
-    await expect(rustyBladeChoice).toHaveAccessibleName('Step inside The Rusty Blade');
+    const rustyBladeChoice = page.getByRole('button', { name: 'Step Inside the Rusty Blade' });
+    await expect(rustyBladeChoice).toHaveAccessibleName('Step Inside the Rusty Blade');
     await expect(rustyBladeChoice).toBeVisible();
 
-    await expect(page.locator('#objective-strip')).toBeInViewport();
-    await expect(page.locator('#choice-page-label')).toContainText(/likely leads/i);
-    await expect(page.locator('.choice-pill.recommended')).toHaveCount(2);
+    await expect(page.locator('#objective-strip')).toHaveCount(0);
+    await expect(page.locator('#choice-page-label')).toHaveCount(0);
+    await expect(page.locator('.choice-pill')).toHaveCount(0);
     await expect(page.locator('#choice-container .choice-button')).toHaveCount(2);
-    await expect(page.locator('#choice-pagination')).toContainText('More Options');
-    await expect(page.getByRole('button', { name: 'Take the temple road' })).toBeVisible();
+    await expect(page.locator('#choice-pagination')).toContainText('More');
+    await expect(page.getByRole('button', { name: 'Temple of Dawn' })).toBeVisible();
   });
 });

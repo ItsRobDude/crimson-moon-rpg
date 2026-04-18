@@ -1,0 +1,195 @@
+{
+  "opening": [
+    {
+      "label": "briefing_page_1",
+      "narrative": "The chamber is dim and severe, lit by a single brazier and the red glow of wax seals melting over opened dispatches. Prince Alderic stands over a map table crowded with routes, blockades, and a red ring drawn hard around Whisperwood. He does not offer a seat. 'You are here,' he says at last, as if confirming a detail in a report. 'Good.",
+      "choices": [
+        "Continue"
+      ],
+      "pageLabel": "",
+      "objective": "Hear Alderic out, then step into Silverthorn with a sense of the road ahead."
+    },
+    {
+      "label": "briefing_choice_after_page",
+      "narrative": "Alderic lays two fingers on the map as if pinning the borough in place. 'Travelers speak of black spores choking the eastern road. Those who went after Liam vanished in turn. One name keeps surfacing through the sickness and the fear: Aodhan O Duibh. Find Liam if there is anything left to find.",
+      "choices": [
+        "Continue"
+      ],
+      "pageLabel": "",
+      "objective": "Hear Alderic out, then step into Silverthorn with a sense of the road ahead."
+    },
+    {
+      "label": "briefing_order_reply",
+      "narrative": "Alderic slides a sealed writ across the table without breaking eye contact. 'Show that to any gate sergeant or quartermaster who thinks fear outranks duty. If Liam lives, you bring him home. If he does not, you bring me the truth of him. Do not bring me rumors. Bring me answers.'",
+      "choices": [
+        "Continue"
+      ],
+      "pageLabel": "",
+      "objective": "Prepare in Silverthorn before you take the eastern gate. The Rusty Blade, the temple road, and the market quarter are the surest places to gather what you need."
+    },
+    {
+      "label": "silverthorn_likely_leads",
+      "narrative": "Silverthorn remains orderly, but every patrol, lowered voice, and hurried prayer suggests the order is being held in place by effort alone.",
+      "choices": [
+        "Step inside The Rusty Blade\nA strong first read on what the city fears and what the road has already cost.\nLikely lead\nTakes about an hour",
+        "Take the temple road\nA quiet place for blessing, counsel, and steadier nerves before departure.\nLikely lead\nTakes about an hour",
+        "Make for the eastern gate\nWhen you are ready to leave the city behind and judge the road for yourself.\nLikely lead\nTakes about an hour\nLeaves Silverthorn"
+      ],
+      "pageLabel": "LIKELY LEADS",
+      "objective": "Prepare in Silverthorn before you take the eastern gate. The Rusty Blade and temple road are the surest first reads."
+    },
+    {
+      "label": "silverthorn_other_threads",
+      "narrative": "Silverthorn remains orderly, but every patrol, lowered voice, and hurried prayer suggests the order is being held in place by effort alone.",
+      "choices": [
+        "Present yourself at Alderic's chamber again\nReturn if you want the prince to restate the charge in his own words.",
+        "Cross into the market quarter\nGood for supplies, steel, and a measure of the city mood.\nTakes about an hour",
+        "Read what fear has posted\nUseful if you want rumors and public anxieties before you choose a route.\nTakes about an hour"
+      ],
+      "pageLabel": "OTHER THREADS",
+      "objective": "Prepare in Silverthorn before you take the eastern gate. The Rusty Blade and temple road are the surest first reads."
+    },
+    {
+      "label": "rusty_blade",
+      "narrative": "Behind the bar, the barkeep polishes tankards with the steady calm of someone who has learned that dangerous news arrives disguised as conversation. The inn feels like a pressure valve for the whole city, full of half-finished briefings, guarded glances, and rumors spoken into cups rather than across tables.",
+      "choices": [
+        "Take a room and rest",
+        "Listen for what the room fears to say aloud\nTakes about an hour",
+        "Return to the market quarter"
+      ],
+      "pageLabel": "",
+      "objective": "Prepare in Silverthorn before you take the eastern gate. The Rusty Blade and temple road are the surest first reads."
+    }
+  ],
+  "mobileState": {
+    "label": "mobile_silverthorn_likely_leads",
+    "narrative": "Silverthorn remains orderly, but every patrol, lowered voice, and hurried prayer suggests the order is being held in place by effort alone.",
+    "choices": [
+      "Step inside The Rusty Blade\nA strong first read on what the city fears and what the road has already cost.\nLikely lead\nTakes about an hour",
+      "Take the temple road\nA quiet place for blessing, counsel, and steadier nerves before departure.\nLikely lead\nTakes about an hour"
+    ],
+    "pageLabel": "LIKELY LEADS",
+    "objective": "Prepare in Silverthorn before you take the eastern gate. The Rusty Blade and temple road are the surest first reads."
+  },
+  "lateStates": [
+    {
+      "sceneId": "SCENE_MOONWELL",
+      "label": "SCENE_MOONWELL",
+      "narrative": "The Moonwell should be a place of still water and prayer. Tonight it looks flayed open. Black ripples keep disturbing the surface from below, though nothing breaks it. Two small bodies wrapped in spider silk hang above the well, turning slowly in the wind like accusations no god has answered.",
+      "choices": [
+        "Continue"
+      ],
+      "pageLabel": "",
+      "objective": "Hear Prince Alderic and learn what Silverthorn needs of you."
+    },
+    {
+      "sceneId": "SCENE_AODHAN_TALK",
+      "label": "SCENE_AODHAN_TALK",
+      "narrative": "Aodhan closes his hand around the Stone of Oblivion and turns at last. Moonlight catches the ruin in his face before anger can hide it. 'Sad, isn't it?' he says quietly, glancing once at the silk-wrapped bodies above the well. 'To die that young. To spend years praying the world kinder, then watch it bare its teeth in one night. Liam should have had more than this.'",
+      "choices": [
+        "Continue"
+      ],
+      "pageLabel": "",
+      "objective": "Hear Prince Alderic and learn what Silverthorn needs of you."
+    },
+    {
+      "sceneId": "SCENE_AFTERMATH",
+      "label": "SCENE_AFTERMATH",
+      "narrative": "Morning does not come. The darkness above the trees deepens until the moon bleeds red enough to stain the clouds around it, and Hushbriar answers the broken night with bells, steel, and screams too small to matter against what has already slipped loose.",
+      "choices": [
+        "Continue"
+      ],
+      "pageLabel": "",
+      "objective": "Hear Prince Alderic and learn what Silverthorn needs of you."
+    },
+    {
+      "sceneId": "SCENE_HUSHBRIAR_AFTERMATH_HUNT",
+      "label": "SCENE_HUSHBRIAR_AFTERMATH_HUNT",
+      "narrative": "The road back into Hushbriar looks worse in false dawn than it did by torchlight. Townsfolk run in bursts between shuttered doors while Silverthorn soldiers drag the stubborn, the wounded, and the merely unlucky into separate lines with all the tenderness of men sorting livestock.",
+      "choices": [
+        "Continue"
+      ],
+      "pageLabel": "",
+      "objective": "Hear Prince Alderic and learn what Silverthorn needs of you."
+    },
+    {
+      "sceneId": "SCENE_THIEVES_HIDEOUT",
+      "label": "SCENE_THIEVES_HIDEOUT",
+      "narrative": "The dock trail ends at a low, screened chamber built into the underside of the bridge itself. Neala steps out first with her blade already bare, anger arriving a heartbeat before the rest of her. Liobhán follows in silence so controlled it feels practiced. Neither woman looks surprised to see you.",
+      "choices": [
+        "Continue"
+      ],
+      "pageLabel": "",
+      "objective": "Hear Prince Alderic and learn what Silverthorn needs of you."
+    },
+    {
+      "sceneId": "SCENE_ELARA_HIDEAWAY",
+      "label": "SCENE_ELARA_HIDEAWAY",
+      "narrative": "Elara is hidden in the innermost chamber behind stacked crates, damp blankets, and a ward circle drawn by hands too tired to trust their own lines. She looks younger than prophecy has any right to allow and far more exhausted by fear than any holy story would ever admit.",
+      "choices": [
+        "Continue"
+      ],
+      "pageLabel": "",
+      "objective": "Hear Prince Alderic and learn what Silverthorn needs of you."
+    },
+    {
+      "sceneId": "SCENE_ELARA_COUNSEL",
+      "label": "SCENE_ELARA_COUNSEL",
+      "narrative": "For one frail minute no one reaches for the choice itself. Neala turns away first and plants both hands on the nearest crate like the wood is the only thing in the room she trusts not to beg. Liobhán watches Elara instead, not with pity but with the flinty patience of someone forcing herself to count every cost before she names one aloud. Elara says nothing.",
+      "choices": [
+        "Continue"
+      ],
+      "pageLabel": "",
+      "objective": "Hear Prince Alderic and learn what Silverthorn needs of you."
+    },
+    {
+      "sceneId": "SCENE_ELARA_STONE_DECISION",
+      "label": "SCENE_ELARA_STONE_DECISION",
+      "narrative": "The Stone of Oblivion feels heavier in the hideout than it ever did under the moon. Elara watches it the way condemned people watch an executioner testing the edge. Even Neala's anger has gone still around it.",
+      "choices": [
+        "Continue"
+      ],
+      "pageLabel": "",
+      "objective": "Hear Prince Alderic and learn what Silverthorn needs of you."
+    },
+    {
+      "sceneId": "SCENE_HUSHBRIAR_PROCESSING_REVELATION",
+      "label": "SCENE_HUSHBRIAR_PROCESSING_REVELATION",
+      "narrative": "The silence after the choice is worse than the argument before it. At last Liobhán breaks it. 'You think the King means to hold Hushbriar?' she asks. 'He means to empty it.'",
+      "choices": [
+        "Continue"
+      ],
+      "pageLabel": "",
+      "objective": "Hear Prince Alderic and learn what Silverthorn needs of you."
+    }
+  ],
+  "uiChecks": {
+    "topButtonsVisible": [
+      {
+        "id": "btn-map",
+        "display": "none"
+      },
+      {
+        "id": "btn-inventory",
+        "display": "none"
+      },
+      {
+        "id": "btn-quests",
+        "display": "none"
+      },
+      {
+        "id": "btn-codex",
+        "display": "none"
+      },
+      {
+        "id": "btn-menu",
+        "display": "block"
+      }
+    ],
+    "narrativeOverflow": {
+      "overflowY": "hidden",
+      "clientHeight": 143,
+      "scrollHeight": 143
+    }
+  }
+}

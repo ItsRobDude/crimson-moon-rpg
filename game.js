@@ -303,7 +303,6 @@ export function initUI() {
     document.getElementById('btn-tutorial').onclick = () => {
         document.getElementById('tutorial-overlay').classList.remove('hidden');
     };
-    document.getElementById('objective-helper-dismiss').onclick = dismissObjectiveHelper;
     document.getElementById('battle-tutorial-dismiss').onclick = dismissBattleTutorialNudge;
 
     document.querySelectorAll('#cc-quick-starts .cc-quick-start').forEach((button) => {
@@ -337,10 +336,7 @@ const defaultGameSettings = {
 };
 
 let gameSettings = { ...defaultGameSettings };
-let objectiveStatusState = {
-    message: '',
-    tone: 'system'
-};
+let sceneStatusToastTimeoutId = null;
 let narrativeUiState = {
     currentSceneId: null,
     scenePages: [],
@@ -397,15 +393,13 @@ function persistGameSettings() {
 
 function setPresentationMode(active) {
     document.body.classList.toggle('presentation-mode', !!active);
-    updateObjectiveStrip();
+    if (active) {
+        showSceneStatusToast('');
+    }
 }
 
 function setObjectiveStatus(message = '', tone = 'system') {
-    objectiveStatusState = {
-        message: message || '',
-        tone
-    };
-    updateObjectiveStrip();
+    showSceneStatusToast(message, tone);
 }
 
 function getQuestStageData(stageEntry) {
@@ -468,7 +462,7 @@ function openUtilityFromMenu(openFn) {
 }
 
 function getNarrativeTextLimit() {
-    return window.innerWidth <= 768 ? 220 : 360;
+    return window.innerWidth <= 768 ? 180 : 300;
 }
 
 function getChoicePageSize() {
@@ -562,8 +556,7 @@ function buildSceneDisplayPages(scene) {
 function setChoiceGridColumns(count) {
     const choiceContainer = document.getElementById('choice-container');
     if (!choiceContainer) return;
-    const columns = window.innerWidth <= 768 ? 1 : Math.max(1, Math.min(count || 1, 3));
-    choiceContainer.style.gridTemplateColumns = `repeat(${columns}, minmax(0, 1fr))`;
+    choiceContainer.style.gridTemplateColumns = 'minmax(0, 1fr)';
 }
 
 function setNarrativeText(text) {
@@ -584,55 +577,44 @@ function buildChoicePages(choices = []) {
     const visibleChoices = choices.filter((choice) => meetsChoiceRequirements(choice, gameState.player));
     const recommendedChoices = visibleChoices.filter((choice) => choice.priority === 'recommended');
     const standardChoices = visibleChoices.filter((choice) => choice.priority !== 'recommended');
-    const groups = recommendedChoices.length > 0 && standardChoices.length > 0
-        ? [
-            { title: 'Likely Leads', choices: recommendedChoices },
-            { title: 'Other Threads', choices: standardChoices }
-        ]
-        : [{ title: '', choices: visibleChoices }];
-
+    const orderedChoices = recommendedChoices.length > 0
+        ? [...recommendedChoices, ...standardChoices]
+        : visibleChoices;
     const pages = [];
-    groups.forEach((group) => {
-        for (let start = 0; start < group.choices.length; start += pageSize) {
-            pages.push({
-                title: group.title,
-                choices: group.choices.slice(start, start + pageSize)
-            });
-        }
-    });
+    for (let start = 0; start < orderedChoices.length; start += pageSize) {
+        pages.push({
+            choices: orderedChoices.slice(start, start + pageSize)
+        });
+    }
     return pages;
 }
 
-function updateObjectiveHelper() {
-    const helper = document.getElementById('objective-helper');
-    const text = document.getElementById('objective-helper-text');
-    if (!helper || !text || document.body.classList.contains('presentation-mode')) {
-        helper?.classList.add('hidden');
+function showSceneStatusToast(message = '', tone = 'system') {
+    const toast = document.getElementById('scene-status-toast');
+    if (!toast) return;
+
+    if (sceneStatusToastTimeoutId) {
+        clearTimeout(sceneStatusToastTimeoutId);
+        sceneStatusToastTimeoutId = null;
+    }
+
+    if (!message || document.body.classList.contains('presentation-mode')) {
+        toast.innerText = '';
+        toast.classList.add('hidden');
+        toast.classList.remove('tone-system', 'tone-gain', 'tone-warning');
         return;
     }
 
-    const shouldShowSilverthornHint = gameState.currentSceneId === 'SCENE_HUB_SILVERTHORN'
-        && gameState.quests?.investigate_whisperwood?.currentStage === 1
-        && (!getSceneMemory('ui_silverthorn_nudge_seen') || getSceneMemory('ui_silverthorn_nudge_active'));
+    toast.innerText = message;
+    toast.classList.remove('hidden', 'tone-system', 'tone-gain', 'tone-warning');
+    toast.classList.add(`tone-${tone || 'system'}`);
 
-    if (!shouldShowSilverthornHint) {
-        if (getSceneMemory('ui_silverthorn_nudge_active')) {
-            setSceneMemory('ui_silverthorn_nudge_active', false);
-            setSceneMemory('ui_silverthorn_nudge_seen', true);
-        }
-        helper.classList.add('hidden');
-        return;
-    }
-
-    setSceneMemory('ui_silverthorn_nudge_active', true);
-    text.innerText = 'If you need your bearings, open Menu for Quests, Help, and the other tools without crowding the scene.';
-    helper.classList.remove('hidden');
-}
-
-function dismissObjectiveHelper() {
-    setSceneMemory('ui_silverthorn_nudge_seen', true);
-    setSceneMemory('ui_silverthorn_nudge_active', false);
-    document.getElementById('objective-helper')?.classList.add('hidden');
+    sceneStatusToastTimeoutId = window.setTimeout(() => {
+        toast.classList.add('hidden');
+        toast.classList.remove('tone-system', 'tone-gain', 'tone-warning');
+        toast.innerText = '';
+        sceneStatusToastTimeoutId = null;
+    }, 3600);
 }
 
 function updateBattleTutorialNudge(activeCharacterId = 'player') {
@@ -701,69 +683,8 @@ function getStoryProgressStatus(changes) {
     return '';
 }
 
-function getCurrentObjectiveCopy() {
-    const quest = gameState.quests?.investigate_whisperwood;
-    const currentSceneId = gameState.currentSceneId;
-
-    if (!quest || quest.currentStage <= 0) {
-        return 'Hear Prince Alderic and learn what Silverthorn needs of you.';
-    }
-
-    if (quest.currentStage === 1) {
-        if (currentSceneId === 'SCENE_BRIEFING' || currentSceneId === 'SCENE_ALDERIC_REACTION' || currentSceneId === 'SCENE_BRIEFING_2') {
-            return "Hear Alderic out, then step into Silverthorn with a sense of the road ahead.";
-        }
-        if (isSceneInSilverthorn(currentSceneId)) {
-            return 'Prepare in Silverthorn before you take the eastern gate. The Rusty Blade and temple road are the surest first reads.';
-        }
-    }
-
-    if (quest.currentStage === 2) {
-        return 'Take the eastern road through Shadowmire and reach Whisperwood alive.';
-    }
-
-    if (quest.currentStage === 3) {
-        return 'Find Eoin and learn where the living trail through Sporefall still runs.';
-    }
-
-    if (quest.currentStage === 4) {
-        return "Choose which quarter of Sporefall to press: the cathedral, the overseer's row, or the northern streets.";
-    }
-
-    return getQuestStageData(quest.stages?.[quest.currentStage]).text || quest.description || '';
-}
-
 function updateObjectiveStrip() {
-    const strip = document.getElementById('objective-strip');
-    const textEl = document.getElementById('objective-text');
-    const statusEl = document.getElementById('objective-status');
-
-    if (!strip || !textEl || !statusEl) return;
-
-    if (document.body.classList.contains('presentation-mode')) {
-        strip.classList.add('hidden');
-        return;
-    }
-
-    const objectiveText = getCurrentObjectiveCopy();
-    if (!objectiveText) {
-        strip.classList.add('hidden');
-        return;
-    }
-
-    strip.classList.remove('hidden');
-    textEl.innerText = objectiveText;
-
-    statusEl.classList.remove('hidden', 'tone-system', 'tone-gain', 'tone-warning');
-    if (objectiveStatusState.message) {
-        statusEl.innerText = objectiveStatusState.message;
-        statusEl.classList.add(`tone-${objectiveStatusState.tone || 'system'}`);
-    } else {
-        statusEl.innerText = '';
-        statusEl.classList.add('hidden');
-    }
-
-    updateObjectiveHelper();
+    return;
 }
 
 function setStartMenuStatus(message = '') {
@@ -1105,19 +1026,19 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
         scene.text = `${baseScene.text} It is ${time.timelineLabel}. ${curfewBeat}`;
         scene.choices = [
             createChoice(time.isNight ? 'See whether Alderic still receives visitors' : "Present yourself at Alderic's chamber again", 'SCENE_ALDERIC_CHAMBER_RETURN', {
-                hint: 'Return if you want the prince to restate the charge in his own words.'
+                buttonText: "Alderic's Chamber"
             }),
             createChoice('Cross into the market quarter', 'SCENE_SILVERTHORN_MARKET', {
                 timeAdvance: 1,
                 timeReason: 'You make your way across the city.',
                 inSilverthorn: true,
-                hint: 'Good for supplies, steel, and a measure of the city mood.'
+                buttonText: 'Market District'
             }),
             createChoice('Step inside The Rusty Blade', 'SCENE_RUSTY_BLADE_INN', {
                 timeAdvance: 1,
                 timeReason: 'You spend time in the inn.',
                 inSilverthorn: true,
-                hint: 'A strong first read on what the city fears and what the road has already cost.',
+                buttonText: 'Step Inside the Rusty Blade',
                 priority: 'recommended',
                 timeCostLabel: 'Takes about an hour'
             }),
@@ -1125,7 +1046,7 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
                 timeAdvance: 1,
                 timeReason: 'You make a detour to the temple.',
                 inSilverthorn: true,
-                hint: 'A quiet place for blessing, counsel, and steadier nerves before departure.',
+                buttonText: 'Temple of Dawn',
                 priority: 'recommended',
                 timeCostLabel: 'Takes about an hour'
             }),
@@ -1133,13 +1054,13 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
                 timeAdvance: 1,
                 timeReason: 'You spend a while reading the latest postings.',
                 inSilverthorn: true,
-                hint: 'Useful if you want rumors and public anxieties before you choose a route.'
+                buttonText: 'Notice Board'
             }),
             createChoice('Make for the eastern gate', 'SCENE_SILVERTHORN_GATES', {
                 timeAdvance: 1,
                 timeReason: 'You cross Silverthorn toward the eastern gate.',
                 inSilverthorn: true,
-                hint: 'When you are ready to leave the city behind and judge the road for yourself.',
+                buttonText: 'Eastern Gate',
                 priority: 'recommended',
                 riskTag: 'Leaves Silverthorn'
             })
@@ -1151,15 +1072,15 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
         if (time.isNight) {
             scene.text = "A chamberlain waits outside Alderic's rooms as though he has not moved in an hour. He bows with perfect restraint. 'The prince has withdrawn for the night and will receive no one. If your concern can wait, return at first light. If it cannot, the watch will bear it in his stead.'";
             scene.choices = [
-                createChoice('Return to the city center', 'SCENE_HUB_SILVERTHORN')
+                createChoice('Return to the city center', 'SCENE_HUB_SILVERTHORN', { buttonText: 'Back to City Center' })
             ];
             return scene;
         }
 
         scene.text = `${baseScene.text} It is ${time.timelineLabel}, and the chamber feels colder than before. Alderic gives you only a glance before returning to the dispatches spread before him.`;
         scene.choices = [
-            createChoice('Ask him to restate the charge', 'SCENE_ALDERIC_MISSION_REMINDER'),
-            createChoice('Withdraw from the chamber', 'SCENE_HUB_SILVERTHORN')
+            createChoice('Ask him to restate the charge', 'SCENE_ALDERIC_MISSION_REMINDER', { buttonText: 'Hear the charge again' }),
+            createChoice('Withdraw from the chamber', 'SCENE_HUB_SILVERTHORN', { buttonText: 'Leave the chamber' })
         ];
         return scene;
     }
@@ -1167,7 +1088,7 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
     if (sceneId === 'SCENE_ALDERIC_MISSION_REMINDER') {
         scene.text = `Alderic does not look up when he answers. 'Whisperwood first. Learn what befell it. End the corruption if it can be ended. Make use of Silverthorn while the gates still open for you, then take the eastern road through Shadowmire.' It is ${time.timelineLabel}. His voice carries the finality of an order already written in the dead.`;
         scene.choices = [
-            createChoice("Leave Alderic's chamber", 'SCENE_HUB_SILVERTHORN')
+            createChoice("Leave Alderic's chamber", 'SCENE_HUB_SILVERTHORN', { buttonText: "Exit Alderic's Chamber" })
         ];
         return scene;
     }
@@ -1176,8 +1097,8 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
         if (time.isNight) {
             scene.text = "The market quarter is mostly shuttered for the night. A few guttering lanterns still burn above bolted stalls, laborers drag carts beneath awnings without speaking, and the smell of stale ale drifts from The Rusty Blade like the district's last concession to comfort.";
             scene.choices = [
-                createChoice('Take shelter in The Rusty Blade', 'SCENE_RUSTY_BLADE_INN', { timeAdvance: 1, timeReason: 'You spend a while in the inn.', inSilverthorn: true }),
-                createChoice('Return to the city center', 'SCENE_HUB_SILVERTHORN')
+                createChoice('Take shelter in The Rusty Blade', 'SCENE_RUSTY_BLADE_INN', { timeAdvance: 1, timeReason: 'You spend a while in the inn.', inSilverthorn: true, buttonText: 'Step Inside the Rusty Blade' }),
+                createChoice('Return to the city center', 'SCENE_HUB_SILVERTHORN', { buttonText: 'Back to City Center' })
             ];
             return scene;
         }
@@ -1187,10 +1108,10 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
             : 'The district is busy, but not carefree. Wagon wheels, shouted prices, and the ring of hammered steel ride above the sound of people trying not to discuss the eastern road too loudly. Even here, fear has learned new names: Durnhelm, vanished caravans, and the kind of relic no city can agree to trust in another city\'s hands.';
         scene.text = `${baseScene.text} ${marketMood}`;
         scene.choices = [
-            createChoice('Browse the General Store', 'SCENE_SILVERTHORN_GENERAL_STORE'),
-            createChoice(time.isForgeOpen ? 'Call at the blacksmith' : 'See whether the blacksmith is still open', 'SCENE_SILVERTHORN_BLACKSMITH'),
-            createChoice('Step into The Rusty Blade', 'SCENE_RUSTY_BLADE_INN'),
-            createChoice('Return to the city center', 'SCENE_HUB_SILVERTHORN')
+            createChoice('Browse the General Store', 'SCENE_SILVERTHORN_GENERAL_STORE', { buttonText: 'General Store' }),
+            createChoice(time.isForgeOpen ? 'Call at the blacksmith' : 'See whether the blacksmith is still open', 'SCENE_SILVERTHORN_BLACKSMITH', { buttonText: 'Blacksmith' }),
+            createChoice('Step into The Rusty Blade', 'SCENE_RUSTY_BLADE_INN', { buttonText: 'Step Inside the Rusty Blade' }),
+            createChoice('Return to the city center', 'SCENE_HUB_SILVERTHORN', { buttonText: 'Back to City Center' })
         ];
         return scene;
     }
@@ -1201,9 +1122,9 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
             scene.type = undefined;
             scene.shopId = undefined;
             scene.choices = [
-                createChoice('Return to the market quarter', 'SCENE_SILVERTHORN_MARKET'),
-                createChoice('Go to The Rusty Blade instead', 'SCENE_RUSTY_BLADE_INN'),
-                createChoice('Return to the city center', 'SCENE_HUB_SILVERTHORN')
+                createChoice('Return to the market quarter', 'SCENE_SILVERTHORN_MARKET', { buttonText: 'Back to Market' }),
+                createChoice('Go to The Rusty Blade instead', 'SCENE_RUSTY_BLADE_INN', { buttonText: 'Step Inside the Rusty Blade' }),
+                createChoice('Return to the city center', 'SCENE_HUB_SILVERTHORN', { buttonText: 'Back to City Center' })
             ];
             return scene;
         }
@@ -1213,8 +1134,8 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
             scene.text = `${baseScene.text} The shopkeeper keeps one ear on the street and mutters that half the city has discovered a sudden need for bandages, lamp oil, clean cloth, and anything sold as a fever draught.`;
         }
         scene.choices = [
-            createChoice('Step back into the market quarter', 'SCENE_SILVERTHORN_MARKET'),
-            createChoice('Return to the city center', 'SCENE_HUB_SILVERTHORN')
+            createChoice('Step back into the market quarter', 'SCENE_SILVERTHORN_MARKET', { buttonText: 'Back to Market' }),
+            createChoice('Return to the city center', 'SCENE_HUB_SILVERTHORN', { buttonText: 'Back to City Center' })
         ];
         return scene;
     }
@@ -1227,8 +1148,8 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
             scene.type = undefined;
             scene.shopId = undefined;
             scene.choices = [
-                createChoice('Return to the market quarter', 'SCENE_SILVERTHORN_MARKET'),
-                createChoice('Return to the city center', 'SCENE_HUB_SILVERTHORN')
+                createChoice('Return to the market quarter', 'SCENE_SILVERTHORN_MARKET', { buttonText: 'Back to Market' }),
+                createChoice('Return to the city center', 'SCENE_HUB_SILVERTHORN', { buttonText: 'Back to City Center' })
             ];
             return scene;
         }
@@ -1238,8 +1159,8 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
             scene.text = `${baseScene.text} One of the smiths barely looks up before warning that the eastern road has turned fear into its own kind of currency. Everyone wants steel. Everyone wants more than steel can promise.`;
         }
         scene.choices = [
-            createChoice('Return to the market quarter', 'SCENE_SILVERTHORN_MARKET'),
-            createChoice('Head back to the city center', 'SCENE_HUB_SILVERTHORN')
+            createChoice('Return to the market quarter', 'SCENE_SILVERTHORN_MARKET', { buttonText: 'Back to Market' }),
+            createChoice('Head back to the city center', 'SCENE_HUB_SILVERTHORN', { buttonText: 'Back to City Center' })
         ];
         return scene;
     }
@@ -1250,9 +1171,9 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
             : 'The inn feels like a pressure valve for the whole city, full of half-finished briefings, guarded glances, and rumors spoken into cups rather than across tables.';
         scene.text = `${baseScene.text} ${innMood}`;
         scene.choices = [
-            createChoice('Take a room and rest', null, { action: 'longRest' }),
-            createChoice('Listen for what the room fears to say aloud', 'SCENE_RUSTY_BLADE_RUMORS', { timeAdvance: 1, timeReason: 'You linger over rumors and stray conversations.', inSilverthorn: true }),
-            createChoice('Return to the market quarter', 'SCENE_SILVERTHORN_MARKET')
+            createChoice('Take a room and rest', null, { action: 'longRest', buttonText: 'Take a Room' }),
+            createChoice('Listen for what the room fears to say aloud', 'SCENE_RUSTY_BLADE_RUMORS', { timeAdvance: 1, timeReason: 'You linger over rumors and stray conversations.', inSilverthorn: true, buttonText: 'Hear the Rumors' }),
+            createChoice('Return to the market quarter', 'SCENE_SILVERTHORN_MARKET', { buttonText: 'Back to Market' })
         ];
         return scene;
     }
@@ -1264,8 +1185,8 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
             ? "On repetition the room grows no kinder. The names change hands, but the shape of the dread remains the same: dwarves unearthed something in Durnhelm that may yet drag the realms into war, Whisperwood stopped answering the road, and every telling ends with someone feverish, missing, or buried before they can say what happened beneath the trees. No one says they expect peace. They only argue over what will break first."
             : "You keep your cup low and listen. One table swears the dwarves found a relic in Durnhelm powerful enough to drag every realm into a fresh quarrel. Another spits that the relic talk is court poison and the real terror is simpler: caravans stop reaching Whisperwood, patrols vanish on the road, and the few souls who stagger back are already burning with fever and too short of breath to say much before the healers carry them away. The room cannot agree on the truth. It agrees perfectly on the danger.";
         scene.choices = [
-            createChoice('Return to the common room', 'SCENE_RUSTY_BLADE_INN'),
-            createChoice('Head for the eastern gate', 'SCENE_SILVERTHORN_GATES')
+            createChoice('Return to the common room', 'SCENE_RUSTY_BLADE_INN', { buttonText: 'Back to the Common Room' }),
+            createChoice('Head for the eastern gate', 'SCENE_SILVERTHORN_GATES', { buttonText: 'Eastern Gate' })
         ];
         return scene;
     }
@@ -1274,17 +1195,17 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
         if (!time.isTempleOpen) {
             scene.text = "The main temple doors are barred for the night, though a side shrine remains open for private prayer. Candlelight leaks through the stonework, and the silence suggests the healers have been driven from comfort into triage.";
             scene.choices = [
-                createChoice('Offer a quiet prayer at the side shrine', 'SCENE_SILVERTHORN_TEMPLE_PRAYER', { timeAdvance: 1, timeReason: 'You spend a quiet hour in reflection.', inSilverthorn: true }),
-                createChoice('Return to the city center', 'SCENE_HUB_SILVERTHORN')
+                createChoice('Offer a quiet prayer at the side shrine', 'SCENE_SILVERTHORN_TEMPLE_PRAYER', { timeAdvance: 1, timeReason: 'You spend a quiet hour in reflection.', inSilverthorn: true, buttonText: 'Offer a Prayer' }),
+                createChoice('Return to the city center', 'SCENE_HUB_SILVERTHORN', { buttonText: 'Back to City Center' })
             ];
             return scene;
         }
 
         scene.text = `${baseScene.text} It is ${time.timelineLabel}, and the place feels like one of the last corners of Silverthorn that has stopped pretending anything is normal.`;
         scene.choices = [
-            createChoice('Ask the healers what waits on the road', 'SCENE_SILVERTHORN_TEMPLE_COUNSEL', { timeAdvance: 1, timeReason: 'You stay to hear the temple counsel.', inSilverthorn: true }),
-            createChoice('Kneel before you depart', 'SCENE_SILVERTHORN_TEMPLE_PRAYER', { timeAdvance: 1, timeReason: 'You spend a quiet hour in reflection.', inSilverthorn: true }),
-            createChoice('Return to the city center', 'SCENE_HUB_SILVERTHORN')
+            createChoice('Ask the healers what waits on the road', 'SCENE_SILVERTHORN_TEMPLE_COUNSEL', { timeAdvance: 1, timeReason: 'You stay to hear the temple counsel.', inSilverthorn: true, buttonText: 'Speak with the Healers' }),
+            createChoice('Kneel before you depart', 'SCENE_SILVERTHORN_TEMPLE_PRAYER', { timeAdvance: 1, timeReason: 'You spend a quiet hour in reflection.', inSilverthorn: true, buttonText: 'Offer a Prayer' }),
+            createChoice('Return to the city center', 'SCENE_HUB_SILVERTHORN', { buttonText: 'Back to City Center' })
         ];
         return scene;
     }
@@ -3386,67 +3307,13 @@ function getChoiceTimeLabel(choice) {
     return `Takes about ${choice.timeAdvance} hours`;
 }
 
-function getChoicePriorityLabel(choice) {
-    if (choice.priority === 'recommended') {
-        return 'Likely lead';
-    }
-    if (choice.priority === 'lead') {
-        return 'Primary lead';
-    }
-    return '';
-}
-
 function createChoiceButton(choice, labelOverride = null) {
     const btn = document.createElement('button');
     btn.className = 'choice-button';
-    const buttonLabel = labelOverride || choice.text || 'Continue';
+    btn.type = 'button';
+    const buttonLabel = labelOverride || choice.buttonText || choice.text || 'Continue';
     btn.setAttribute('aria-label', buttonLabel);
-    if (choice.priority === 'recommended') {
-        btn.classList.add('priority-recommended');
-    }
-
-    const title = document.createElement('span');
-    title.className = 'choice-title';
-    title.innerText = buttonLabel;
-    btn.appendChild(title);
-
-    if (!labelOverride && choice.hint) {
-        const hint = document.createElement('span');
-        hint.className = 'choice-hint';
-        hint.innerText = choice.hint;
-        hint.setAttribute('aria-hidden', 'true');
-        btn.appendChild(hint);
-    }
-
-    if (!labelOverride) {
-        const meta = document.createElement('span');
-        meta.className = 'choice-meta';
-        meta.setAttribute('aria-hidden', 'true');
-        const metaBits = [
-            getChoicePriorityLabel(choice),
-            getChoiceTimeLabel(choice),
-            choice.riskTag || '',
-            choice.cost ? `${choice.cost} gold` : ''
-        ].filter(Boolean);
-
-        metaBits.forEach((entry, index) => {
-            const pill = document.createElement('span');
-            pill.className = 'choice-pill';
-            if (index === 0 && choice.priority === 'recommended') {
-                pill.classList.add('recommended');
-            }
-            if (entry === choice.riskTag) {
-                pill.classList.add('risk');
-            }
-            pill.innerText = entry;
-            meta.appendChild(pill);
-        });
-
-        if (metaBits.length > 0) {
-            btn.appendChild(meta);
-        }
-    }
-
+    btn.innerText = buttonLabel;
     btn.onclick = () => handleChoice(choice);
     return btn;
 }
@@ -3487,7 +3354,7 @@ function renderChoicePagination(canGoBack, canGoForward) {
     if (canGoBack) {
         const prev = document.createElement('button');
         prev.className = 'choice-nav-button';
-        prev.innerText = 'Previous Options';
+        prev.innerText = 'Previous';
         prev.onclick = () => {
             narrativeUiState.choicePageIndex = Math.max(0, narrativeUiState.choicePageIndex - 1);
             renderChoices();
@@ -3498,7 +3365,7 @@ function renderChoicePagination(canGoBack, canGoForward) {
     if (canGoForward) {
         const next = document.createElement('button');
         next.className = 'choice-nav-button';
-        next.innerText = 'More Options';
+        next.innerText = 'More';
         next.onclick = () => {
             narrativeUiState.choicePageIndex = Math.min(narrativeUiState.choicePages.length - 1, narrativeUiState.choicePageIndex + 1);
             renderChoices();
@@ -3527,7 +3394,6 @@ function renderScenePage(scene) {
 
 function renderChoices(choices = null) {
     const choiceContainer = document.getElementById('choice-container');
-    const choicePageLabel = document.getElementById('choice-page-label');
     if (choices) {
         narrativeUiState.choicePages = buildChoicePages(choices);
         narrativeUiState.choicePageIndex = 0;
@@ -3536,16 +3402,6 @@ function renderChoices(choices = null) {
     const pages = narrativeUiState.choicePages || [];
     const page = pages[narrativeUiState.choicePageIndex] || null;
     const pageChoices = page?.choices || [];
-
-    if (choicePageLabel) {
-        if (page?.title) {
-            choicePageLabel.innerText = page.title;
-            choicePageLabel.classList.remove('hidden');
-        } else {
-            choicePageLabel.innerText = '';
-            choicePageLabel.classList.add('hidden');
-        }
-    }
 
     if (pageChoices.length > 0) {
         setChoiceGridColumns(pageChoices.length);
@@ -3556,10 +3412,6 @@ function renderChoices(choices = null) {
 
     renderChoicePagination(false, false);
     setChoiceGridColumns(1);
-    if (choicePageLabel) {
-        choicePageLabel.innerText = '';
-        choicePageLabel.classList.add('hidden');
-    }
 
     if (pageChoices.length === 0) {
         const currentScene = scenes[gameState.currentSceneId];
@@ -3678,13 +3530,8 @@ function handleChoice(choice) {
 
 function renderContinueButton(nextSceneId, label = 'Continue', handler = null) {
     const choiceContainer = document.getElementById('choice-container');
-    const choicePageLabel = document.getElementById('choice-page-label');
     const pagination = document.getElementById('choice-pagination');
     choiceContainer.innerHTML = '';
-    if (choicePageLabel) {
-        choicePageLabel.innerText = '';
-        choicePageLabel.classList.add('hidden');
-    }
     pagination?.classList.add('hidden');
     setChoiceGridColumns(1);
     const btn = createChoiceButton({ text: label }, label);
