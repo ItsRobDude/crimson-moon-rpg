@@ -2,8 +2,8 @@
 
 - Route status: `dormant`
 - Completion target: `35%` before any playable entry scene is restored
-- Parent canonical beat: `hushbriar_moonwell_spine`
-- Allowed entry beat: after the canonical Hushbriar/Moonwell spine has resolved its night-pressure hinge and only through a draft-safe late Hushbriar consequence
+- Parent canonical beat: `hushbriar_elara_resolution`
+- Allowed entry beat: after the canonical Hushbriar aftermath and Elara-resolution route has resolved its pressure hinge, and only through a draft-safe late Hushbriar consequence
 - Allowed cities: `Solasmor`
 - Named NPC rules: do not introduce new named NPCs beyond those already established by the campaign draft or canon notes; do not repurpose existing Hushbriar NPCs as Solasmor guides
 

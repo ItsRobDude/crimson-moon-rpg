@@ -3790,7 +3790,7 @@ function getTravelEventChance(locationId) {
     let chance = 12 + Math.min(18, Math.floor(gameState.threat.level / 4));
     if (getActivePartyActors().length > 0) chance += 6;
     if (['whisperwood', 'hushbriar'].includes(locationId)) chance += 8;
-    if (gameState.flags.elara_route_aodhan_lured && locationId === 'hushbriar') chance += 6;
+    if (gameState.flags.elara_choice_deferred_by_aodhan && locationId === 'hushbriar') chance += 6;
     return Math.max(10, Math.min(55, chance));
 }
 

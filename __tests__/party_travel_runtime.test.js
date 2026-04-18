@@ -87,7 +87,7 @@ test('runtime scenes react to traveling as a group and surface companion-specifi
   expect(scene.text).toContain('Neala marks doors');
 });
 
-test('travel event pool filters by route, party state, and Elara protection flags', () => {
+test('travel event pool filters by route and party state without reviving the old Elara branch events', () => {
   let pool = getTravelEventPool('whisperwood');
   expect(pool.some((event) => event.id === 'whisperwood_refugee_trace')).toBe(false);
 
@@ -95,28 +95,22 @@ test('travel event pool filters by route, party state, and Elara protection flag
   pool = getTravelEventPool('whisperwood');
   expect(pool.some((event) => event.id === 'whisperwood_refugee_trace')).toBe(true);
   expect(pool.every((event) => event.destinations.includes('whisperwood'))).toBe(true);
-
-  gameState.flags.elara_route_protect = true;
-  pool = getTravelEventPool('hushbriar');
-  expect(pool.some((event) => event.id === 'elara_route_guild_marks')).toBe(false);
-
-  pool = getTravelEventPool('thieves_hideout');
-  expect(pool.some((event) => event.id === 'elara_route_guild_marks')).toBe(true);
+  expect(getTravelEventPool('thieves_hideout').some((event) => event.id === 'elara_route_guild_marks')).toBe(false);
 });
 
 test('companion-aid hooks exist on existing routes without making companions mandatory', () => {
   const northApproachChoice = scenes.SCENE_SPOREFALL_NORTH_APPROACH.choices.find((choice) => choice.text.includes('Cross the open street'));
   const townScoutChoice = scenes.SCENE_HUSHBRIAR_TOWN.choices.find((choice) => choice.text.includes('Scout the area'));
-  const protectScene = scenes.SCENE_ELARA_PROTECT_ROUTE;
+  const stoneScene = scenes.SCENE_ELARA_STONE_DECISION;
 
   expect(northApproachChoice.companionAid?.companionId).toBe('eoin');
   expect(townScoutChoice.companionAid?.companionId).toBe('neala');
-  expect(protectScene.choices.some((choice) => choice.text.includes('Sit with Elara'))).toBe(true);
-  expect(protectScene.choices.some((choice) => choice.text.includes('guild is whispering'))).toBe(true);
+  expect(stoneScene.choices.some((choice) => choice.text.includes('blood stays unspent'))).toBe(true);
+  expect(stoneScene.choices.some((choice) => choice.text.includes('saving the world'))).toBe(true);
 });
 
-test('new recruitment and bond flags are registered in both safety sources', () => {
-  ['eoin_recruited', 'eoin_refused', 'eoin_locked_out', 'eoin_bonded', 'neala_recruited', 'neala_refused', 'neala_bonded'].forEach((flagId) => {
+test('current companion and late-route flags are registered in both safety sources', () => {
+  ['eoin_recruited', 'eoin_refused', 'eoin_locked_out', 'eoin_bonded', 'elara_choice_spared', 'elara_choice_sacrifice_declared', 'elara_choice_deferred_by_aodhan', 'processing_truth_learned'].forEach((flagId) => {
     expect(narrativeStateRegistry.flags[flagId]).toBeDefined();
     expect(registryNote).toContain(`\`${flagId}\``);
   });

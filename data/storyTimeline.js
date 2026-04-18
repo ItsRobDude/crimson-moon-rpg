@@ -99,11 +99,17 @@ export const storyEvents = {
         title: 'Hushbriar Demigod Hunt',
         summary: 'The late Hushbriar route centers on the occupied town, Moonwell, and the demigod pressure opened by Aine\'s warning.'
     },
+    hushbriar_elara_resolution: {
+        id: 'hushbriar_elara_resolution',
+        actId: 'act_5_hushbriar_endgame',
+        title: 'Elara and the Stone',
+        summary: 'After Moonwell breaks the night open, Hushbriar panic, the hidden demigod, and the Stone\'s price become one continuous late-act route.'
+    },
     retired_hushbriar_guild_branch: {
         id: 'retired_hushbriar_guild_branch',
         actId: 'act_5_hushbriar_endgame',
         title: 'Retired Hushbriar Guild Branch',
-        summary: 'The guild-first bridge and Elara holdfast branch remains authored but intentionally off-route until rewritten into draft order.'
+        summary: 'The old guild-first bridge and holdfast-management branch is obsolete and must not return as a competing mainline.'
     },
     dormant_hushbriar_future_route: {
         id: 'dormant_hushbriar_future_route',
@@ -228,6 +234,7 @@ export const storySceneTriggers = {
     },
     SCENE_AFTERMATH: {
         complete: ['aodhan_thread'],
+        unlock: ['hushbriar_elara_resolution'],
         actId: 'act_5_hushbriar_endgame'
     },
     SCENE_DURNHELM_GATES: {
@@ -304,24 +311,28 @@ export const storySceneTriggers = {
         activate: ['hushbriar_demigod_thread'],
         actId: 'act_5_hushbriar_endgame'
     },
-    SCENE_HUSHBRIAR_GUILD_ROAD: {
-        activate: ['retired_hushbriar_guild_branch'],
-        actId: 'act_5_hushbriar_endgame'
-    },
-    SCENE_SOUL_MILL_APPROACH: {
-        activate: ['dormant_hushbriar_future_route'],
+    SCENE_HUSHBRIAR_AFTERMATH_HUNT: {
+        activate: ['hushbriar_elara_resolution'],
         actId: 'act_5_hushbriar_endgame'
     },
     SCENE_THIEVES_HIDEOUT: {
-        activate: ['retired_hushbriar_guild_branch'],
+        activate: ['hushbriar_elara_resolution'],
         actId: 'act_5_hushbriar_endgame'
     },
     SCENE_ELARA_HIDEAWAY: {
-        activate: ['retired_hushbriar_guild_branch'],
+        activate: ['hushbriar_elara_resolution'],
         actId: 'act_5_hushbriar_endgame'
     },
-    SCENE_SOLASMOR_APPROACH: {
-        activate: ['dormant_hushbriar_future_route'],
+    SCENE_ELARA_STONE_DECISION: {
+        activate: ['hushbriar_elara_resolution'],
+        actId: 'act_5_hushbriar_endgame'
+    },
+    SCENE_ELARA_AODHAN_WARNING: {
+        activate: ['hushbriar_elara_resolution'],
+        actId: 'act_5_hushbriar_endgame'
+    },
+    SCENE_HUSHBRIAR_PROCESSING_REVELATION: {
+        complete: ['hushbriar_elara_resolution'],
         actId: 'act_5_hushbriar_endgame'
     }
 };
@@ -569,59 +580,70 @@ export const sceneSafetyPolicies = {
         onRevisit: 'Preserve the weight of the set piece and avoid flattening it into a generic boss room.',
         neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
     },
-    SCENE_HUSHBRIAR_GUILD_ROAD: {
-        thread: 'retired_hushbriar_guild_branch',
+    SCENE_HUSHBRIAR_AFTERMATH_HUNT: {
+        thread: 'hushbriar_elara_resolution',
         prerequisites: {
-            storyEvents: ['retired_hushbriar_guild_branch']
+            storyEvents: ['hushbriar_elara_resolution']
         },
-        fallbackMode: SCENE_FALLBACK_MODES.REDIRECT,
-        ifReachedTooEarly: 'Retire this guild-first route until it is rewritten to fit the draft-first Hushbriar order.',
-        ifPartiallyInformed: 'Do not let this branch replace the canonical town, inn, Fionnlagh, and Moonwell spine.',
-        onRevisit: 'Redirect interest back toward canonical Hushbriar until the branch is formally realigned.',
+        fallbackMode: SCENE_FALLBACK_MODES.DEGRADE,
+        ifReachedTooEarly: 'Do not surface the post-Moonwell demigod hunt before Aodhan or the broken-night aftermath unlocks it.',
+        ifPartiallyInformed: 'Keep this route focused on panic, clue pressure, and the hidden demigod, not future processing destinations.',
+        onRevisit: 'Preserve the urgency of the aftermath and avoid flattening it into a neutral town hub.',
         neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
     },
     SCENE_THIEVES_HIDEOUT: {
-        thread: 'retired_hushbriar_guild_branch',
+        thread: 'hushbriar_elara_resolution',
         prerequisites: {
-            storyEvents: ['retired_hushbriar_guild_branch']
+            storyEvents: ['hushbriar_elara_resolution']
         },
-        fallbackMode: SCENE_FALLBACK_MODES.REDIRECT,
-        ifReachedTooEarly: 'Keep the retired hideout branch off the active route.',
-        ifPartiallyInformed: 'Do not surface it as the default late-route destination until rewritten and documented as aligned.',
-        onRevisit: 'Redirect to canonical Hushbriar rather than treating this as a live hub.',
+        fallbackMode: SCENE_FALLBACK_MODES.DEGRADE,
+        ifReachedTooEarly: 'Keep the hideout hidden until the aftermath clue path points there directly.',
+        ifPartiallyInformed: 'Let Neala and Liobhan stay hard-edged and distrustful without turning the hideout into a side hub.',
+        onRevisit: 'Keep the hideout tense and inward-facing rather than reusable as a base.',
         neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
     },
     SCENE_ELARA_HIDEAWAY: {
-        thread: 'retired_hushbriar_guild_branch',
+        thread: 'hushbriar_elara_resolution',
         prerequisites: {
-            storyEvents: ['retired_hushbriar_guild_branch']
+            storyEvents: ['hushbriar_elara_resolution']
         },
-        fallbackMode: SCENE_FALLBACK_MODES.REDIRECT,
-        ifReachedTooEarly: 'Retire the holdfast-management branch until it is rewritten into draft-first order.',
-        ifPartiallyInformed: 'Keep Elara out of the active route until her branch is canon-aligned and documented.',
-        onRevisit: 'Do not route normal hub travel here.',
+        fallbackMode: SCENE_FALLBACK_MODES.DEGRADE,
+        ifReachedTooEarly: 'Do not reveal Elara before the aftermath clue path and hideout access earn her.',
+        ifPartiallyInformed: 'Keep Elara as a hunted demigod under immediate pressure, not a management node or exposition hub.',
+        onRevisit: 'Avoid turning Elara into a comfort scene or repeatable utility stop.',
         neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
     },
-    SCENE_SOUL_MILL_APPROACH: {
-        thread: 'dormant_hushbriar_future_route',
+    SCENE_ELARA_STONE_DECISION: {
+        thread: 'hushbriar_elara_resolution',
         prerequisites: {
-            storyEvents: ['dormant_hushbriar_future_route']
+            storyEvents: ['hushbriar_elara_resolution']
         },
-        fallbackMode: SCENE_FALLBACK_MODES.REDIRECT,
-        ifReachedTooEarly: 'Keep the Soul Mill dormant until its late Hushbriar role is draft-aligned and documented.',
-        ifPartiallyInformed: 'Do not let teaser surfaces behave like active destinations.',
-        onRevisit: 'Redirect to canonical Hushbriar until the route is promoted out of dormant status.',
+        fallbackMode: SCENE_FALLBACK_MODES.DEGRADE,
+        ifReachedTooEarly: 'Do not surface the Stone choice before Elara, the guild pressure, and the aftermath clue route make it earned.',
+        ifPartiallyInformed: 'Keep the choice focused on Elara, divinity, and immediate cost rather than future destination sprawl.',
+        onRevisit: 'Do not let the Stone decision become a repeatable debate scene.',
         neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
     },
-    SCENE_SOLASMOR_APPROACH: {
-        thread: 'dormant_hushbriar_future_route',
+    SCENE_ELARA_AODHAN_WARNING: {
+        thread: 'hushbriar_elara_resolution',
         prerequisites: {
-            storyEvents: ['dormant_hushbriar_future_route']
+            storyEvents: ['hushbriar_elara_resolution']
         },
-        fallbackMode: SCENE_FALLBACK_MODES.REDIRECT,
-        ifReachedTooEarly: 'Keep Solasmor dormant until its late Hushbriar role is draft-aligned and documented.',
-        ifPartiallyInformed: 'Do not let a teaser monastery route compete with the canonical Moonwell pressure.',
-        onRevisit: 'Redirect to canonical Hushbriar until the route is promoted out of dormant status.',
+        fallbackMode: SCENE_FALLBACK_MODES.DEGRADE,
+        ifReachedTooEarly: 'Do not surface the Aodhan-still-holds-the-Stone variant before the aftermath route reaches Elara.',
+        ifPartiallyInformed: 'Keep this as an aligned alternate access state, not a rival mainline.',
+        onRevisit: 'Avoid turning delayed choice pressure into a reusable lore stop.',
+        neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
+    },
+    SCENE_HUSHBRIAR_PROCESSING_REVELATION: {
+        thread: 'hushbriar_elara_resolution',
+        prerequisites: {
+            storyEvents: ['hushbriar_elara_resolution']
+        },
+        fallbackMode: SCENE_FALLBACK_MODES.DEGRADE,
+        ifReachedTooEarly: 'Do not reveal processing and the Soul Mill before Elara and the Stone are part of the active route.',
+        ifPartiallyInformed: 'Allow processing knowledge as consequence text only, not as an active travel unlock.',
+        onRevisit: 'Keep this as a consequence reveal, not a reusable destination hub.',
         neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
     }
 };

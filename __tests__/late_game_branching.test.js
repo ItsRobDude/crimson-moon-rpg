@@ -53,26 +53,27 @@ test('Thalion audience contains one-pass missable truth gates and a closing flag
   expect(leaveChoice.effects).toContainEqual({ type: 'flag', flagId: 'archives_thalion_audience_closed', value: true });
 });
 
-test('Hushbriar now opens on the canonical town route and the draft-late route scenes remain authored', () => {
+test('Hushbriar now opens on the canonical town route and the post-Moonwell continuation is authored', () => {
   expect(getHubSceneForLocation('hushbriar')).toBe('SCENE_HUSHBRIAR_TOWN');
   expect(scenes.SCENE_ARRIVAL_HUSHBRIAR.choices.some((choice) => choice.nextScene === 'SCENE_HUSHBRIAR_GATES')).toBe(true);
+  expect(scenes.SCENE_AFTERMATH.choices.some((choice) => choice.nextScene === 'SCENE_HUSHBRIAR_AFTERMATH_HUNT')).toBe(true);
   expect(scenes.SCENE_HUSHBRIAR_LEDGER.onEnter.effects).toContainEqual({ type: 'flag', flagId: 'hushbriar_guild_ledger_found', value: true });
   expect(scenes.SCENE_ELARA_HIDEAWAY.onEnter.effects).toContainEqual({ type: 'flag', flagId: 'elara_met', value: true });
 });
 
-test('Elara route choices differ based on Stone possession and whether Aodhan still lives', () => {
+test('Elara route now converges on a stone decision or an Aodhan-still-holds-the-stone warning', () => {
   const elaraChoices = scenes.SCENE_ELARA_HIDEAWAY.choices;
-  const stoneChoice = elaraChoices.find((choice) => choice.text.includes('Stone is already in my hands'));
-  const aodhanChoice = elaraChoices.find((choice) => choice.text.includes('Aodhan still lives'));
-  const protectChoice = elaraChoices.find((choice) => choice.text.includes('move you before the hunters'));
+  const stoneChoice = elaraChoices.find((choice) => choice.text.includes('I have the Stone'));
+  const aodhanChoice = elaraChoices.find((choice) => choice.text.includes('Aodhan still carries the Stone'));
+  const stoneDecisionChoices = scenes.SCENE_ELARA_STONE_DECISION.choices;
+  const warningChoices = scenes.SCENE_ELARA_AODHAN_WARNING.choices;
 
   expect(stoneChoice.requires.itemId).toBe('stone_of_oblivion');
-  expect(stoneChoice.effects).toContainEqual({ type: 'flag', flagId: 'elara_route_stone_hunt_declared', value: true });
-
   expect(aodhanChoice.requires.notFlag).toBe('aodhan_dead');
-  expect(aodhanChoice.effects).toContainEqual({ type: 'flag', flagId: 'elara_route_aodhan_lured', value: true });
 
-  expect(protectChoice.effects).toContainEqual({ type: 'flag', flagId: 'elara_route_protect', value: true });
+  expect(stoneDecisionChoices[0].effects).toContainEqual({ type: 'flag', flagId: 'elara_choice_spared', value: true });
+  expect(stoneDecisionChoices[1].effects).toContainEqual({ type: 'flag', flagId: 'elara_choice_sacrifice_declared', value: true });
+  expect(warningChoices[0].effects).toContainEqual({ type: 'flag', flagId: 'elara_choice_deferred_by_aodhan', value: true });
 });
 
 test('retired and dormant late routes no longer resolve as default hubs', () => {
@@ -81,32 +82,25 @@ test('retired and dormant late routes no longer resolve as default hubs', () => 
   expect(getHubSceneForLocation('solasmor')).toBe('SCENE_HUSHBRIAR_TOWN');
 });
 
-test('remaining late-route surfaces no longer collapse into pure map-bounce placeholders', () => {
-  expect(scenes.SCENE_SOUL_MILL_APPROACH.choices.some((choice) => choice.action === 'openMap')).toBe(false);
-  expect(scenes.SCENE_SOLASMOR_GATES.choices.some((choice) => choice.action === 'openMap')).toBe(false);
+test('canonical late-route surfaces stay authored while deleted holdfast and teaser scenes stay out of the live scene map', () => {
   expect(scenes.SCENE_THIEVES_HIDEOUT.choices.length).toBeGreaterThan(0);
+  expect(scenes.SCENE_HUSHBRIAR_PROCESSING_REVELATION.choices).toEqual([
+    expect.objectContaining({ action: 'showStartMenu' })
+  ]);
+  expect(scenes.SCENE_ELARA_PROTECT_ROUTE).toBeUndefined();
+  expect(scenes.SCENE_SOUL_MILL_APPROACH).toBeUndefined();
+  expect(scenes.SCENE_SOLASMOR_APPROACH).toBeUndefined();
 });
 
-test('Elara protect route now holds inside the hideout instead of exposing unfinished destinations', () => {
-  const protectLabels = scenes.SCENE_ELARA_PROTECT_ROUTE.choices.map((choice) => choice.text);
-
-  expect(protectLabels.some((label) => label.includes('Solasmór'))).toBe(false);
-  expect(protectLabels.some((label) => label.includes('Soul Mill'))).toBe(false);
-  expect(protectLabels).toEqual(expect.arrayContaining([
-    expect.stringContaining('Sit with Elara'),
-    expect.stringContaining('guild is whispering'),
-    expect.stringContaining('ward circle')
-  ]));
-});
-
-test('route-status note documents canonical, retired, and dormant late branches', () => {
+test('route-status note documents the new canonical continuation, aligned alternate, and dormant future branches', () => {
   [
     'silverthorn_sporefall_opening',
     'durnhelm_relic_lead',
     'lament_hill_truth',
     'archives_truth_branch',
     'hushbriar_moonwell_spine',
-    'hushbriar_guild_bridge_loop',
+    'hushbriar_elara_resolution',
+    'hushbriar_hideout_hostile_access',
     'elara_holdfast_loop',
     'solasmor_late_teaser',
     'soul_mill_processing_route'
@@ -124,10 +118,10 @@ test('route-status note documents canonical, retired, and dormant late branches'
   expect(storySceneTriggers.SCENE_DURNHELM_GATES.activate).toEqual(['durnhelm_thread']);
   expect(storySceneTriggers.SCENE_LAMENT_AINE_REVEAL.unlock).toEqual(['archives_truth', 'hushbriar_demigod_thread']);
   expect(storySceneTriggers.SCENE_ARRIVAL_HUSHBRIAR.activate).toEqual(['hushbriar_demigod_thread']);
-  expect(storySceneTriggers.SCENE_HUSHBRIAR_GUILD_ROAD.activate).toEqual(['retired_hushbriar_guild_branch']);
-  expect(storySceneTriggers.SCENE_THIEVES_HIDEOUT.activate).toEqual(['retired_hushbriar_guild_branch']);
-  expect(storySceneTriggers.SCENE_SOUL_MILL_APPROACH.activate).toEqual(['dormant_hushbriar_future_route']);
-  expect(storySceneTriggers.SCENE_SOLASMOR_APPROACH.activate).toEqual(['dormant_hushbriar_future_route']);
+  expect(storySceneTriggers.SCENE_AFTERMATH.unlock).toEqual(['hushbriar_elara_resolution']);
+  expect(storySceneTriggers.SCENE_HUSHBRIAR_AFTERMATH_HUNT.activate).toEqual(['hushbriar_elara_resolution']);
+  expect(storySceneTriggers.SCENE_THIEVES_HIDEOUT.activate).toEqual(['hushbriar_elara_resolution']);
+  expect(storySceneTriggers.SCENE_HUSHBRIAR_PROCESSING_REVELATION.complete).toEqual(['hushbriar_elara_resolution']);
 });
 
 test('dormant and retired late routes have design packets with status and completion targets', () => {
@@ -147,6 +141,6 @@ test('dormant and retired late routes have design packets with status and comple
   expect(solasmorPacket).toContain('Allowed cities: `Solasmor`');
   expect(soulMillPacket).toContain('Route status: `dormant`');
   expect(soulMillPacket).toContain('Allowed cities: `Hushbriar`, `Soul Mill`');
-  expect(elaraPacket).toContain('Route status: `retired`');
+  expect(elaraPacket).toContain('Route status: `alternate_aligned`');
   expect(elaraPacket).toContain('`Elara`, `Neala`, and `Liobhan`');
 });

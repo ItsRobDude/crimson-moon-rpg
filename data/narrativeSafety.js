@@ -305,7 +305,7 @@ export const narrativeStateRegistry = {
         },
         hushbriar_guild_ledger_found: {
             owner: 'SCENE_HUSHBRIAR_LEDGER',
-            thread: 'retired_hushbriar_guild_branch',
+            thread: 'hushbriar_elara_resolution',
             meaning: 'The player found the loading-dock ledger pointing toward the guild\'s hidden cargo.',
             allowedValues: [true],
             revealSensitivity: 'public',
@@ -313,7 +313,7 @@ export const narrativeStateRegistry = {
         },
         hushbriar_guild_trusted: {
             owner: 'SCENE_THIEVES_HIDEOUT',
-            thread: 'retired_hushbriar_guild_branch',
+            thread: 'hushbriar_elara_resolution',
             meaning: 'The guild has accepted the party as useful enough to risk showing them Elara.',
             allowedValues: [true],
             revealSensitivity: 'public',
@@ -321,7 +321,7 @@ export const narrativeStateRegistry = {
         },
         hushbriar_guild_hostile: {
             owner: 'SCENE_THIEVES_HIDEOUT',
-            thread: 'retired_hushbriar_guild_branch',
+            thread: 'hushbriar_elara_resolution',
             meaning: 'The party has lost the guild\'s trust and future contact should stay hostile or coercive.',
             allowedValues: [true],
             revealSensitivity: 'public',
@@ -329,56 +329,40 @@ export const narrativeStateRegistry = {
         },
         elara_met: {
             owner: 'SCENE_ELARA_HIDEAWAY',
-            thread: 'retired_hushbriar_guild_branch',
+            thread: 'hushbriar_elara_resolution',
             meaning: 'The party reached Elara\'s hiding place and the demigod route is now personal rather than rumor-level.',
             allowedValues: [true],
             revealSensitivity: 'spoiler_sensitive',
             semantics: 'story_progression'
         },
-        elara_route_protect: {
-            owner: 'SCENE_ELARA_PROTECT_ROUTE',
-            thread: 'retired_hushbriar_guild_branch',
-            meaning: 'The party committed to keeping Elara hidden and resisting those who would spend her life.',
+        elara_choice_spared: {
+            owner: 'SCENE_ELARA_STONE_DECISION',
+            thread: 'hushbriar_elara_resolution',
+            meaning: 'The party committed to keeping Elara alive rather than spending her blood immediately.',
             allowedValues: [true],
             revealSensitivity: 'spoiler_sensitive',
             semantics: 'story_progression'
         },
-        neala_recruited: {
-            owner: 'SCENE_ELARA_PROTECT_ROUTE',
-            thread: 'retired_hushbriar_guild_branch',
-            meaning: 'Neala has joined the active party to guide the Elara protection route through guild ground.',
+        elara_choice_sacrifice_declared: {
+            owner: 'SCENE_ELARA_STONE_DECISION',
+            thread: 'hushbriar_elara_resolution',
+            meaning: 'The party declared that Elara\'s divinity may need to be spent to wake the Stone.',
             allowedValues: [true],
             revealSensitivity: 'spoiler_sensitive',
             semantics: 'story_progression'
         },
-        neala_refused: {
-            owner: 'SCENE_ELARA_PROTECT_ROUTE',
-            thread: 'retired_hushbriar_guild_branch',
-            meaning: 'The player chose to leave Neala at the hideout instead of bringing her into the field.',
+        elara_choice_deferred_by_aodhan: {
+            owner: 'SCENE_ELARA_AODHAN_WARNING',
+            thread: 'hushbriar_elara_resolution',
+            meaning: 'Aodhan still controls the Stone, so the Elara choice is delayed under direct pursuit pressure.',
             allowedValues: [true],
-            revealSensitivity: 'public',
+            revealSensitivity: 'spoiler_sensitive',
             semantics: 'one_time_outcome'
         },
-        neala_bonded: {
-            owner: 'SCENE_ELARA_PROTECT_ROUTE',
-            thread: 'retired_hushbriar_guild_branch',
-            meaning: 'Neala trusts the party enough to share route knowledge and patrol reads on the road.',
-            allowedValues: [true],
-            revealSensitivity: 'spoiler_sensitive',
-            semantics: 'optional_clue'
-        },
-        elara_route_stone_hunt_declared: {
-            owner: 'SCENE_ELARA_STONE_ROUTE',
-            thread: 'retired_hushbriar_guild_branch',
-            meaning: 'The party revealed an intent to use Elara\'s blood to empower the Stone of Oblivion.',
-            allowedValues: [true],
-            revealSensitivity: 'spoiler_sensitive',
-            semantics: 'story_progression'
-        },
-        elara_route_aodhan_lured: {
-            owner: 'SCENE_ELARA_BETRAY_ROUTE',
-            thread: 'retired_hushbriar_guild_branch',
-            meaning: 'The party chose to bring or bait the living Aodhan toward Elara\'s hiding place.',
+        processing_truth_learned: {
+            owner: 'SCENE_HUSHBRIAR_PROCESSING_REVELATION',
+            thread: 'hushbriar_elara_resolution',
+            meaning: 'The party learned that Alderic is emptying Hushbriar through processing and the Soul Mill.',
             allowedValues: [true],
             revealSensitivity: 'spoiler_sensitive',
             semantics: 'story_progression'

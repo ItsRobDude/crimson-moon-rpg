@@ -55,16 +55,14 @@ If you add a new story-critical key, update both this note and the JS registry i
 | `archives_alderic_truth_missed` | `SCENE_ARCHIVES_ALDERIC_REBUFF` | `archives_truth` | Deeper Alderic truth permanently missed. | spoiler_sensitive | one_time_outcome |
 | `archives_thalion_confession_learned` | `SCENE_ARCHIVES_THALION_CONFESSION` | `archives_truth` | Thalion's personal confession learned. | spoiler_sensitive | optional_clue |
 | `archives_thalion_confession_missed` | `SCENE_ARCHIVES_THALION_REBUFF` | `archives_truth` | Thalion's personal confession permanently missed. | spoiler_sensitive | one_time_outcome |
-| `hushbriar_guild_ledger_found` | `SCENE_HUSHBRIAR_LEDGER` | `retired_hushbriar_guild_branch` | Loading-dock ledger clue found. | public | optional_clue |
-| `hushbriar_guild_trusted` | `SCENE_THIEVES_HIDEOUT` | `retired_hushbriar_guild_branch` | Guild trust earned enough to reach Elara. | public | story_progression |
-| `hushbriar_guild_hostile` | `SCENE_THIEVES_HIDEOUT` | `retired_hushbriar_guild_branch` | Guild relationship turned openly hostile. | public | story_progression |
-| `elara_met` | `SCENE_ELARA_HIDEAWAY` | `retired_hushbriar_guild_branch` | Elara personally encountered. | spoiler_sensitive | story_progression |
-| `elara_route_protect` | `SCENE_ELARA_PROTECT_ROUTE` | `retired_hushbriar_guild_branch` | Party committed to protecting and hiding Elara. | spoiler_sensitive | story_progression |
-| `neala_recruited` | `SCENE_ELARA_PROTECT_ROUTE` | `retired_hushbriar_guild_branch` | Neala joined the party to guide the Elara protection route. | spoiler_sensitive | story_progression |
-| `neala_refused` | `SCENE_ELARA_PROTECT_ROUTE` | `retired_hushbriar_guild_branch` | Player chose to leave Neala guarding the hideout instead of recruiting her. | public | one_time_outcome |
-| `neala_bonded` | `SCENE_ELARA_PROTECT_ROUTE` | `retired_hushbriar_guild_branch` | Neala trusts the party enough to share guild routecraft. | spoiler_sensitive | optional_clue |
-| `elara_route_stone_hunt_declared` | `SCENE_ELARA_STONE_ROUTE` | `retired_hushbriar_guild_branch` | Party declared intent to use Elara's blood for the Stone. | spoiler_sensitive | story_progression |
-| `elara_route_aodhan_lured` | `SCENE_ELARA_BETRAY_ROUTE` | `retired_hushbriar_guild_branch` | Party chose to lead or lure Aodhan to Elara. | spoiler_sensitive | story_progression |
+| `hushbriar_guild_ledger_found` | `SCENE_HUSHBRIAR_LEDGER` | `hushbriar_elara_resolution` | Loading-dock ledger clue found. | public | optional_clue |
+| `hushbriar_guild_trusted` | `SCENE_THIEVES_HIDEOUT` | `hushbriar_elara_resolution` | Guild trust earned enough to reach Elara cooperatively. | public | story_progression |
+| `hushbriar_guild_hostile` | `SCENE_THIEVES_HIDEOUT` | `hushbriar_elara_resolution` | Guild relationship turned openly hostile, but the route still pushes toward Elara under pressure. | public | story_progression |
+| `elara_met` | `SCENE_ELARA_HIDEAWAY` | `hushbriar_elara_resolution` | Elara personally encountered. | spoiler_sensitive | story_progression |
+| `elara_choice_spared` | `SCENE_ELARA_STONE_DECISION` | `hushbriar_elara_resolution` | Party committed to keeping Elara alive rather than spending her blood immediately. | spoiler_sensitive | story_progression |
+| `elara_choice_sacrifice_declared` | `SCENE_ELARA_STONE_DECISION` | `hushbriar_elara_resolution` | Party declared that Elara's divinity may need to be spent to wake the Stone. | spoiler_sensitive | story_progression |
+| `elara_choice_deferred_by_aodhan` | `SCENE_ELARA_AODHAN_WARNING` | `hushbriar_elara_resolution` | Aodhan still holds the Stone, delaying the choice under direct pursuit pressure. | spoiler_sensitive | one_time_outcome |
+| `processing_truth_learned` | `SCENE_HUSHBRIAR_PROCESSING_REVELATION` | `hushbriar_elara_resolution` | Alderic's Hushbriar processing plan and Soul Mill sorting were learned from the guild. | spoiler_sensitive | story_progression |
 
 ## Scene Memory
 

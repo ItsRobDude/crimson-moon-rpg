@@ -73,7 +73,7 @@ export const travelEvents = [
     {
         id: 'hushbriar_search_party',
         destinations: ['hushbriar'],
-        text: 'Well before Hushbriar comes into view, you find the latest proof that the roads are being hunted: boot prints fanning out from a dead fire, a snapped spearshaft, and interrogation blood darkening the grass beside a milestone.',
+        text: 'Well before Hushbriar comes into view, you find the latest proof that the roads are being hunted: boot prints fanning out from a dead fire, a snapped spearshaft, interrogation blood darkening the grass beside a milestone, and the armed quiet that only comes when men mean to take prisoners rather than corpses.',
         type: 'skillCheck',
         skill: 'survival',
         dc: 13,
@@ -93,28 +93,10 @@ export const travelEvents = [
     {
         id: 'hushbriar_burned_shelter',
         destinations: ['hushbriar'],
-        text: 'A shelter of driftwood and sailcloth has been burned down to wet black ribs. In the ash you find prayer beads fused to glass and the stink of medicine boiled far past usefulness.',
+        text: 'A shelter of driftwood and sailcloth has been burned down to wet black ribs. In the ash you find prayer beads fused to glass, the stink of medicine boiled far past usefulness, and enough dock rope to suggest the dead here were judged smugglers or mourners by whichever search party struck the match.',
         type: 'discovery',
         effects: [
             { type: 'addGold', amount: 6, logText: 'You recover a few coins that melted together in the ash and can still be broken apart.' }
         ]
     },
-    {
-        id: 'elara_route_guild_marks',
-        destinations: ['thieves_hideout'],
-        requiresFlag: ['elara_route_protect'],
-        text: 'Thorne Guild chalk marks start appearing where only smugglers or mourners would ever think to look: under culverts, inside shrine niches, and on the blind side of abandoned ferries. Someone is moving Elara\'s route ahead of you even when you cannot see them.',
-        type: 'discovery',
-        effects: [
-            { type: 'threat', amount: -5, logText: 'The guild\'s hidden signs shave some danger off the road ahead.' }
-        ]
-    },
-    {
-        id: 'stone_hunters_on_the_road',
-        destinations: ['thieves_hideout'],
-        requiresFlag: ['elara_route_stone_hunt_declared'],
-        text: 'The black roads are busier now. Not with refugees, but with the sort of armed quiet that means word of a relic has spread faster than mercy.',
-        type: 'combat',
-        enemyId: 'silverthorn_guard'
-    }
 ];

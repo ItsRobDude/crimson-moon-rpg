@@ -2,8 +2,8 @@
 
 - Route status: `dormant`
 - Completion target: `40%` before any playable entry scene is restored
-- Parent canonical beat: `hushbriar_moonwell_spine`
-- Allowed entry beat: only after the canonical Hushbriar route has finished its Moonwell hinge and any Elara-related consequences are rewritten into draft-safe order
+- Parent canonical beat: `hushbriar_elara_resolution`
+- Allowed entry beat: only after `SCENE_HUSHBRIAR_PROCESSING_REVELATION` and any Elara-related consequences are rewritten into a draft-safe late branch
 - Allowed cities: `Hushbriar`, `Soul Mill`
 - Named NPC rules: `Alderic` and `Elara` may be referenced only in ways that preserve their canon goals and spoiler pacing; do not invent new named operators around the mill
 

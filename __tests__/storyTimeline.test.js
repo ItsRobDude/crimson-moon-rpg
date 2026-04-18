@@ -105,3 +105,61 @@ test('sporefall investigation now unlocks Aodhan and Durnhelm before Lament Hill
   expect(getStoryEventStatus(storyState, 'retired_hushbriar_guild_branch')).toBe(STORY_EVENT_STATUS.LOCKED);
   expect(getStoryEventStatus(storyState, 'dormant_hushbriar_future_route')).toBe(STORY_EVENT_STATUS.LOCKED);
 });
+
+test('post-Moonwell continuation stays on the canonical Elara route and keeps dormant branches locked', () => {
+  const storyState = createDefaultStoryState();
+
+  [
+    'SCENE_BRIEFING',
+    'SCENE_HUB_SILVERTHORN',
+    'SCENE_TRAVEL_SHADOWMIRE',
+    'SCENE_ARRIVAL_WHISPERWOOD',
+    'SCENE_MEET_EOIN',
+    'SCENE_EOIN_TALK',
+    'SCENE_HUB_SPOREFALL',
+    'SCENE_SPOREFALL_OVERSEER_JOURNAL',
+    'SCENE_DURNHELM_GATES',
+    'SCENE_DURNHELM_ENTRY',
+    'SCENE_DURNHELM_CATHAL',
+    'SCENE_LAMENT_HILL_APPROACH',
+    'SCENE_LAMENT_AINE_REVEAL',
+    'SCENE_ARRIVAL_HUSHBRIAR',
+    'SCENE_FIONNLAGH_HUB',
+    'SCENE_HUSHBRIAR_SCREAMS',
+    'SCENE_MOONWELL',
+    'SCENE_AODHAN_DEFEAT'
+  ].forEach((sceneId) => {
+    syncStoryStateForScene(storyState, sceneId);
+  });
+
+  expect(getStoryEventStatus(storyState, 'hushbriar_demigod_thread')).toBe(STORY_EVENT_STATUS.ACTIVE);
+  expect(getStoryEventStatus(storyState, 'hushbriar_elara_resolution')).toBe(STORY_EVENT_STATUS.LOCKED);
+  expect(getStoryEventStatus(storyState, 'retired_hushbriar_guild_branch')).toBe(STORY_EVENT_STATUS.LOCKED);
+  expect(getStoryEventStatus(storyState, 'dormant_hushbriar_future_route')).toBe(STORY_EVENT_STATUS.LOCKED);
+
+  syncStoryStateForScene(storyState, 'SCENE_AFTERMATH');
+  expect(getStoryEventStatus(storyState, 'aodhan_thread')).toBe(STORY_EVENT_STATUS.COMPLETED);
+  expect(getStoryEventStatus(storyState, 'hushbriar_demigod_thread')).toBe(STORY_EVENT_STATUS.ACTIVE);
+  expect(getStoryEventStatus(storyState, 'hushbriar_elara_resolution')).toBe(STORY_EVENT_STATUS.AVAILABLE);
+
+  syncStoryStateForScene(storyState, 'SCENE_HUSHBRIAR_AFTERMATH_HUNT');
+  expect(getStoryEventStatus(storyState, 'hushbriar_elara_resolution')).toBe(STORY_EVENT_STATUS.ACTIVE);
+
+  [
+    'SCENE_HUSHBRIAR_DOCK',
+    'SCENE_HUSHBRIAR_LEDGER',
+    'SCENE_THIEVES_HIDEOUT',
+    'SCENE_ELARA_HIDEAWAY',
+    'SCENE_ELARA_STONE_DECISION',
+    'SCENE_HUSHBRIAR_PROCESSING_REVELATION'
+  ].forEach((sceneId) => {
+    syncStoryStateForScene(storyState, sceneId);
+  });
+
+  expect(getStoryEventStatus(storyState, 'hushbriar_elara_resolution')).toBe(STORY_EVENT_STATUS.COMPLETED);
+  expect(getStoryEventStatus(storyState, 'retired_hushbriar_guild_branch')).toBe(STORY_EVENT_STATUS.LOCKED);
+  expect(getStoryEventStatus(storyState, 'dormant_hushbriar_future_route')).toBe(STORY_EVENT_STATUS.LOCKED);
+  expect(meetsStoryRequirement(storyState, getLocationStoryRequirement('thieves_hideout'))).toBe(false);
+  expect(meetsStoryRequirement(storyState, getLocationStoryRequirement('soul_mill'))).toBe(false);
+  expect(meetsStoryRequirement(storyState, getLocationStoryRequirement('solasmor'))).toBe(false);
+});

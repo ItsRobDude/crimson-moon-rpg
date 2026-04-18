@@ -81,7 +81,7 @@ test('optional evasion and support-route scenes stay tonally serious beyond the 
   const skirt = scenes.SCENE_SKIRT_BEAST;
   const durnhelmMarket = scenes.SCENE_DURNHELM_MARKET_RUINS;
   const screams = scenes.SCENE_HUSHBRIAR_SCREAMS;
-  const guildRoad = scenes.SCENE_HUSHBRIAR_GUILD_ROAD;
+  const aftermathHunt = scenes.SCENE_HUSHBRIAR_AFTERMATH_HUNT;
   const dock = scenes.SCENE_HUSHBRIAR_DOCK;
   const ledger = scenes.SCENE_HUSHBRIAR_LEDGER;
 
@@ -90,7 +90,7 @@ test('optional evasion and support-route scenes stay tonally serious beyond the 
   expect(skirt.text).not.toContain('The spores glow faintly on your cloak');
   expect(durnhelmMarket.text).toContain('keeper clearly not among the living');
   expect(screams.text).toContain('wet drag');
-  expect(guildRoad.text).toContain('healthy enough to carry blame');
+  expect(aftermathHunt.text).toContain('sorting livestock');
   expect(dock.text).toContain('river rot mingles with lamp oil');
   expect(ledger.text).toContain('hurried, angry, and afraid');
 });

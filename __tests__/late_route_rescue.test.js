@@ -149,7 +149,7 @@ test('Sporefall street-search fail text stays in the same grim register', () => 
   expect(survivorSearch.failText).not.toContain('gross and slimy');
 });
 
-test('Moonwell route is restored as the Hushbriar night event and old guild-blame content is retired', () => {
+test('Moonwell route now hands off into the canonical Elara continuation instead of a hard dead stop', () => {
   expect(scenes.SCENE_INVESTIGATION.choices.some((choice) => choice.nextScene === 'SCENE_TRACKING_CHOLDRITHS')).toBe(true);
   expect(scenes.SCENE_INVESTIGATION.text).not.toContain('Neala');
   expect(scenes.SCENE_INVESTIGATION.text).not.toContain('Liobh');
@@ -159,8 +159,13 @@ test('Moonwell route is restored as the Hushbriar night event and old guild-blam
   expect(scenes.SCENE_AODHAN_TALK.text).toContain('Liam should have had more than this');
   expect(scenes.SCENE_AODHAN_COMBAT.enemies).toEqual(['aodhan']);
   expect(scenes.SCENE_AFTERMATH.choices).toEqual([
-    expect.objectContaining({ action: 'showStartMenu' })
+    expect.objectContaining({ nextScene: 'SCENE_HUSHBRIAR_AFTERMATH_HUNT' })
   ]);
+  expect(scenes.SCENE_HUSHBRIAR_AFTERMATH_HUNT.text).toContain('the girl the town failed to hide');
+  expect(scenes.SCENE_HUSHBRIAR_DOCK.choices.some((choice) => choice.nextScene === 'SCENE_THIEVES_HIDEOUT')).toBe(true);
+  expect(scenes.SCENE_ELARA_HIDEAWAY.choices.some((choice) => choice.nextScene === 'SCENE_ELARA_STONE_DECISION')).toBe(true);
+  expect(scenes.SCENE_HUSHBRIAR_PROCESSING_REVELATION.text).toContain('strong and healthy');
+  expect(scenes.SCENE_HUSHBRIAR_PROCESSING_REVELATION.text).toContain('Soul Mill');
 });
 
 test('after meeting Fionnlagh, Hushbriar at night surfaces the missable Moonwell event and dawn consequence', () => {

@@ -89,19 +89,19 @@ test('late Hushbriar spine and retired teaser branches carry explicit safety pol
     'SCENE_BRIARWOOD_INN',
     'SCENE_HUSHBRIAR_SCREAMS',
     'SCENE_MOONWELL',
-    'SCENE_HUSHBRIAR_GUILD_ROAD',
+    'SCENE_HUSHBRIAR_AFTERMATH_HUNT',
     'SCENE_THIEVES_HIDEOUT',
     'SCENE_ELARA_HIDEAWAY',
-    'SCENE_SOUL_MILL_APPROACH',
-    'SCENE_SOLASMOR_APPROACH'
+    'SCENE_ELARA_STONE_DECISION',
+    'SCENE_HUSHBRIAR_PROCESSING_REVELATION'
   ].forEach((sceneId) => {
     expect(sceneSafetyPolicies[sceneId]).toBeDefined();
   });
 
-  expect(sceneSafetyPolicies.SCENE_HUSHBRIAR_GUILD_ROAD.fallbackMode).toBe(SCENE_FALLBACK_MODES.REDIRECT);
-  expect(sceneSafetyPolicies.SCENE_THIEVES_HIDEOUT.fallbackMode).toBe(SCENE_FALLBACK_MODES.REDIRECT);
-  expect(sceneSafetyPolicies.SCENE_SOUL_MILL_APPROACH.fallbackMode).toBe(SCENE_FALLBACK_MODES.REDIRECT);
-  expect(sceneSafetyPolicies.SCENE_SOLASMOR_APPROACH.fallbackMode).toBe(SCENE_FALLBACK_MODES.REDIRECT);
+  expect(sceneSafetyPolicies.SCENE_HUSHBRIAR_AFTERMATH_HUNT.fallbackMode).toBe(SCENE_FALLBACK_MODES.DEGRADE);
+  expect(sceneSafetyPolicies.SCENE_THIEVES_HIDEOUT.fallbackMode).toBe(SCENE_FALLBACK_MODES.DEGRADE);
+  expect(sceneSafetyPolicies.SCENE_ELARA_STONE_DECISION.fallbackMode).toBe(SCENE_FALLBACK_MODES.DEGRADE);
+  expect(sceneSafetyPolicies.SCENE_HUSHBRIAR_PROCESSING_REVELATION.fallbackMode).toBe(SCENE_FALLBACK_MODES.DEGRADE);
 });
 
 test('late-route registry ownership matches the draft-first Hushbriar split', () => {
@@ -120,14 +120,12 @@ test('late-route registry ownership matches the draft-first Hushbriar split', ()
     'hushbriar_guild_trusted',
     'hushbriar_guild_hostile',
     'elara_met',
-    'elara_route_protect',
-    'neala_recruited',
-    'neala_refused',
-    'neala_bonded',
-    'elara_route_stone_hunt_declared',
-    'elara_route_aodhan_lured'
+    'elara_choice_spared',
+    'elara_choice_sacrifice_declared',
+    'elara_choice_deferred_by_aodhan',
+    'processing_truth_learned'
   ].forEach((flagId) => {
-    expect(narrativeStateRegistry.flags[flagId].thread).toBe('retired_hushbriar_guild_branch');
+    expect(narrativeStateRegistry.flags[flagId].thread).toBe('hushbriar_elara_resolution');
   });
 });
 
