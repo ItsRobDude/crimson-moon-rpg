@@ -1872,7 +1872,7 @@ function buildEarlyHushbriarRuntimeScene(sceneId, baseScene) {
                 })
             );
         } else if (morningAfterSeen) {
-            scene.text = `${scene.text} The square still carries the aftertaste of dawn panic, and every rumor in town now bends around the same hard truth: somebody powerful has started searching Hushbriar by force.`;
+            scene.text = `${scene.text} The square still carries the aftertaste of failed dawn panic, and every rumor in town now bends around the same hard truth: Aodhan turned guards and guild alike into obstacles on his way east.`;
         }
         return scene;
     }
@@ -1889,7 +1889,7 @@ function buildEarlyHushbriarRuntimeScene(sceneId, baseScene) {
                 })
             );
         } else if (morningAfterSeen) {
-            scene.text = `${scene.text} Morning has not made anyone braver. It has only given the fear fresh names to whisper over breakfast they cannot eat.`;
+            scene.text = `${scene.text} Nobody in the inn talks about sunrise anymore. They talk about shattered doors, burned men, and the mage who tore through both soldiers and guild blades hunting a name the room still refuses to say aloud.`;
         }
         return scene;
     }
@@ -3381,6 +3381,10 @@ function handleChoice(choice) {
         return;
     } else if (choice.action === 'inventory') {
         toggleInventory();
+        return;
+    } else if (choice.action === 'showStartMenu') {
+        saveGame();
+        showStartMenu();
         return;
     }
     if (choice.action === 'openMap') {

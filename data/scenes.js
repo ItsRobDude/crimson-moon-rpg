@@ -215,8 +215,8 @@ export const scenes = {
                     bonus: 2,
                     logText: "Neala separates real fear from planted rumor before the lies settle in."
                 },
-                successText: "Between the refugees, dock hands, and hollow-eyed pilgrims, a pattern emerges: the bridge road is watched hardest, the creek paths are full of bodies, and no one who mentions a hidden boat ever does so above a whisper.",
-                failText: "The room gives you fragments only: screams by the creek, guards at the bridge, and too many stories spoken with the shape of rumor but the smell of truth.",
+                successText: "Between the refugees, dock hands, and hollow-eyed pilgrims, a pattern emerges: the east lanes are watched hardest, the creek paths are full of bodies, and anyone who starts to name who the soldiers are hunting remembers fear and swallows it.",
+                failText: "The room gives you fragments only: screams by the creek, patrols choking the east lanes, and too many silences every time the town edges near the name behind the panic.",
                 nextSceneSuccess: "SCENE_BRIARWOOD_INN",
                 nextSceneFail: "SCENE_BRIARWOOD_INN"
             },
@@ -372,7 +372,7 @@ export const scenes = {
         location: "hushbriar",
         background: "landscapes/forest_walk_alt.png",
         npcPortrait: "portraits/npc_male_placeholder_portrait.png",
-        text: "Aodhan closes his hand around the Stone of Oblivion and turns at last. Moonlight catches the ruin in his face before anger can hide it. 'Sad, isn't it?' he says quietly, glancing once at the silk-wrapped bodies above the well. 'To die that young. To spend years praying the world kinder, then watch it bare its teeth in one night.' His eyes settle on you, fever-bright with exhaustion and fury. 'I held Sporefall shut for as long as I could. Do you feel it? The last ring of the spell is gone. The barrier around the borough has broken. The Underdark is spilling through at full strength now, and the plague is running with it. This is the moment it stops being contained. This is the moment the dark wins ground.'",
+        text: "Aodhan closes his hand around the Stone of Oblivion and turns at last. Moonlight catches the ruin in his face before anger can hide it. 'Sad, isn't it?' he says quietly, glancing once at the silk-wrapped bodies above the well. 'To die that young. To spend years praying the world kinder, then watch it bare its teeth in one night. Liam should have had more than this.' His eyes settle on you, fever-bright with exhaustion and fury. 'I held Sporefall shut for as long as I could. Do you feel it? The last ring of the spell is gone. The barrier around the borough has broken. The Underdark is spilling through at full strength now, and the plague is running with it. This is the moment it stops being contained. This is the moment the dark wins ground.'",
         choices: [
             {
                 text: "\"Then this ends here, Aodhan.\"",
@@ -390,7 +390,7 @@ export const scenes = {
         background: "landscapes/forest_walk_alt.png",
         text: "Something inside Aodhan gives way. Grief breaks open into violence, and dark power gathers around his arm like smoke learning how to bite.",
         type: "combat",
-        enemies: ["spore_zombie"], // Placeholder for Aodhan
+        enemies: ["aodhan"],
         winScene: "SCENE_AODHAN_DEFEAT",
         loseScene: "SCENE_DEFEAT"
     },
@@ -414,19 +414,11 @@ export const scenes = {
         id: "SCENE_AFTERMATH",
         location: "hushbriar",
         background: "landscapes/forest_walk.png",
-        text: "Morning does not come. The darkness above the trees deepens until the moon bleeds red enough to stain the clouds around it, and the whole world seems to hold one terrible breath before giving way. Whatever had been buried beneath old stories and older prayers is buried no longer. It is here now, and it is not leaving quietly.",
+        text: "Morning does not come. The darkness above the trees deepens until the moon bleeds red enough to stain the clouds around it, and Hushbriar answers the broken night with bells, steel, and screams too small to matter against what has already slipped loose. Whether Aodhan lives or dies, Sporefall is open now. Whatever had been buried beneath old stories and older prayers is buried no longer. It is here, and the world has already begun changing around that fact.",
         choices: [
             {
-                text: "Turn back toward Silverthorn",
-                nextScene: "SCENE_SILVERTHORN_QUARANTINE"
-            },
-            {
-                text: "Take the road toward Lament Hill",
-                nextScene: "SCENE_LAMENT_HILL_APPROACH"
-            },
-            {
-                text: "Make for Durnhelm",
-                nextScene: "SCENE_DURNHELM_GATES"
+                text: "Sit with the broken night a moment longer.",
+                action: "showStartMenu"
             }
         ]
     },
@@ -467,7 +459,7 @@ export const scenes = {
         location: "silverthorn",
         background: "landscapes/alderics_chamber.webp",
         npcPortrait: "portraits/alderic_portrait.png",
-        text: "The chamber is dim and severe, lit by a single brazier and the red glow of wax seals melting over opened dispatches. Prince Alderic stands over a map table crowded with routes, blockades, and a red ring drawn hard around Whisperwood. He does not offer a seat. 'You are here,' he says at last, as if confirming a detail in a report. 'Good. Silverthorn still has use for those who can move before panic learns to outrank duty.'",
+        text: "The chamber is dim and severe, lit by a single brazier and the red glow of wax seals melting over opened dispatches. Prince Alderic stands over a map table crowded with routes, blockades, and a red ring drawn hard around Whisperwood. He does not offer a seat. 'You are here,' he says at last, as if confirming a detail in a report. 'Good. Whisperwood has gone silent. Liam's party should have returned by now and has not. Not a raven. Not a scrap. Silverthorn still has use for those who can move before panic learns to outrank duty.'",
         onEnter: {
             once: true,
             questUpdate: { id: "investigate_whisperwood", stage: 1 },
@@ -517,7 +509,7 @@ export const scenes = {
         location: "silverthorn",
         background: "landscapes/alderics_chamber.webp",
         npcPortrait: "portraits/alderic_portrait.png",
-        text: "Alderic lays two fingers on the map as if pinning the borough in place. 'You will go to Whisperwood. You will learn what birthed this corruption. If there is a root to sever, you will sever it. My quartermaster has released coin for travel and what little surplus Silverthorn can still spare. Until you depart, the city is yours to use. When you are ready, take the eastern gate and follow the Shadowmire road.'",
+        text: "Alderic lays two fingers on the map as if pinning the borough in place. 'Travelers speak of black spores choking the eastern road. Those who went after Liam vanished in turn. One name keeps surfacing through the sickness and the fear: Aodhan O Duibh. Find Liam if there is anything left to find. Judge Aodhan if he stands at the root of this, and end the threat if that is what the road demands.' He withdraws his hand from the map only to beckon each of you closer in turn. Retainer coin changes hands. Then his index finger touches your forehead, cold enough to make you flinch, and draws one invisible line while he murmurs a prayer too low to trust. 'Until you depart, the city is yours to use. When you are ready, take the eastern gate and follow the Shadowmire road.'",
         choices: [
             {
                 text: "\"I hear the order. I will see it done.\"",
@@ -568,7 +560,7 @@ export const scenes = {
         location: "silverthorn",
         background: "landscapes/alderics_chamber.webp",
         npcPortrait: "portraits/alderic_portrait.png",
-        text: "Alderic slides a sealed writ across the table without breaking eye contact. 'Show that to any gate sergeant or quartermaster who thinks fear outranks duty. Do not bring me rumors. Bring me answers.' Behind you, the chamber doors stand open to the noise of a city pretending not to listen for bad news.",
+        text: "Alderic slides a sealed writ across the table without breaking eye contact. 'Show that to any gate sergeant or quartermaster who thinks fear outranks duty. If Liam lives, you bring him home. If he does not, you bring me the truth of him. Do not bring me rumors. Bring me answers.' Behind you, the chamber doors stand open to the noise of a city pretending not to listen for bad news.",
         choices: [
             {
                 text: "Take the writ and step back into Silverthorn.",
@@ -791,7 +783,7 @@ export const scenes = {
                 successText: "You clamp a sleeve over your face and stay on your feet a little longer, but the world is already starting to tilt.",
                 failText: "Your lungs seize on the first full breath you take. You cough violently, and something thick drags up into your spit as the black-purple dust floods your senses and the world folds into darkness.",
                 failEffect: { type: "status", id: "spore_sickness" },
-                nextScene: "SCENE_SPOREFALL_WAKE"
+                nextScene: "SCENE_SHADOWMIRE_ROADSIDE_CORPSE"
             }
         ]
     },
@@ -799,22 +791,22 @@ export const scenes = {
         id: "SCENE_SHADOWMIRE_ROADSIDE_CORPSE",
         location: "shadowmire",
         background: "landscapes/foggy_forest.png",
-        text: "Two more hard hours pass beneath a forest that no longer feels alive. Near sunset you find a body in the middle of the road, black sludge dried around the eyes, nose, and mouth where the infection has already pushed its way back out. Rot has split the flesh beneath it. From the brush nearby comes a ragged cough, then another, then the wet sweetness of the black-purple dust rolling over everything at once.",
+        text: "The road carries you a little farther only because fear has not yet decided which direction to flee. Near sunset you find a body in the middle of the road, black sludge dried around the eyes, nose, and mouth where the infection has already pushed its way back out. Rot has split the flesh beneath it. Then something living tries to answer from the brush. A man lurches half into view, wheezing through black filth at his lips, one hand clawed into his own throat as if he could drag the sickness back inside by force. He manages only the shape of a warning before the coughing folds him and the black-purple dust rolls over everything at once.",
         choices: [
             {
                 text: "Examine the body before the haze closes in (Medicine)",
                 type: "skillCheck",
                 skill: "medicine",
                 dc: 11,
-                successText: "There are no wounds, no sign of struggle. Whatever took him started in the lungs, then forced its way outward until black sludge crusted every place breath once passed.",
-                failText: "Your stomach turns before you can learn much beyond the rot, the black seep at the face, and the wrong sweetness in the air.",
+                successText: "There are no wounds, no sign of struggle. Whatever took him started in the lungs, then forced its way outward until black sludge crusted every place breath once passed. The coughing stranger is already too far gone to follow for long.",
+                failText: "Your stomach turns before you can learn much beyond the rot, the black seep at the face, and the wrong sweetness in the air. The coughing in the brush is turning wet and weak by the second.",
                 nextSceneSuccess: "SCENE_SPOREFALL_WAKE",
                 nextSceneFail: "SCENE_SPOREFALL_WAKE",
                 continueTextSuccess: "Turn toward the coughing in the haze.",
                 continueTextFail: "Turn toward the coughing in the haze."
             },
             {
-                text: "Call toward the coughing in the brush",
+                text: "Reach the coughing stranger before the haze swallows him",
                 nextScene: "SCENE_SPOREFALL_WAKE"
             }
         ]
@@ -1056,15 +1048,21 @@ export const scenes = {
                 { type: "flag", flagId: "moonwell_morning_setup_seen", value: true }
             ]
         },
-        text: "By first light, Hushbriar has given up the lie that the night passed cleanly. The town square is a knot of shouting, fleeing townsfolk, Silverthorn steel, and the first ugly whisper of guild knives answering back from the alleys. A mage with a dark stone has already carved his way through more than one door looking for someone the town refuses to name. Nobody can hold the square much longer. Whatever this becomes by noon, it will be war in miniature.",
+        text: "By what should be morning, the sky only pales enough to show how much worse the night became. Hushbriar is breaking in three directions at once: Silverthorn guards locking down the square, guild blades answering from the alleys, and Aodhan burning through both whenever either line stands between him and the woman he thinks the town is hiding. Nobody says Elara's name aloud, but the panic does not need it. From somewhere just east of the square comes a fresh burst of screaming, spelllight, and steel striking steel. If you mean to stop anything before it turns into slaughter, that is where your feet have to go.",
         choices: [
             {
-                text: "Follow the fresh ruin east before the square locks into slaughter.",
+                text: "Run toward the commotion before Aodhan reaches his quarry.",
                 nextScene: "SCENE_MOONWELL"
             },
             {
-                text: "Slip back into the Briarwood and gather yourself first.",
-                nextScene: "SCENE_BRIARWOOD_INN"
+                text: "Cut through the side lanes and come in from the flank (Stealth)",
+                type: "skillCheck",
+                skill: "stealth",
+                dc: 12,
+                successText: "You slip around the square while guards, guild blades, and townsfolk all waste their fear on one another. By the time the shouting thins into one clear trail of violence, you are close enough to follow it cleanly.",
+                failText: "The alleys cost you time. Twice you have to flatten yourself against wet timber while panicked men rush past with steel half-drawn. When the route finally clears, the violence has already pulled east toward the Moonwell.",
+                nextSceneSuccess: "SCENE_MOONWELL",
+                nextSceneFail: "SCENE_MOONWELL"
             }
         ]
     },
@@ -1643,7 +1641,7 @@ export const scenes = {
         id: "SCENE_DURNHELM_GATES",
         location: "durnhelm",
         background: "landscapes/road_to_durnhelm.png",
-        text: "Durnhelm rises from the mountain like a fortress-temple, but the beauty of the approach dies in the last mile. Broken wagons, splintered trees, and dwarven dead choke the road beneath the gates. One perimeter guard lies where he tried to turn the last wagon back, hand still locked around a warning horn he never had breath left to sound. Some bodies are burned to charcoal, some hacked apart, and some look as though the fight simply tore the shape of them apart mid-breath.",
+        text: "Durnhelm rises from the mountain like a fortress-temple, but the beauty of the approach dies in the last mile. Broken wagons, splintered trees, and dwarven dead choke the road beneath the gates. One perimeter guard lies where he tried to turn the last wagon back, hand still locked around a warning horn he never had breath left to sound. Some bodies are burned to charcoal, some hacked apart, and some look as though the fight simply tore the shape of them apart mid-breath. The road into the city reads less like an invasion than one terrible man forcing his way through anyone who tried to slow him.",
         choices: [
             {
                 text: "Read the slaughter outside the gates before you enter (Perception)",
@@ -1663,7 +1661,7 @@ export const scenes = {
         id: "SCENE_DURNHELM_ENTRY",
         location: "durnhelm",
         background: "landscapes/near_durnhelm.png",
-        text: "Inside the walls, Durnhelm is not empty. It is worse: alive enough to bury its dead. Survivors drag wrapped bodies toward pyres, a smashed storefront near the gate leaks ruined trade goods into the street, and every whispered conversation seems to end on the same pair of words: the forge. A soot-caked smith who gives his name as Sven jerks his chin east and says the dark-haired wizard came through like weather with a purpose, demanded answers about the relic, and left Cathal buried under the wreckage when he rode on. It is the closest thing to a road witness Durnhelm has left, and it points you straight toward the holy fire still burning beside the shattered temple.",
+        text: "Inside the walls, Durnhelm is not empty. It is worse: alive enough to bury its dead. Survivors drag wrapped bodies toward pyres, a smashed storefront near the gate leaks ruined trade goods into the street, and every whispered conversation seems to end on the same pair of words: the forge. The first story you get is only fragments from the gate quarter: an amber-eyed stranger on the road, then the dark-haired wizard behind him, then fire and screaming and a relic no one should have unearthed. The first man still angry enough to make that tale useful is a soot-caked smith named Sven. He jerks his chin east and says the wizard came through like weather with a purpose, demanded answers about the relic, and left Cathal buried under the wreckage when he rode on. It is the closest thing to a road witness Durnhelm has left, and it points you straight toward the holy fire still burning beside the shattered temple.",
         choices: [
             { text: "Search the wrecked gate-quarter shops for context", nextScene: "SCENE_DURNHELM_MARKET_RUINS" },
             { text: "Head east toward the holy forge", nextScene: "SCENE_DURNHELM_FORGE_APPROACH" },
@@ -1874,14 +1872,14 @@ export const scenes = {
         text: "Thalion's patience is not endless, but for one narrow window he permits questions. Even now he answers like a man measuring out confession by the drop: every truth weighed, every silence deliberate, every glance a reminder that some doors are merciful only once.",
         choices: [
             {
-                text: "\"How long has Alderic been reaching for what lies beneath us?\" (Persuasion)",
+                text: "\"How long has Alderic been keeping forbidden counsel?\" (Persuasion)",
                 type: "skillCheck",
                 skill: "persuasion",
                 dc: 14,
                 requires: {
                     notFlag: ["archives_thalion_audience_closed", "archives_alderic_truth_learned", "archives_alderic_truth_missed"]
                 },
-                successText: "At last Thalion relents. Alderic sought forbidden counsel long before Silverthorn named him savior. The prince did not merely survive what waited below; he brought some part of its appetite back with him, and the court mistook that stain for strength.",
+                successText: "At last Thalion relents. Alderic sought forbidden counsel long before Silverthorn named him savior. The prince went below and came back changed, disciplined in all the ways frightened courts mistake for strength. 'If you need a cleaner absolution than that,' Thalion says, 'seek it from someone less honest or less damned.'",
                 failText: "Thalion's mouth hardens. 'You have asked for a confession that belongs to the dead and the damned. I have given you enough to know the prince is not clean. The rest you failed to win.'",
                 onSuccess: {
                     effects: [

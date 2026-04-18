@@ -72,7 +72,9 @@ test('shadowmire collapse now routes into blackout and Sporefall instead of the 
   expect(scenes.SCENE_TRAVEL_SHADOWMIRE.choices[0].nextScene).toBe('SCENE_SHADOWMIRE_HAZE');
   expect(scenes.SCENE_SHADOWMIRE_HAZE.choices[0].nextScene).toBe('SCENE_SHADOWMIRE_DYING_BIRDS');
   expect(scenes.SCENE_SHADOWMIRE_HAZE.choices[1].nextScene).toBe('SCENE_SHADOWMIRE_DYING_BIRDS');
-  expect(scenes.SCENE_SHADOWMIRE_DYING_BIRDS.choices[0].nextScene).toBe('SCENE_SPOREFALL_WAKE');
+  expect(scenes.SCENE_SHADOWMIRE_DYING_BIRDS.choices[0].nextScene).toBe('SCENE_SHADOWMIRE_ROADSIDE_CORPSE');
+  expect(scenes.SCENE_SHADOWMIRE_ROADSIDE_CORPSE.choices[0].nextSceneSuccess).toBe('SCENE_SPOREFALL_WAKE');
+  expect(scenes.SCENE_SHADOWMIRE_ROADSIDE_CORPSE.choices[1].nextScene).toBe('SCENE_SPOREFALL_WAKE');
   expect(scenes.SCENE_SPOREFALL_WAKE.choices[0].nextSceneSuccess).toBe('SCENE_ARRIVAL_WHISPERWOOD');
 });
 

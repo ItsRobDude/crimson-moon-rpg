@@ -38,7 +38,7 @@ test('Archives route is authored and archives_truth completes at the truth chamb
 
 test('Thalion audience contains one-pass missable truth gates and a closing flag', () => {
   const audienceChoices = scenes.SCENE_ARCHIVES_AUDIENCE.choices;
-  const aldericChoice = audienceChoices.find((choice) => choice.text.includes('Alderic been reaching'));
+  const aldericChoice = audienceChoices.find((choice) => choice.text.includes('forbidden counsel'));
   const confessionChoice = audienceChoices.find((choice) => choice.text.includes('sin chained you'));
   const leaveChoice = audienceChoices.find((choice) => choice.text.includes('Bow out before he decides'));
 

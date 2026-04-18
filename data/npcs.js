@@ -191,7 +191,46 @@ export const npcs = {
         baseDisposition: "hostile",
         relationshipStart: -50,
         relationshipMin: -100,
-        relationshipMax: 0
+        relationshipMax: 0,
+        combatStats: {
+            base: {
+                level: 8,
+                attributes: {
+                    strength: 10,
+                    dexterity: 14,
+                    constitution: 14,
+                    intelligence: 18,
+                    wisdom: 15,
+                    charisma: 16
+                },
+                hp: 68,
+                ac: 15,
+                speed: 30,
+                proficiencies: {
+                    savingThrows: ["intelligence", "wisdom"],
+                    skills: ["arcana", "insight", "perception"],
+                    weapons: ["simple"],
+                    armor: []
+                },
+                resistances: "necrotic",
+                immunities: "",
+                vulnerabilities: "",
+                actions: [
+                    { name: "Shadow Bolt", type: "attack", toHit: 8, damage: "2d10+4", damageType: "necrotic", range: "120" },
+                    { name: "Staff Strike", type: "attack", toHit: 6, damage: "1d8+2", damageType: "bludgeoning" },
+                    { name: "Misty Step", type: "ability", description: "Can break away in a blur of dark magic when cornered." },
+                    { name: "Barrier Fracture", type: "ability", description: "Residual spell force lashes the field whenever his control slips." }
+                ],
+                specialTraits: [
+                    { name: "Stone-Scarred Will", description: "Aodhan fights through fear and grief with unnatural focus." }
+                ]
+            },
+            perLevel: {
+                hp: "1d6+2",
+                toHit: 0.5,
+                damage: 0.5
+            }
+        }
     },
     "elara": {
         id: "elara",

@@ -1,5 +1,6 @@
 import { gameState, initializeNewGame, resetGameState, setTimeline } from '../data/gameState.js';
 import { getRuntimeScene } from '../game.js';
+import { scenes } from '../data/scenes.js';
 
 function initializePlayer() {
   initializeNewGame(
@@ -88,6 +89,20 @@ test('Silverthorn rumor surfaces carry relic tension and the vanished-borough pa
   expect(gateCaptain.text).not.toContain('Liam');
   expect(gateCaptain.text).not.toContain('Whisperwood is gone');
   expect(gateCaptain.text).not.toContain('spores darken');
+});
+
+test('opening briefing restores Liam, Aodhan, and the cold mark without spilling later truth', () => {
+  const briefing = scenes.SCENE_BRIEFING;
+  const charge = scenes.SCENE_BRIEFING_2;
+  const dismissal = scenes.SCENE_BRIEFING_DISMISSAL;
+
+  expect(briefing.text).toContain("Liam's party");
+  expect(charge.text).toContain('Aodhan O Duibh');
+  expect(charge.text).toContain('cold enough to make you flinch');
+  expect(dismissal.text).toContain('If Liam lives');
+
+  expect(`${briefing.text}\n${charge.text}`).not.toContain('Ciara');
+  expect(`${briefing.text}\n${charge.text}`).not.toContain('Underdark');
 });
 
 test('early plague descriptions follow the black dust and lung-first infection canon', () => {

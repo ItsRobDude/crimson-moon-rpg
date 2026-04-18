@@ -28,6 +28,7 @@ test('Durnhelm route now exposes an authored local loop instead of an immediate 
   expect(entryChoices.some((choice) => choice.action === 'openMap')).toBe(false);
   expect(forgeChoices.some((choice) => choice.nextScene === 'SCENE_DURNHELM_CATHAL')).toBe(true);
   expect(cathalChoices.some((choice) => choice.nextScene === 'SCENE_LAMENT_HILL_APPROACH')).toBe(true);
+  expect(scenes.SCENE_DURNHELM_ENTRY.text).toContain('amber-eyed stranger');
 });
 
 test('early Hushbriar arrest flow no longer uses Neala and routes pressure into prison', () => {
@@ -155,6 +156,11 @@ test('Moonwell route is restored as the Hushbriar night event and old guild-blam
   expect(scenes.SCENE_THIEVES_CONFRONTATION.choices[0].nextScene).toBe('SCENE_TRACKING_CHOLDRITHS');
   expect(scenes.SCENE_MOONWELL.text).toContain('world is darkening in earnest');
   expect(scenes.SCENE_AODHAN_TALK.text).toContain('The barrier around the borough has broken');
+  expect(scenes.SCENE_AODHAN_TALK.text).toContain('Liam should have had more than this');
+  expect(scenes.SCENE_AODHAN_COMBAT.enemies).toEqual(['aodhan']);
+  expect(scenes.SCENE_AFTERMATH.choices).toEqual([
+    expect.objectContaining({ action: 'showStartMenu' })
+  ]);
 });
 
 test('after meeting Fionnlagh, Hushbriar at night surfaces the missable Moonwell event and dawn consequence', () => {
@@ -172,4 +178,24 @@ test('after meeting Fionnlagh, Hushbriar at night surfaces the missable Moonwell
     expect.objectContaining({ type: 'flag', flagId: 'moonwell_missed', value: true }),
     expect.objectContaining({ type: 'flag', flagId: 'moonwell_morning_setup_seen', value: true })
   ]));
+  expect(scenes.SCENE_HUSHBRIAR_MORNING_SETUP.text).toContain('three directions at once');
+  expect(scenes.SCENE_HUSHBRIAR_MORNING_SETUP.text).toContain('woman he thinks the town is hiding');
+  expect(scenes.SCENE_HUSHBRIAR_MORNING_SETUP.choices.some((choice) => choice.text.includes('Briarwood'))).toBe(false);
+  expect(scenes.SCENE_HUSHBRIAR_MORNING_SETUP.choices.every((choice) => {
+    if (choice.type === 'skillCheck') {
+      return choice.nextSceneSuccess === 'SCENE_MOONWELL' && choice.nextSceneFail === 'SCENE_MOONWELL';
+    }
+    return choice.nextScene === 'SCENE_MOONWELL';
+  })).toBe(true);
+});
+
+test('morning-after runtime keeps the panic on Aodhan and the nearby intervention path', () => {
+  gameState.flags.moonwell_morning_setup_seen = true;
+
+  const town = getRuntimeScene('SCENE_HUSHBRIAR_TOWN');
+  const inn = getRuntimeScene('SCENE_BRIARWOOD_INN');
+
+  expect(town.text).toContain('Aodhan turned guards and guild alike into obstacles');
+  expect(inn.text).toContain('shattered doors');
+  expect(inn.text).toContain('guild blades');
 });
