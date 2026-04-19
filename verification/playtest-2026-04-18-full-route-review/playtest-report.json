@@ -1,0 +1,165 @@
+[
+  {
+    "label": "01_start_briefing",
+    "sceneId": "SCENE_BRIEFING",
+    "text": "The chamber is dim and severe, lit by a single brazier and the red glow of wax seals melting over opened dispatches. Prince Alderic stands over a map table crowded with routes, blockades, and a red ring drawn hard around Whisperwood. He does not offer a seat.",
+    "choices": [
+      "Continue"
+    ]
+  },
+  {
+    "label": "02_silverthorn_hub",
+    "sceneId": "SCENE_HUB_SILVERTHORN",
+    "text": "You step out of Alderic's chamber and into the living heart of Silverthorn. Messengers cut through the crowd, temple bells carry over the rooftops, and every street seems to offer another lead, errand, or place to prepare before taking the eastern road. It is Day 1 - Midday.",
+    "choices": [
+      "Continue"
+    ]
+  },
+  {
+    "label": "03_eastern_gate",
+    "sceneId": "SCENE_SILVERTHORN_GATES",
+    "text": "Silverthorn's eastern gate rises above the road like a fortress wall. Wagons are being inspected before departure, and a tired gate captain keeps one hand on a ledger and the other on the pommel of his sword.",
+    "choices": [
+      "Continue"
+    ]
+  },
+  {
+    "label": "04_sporefall_arrival",
+    "sceneId": "SCENE_SPOREFALL_WAKE",
+    "text": "You force yourself to count breaths and details instead of fear. The panic eases just enough for you to think.",
+    "choices": [
+      "Rise and take in what remains of the borough."
+    ]
+  },
+  {
+    "label": "05_eoin",
+    "sceneId": "SCENE_MEET_EOIN",
+    "text": "The spear lowers a finger's width at a time. 'Silverthorn?' he says, like the name itself might vanish if he says it too loudly. His swallow is visible in his throat. 'Then... then maybe you're not a lie. I'm Eoin. Something bad happened. Worse than bad.'",
+    "choices": [
+      "Let Eoin find the words."
+    ]
+  },
+  {
+    "label": "06_overseer_study",
+    "sceneId": "SCENE_SPOREFALL_OVERSEER_STUDY",
+    "text": "Inside, the overseer's home looks half ransacked and half abandoned in haste. Desk drawers hang open. Shelves have been stripped unevenly. In the study, only the things too important to carry or too painful to destroy seem to remain.",
+    "choices": [
+      "Read the Journal",
+      "Search the Letters",
+      "Open the Drawer"
+    ]
+  },
+  {
+    "label": "08_durnhelm_gates",
+    "sceneId": "SCENE_DURNHELM_GATES",
+    "text": "Durnhelm rises from the mountain like a fortress-temple, but the beauty of the approach dies in the last mile. Broken wagons, splintered trees, and dwarven dead choke the road beneath the gates.",
+    "choices": [
+      "Continue"
+    ]
+  },
+  {
+    "label": "09_cathal",
+    "sceneId": "SCENE_DURNHELM_CATHAL",
+    "text": "You find the forgemaster under a spill of broken timber and cracked stone, drunk enough to slur and furious enough to stay awake through it. Cathal Ó Taidhg spits pink into the dirt, swears at the sky, at Aodhan, at kings, at relics, and only then at you for arriving late enough to ask questions.",
+    "choices": [
+      "Continue"
+    ]
+  },
+  {
+    "label": "10_lament_hill",
+    "sceneId": "SCENE_LAMENT_HILL_APPROACH",
+    "text": "Rain begins to fall as you ascend Lament Hill. The path is torn by old magic and something much more personal: scorched earth, uprooted trees, boulders broken open from within, and scraps of a ruined household still hanging in branches as though one instant of violence never finished happening.",
+    "choices": [
+      "Continue"
+    ]
+  },
+  {
+    "label": "11_aine_route_fork",
+    "sceneId": "SCENE_LAMENT_AINE_REVEAL",
+    "text": "'So choose,' Aine says, looking suddenly older than the hill around her. 'Hushbriar if you mean to deny him the blood. The Archives if you mean to learn what sort of ruin he has already embraced.'",
+    "choices": [
+      "Go to Hushbriar",
+      "Seek the Archives"
+    ]
+  },
+  {
+    "label": "12_archives_approach",
+    "sceneId": "SCENE_ARCHIVES_APPROACH",
+    "text": "You press higher through the rain until the trees thin and the hill gives way to black stone.",
+    "choices": [
+      "Continue"
+    ]
+  },
+  {
+    "label": "13_archives_truth",
+    "sceneId": "SCENE_ARCHIVES_TRUTH_CHAMBER",
+    "text": "The Archives are older than comfort and grander than mercy. Dark shelves climb into shadow, pale lights drift between them like captive moons, and every step sounds indecently loud, as though the dead in the walls resent being reminded of the living.",
+    "choices": [
+      "Continue"
+    ]
+  },
+  {
+    "label": "14_hushbriar_arrival",
+    "sceneId": "SCENE_ARRIVAL_HUSHBRIAR",
+    "text": "You arrive at Hushbriar Cove a careful distance behind a Silverthorn patrol column. The road shoulders have been hacked clear, footprints press deep into the mud, and the sweet-rot smell from the corpse-choked creek still clings to your clothes.",
+    "choices": [
+      "Continue"
+    ]
+  },
+  {
+    "label": "15_briarwood_inn",
+    "sceneId": "SCENE_BRIARWOOD_INN",
+    "text": "Heat, damp wool, and low-voiced fear hit you at once.",
+    "choices": [
+      "Continue"
+    ]
+  },
+  {
+    "label": "16_moonwell",
+    "sceneId": "SCENE_MOONWELL",
+    "text": "The Moonwell should be a place of still water and prayer. Tonight it looks flayed open. Black ripples keep disturbing the surface from below, though nothing breaks it. Two small bodies wrapped in spider silk hang above the well, turning slowly in the wind like accusations no god has answered.",
+    "choices": [
+      "Continue"
+    ]
+  },
+  {
+    "label": "17_aodhan_talk",
+    "sceneId": "SCENE_AODHAN_TALK",
+    "text": "Aodhan closes his hand around the Stone of Oblivion and turns at last. Moonlight catches the ruin in his face before anger can hide it. 'Sad, isn't it?' he says quietly, glancing once at the silk-wrapped bodies above the well. 'To die that young. To spend years praying the world kinder, then watch it bare its teeth in one night. Liam should have had more than this.'",
+    "choices": [
+      "Continue"
+    ]
+  },
+  {
+    "label": "18_aftermath_hunt",
+    "sceneId": "SCENE_HUSHBRIAR_AFTERMATH_HUNT",
+    "text": "The road back into Hushbriar looks worse in false dawn than it did by torchlight. Townsfolk run in bursts between shuttered doors while Silverthorn soldiers drag the stubborn, the wounded, and the merely unlucky into separate lines with all the tenderness of men sorting livestock.",
+    "choices": [
+      "Continue"
+    ]
+  },
+  {
+    "label": "19_thieves_hideout",
+    "sceneId": "SCENE_THIEVES_HIDEOUT",
+    "text": "The dock trail ends at a low, screened chamber built into the underside of the bridge itself. Neala steps out first with her blade already bare, anger arriving a heartbeat before the rest of her. Liobhán follows in silence so controlled it feels practiced. Neither woman looks surprised to see you.",
+    "choices": [
+      "Continue"
+    ]
+  },
+  {
+    "label": "20_elara_hideaway",
+    "sceneId": "SCENE_ELARA_HIDEAWAY",
+    "text": "Elara is hidden in the innermost chamber behind stacked crates, damp blankets, and a ward circle drawn by hands too tired to trust their own lines. She looks younger than prophecy has any right to allow and far more exhausted by fear than any holy story would ever admit.",
+    "choices": [
+      "Continue"
+    ]
+  },
+  {
+    "label": "21_processing_reveal",
+    "sceneId": "SCENE_HUSHBRIAR_PROCESSING_REVELATION",
+    "text": "The silence after the choice is worse than the argument before it. At last Liobhán breaks it. 'You think the King means to hold Hushbriar?' she asks. 'He means to empty it.'",
+    "choices": [
+      "Continue"
+    ]
+  }
+]
