@@ -9,7 +9,7 @@ import { companions } from './companions.js';
 import { factions } from './factions.js';
 import { getSpell, getSpellIdsForClass } from './spells.js';
 import { rollDiceExpression, rollDie } from '../rules.js';
-import { CANONICAL_START_SCENE, createDefaultStoryState, ensureStoryState } from './storyTimeline.js';
+import { CANONICAL_START_SCENE, createDefaultStoryState, ensureStoryState, getLocationStoryRequirement, meetsStoryRequirement, storyDrivenLocationReveals } from './storyTimeline.js';
 import { addEffectToActor, applyDerivedState, createDefaultMechanicsState, createProficiencyState, ensureActorMechanics, getAbilityMod, getDerivedActorState, mergeProficiencyStates, removeEffectFromActor, setProficiencyMultiplier, syncLegacyStatusEffects, tickActorEffects } from './mechanics.js';
 
 // This object serves as a blueprint for a clean game state.
@@ -1117,6 +1117,23 @@ export function isLocationDiscovered(locId) {
     return gameState.discoveredLocations[locId] === true;
 }
 
+export function syncStoryLocationDiscovery(storyState = gameState.story) {
+    const revealed = [];
+
+    storyDrivenLocationReveals.forEach((locId) => {
+        const requirement = getLocationStoryRequirement(locId);
+        if (!requirement || !meetsStoryRequirement(storyState, requirement)) return;
+
+        const wasDiscovered = isLocationDiscovered(locId);
+        discoverLocation(locId);
+        if (!wasDiscovered && isLocationDiscovered(locId)) {
+            revealed.push(locId);
+        }
+    });
+
+    return revealed;
+}
+
 export function adjustThreat(amount, reason = "") {
     gameState.threat.level = Math.max(0, Math.min(100, gameState.threat.level + amount));
     if (amount > 0) {
@@ -1409,6 +1426,7 @@ function normalizeLoadedState() {
         ...defaultGameState.discoveredLocations,
         ...(gameState.discoveredLocations || {})
     };
+    syncStoryLocationDiscovery(gameState.story);
     gameState.relationships = gameState.relationships && typeof gameState.relationships === 'object' ? gameState.relationships : {};
     gameState.npcStates = gameState.npcStates && typeof gameState.npcStates === 'object' ? gameState.npcStates : {};
     gameState.visitedScenes = Array.isArray(gameState.visitedScenes) ? gameState.visitedScenes : [];

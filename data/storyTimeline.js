@@ -142,6 +142,8 @@ export const locationUnlockHints = {
     solasmor: 'This route is dormant until its design packet is implemented through a draft-aligned late Hushbriar entry beat.'
 };
 
+export const storyDrivenLocationReveals = ['durnhelm', 'lament_hill', 'hushbriar'];
+
 export const storySceneTriggers = {
     SCENE_BRIEFING: {
         activate: ['alderic_briefing'],

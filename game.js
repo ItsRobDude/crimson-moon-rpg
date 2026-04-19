@@ -12,7 +12,7 @@ import { shops } from './data/shops.js';
 import { npcs } from './data/npcs.js';
 import { companions } from './data/companions.js';
 import { factions } from './data/factions.js';
-import { gameState, getActorCastableSpells, getInventoryEntries, getItemCount, getItemEquipFailure, getInventoryUseCost, getPreparedSpellLimit, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, addCompanion, removeCompanion, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, setNpcStatus, processNarrativeTrigger, unequipItem, syncPartyLevels, saveGame, loadGame as loadGameData, removeItem, advanceTime, getTimelineLabel, getTimeSlotLabel, getSceneMemory, setSceneMemory, performShortRest as gsPerformShortRest, performLongRest as gsPerformLongRest, syncCharacterState, getStoredSaveState, SAVE_STORAGE_KEY } from './data/gameState.js';
+import { gameState, getActorCastableSpells, getInventoryEntries, getItemCount, getItemEquipFailure, getInventoryUseCost, getPreparedSpellLimit, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, addCompanion, removeCompanion, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, setNpcStatus, processNarrativeTrigger, unequipItem, syncPartyLevels, saveGame, loadGame as loadGameData, removeItem, advanceTime, getTimelineLabel, getTimeSlotLabel, getSceneMemory, setSceneMemory, performShortRest as gsPerformShortRest, performLongRest as gsPerformLongRest, syncCharacterState, getStoredSaveState, SAVE_STORAGE_KEY, syncStoryLocationDiscovery } from './data/gameState.js';
 import { CANONICAL_START_SCENE, ensureStoryState, getLocationStoryRequirement, getLocationUnlockHint, meetsStoryRequirement, storyActs, storyEvents, syncStoryStateForScene } from './data/storyTimeline.js';
 import { addEffectToActor, getActorTraitDefinitions, getBonusSkillChoiceCount, getBonusToolChoiceCount, getBonusToolChoiceOptions, getDerivedActorState, getRaceTraitDefinitions, removeEffectFromActor } from './data/mechanics.js';
 import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod, generateScaledStats, getPlayerAC } from './rules.js';
@@ -1576,6 +1576,7 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
 
     if (sceneId === 'SCENE_HUB_SPOREFALL') {
         const clueBeat = [];
+        const durnhelmLeadAvailable = isLocationUnlocked('durnhelm');
         if (state.cathedralLetterFound) clueBeat.push('the courier letter has already tied the cathedral quarter to the overseer');
         if (state.journalFound || state.letterFound || state.compassFound) clueBeat.push("Aodhan's house has begun giving up its secrets");
         if (state.northRouteOpen) clueBeat.push('the north road is open if speed matters more than certainty');
@@ -1585,8 +1586,11 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
             state.eoinComforted ? 'Eoin still looks half-lost, but he watches you now with the startled gratitude of someone who was not expecting kindness to survive in this place.' : null
         ].filter(Boolean).join(' ');
         const suffix = clueBeat.length > 0 ? ` Already, ${clueBeat.join(', and ')}.` : '';
+        const durnhelmLeadBeat = durnhelmLeadAvailable
+            ? 'The last trail that still feels human points north toward Durnhelm, where someone may have seen Aodhan pass before the sickness reached them.'
+            : '';
 
-        scene.text = `${baseScene.text}${suffix}${survivorBeat ? ` ${survivorBeat}` : ''}`;
+        scene.text = `${baseScene.text}${suffix}${durnhelmLeadBeat ? ` ${durnhelmLeadBeat}` : ''}${survivorBeat ? ` ${survivorBeat}` : ''}`;
         scene.choices = [
             createChoice(state.cathedralVisionSeen ? 'Return west to the Cathedral of Bone' : 'Head west through the cathedral quarter', 'SCENE_SPOREFALL_CATHEDRAL_APPROACH', {
                 buttonText: state.cathedralVisionSeen ? 'Back to the Cathedral' : 'Cathedral Quarter'
@@ -1616,6 +1620,13 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
                 failText: 'Even Eoin cannot make Sporefall harmless, but his frightened guesses still keep the worst of the streets from folding over you.',
                 nextSceneSuccess: 'SCENE_SPOREFALL_NORTH_APPROACH',
                 nextSceneFail: 'SCENE_SPOREFALL_NORTH_APPROACH'
+            }));
+        }
+        if (durnhelmLeadAvailable) {
+            scene.choices.unshift(createChoice('Follow the northbound trail toward Durnhelm', 'SCENE_DURNHELM_GATES', {
+                buttonText: 'Take the Durnhelm Lead',
+                timeAdvance: 1,
+                timeReason: 'You follow the last clear northbound trail out of Sporefall toward Durnhelm.'
             }));
         }
         return scene;
@@ -1717,8 +1728,13 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
                 skill: 'arcana',
                 dc: 14,
                 successText: "The trap is intricate, but not impossible. Crow, Stag, and Bear carry the divine weight here. Wolf and Serpent are the impostors.",
-                failText: "You can feel the spell's edges, but not enough to trust yourself with them yet.",
+                failText: "You still cannot hold the whole pattern in your head, but the backlash keeps dragging your eye back to Wolf and Serpent as the only notes that ring false.",
                 onSuccess: {
+                    effects: [
+                        { type: 'flag', flagId: 'sporefall_home_trap_hint', value: true }
+                    ]
+                },
+                onFail: {
                     effects: [
                         { type: 'flag', flagId: 'sporefall_home_trap_hint', value: true }
                     ]
@@ -1737,8 +1753,13 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
                     logText: "Thieves' tools teach you where a trap wants impatient hands to reach."
                 },
                 successText: 'The cuts in the wood reveal how the circuit flows. Two of the runes are only there to punish the impatient.',
-                failText: "You find the grooves, but not the logic that would let you break them safely.",
+                failText: "You cannot follow the whole logic of the trap, but you do catch which two runes were carved to punish the first careless hand.",
                 onSuccess: {
+                    effects: [
+                        { type: 'flag', flagId: 'sporefall_home_trap_hint', value: true }
+                    ]
+                },
+                onFail: {
                     effects: [
                         { type: 'flag', flagId: 'sporefall_home_trap_hint', value: true }
                     ]
@@ -1781,6 +1802,7 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
                 buttonText: 'Force the Door',
                 effects: [
                     { type: 'damage', amount: '2d8' },
+                    { type: 'flag', flagId: 'sporefall_home_trap_hint', value: true },
                     {
                         type: 'customEffect',
                         id: 'manor_trap_lag',
@@ -3232,6 +3254,7 @@ function goToScene(sceneId) {
 
     gameState.story = ensureStoryState(gameState.story);
     const storyChanges = syncStoryStateForScene(gameState.story, sceneId);
+    syncStoryLocationDiscovery(gameState.story);
 
     const battleScreen = document.getElementById('battle-screen');
     if (battleScreen) battleScreen.classList.add('hidden');

@@ -1,5 +1,6 @@
-import { addItem, gameState, initializeNewGame, resetGameState } from '../data/gameState.js';
+import { addItem, gameState, initializeNewGame, isLocationDiscovered, resetGameState, syncStoryLocationDiscovery } from '../data/gameState.js';
 import { addEffectToActor } from '../data/mechanics.js';
+import { syncStoryStateForScene } from '../data/storyTimeline.js';
 import { getRuntimeScene } from '../game.js';
 import { scenes } from '../data/scenes.js';
 
@@ -124,13 +125,48 @@ test('cathedral approach exposes a stone-reading clue pass for dwarven or mason-
   expect(masonryChoice.traitAid?.traitId).toBe('stonecunning');
 });
 
-test('overseer door exposes the safe rune choice only after the trap hint is known', () => {
+test('overseer door now gives up the trap hint after one real attempt', () => {
   let scene = getRuntimeScene('SCENE_SPOREFALL_OVERSEER_DOOR');
   expect(scene.choices.some((choice) => choice.text.includes('Wolf and Serpent'))).toBe(false);
+
+  const arcanaChoice = scene.choices.find((choice) => choice.text.includes('Study the runes'));
+  const investigationChoice = scene.choices.find((choice) => choice.text.includes('Trace the carved grooves'));
+  const forceChoice = scene.choices.find((choice) => choice.text.includes('Force the door'));
+
+  expect(arcanaChoice.onFail.effects).toEqual(expect.arrayContaining([
+    expect.objectContaining({ type: 'flag', flagId: 'sporefall_home_trap_hint', value: true })
+  ]));
+  expect(investigationChoice.onFail.effects).toEqual(expect.arrayContaining([
+    expect.objectContaining({ type: 'flag', flagId: 'sporefall_home_trap_hint', value: true })
+  ]));
+  expect(forceChoice.effects).toEqual(expect.arrayContaining([
+    expect.objectContaining({ type: 'flag', flagId: 'sporefall_home_trap_hint', value: true })
+  ]));
 
   gameState.flags.sporefall_home_trap_hint = true;
   scene = getRuntimeScene('SCENE_SPOREFALL_OVERSEER_DOOR');
   expect(scene.choices.some((choice) => choice.text.includes('Wolf and Serpent'))).toBe(true);
+});
+
+test('valid Sporefall clues now reveal Durnhelm on the map and in the hub', () => {
+  gameState.flags.sporefall_eoin_met = true;
+  gameState.flags.sporefall_eoin_talked = true;
+
+  syncStoryStateForScene(gameState.story, 'SCENE_MEET_EOIN');
+  syncStoryStateForScene(gameState.story, 'SCENE_EOIN_TALK');
+  syncStoryStateForScene(gameState.story, 'SCENE_HUB_SPOREFALL');
+  syncStoryStateForScene(gameState.story, 'SCENE_SPOREFALL_OVERSEER_JOURNAL');
+
+  expect(syncStoryLocationDiscovery(gameState.story)).toContain('durnhelm');
+  expect(isLocationDiscovered('durnhelm')).toBe(true);
+
+  const scene = getRuntimeScene('SCENE_HUB_SPOREFALL');
+  const durnhelmChoice = scene.choices.find((choice) => choice.buttonText === 'Take the Durnhelm Lead');
+
+  expect(durnhelmChoice).toBeDefined();
+  expect(durnhelmChoice.nextScene).toBe('SCENE_DURNHELM_GATES');
+  expect(durnhelmChoice.timeAdvance).toBe(1);
+  expect(scene.text).toContain('points north toward Durnhelm');
 });
 
 test('north route discovery keeps the directional sandbox viable instead of dead-ending the act', () => {
