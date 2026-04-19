@@ -1,6 +1,7 @@
 import { items } from './items.js';
 import { races } from './races.js';
 import { classes } from './classes.js';
+import { getFeatAbilityBonuses, getFeatDefinition, getFeatSaveProficiencies, getResilientAbility, normalizeFeatSelections } from './feats.js';
 
 export const ABILITY_KEYS = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
 
@@ -554,6 +555,22 @@ export function getActorTraitDefinitions(actor) {
     return [...traitMap.values()];
 }
 
+export function getActorFeatEntries(actor) {
+    return normalizeFeatSelections(actor?.feats || []);
+}
+
+export function getActorFeatDefinitions(actor) {
+    return getActorFeatEntries(actor).map((featEntry) => {
+        const definition = getFeatDefinition(featEntry);
+        if (!definition) return null;
+        return {
+            ...definition,
+            key: featEntry,
+            selectedAbility: getResilientAbility(featEntry)
+        };
+    }).filter(Boolean);
+}
+
 export function syncLegacyStatusEffects(actor) {
     if (!actor || !actor.mechanics) return;
     actor.statusEffects = actor.mechanics.activeEffects.map(effect => ({
@@ -896,6 +913,29 @@ export function getEffectModifiers(actor, context = {}) {
         });
     });
 
+    getActorFeatDefinitions(actor).forEach((feat) => {
+        (feat.modifiers || []).forEach((modifier) => {
+            if (!modifierApplies(modifier, context, feat)) return;
+
+            if (modifier.type === 'flat_bonus') {
+                result.flat += modifier.value || 0;
+                result.notes.push(`${feat.name}: ${modifier.value >= 0 ? '+' : ''}${modifier.value}`);
+            } else if (modifier.type === 'dice_bonus' && modifier.dice) {
+                result.dice.push(modifier.dice);
+                result.notes.push(`${feat.name}: ${modifier.dice}`);
+            } else if (modifier.type === 'advantage') {
+                result.advantage = true;
+                result.notes.push(`${feat.name}: advantage`);
+            } else if (modifier.type === 'disadvantage') {
+                result.disadvantage = true;
+                result.notes.push(`${feat.name}: disadvantage`);
+            } else if (modifier.type === 'multiplier') {
+                result.multipliers.push(modifier.value ?? 1);
+                result.notes.push(`${feat.name}: x${modifier.value}`);
+            }
+        });
+    });
+
     return result;
 }
 
@@ -941,6 +981,8 @@ export function getAbilityScore(actor, ability) {
 export function getDerivedActorState(actor) {
     ensureActorMechanics(actor);
     const traits = getActorTraitDefinitions(actor);
+    const feats = getActorFeatDefinitions(actor);
+    const featAbilityBonuses = getFeatAbilityBonuses(actor?.feats || []);
 
     const abilities = {};
     const modifiers = {};
@@ -949,6 +991,7 @@ export function getDerivedActorState(actor) {
     ABILITY_KEYS.forEach((ability) => {
         const base = actor.mechanics.baseAbilities[ability] ?? actor.abilities?.[ability] ?? 10;
         const permanent = actor.mechanics.permanentAbilityBonuses[ability] || 0;
+        const featBonus = featAbilityBonuses[ability] || 0;
         const temporary = actor.mechanics.activeEffects.reduce((sum, effect) => {
             return sum + (effect.modifiers || []).reduce((inner, modifier) => {
                 if (modifier.type === 'ability_bonus' && modifier.ability === ability) {
@@ -958,9 +1001,9 @@ export function getDerivedActorState(actor) {
             }, 0);
         }, 0);
 
-        abilities[ability] = base + permanent + temporary;
+        abilities[ability] = base + permanent + featBonus + temporary;
         modifiers[ability] = getAbilityMod(abilities[ability]);
-        abilityBreakdown[ability] = { base, permanent, temporary, total: abilities[ability] };
+        abilityBreakdown[ability] = { base, permanent: permanent + featBonus, temporary, total: abilities[ability] };
     });
 
     const proficiencyBonus = actor.proficiencyBonus || getProficiencyBonus(actor.level || 1);
@@ -1031,6 +1074,9 @@ export function getDerivedActorState(actor) {
             if (!conditionImmunities.includes(condition)) conditionImmunities.push(condition);
         });
     });
+    getFeatSaveProficiencies(actor?.feats || []).forEach((save) => {
+        proficiencies.saves = [...new Set([...(proficiencies.saves || []), save])];
+    });
 
     return {
         abilities,
@@ -1038,6 +1084,7 @@ export function getDerivedActorState(actor) {
         proficiencyBonus,
         proficiencies,
         traits: traits.map((trait) => ({ id: trait.id, name: trait.name, description: trait.description })),
+        feats: feats.map((feat) => ({ id: feat.key, name: feat.name, description: feat.description })),
         senses,
         speed,
         ac,
@@ -1071,6 +1118,7 @@ export function applyDerivedState(actor) {
     actor.proficiencyBonus = derived.proficiencyBonus;
     actor.proficiencies = createProficiencyState(derived.proficiencies);
     actor.traits = [...derived.traits];
+    actor.feats = getActorFeatEntries(actor);
     actor.senses = { ...derived.senses };
     actor.resistances = [...derived.resistances];
     actor.conditionImmunities = [...derived.conditionImmunities];

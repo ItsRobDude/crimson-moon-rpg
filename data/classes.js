@@ -121,7 +121,7 @@ export const featureDefinitions = {
     "fighting_style": {
         name: "Fighting Style",
         type: "choice",
-        description: "Adopt a martial specialty such as Defense, Dueling, or Archery."
+        description: "Choose Defense, Dueling, or Archery."
     },
     "expertise": {
         name: "Expertise",
@@ -142,6 +142,11 @@ export const featureDefinitions = {
         resource: "action_surge",
         description: "Gain an additional action on your turn."
     },
+    "martial_archetype": {
+        name: "Martial Archetype",
+        type: "choice",
+        description: "Choose your fighter subclass."
+    },
     "improved_critical": {
         name: "Improved Critical",
         type: "passive",
@@ -157,15 +162,42 @@ export const featureDefinitions = {
         type: "passive", // Unlocks Bonus Actions
         description: "You can take a Bonus Action on each of your turns to Dash, Disengage, or Hide."
     },
+    "thieves_cant": {
+        name: "Thieves' Cant",
+        type: "passive",
+        surfaced: false,
+        description: "Recorded on the sheet, but not surfaced as an active runtime mechanic in this build."
+    },
+    "roguish_archetype": {
+        name: "Roguish Archetype",
+        type: "choice",
+        description: "Choose your rogue subclass."
+    },
     "fast_hands": {
         name: "Fast Hands",
         type: "passive",
-        description: "You can use the 'Use an Object' action as a bonus action."
+        description: "Consumables and adventuring gear use your bonus action instead of your action."
+    },
+    "second_story_work": {
+        name: "Second-Story Work",
+        type: "passive",
+        surfaced: false,
+        description: "Recorded on the sheet, but not surfaced as an active runtime mechanic in this build."
+    },
+    "arcane_tradition": {
+        name: "Arcane Tradition",
+        type: "choice",
+        description: "Choose your wizard subclass."
     },
     "sculpt_spells": {
         name: "Sculpt Spells",
         type: "passive",
         description: "Allies automatically succeed saving throws against your Evocation spells and take no damage if they would normally take half."
+    },
+    "divine_domain": {
+        name: "Divine Domain",
+        type: "passive",
+        description: "Your cleric domain is fixed to Life in the current playable slice."
     },
     "disciple_of_life": {
         name: "Disciple of Life",
@@ -188,6 +220,6 @@ export const featureDefinitions = {
     "ability_score_improvement": {
         name: "Ability Score Improvement",
         type: "choice",
-        description: "Increase one ability score by 2, or two by 1, or choose a Feat."
+        description: "Increase one ability score by 2, two by 1, or choose Alert, Mobile, Resilient, or Tough."
     }
 };

@@ -1,4 +1,5 @@
 import { addEffectToActor, canActorTargetActor, canApplyEffectToActor, createDefaultMechanicsState, effectHasDataFlag, getApproachBlockedSourceIds, getBonusSkillChoiceCount, getBonusToolChoiceCount, getDerivedActorState, getEffectModifiers, removeEffectsFromActorBySource, setProficiencyMultiplier, tickActorEffects } from '../data/mechanics.js';
+import { syncActorState } from '../data/gameState.js';
 import { spells } from '../data/spells.js';
 import { getSkillBonus } from '../rules.js';
 
@@ -82,6 +83,35 @@ test('expertise doubles proficiency on trained skills', () => {
   const result = getSkillBonus(actor, 'stealth');
 
   expect(result.bonus).toBe(6);
+});
+
+test('Alert adds five to initiative through the shared feat layer', () => {
+  const actor = createActor({ feats: ['alert'] });
+
+  expect(getDerivedActorState(actor).initiativeModifier).toBe(7);
+});
+
+test('Resilient adds the chosen save proficiency and ability score through the shared feat layer', () => {
+  const actor = createActor({ feats: ['resilient:WIS'] });
+  const snapshot = getDerivedActorState(actor);
+
+  expect(snapshot.abilities.WIS).toBe(11);
+  expect(snapshot.proficiencies.saves).toContain('WIS');
+});
+
+test('Tough reapplies from saved feat state when actor sync runs', () => {
+  const actor = createActor({
+    level: 4,
+    hp: 16,
+    maxHp: 16,
+    maxHpBase: 16,
+    feats: ['tough']
+  });
+
+  syncActorState(actor);
+
+  expect(actor.maxHp).toBe(24);
+  expect(actor.hp).toBe(24);
 });
 
 test('tile-bound effects can be removed cleanly when the actor leaves the tile', () => {

@@ -1,4 +1,4 @@
-import { addItem, advanceTime, equipItem, gameState, getInventoryEntries, getInventoryUseCost, getStoredSaveState, initializeNewGame, loadGame, performLongRest, performShortRest, resetGameState, SAVE_STORAGE_KEY, saveGame, useConsumable } from '../data/gameState.js';
+import { addItem, advanceTime, applyPendingLevelUp, equipItem, gameState, getInventoryEntries, getInventoryUseCost, getStoredSaveState, initializeNewGame, loadGame, performLongRest, performShortRest, resetGameState, SAVE_STORAGE_KEY, saveGame, useConsumable } from '../data/gameState.js';
 import { addEffectToActor } from '../data/mechanics.js';
 
 beforeEach(() => {
@@ -7,6 +7,15 @@ beforeEach(() => {
     localStorage.clear();
   }
 });
+
+function levelPlayerToFour(levelChoices = {}) {
+  gameState.pendingLevelUp = true;
+  expect(applyPendingLevelUp(levelChoices[2] || {})).toMatchObject({ success: true, nextLevel: 2 });
+  gameState.pendingLevelUp = true;
+  expect(applyPendingLevelUp(levelChoices[3] || {})).toMatchObject({ success: true, nextLevel: 3 });
+  gameState.pendingLevelUp = true;
+  expect(applyPendingLevelUp(levelChoices[4] || {})).toMatchObject({ success: true, nextLevel: 4 });
+}
 
 test('initial threat meter exists', () => {
   expect(gameState.threat).toBeDefined();
@@ -65,6 +74,121 @@ test('fighter fighting style is reflected in derived combat stats', () => {
 
   expect(gameState.player.fightingStyle).toBe('defense');
   expect(gameState.player.ac).toBe(19);
+});
+
+test('fighter level-up path to 4 grants subclass, action surge, and Tough with persistent hit points', () => {
+  initializeNewGame(
+    'Bran',
+    'human',
+    'fighter',
+    'soldier',
+    { STR: 15, DEX: 12, CON: 14, INT: 10, WIS: 10, CHA: 8 },
+    ['athletics', 'survival'],
+    { fightingStyle: 'defense' }
+  );
+
+  levelPlayerToFour({
+    3: { subclassId: 'champion' },
+    4: { mode: 'feat', featId: 'tough' }
+  });
+
+  expect(gameState.player.level).toBe(4);
+  expect(gameState.player.subclassId).toBe('champion');
+  expect(gameState.player.resources.second_wind.max).toBe(1);
+  expect(gameState.player.resources.action_surge.max).toBe(1);
+  expect(gameState.player.feats).toContain('tough');
+  expect(gameState.player.maxHp - gameState.player.maxHpBase).toBe(8);
+
+  saveGame();
+  resetGameState();
+  expect(loadGame()).toBe(true);
+  expect(gameState.player.feats).toContain('tough');
+  expect(gameState.player.maxHp - gameState.player.maxHpBase).toBe(8);
+  expect(gameState.player.subclassId).toBe('champion');
+});
+
+test('rogue level-up path to 4 keeps thief item economy honest while supporting ASI', () => {
+  initializeNewGame(
+    'Kest',
+    'human',
+    'rogue',
+    'criminal',
+    { STR: 10, DEX: 15, CON: 13, INT: 12, WIS: 10, CHA: 14 },
+    ['stealth', 'sleight_of_hand', 'perception', 'deception'],
+    { expertiseSkills: ['stealth', 'sleight_of_hand'] }
+  );
+
+  levelPlayerToFour({
+    3: { subclassId: 'thief' },
+    4: { mode: 'asi', abilityScoreIncreases: [{ ability: 'DEX', amount: 2 }] }
+  });
+
+  expect(gameState.player.level).toBe(4);
+  expect(gameState.player.subclassId).toBe('thief');
+  expect(gameState.player.abilities.DEX).toBe(18);
+  addItem('torch');
+  expect(getInventoryUseCost('torch')).toBe('bonus');
+});
+
+test('wizard level-up path to 4 grants evocation and Alert while updating spell slots', () => {
+  initializeNewGame(
+    'Lys',
+    'elf',
+    'wizard',
+    'sage',
+    { STR: 8, DEX: 14, CON: 12, INT: 15, WIS: 13, CHA: 10 },
+    ['investigation', 'arcana'],
+    {
+      spellSelection: {
+        cantrips: ['firebolt', 'ray_of_frost'],
+        preparedSpells: ['magic_missile'],
+        spellbook: ['magic_missile', 'shield', 'mage_armor']
+      }
+    }
+  );
+
+  levelPlayerToFour({
+    2: { subclassId: 'evocation' },
+    3: {},
+    4: { mode: 'feat', featId: 'alert' }
+  });
+
+  expect(gameState.player.level).toBe(4);
+  expect(gameState.player.subclassId).toBe('evocation');
+  expect(gameState.player.feats).toContain('alert');
+  expect(gameState.player.spellSlots).toEqual({ 1: 4, 2: 3 });
+  expect(gameState.player.currentSlots).toEqual({ 1: 4, 2: 3 });
+});
+
+test('cleric level-up path to 4 keeps Life domain fixed and applies Resilient correctly', () => {
+  initializeNewGame(
+    'Mira',
+    'human',
+    'cleric',
+    'acolyte',
+    { STR: 12, DEX: 10, CON: 14, INT: 10, WIS: 15, CHA: 13 },
+    ['medicine', 'religion'],
+    {
+      spellSelection: {
+        cantrips: ['guidance', 'sacred_flame'],
+        preparedSpells: ['cure_wounds', 'bless']
+      }
+    }
+  );
+
+  levelPlayerToFour({
+    2: {},
+    3: {},
+    4: { mode: 'feat', featId: 'resilient', featAbility: 'WIS' }
+  });
+
+  expect(gameState.player.level).toBe(4);
+  expect(gameState.player.subclassId).toBe('life');
+  expect(gameState.player.resources.channel_divinity.max).toBe(1);
+  expect(gameState.player.feats).toContain('resilient:WIS');
+  expect(gameState.player.abilities.WIS).toBe(17);
+  expect(gameState.player.proficiencies.saves).toContain('WIS');
+  expect(gameState.player.spellSlots).toEqual({ 1: 4, 2: 3 });
 });
 
 test('stackable inventory entries merge quantities and consume one unit at a time', () => {

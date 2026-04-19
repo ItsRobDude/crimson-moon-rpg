@@ -8,6 +8,7 @@ import { npcs } from './npcs.js';
 import { companions } from './companions.js';
 import { factions } from './factions.js';
 import { getSpell, getSpellIdsForClass } from './spells.js';
+import { FEAT_IDS, RESILIENT_ABILITIES, buildResilientFeatSelection, getFeatDefinition, getToughHitPointBonus, normalizeFeatSelections } from './feats.js';
 import { rollDiceExpression, rollDie } from '../rules.js';
 import { CANONICAL_START_SCENE, createDefaultStoryState, ensureStoryState, getLocationStoryRequirement, meetsStoryRequirement, storyDrivenLocationReveals } from './storyTimeline.js';
 import { addEffectToActor, applyDerivedState, createDefaultMechanicsState, createProficiencyState, ensureActorMechanics, getAbilityMod, getDerivedActorState, mergeProficiencyStates, removeEffectFromActor, setProficiencyMultiplier, syncLegacyStatusEffects, tickActorEffects } from './mechanics.js';
@@ -25,6 +26,7 @@ const defaultGameState = {
         xpNext: 300,
         hp: 10,
         maxHp: 10,
+        maxHpBase: 10,
         abilities: { STR: 10, DEX: 10, CON: 10, INT: 10, WIS: 10, CHA: 10 },
         modifiers: { STR: 0, DEX: 0, CON: 0, INT: 0, WIS: 0, CHA: 0 },
         skills: [],
@@ -38,6 +40,7 @@ const defaultGameState = {
         proficiencyBonus: 2,
         fightingStyle: null,
         expertiseSkills: [],
+        feats: [],
         equipped: {
             weapon: null,
             armor: null,
@@ -156,7 +159,9 @@ export function syncActorState(actor) {
     ensureActorSpellcasting(actor);
     ensureActorInventory(actor);
     ensureActorMechanics(actor);
-    return applyDerivedState(actor);
+    const derived = applyDerivedState(actor);
+    syncActorHitPointTotals(actor);
+    return derived;
 }
 
 export function syncAllActorStates() {
@@ -196,6 +201,7 @@ function ensureActorSelections(actor) {
     if (!Array.isArray(actor.preparedSpells)) actor.preparedSpells = [];
     if (!Array.isArray(actor.spellbook)) actor.spellbook = [];
     if (!Array.isArray(actor.expertiseSkills)) actor.expertiseSkills = [];
+    actor.feats = normalizeFeatSelections(actor.feats || []);
     if (!actor.resources) actor.resources = {};
     if (actor.fightingStyle === undefined) actor.fightingStyle = null;
     const cls = classes[actor.classId];
@@ -209,7 +215,26 @@ function ensureActorSelections(actor) {
             actor.mechanics.bonusTraits.push(traitId);
         }
     }
+    const toughBonus = getToughHitPointBonus(actor.level || 1, actor.feats);
+    if (!Number.isFinite(actor.maxHpBase) || actor.maxHpBase <= 0) {
+        const fallbackMaxHp = Math.max(1, Number(actor.maxHp) || Number(actor.hp) || 1);
+        actor.maxHpBase = Math.max(1, fallbackMaxHp - toughBonus);
+    }
     actor.expertiseSkills.forEach((skill) => setProficiencyMultiplier(actor, 'skills', skill, 2));
+}
+
+function syncActorHitPointTotals(actor) {
+    if (!actor) return actor;
+    const currentMax = Math.max(1, Number(actor.maxHp) || Number(actor.hp) || 1);
+    const currentHp = Number.isFinite(actor.hp) ? actor.hp : currentMax;
+    const missingHp = Math.max(0, currentMax - currentHp);
+    const toughBonus = getToughHitPointBonus(actor.level || 1, actor.feats || []);
+    const computedMaxHp = Math.max(1, Math.max(1, Number(actor.maxHpBase) || 1) + toughBonus);
+    actor.maxHp = computedMaxHp;
+    actor.hp = currentHp <= 0
+        ? 0
+        : Math.max(0, Math.min(computedMaxHp, computedMaxHp - missingHp));
+    return actor;
 }
 
 function ensureItemEntry(entry) {
@@ -483,6 +508,252 @@ function buildCreationSpellState(classId, abilities, selection = []) {
     };
 }
 
+function getLevelThreshold(level = 1) {
+    return Math.max(1, Number(level) || 1) * 300;
+}
+
+function getAverageHitPointGain(cls, conMod = 0) {
+    if (!cls) return 0;
+    return Math.max(1, Math.floor(cls.hitDie / 2) + 1 + (Number.isFinite(conMod) ? conMod : 0));
+}
+
+function grantProgressionResources(actor, levelData = {}) {
+    if (!actor) return;
+    if (!actor.resources) actor.resources = {};
+
+    if (levelData.spellSlots) {
+        actor.spellSlots = { ...levelData.spellSlots };
+        actor.currentSlots = { ...levelData.spellSlots };
+    }
+
+    (levelData.features || []).forEach((featureId) => {
+        if (featureId === 'second_wind') actor.resources.second_wind = { current: 1, max: 1 };
+        if (featureId === 'action_surge') actor.resources.action_surge = { current: 1, max: 1 };
+        if (featureId === 'arcane_recovery') actor.resources.arcane_recovery = { current: 1, max: 1 };
+        if (featureId === 'channel_divinity') actor.resources.channel_divinity = { current: 1, max: 1 };
+    });
+}
+
+function getDefaultSubclassId(cls) {
+    if (!cls?.subclasses) return null;
+    return cls.defaultSubclass || Object.keys(cls.subclasses)[0] || null;
+}
+
+function buildDefaultAbilityScoreIncrease(actor) {
+    const cls = classes[actor?.classId];
+    const priorities = cls?.primaryStats?.length ? cls.primaryStats : ['STR', 'DEX'];
+    const primary = priorities[0] || 'STR';
+    const secondary = priorities[1] || primary;
+    return primary === secondary
+        ? [{ ability: primary, amount: 2 }]
+        : [{ ability: primary, amount: 1 }, { ability: secondary, amount: 1 }];
+}
+
+function normalizeAbilityScoreIncrease(increases = []) {
+    const normalized = [];
+    (Array.isArray(increases) ? increases : []).forEach((entry) => {
+        const ability = String(entry?.ability || '').toUpperCase();
+        const amount = Number(entry?.amount) || 0;
+        if (!RESILIENT_ABILITIES.includes(ability) || amount <= 0) return;
+        normalized.push({ ability, amount });
+    });
+    return normalized;
+}
+
+function applyAbilityScoreIncrease(actor, increases = []) {
+    normalizeAbilityScoreIncrease(increases).forEach(({ ability, amount }) => {
+        actor.mechanics.permanentAbilityBonuses[ability] = (actor.mechanics.permanentAbilityBonuses[ability] || 0) + amount;
+    });
+}
+
+function buildFeatSelection(featId, featAbility = null) {
+    if (featId === 'resilient') {
+        return buildResilientFeatSelection(featAbility || 'CON');
+    }
+    return FEAT_IDS.includes(featId) ? featId : null;
+}
+
+function getLevelData(actor) {
+    const cls = classes[actor?.classId];
+    const nextLevel = Math.max(1, Number(actor?.level) || 1) + 1;
+    return {
+        cls,
+        nextLevel,
+        levelData: cls?.progression?.[nextLevel] || null
+    };
+}
+
+function pickAutomaticFeat(actor) {
+    const cls = classes[actor?.classId];
+    if (cls?.primaryStats?.includes('DEX')) return 'alert';
+    if (cls?.primaryStats?.includes('WIS')) return buildResilientFeatSelection('WIS');
+    return 'tough';
+}
+
+function validatePlayerLevelUpChoice(actor, options = {}) {
+    const { cls, nextLevel, levelData } = getLevelData(actor);
+    if (!cls || !levelData) {
+        return { valid: false, reason: 'No further supported level progression exists for this actor.' };
+    }
+
+    const requiresSubclass = nextLevel === cls.subclassLevel && cls.subclasses && !actor.subclassId;
+    const chosenSubclass = options.subclassId || null;
+    if (requiresSubclass && (!chosenSubclass || !cls.subclasses[chosenSubclass])) {
+        return { valid: false, reason: 'You must choose a supported subclass.' };
+    }
+
+    const requiresAsi = (levelData.features || []).includes('ability_score_improvement');
+    if (!requiresAsi) {
+        return { valid: true, levelData, nextLevel };
+    }
+
+    const mode = options.mode === 'feat' ? 'feat' : 'asi';
+    if (mode === 'feat') {
+        const selection = buildFeatSelection(options.featId, options.featAbility);
+        if (!selection) {
+            return { valid: false, reason: 'Choose one of the surfaced feats for this build.' };
+        }
+        return {
+            valid: true,
+            levelData,
+            nextLevel,
+            featSelection: selection,
+            mode
+        };
+    }
+
+    const increases = normalizeAbilityScoreIncrease(options.abilityScoreIncreases);
+    const total = increases.reduce((sum, entry) => sum + entry.amount, 0);
+    if (total !== 2) {
+        return { valid: false, reason: 'Ability score increases must add up to 2 points.' };
+    }
+    if (increases.some((entry) => entry.amount > 2)) {
+        return { valid: false, reason: 'No single ability can gain more than 2 points here.' };
+    }
+    if (increases.length > 2) {
+        return { valid: false, reason: 'Choose one ability for +2 or two abilities for +1 each.' };
+    }
+
+    return {
+        valid: true,
+        levelData,
+        nextLevel,
+        increases,
+        mode
+    };
+}
+
+export function getAvailableFeatChoices() {
+    return FEAT_IDS.map((featId) => ({
+        id: featId,
+        name: getFeatDefinition(featId)?.name || featId,
+        description: getFeatDefinition(featId)?.description || ''
+    }));
+}
+
+export function getPendingLevelUpPreview(actor = gameState.player) {
+    const { cls, nextLevel, levelData } = getLevelData(actor);
+    if (!cls || !levelData) return null;
+    return {
+        classId: actor.classId,
+        nextLevel,
+        hpGain: getAverageHitPointGain(cls, actor.modifiers?.CON ?? getAbilityMod(actor.abilities?.CON || 10)),
+        features: [...(levelData.features || [])],
+        requiresSubclassChoice: nextLevel === cls.subclassLevel && !!cls.subclasses && !actor.subclassId,
+        availableSubclasses: Object.entries(cls.subclasses || {}).map(([id, subclass]) => ({ id, ...subclass })),
+        requiresAbilityScoreImprovement: (levelData.features || []).includes('ability_score_improvement'),
+        availableFeats: getAvailableFeatChoices()
+    };
+}
+
+function applyAutomaticLevelUp(actor) {
+    const { cls, nextLevel, levelData } = getLevelData(actor);
+    if (!cls || !levelData) return false;
+
+    const oldConMod = actor.modifiers?.CON ?? getAbilityMod(actor.abilities?.CON || 10);
+    actor.level = nextLevel;
+    actor.xpNext = getLevelThreshold(nextLevel);
+    actor.maxHpBase = Math.max(1, Number(actor.maxHpBase) || Number(actor.maxHp) || Number(actor.hp) || 1);
+    actor.maxHpBase += getAverageHitPointGain(cls, oldConMod);
+
+    if (!actor.subclassId && nextLevel === cls.subclassLevel) {
+        actor.subclassId = getDefaultSubclassId(cls);
+    }
+
+    if ((levelData.features || []).includes('ability_score_improvement')) {
+        const automaticFeat = pickAutomaticFeat(actor);
+        if (automaticFeat) {
+            actor.feats = normalizeFeatSelections([...(actor.feats || []), automaticFeat]);
+        } else {
+            applyAbilityScoreIncrease(actor, buildDefaultAbilityScoreIncrease(actor));
+        }
+    }
+
+    grantProgressionResources(actor, levelData);
+    syncActorState(actor);
+    const newConMod = actor.modifiers?.CON ?? oldConMod;
+    if (newConMod !== oldConMod) {
+        actor.maxHpBase += (newConMod - oldConMod) * actor.level;
+        syncActorState(actor);
+    }
+    return true;
+}
+
+export function applyPendingLevelUp(options = {}) {
+    const actor = gameState.player;
+    const validation = validatePlayerLevelUpChoice(actor, options);
+    if (!validation.valid) {
+        return { success: false, reason: validation.reason };
+    }
+
+    const { cls, nextLevel, levelData } = getLevelData(actor);
+    const oldConMod = actor.modifiers?.CON ?? getAbilityMod(actor.abilities?.CON || 10);
+    const previousMaxHp = actor.maxHp || 1;
+
+    actor.level = nextLevel;
+    actor.xpNext = getLevelThreshold(nextLevel);
+    actor.maxHpBase = Math.max(1, Number(actor.maxHpBase) || Number(previousMaxHp) || Number(actor.hp) || 1);
+    actor.maxHpBase += getAverageHitPointGain(cls, oldConMod);
+
+    if (validation.nextLevel === cls.subclassLevel && !actor.subclassId) {
+        actor.subclassId = options.subclassId || getDefaultSubclassId(cls);
+    }
+
+    let gainSummary = null;
+    if (validation.mode === 'feat') {
+        actor.feats = normalizeFeatSelections([...(actor.feats || []), validation.featSelection]);
+        gainSummary = {
+            type: 'feat',
+            featId: validation.featSelection,
+            featName: getFeatDefinition(validation.featSelection)?.name || validation.featSelection
+        };
+    } else if (validation.increases) {
+        applyAbilityScoreIncrease(actor, validation.increases);
+        gainSummary = {
+            type: 'ability_score_improvement',
+            increases: validation.increases.map(({ ability, amount }) => ({ ability, amount }))
+        };
+    }
+
+    grantProgressionResources(actor, levelData);
+    syncActorState(actor);
+    const newConMod = actor.modifiers?.CON ?? oldConMod;
+    if (newConMod !== oldConMod) {
+        actor.maxHpBase += (newConMod - oldConMod) * actor.level;
+        syncActorState(actor);
+    }
+
+    gameState.pendingLevelUp = false;
+
+    return {
+        success: true,
+        nextLevel,
+        hpGain: actor.maxHp - previousMaxHp,
+        subclassId: actor.subclassId,
+        gainSummary
+    };
+}
+
 export function initializeNewGame(name, raceId, classId, backgroundId, baseStats, chosenSkills, creationSelections = []) {
     // First, reset the game state to ensure no data from a previous game persists.
     resetGameState();
@@ -543,11 +814,14 @@ export function initializeNewGame(name, raceId, classId, backgroundId, baseStats
     }
     gameState.player.level = 1;
     gameState.player.xp = 0;
+    gameState.player.xpNext = getLevelThreshold(1);
     gameState.player.proficiencyBonus = 2;
     gameState.pendingLevelUp = false;
+    gameState.player.feats = [];
 
     const conMod = gameState.player.modifiers.CON;
-    gameState.player.maxHp = cls.hitDie + conMod;
+    gameState.player.maxHpBase = cls.hitDie + conMod;
+    gameState.player.maxHp = gameState.player.maxHpBase;
     gameState.player.hp = gameState.player.maxHp;
 
     gameState.player.skills = skillProficiencies;
@@ -645,8 +919,10 @@ export function addCompanion(companionId) {
             raceId: compDef.raceId,
             level: 1,
             xp: 0, // Tracks separately but synced
+            xpNext: getLevelThreshold(1),
             hp: hp,
             maxHp: hp,
+            maxHpBase: hp,
             abilities: stats,
             modifiers: {}, // Calculated below
             inventory: [],
@@ -664,6 +940,7 @@ export function addCompanion(companionId) {
             statusEffects: [],
             expertiseSkills: [],
             fightingStyle: null,
+            feats: [],
             mechanics: createDefaultMechanicsState(compDef.baseStats, {
                 saveProficiencies: cls ? (cls.saveProficiencies || []) : [],
                 proficiencies,
@@ -729,28 +1006,8 @@ function syncCompanionLevel(companionId) {
     syncActorState(char);
 
     while (char.level < targetLevel) {
-        char.level++;
-        // Gain HP
-        const cls = classes[char.classId];
-        const conMod = Number.isFinite(char.modifiers?.CON) ? char.modifiers.CON : getAbilityMod(char.abilities?.CON || 10);
-        const hpGain = Math.floor(cls.hitDie / 2) + 1 + conMod; // Average
-        char.maxHp += hpGain;
-        char.hp += hpGain;
-
-        // Resources (Simplified: Reset/Upgrade)
-        const levelData = cls.progression[char.level];
-        if (levelData) {
-            if (levelData.spellSlots) {
-                char.spellSlots = { ...levelData.spellSlots };
-                char.currentSlots = { ...char.spellSlots }; // Refresh on level up
-            }
-            if (levelData.features) {
-                levelData.features.forEach(f => {
-                    if (f === 'second_wind') char.resources['second_wind'] = { current: 1, max: 1 };
-                    if (f === 'action_surge') char.resources['action_surge'] = { current: 1, max: 1 };
-                    if (f === 'channel_divinity') char.resources['channel_divinity'] = { current: 1, max: 1 };
-                });
-            }
+        if (!applyAutomaticLevelUp(char)) {
+            break;
         }
     }
 }

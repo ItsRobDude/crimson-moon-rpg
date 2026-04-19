@@ -235,7 +235,7 @@ test('north approach exposes stonework reading and bridge investigation that fit
   scene = getRuntimeScene('SCENE_SPOREFALL_NORTH_BRIDGE');
   const descendChoice = scene.choices.find((choice) => choice.text.includes('follow the smell'));
   expect(descendChoice).toBeDefined();
-  expect(descendChoice.itemAid?.itemId).toBe('rope');
+  expect(descendChoice.itemAid?.itemId).toBe('rope_hempen');
   expect(descendChoice.statusAid?.statusId).toBe('torchlight');
   expect(descendChoice.onSuccess.effects).toEqual(expect.arrayContaining([
     expect.objectContaining({ type: 'flag', flagId: 'sporefall_bridge_body_seen', value: true })

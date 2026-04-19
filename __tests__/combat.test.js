@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 import { createBattleGrid, placeToken } from '../battlegrid.js';
-import { applyOpportunityAttacks, getMovementPreview, hasReactionAvailable, performActionSurge, performAttack, performCastSpell, performCombatManeuver, performCunningAction, performAbility, performEscape, performMove, performStand } from '../combat.js';
+import { applyOpportunityAttacks, enemyTurn, getMovementPreview, hasReactionAvailable, initCombatSystem, performActionSurge, performAttack, performCastSpell, performCombatManeuver, performCunningAction, performAbility, performEscape, performMove, performStand, startCombat } from '../combat.js';
 import { gameState, resetGameState, syncActorState } from '../data/gameState.js';
 import { addEffectToActor, createDefaultMechanicsState } from '../data/mechanics.js';
 
@@ -33,6 +33,15 @@ function createActor(overrides = {}) {
 
 beforeEach(() => {
   resetGameState();
+  initCombatSystem({
+    updateCombatUI: () => {},
+    logToBattle: () => {},
+    showBattleEventText: () => {},
+    createActionButton: () => ({}),
+    goToScene: () => {},
+    updateStatsUI: () => {},
+    saveGame: () => {}
+  });
 });
 
 test('opportunity attacks consume the hostile reaction after the first trigger', () => {
@@ -83,6 +92,58 @@ test('opportunity attacks consume the hostile reaction after the first trigger',
   applyOpportunityAttacks('player', path);
 
   expect(hasReactionAvailable(enemy.uniqueId)).toBe(false);
+});
+
+test('Mobile prevents opportunity attacks from creatures you attacked in melee this turn', () => {
+  gameState.player = createActor({
+    name: 'Skirmisher',
+    classId: 'rogue',
+    feats: ['mobile']
+  });
+  syncActorState(gameState.player);
+
+  const enemy = createActor({
+    id: 'enemy',
+    uniqueId: 'enemy_0',
+    type: 'enemy',
+    name: 'Guard',
+    attackProfile: {
+      name: 'Spear',
+      damage: '1d1',
+      damageType: 'piercing',
+      toHit: 100,
+      reachFeet: 5
+    }
+  });
+  syncActorState(enemy);
+
+  gameState.combat = {
+    ...gameState.combat,
+    active: true,
+    activeActorId: 'player',
+    actionsRemaining: 1,
+    reactionsRemaining: 1,
+    movementRemaining: 40,
+    grid: createBattleGrid(8, 6, 5),
+    enemies: [enemy],
+    turnOrder: ['player', enemy.uniqueId]
+  };
+
+  placeToken(gameState.combat.grid, { id: 'player', x: 1, y: 2, team: 'allies', hp: gameState.player.hp, reach: 1 });
+  placeToken(gameState.combat.grid, { id: enemy.uniqueId, x: 2, y: 2, team: 'enemies', hp: enemy.hp, reach: 1 });
+
+  enemy.combatFlags.reactionAvailable = true;
+  performAttack(enemy.uniqueId);
+
+  const path = [
+    { x: 1, y: 2 },
+    { x: 1, y: 1 },
+    { x: 0, y: 1 }
+  ];
+
+  applyOpportunityAttacks('player', path);
+
+  expect(hasReactionAvailable(enemy.uniqueId)).toBe(true);
 });
 
 test('shield reaction spends a slot and prevents a borderline hit', () => {
@@ -142,6 +203,50 @@ test('shield reaction spends a slot and prevents a borderline hit', () => {
   expect(gameState.player.hp).toBe(gameState.player.maxHp);
 
   randomSpy.mockRestore();
+});
+
+test('named NPC combatants normalize into shared feature state and can use Second Wind', () => {
+  const previousDocument = global.document;
+  const previousWindow = global.window;
+  try {
+    global.document = {
+      getElementById: () => null
+    };
+    global.window = {};
+    gameState.player = createActor({
+      name: 'Hero',
+      classId: 'fighter',
+      hp: 24,
+      maxHp: 24,
+      maxHpBase: 24
+    });
+    syncActorState(gameState.player);
+    gameState.currentSceneId = 'SCENE_BRIEFING';
+
+    startCombat(['dwarven_captain'], 'SCENE_BRIEFING', 'SCENE_DEFEAT');
+
+    const captain = gameState.combat.enemies[0];
+    expect(captain.classId).toBe('fighter');
+    expect(captain.subclassId).toBe('champion');
+    expect(captain.resources.second_wind).toEqual({ current: 1, max: 1 });
+    expect(captain.resources.action_surge).toEqual({ current: 1, max: 1 });
+
+    captain.hp = Math.floor(captain.maxHp / 3);
+    gameState.combat.activeActorId = captain.uniqueId;
+    gameState.combat.turnOrder = [captain.uniqueId, 'player'];
+    gameState.combat.turnIndex = 0;
+    gameState.combat.actionsRemaining = 1;
+    gameState.combat.bonusActionsRemaining = 1;
+    captain.combatFlags.reactionAvailable = true;
+
+    enemyTurn(captain);
+
+    expect(captain.hp).toBeGreaterThan(Math.floor(captain.maxHp / 3));
+    expect(captain.resources.second_wind.current).toBe(0);
+  } finally {
+    global.document = previousDocument;
+    global.window = previousWindow;
+  }
 });
 
 test('spell attacks do not add the caster ability modifier to damage', () => {

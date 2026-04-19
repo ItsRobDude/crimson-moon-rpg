@@ -12,9 +12,10 @@ import { shops } from './data/shops.js';
 import { npcs } from './data/npcs.js';
 import { companions } from './data/companions.js';
 import { factions } from './data/factions.js';
-import { gameState, getActorCastableSpells, getInventoryEntries, getItemCount, getItemEquipFailure, getInventoryUseCost, getPreparedSpellLimit, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, addCompanion, removeCompanion, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, setNpcStatus, processNarrativeTrigger, unequipItem, syncPartyLevels, saveGame, loadGame as loadGameData, removeItem, advanceTime, getTimelineLabel, getTimeSlotLabel, getSceneMemory, setSceneMemory, performShortRest as gsPerformShortRest, performLongRest as gsPerformLongRest, syncCharacterState, getStoredSaveState, SAVE_STORAGE_KEY, syncStoryLocationDiscovery } from './data/gameState.js';
+import { gameState, getActorCastableSpells, getInventoryEntries, getItemCount, getItemEquipFailure, getInventoryUseCost, getPreparedSpellLimit, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, addCompanion, removeCompanion, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, setNpcStatus, processNarrativeTrigger, unequipItem, syncPartyLevels, saveGame, loadGame as loadGameData, removeItem, advanceTime, getTimelineLabel, getTimeSlotLabel, getSceneMemory, setSceneMemory, performShortRest as gsPerformShortRest, performLongRest as gsPerformLongRest, syncCharacterState, getStoredSaveState, SAVE_STORAGE_KEY, syncStoryLocationDiscovery, applyPendingLevelUp, getPendingLevelUpPreview } from './data/gameState.js';
 import { CANONICAL_START_SCENE, ensureStoryState, getLocationStoryRequirement, getLocationUnlockHint, meetsStoryRequirement, storyActs, storyEvents, syncStoryStateForScene } from './data/storyTimeline.js';
 import { addEffectToActor, getActorTraitDefinitions, getBonusSkillChoiceCount, getBonusToolChoiceCount, getBonusToolChoiceOptions, getDerivedActorState, getRaceTraitDefinitions, removeEffectFromActor } from './data/mechanics.js';
+import { featDefinitions } from './data/feats.js';
 import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod, generateScaledStats, getPlayerAC } from './rules.js';
 import { getMovementPreview, getSpellTargetingPreview, initCombatSystem, startCombat, performAttack, performCastSpell, performAbility, performCombatManeuver, performDefend, performEscape, performFlee, performEndTurn, performActionSurge, performCunningAction, performMove, performStand, uiHooks } from './combat.js';
 import { getCoverBetween, getToken, isAdjacent } from './battlegrid.js';
@@ -1943,7 +1944,7 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
                 skill: 'athletics',
                 dc: 11,
                 itemAid: {
-                    itemId: 'rope',
+                    itemId: 'rope_hempen',
                     bonus: 2,
                     logText: 'Rope keeps you from trusting rotten stone with your full weight.'
                 },
@@ -2783,13 +2784,13 @@ function updateCCPreview() {
     }
     const allToolProficiencies = [...new Set([...(background.toolProficiencies || []), ...ccState.chosenBonusTools])];
     if (allToolProficiencies.length > 0) {
-        preview.innerHTML += `<div class="preview-stat highlight"><span>Tools</span></div>`;
+        preview.innerHTML += `<div class="preview-stat highlight"><span>Tools on Your Sheet</span></div>`;
         allToolProficiencies.forEach((tool) => {
             preview.innerHTML += `<div class="preview-stat" style="padding-left:10px; font-size:0.8em;">${formatChoiceLabel(tool)}</div>`;
         });
     }
     if ((background.languages || []).length > 0) {
-        preview.innerHTML += `<div class="preview-stat highlight"><span>Languages</span></div>`;
+        preview.innerHTML += `<div class="preview-stat highlight"><span>Languages on Your Sheet</span></div>`;
         background.languages.forEach((language) => {
             preview.innerHTML += `<div class="preview-stat" style="padding-left:10px; font-size:0.8em;">${formatChoiceLabel(language)}</div>`;
         });
@@ -5388,33 +5389,43 @@ function showLevelUpModal() {
     const subclassSection = document.getElementById('lu-subclass-section');
     const featSection = document.getElementById('lu-feat-section');
     const featNote = document.getElementById('lu-feat-note');
+    const advancementModeSelect = document.getElementById('lu-advancement-mode');
+    const asiControls = document.getElementById('lu-asi-controls');
+    const featControls = document.getElementById('lu-feat-controls');
+    const featSelect = document.getElementById('lu-feat-select');
+    const resilientRow = document.getElementById('lu-resilient-row');
+    const resilientAbilitySelect = document.getElementById('lu-resilient-ability');
     const confirmBtn = document.getElementById('btn-confirm-level-up');
 
-    const nextLevel = gameState.player.level + 1;
-    levelEl.innerText = nextLevel;
+    const preview = getPendingLevelUpPreview();
+    if (!preview) {
+        logMessage('No supported level-up data is available for this character.', 'system');
+        return;
+    }
 
-    // Calculate HP Gain (Fixed average for simplicity in UI, or roll?)
-    // Let's do Average + CON
     const cls = classes[gameState.player.classId];
-    const hpGain = Math.floor(cls.hitDie / 2) + 1 + gameState.player.modifiers.CON;
-    hpEl.innerText = hpGain;
+    const nextLevel = preview.nextLevel;
+    levelEl.innerText = nextLevel;
+    hpEl.innerText = preview.hpGain;
 
-    // Get New Features
-    const levelData = cls.progression[nextLevel];
     featuresList.innerHTML = '';
-    if (levelData && levelData.features) {
-        levelData.features.forEach(featKey => {
-            const featDef = featureDefinitions[featKey] || { name: featKey, description: "" };
+    preview.features
+        .filter((featureId) => featureDefinitions[featureId]?.surfaced !== false)
+        .forEach((featureId) => {
+            const featDef = featureDefinitions[featureId] || { name: featureId, description: '' };
             const li = document.createElement('li');
             li.innerHTML = `<strong>${featDef.name}</strong>: ${featDef.description}`;
             featuresList.appendChild(li);
         });
+    if (!featuresList.children.length) {
+        const li = document.createElement('li');
+        li.innerHTML = '<strong>No new surfaced feature text</strong>: This level mostly deepens numbers, resources, or existing spellcasting support.';
+        featuresList.appendChild(li);
     }
 
-    // Subclass Choice
     subclassSection.classList.add('hidden');
     let selectedSubclass = null;
-    if (nextLevel === cls.subclassLevel && cls.subclasses) {
+    if (preview.requiresSubclassChoice && cls.subclasses) {
         subclassSection.classList.remove('hidden');
         const optionsDiv = document.getElementById('lu-subclass-options');
         optionsDiv.innerHTML = '';
@@ -5437,16 +5448,9 @@ function showLevelUpModal() {
         });
     }
 
-    // Ability Score Improvement Choice (Level 4)
-    // Note: This is a placeholder for the UI logic.
-    // We won't fully implement Feat selection logic here yet, just stat bump.
     featSection.classList.add('hidden');
-    if (nextLevel % 4 === 0) { // Standard ASI levels
+    if (preview.requiresAbilityScoreImprovement) {
         featSection.classList.remove('hidden');
-        if (featNote) {
-            featNote.innerHTML = '<i>Feat choice is not implemented in this build. This level-up screen currently supports ability score increases only.</i>';
-        }
-        // Populate Selects
         const stats = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
         ['asi-stat-1', 'asi-stat-2'].forEach(id => {
             const sel = document.getElementById(id);
@@ -5458,58 +5462,85 @@ function showLevelUpModal() {
                 sel.appendChild(opt);
             });
         });
+
+        featSelect.innerHTML = '';
+        preview.availableFeats.forEach((feat) => {
+            const opt = document.createElement('option');
+            opt.value = feat.id;
+            opt.innerText = feat.name;
+            featSelect.appendChild(opt);
+        });
+
+        const refreshAdvancementMode = () => {
+            const featMode = advancementModeSelect.value === 'feat';
+            asiControls.classList.toggle('hidden', featMode);
+            featControls.classList.toggle('hidden', !featMode);
+            resilientRow.classList.toggle('hidden', !(featMode && featSelect.value === 'resilient'));
+            if (featNote) {
+                if (!featMode) {
+                    featNote.innerHTML = '<i>Choose one ability for +2 or two abilities for +1 each.</i>';
+                    return;
+                }
+                const selectedFeat = featDefinitions[featSelect.value];
+                featNote.innerHTML = `<i>${selectedFeat?.description || 'Choose one of the surfaced feats for this build.'}</i>`;
+            }
+        };
+
+        advancementModeSelect.value = 'asi';
+        advancementModeSelect.onchange = refreshAdvancementMode;
+        featSelect.onchange = refreshAdvancementMode;
+        refreshAdvancementMode();
     }
 
-    confirmBtn.innerText = nextLevel % 4 === 0 ? 'Confirm Ability Score Increase' : 'Confirm Level Up';
+    confirmBtn.innerText = preview.requiresAbilityScoreImprovement ? 'Confirm Level Up' : 'Confirm Level Up';
 
     modal.classList.remove('hidden');
 
     confirmBtn.onclick = () => {
-        if (nextLevel === cls.subclassLevel && cls.subclasses && !selectedSubclass) {
+        if (preview.requiresSubclassChoice && cls.subclasses && !selectedSubclass) {
             alert("You must choose a subclass.");
             return;
         }
 
-        // Apply Level Up
-        gameState.player.level = nextLevel;
-        gameState.player.xpNext = nextLevel * 300; // Simple scaling
-        gameState.player.maxHp += hpGain;
-        gameState.player.hp += hpGain;
+        const levelUpOptions = {
+            subclassId: selectedSubclass || undefined
+        };
 
-        if (levelData.proficiencyBonus) gameState.player.proficiencyBonus = levelData.proficiencyBonus;
+        if (preview.requiresAbilityScoreImprovement) {
+            if (advancementModeSelect.value === 'feat') {
+                levelUpOptions.mode = 'feat';
+                levelUpOptions.featId = featSelect.value;
+                levelUpOptions.featAbility = resilientAbilitySelect.value;
+            } else {
+                levelUpOptions.mode = 'asi';
+                const s1 = document.getElementById('asi-stat-1').value;
+                const s2 = document.getElementById('asi-stat-2').value;
+                levelUpOptions.abilityScoreIncreases = s1 === s2
+                    ? [{ ability: s1, amount: 2 }]
+                    : [{ ability: s1, amount: 1 }, { ability: s2, amount: 1 }];
+            }
+        }
 
-        // Apply Subclass
+        const result = applyPendingLevelUp(levelUpOptions);
+        if (!result.success) {
+            alert(result.reason);
+            return;
+        }
+
+        modal.classList.add('hidden');
+
         if (selectedSubclass) {
-            gameState.player.subclassId = selectedSubclass;
             logMessage(`You have chosen the path of the ${cls.subclasses[selectedSubclass].name}.`, "gain");
         }
-
-        // Apply ASI
-        if (nextLevel % 4 === 0) {
-            const s1 = document.getElementById('asi-stat-1').value;
-            const s2 = document.getElementById('asi-stat-2').value;
-            gameState.player.mechanics.permanentAbilityBonuses[s1] = (gameState.player.mechanics.permanentAbilityBonuses[s1] || 0) + 1;
-            gameState.player.mechanics.permanentAbilityBonuses[s2] = (gameState.player.mechanics.permanentAbilityBonuses[s2] || 0) + 1;
-            logMessage(`Increased ${s1} and ${s2} by 1.`, "gain");
+        if (result.gainSummary?.type === 'ability_score_improvement') {
+            const summary = result.gainSummary.increases
+                .map(({ ability, amount }) => `${ability} +${amount}`)
+                .join(', ');
+            logMessage(`Ability Score Improvement: ${summary}.`, 'gain');
         }
-
-        // Unlock Resources (e.g. Action Surge)
-        if (levelData.features) {
-            levelData.features.forEach(f => {
-                if (f === 'action_surge') gameState.player.resources['action_surge'] = { current: 1, max: 1 };
-                if (f === 'channel_divinity') gameState.player.resources['channel_divinity'] = { current: 1, max: 1 };
-            });
+        if (result.gainSummary?.type === 'feat') {
+            logMessage(`Feat learned: ${result.gainSummary.featName}.`, 'gain');
         }
-
-        // Update Spell Slots
-        if (levelData.spellSlots) {
-             gameState.player.spellSlots = { ...levelData.spellSlots };
-             gameState.player.currentSlots = { ...levelData.spellSlots }; // Refresh on level up
-        }
-
-        syncCharacterState('player');
-        gameState.pendingLevelUp = false;
-        modal.classList.add('hidden');
         logMessage(`You are now Level ${nextLevel}!`, "gain");
         updateStatsUI();
     };

@@ -7,6 +7,7 @@ import { enemies } from './data/enemies.js';
 import { items } from './data/items.js';
 import { spells } from './data/spells.js';
 import { addEffectToActor, canActorTargetActor, canApplyEffectToActor, consumeIncomingHitEffects, createDefaultMechanicsState, dropConcentration, effectBlocksSpell, effectHasDataFlag, getApproachBlockedSourceIds, getDerivedActorState, getEffectModifiers, getSourceMaintainedEffects, getSpellcastingAbility, removeEffectFromActor, removeEffectsFromActorBySource, tickActorEffects } from './data/mechanics.js';
+import { actorHasFeat } from './data/feats.js';
 import { rollInitiative, rollDie, rollAttack, rollDiceExpression, rollSavingThrow, calculateDamageRoll, calculateDamageReduction, getProficiencyBonus, getSkillBonus, rollSkillCheck } from './rules.js';
 import { generateScaledStats } from './rules.js';
 import { canTargetToken, collectTemplateTargets, createBattlefieldLayout, feetToTiles, getCoverBetween, getCoverBetweenPoints, getFacingDirections, getMovementCost, getOpportunityAttackTriggers, getRangeDistance, getReachableTiles, getTemplateTiles, getTileEffects, getTileKey, getToken, inferFacing, isAdjacent, isWithinGrid, moveToken, setTerrain, setTileEffect } from './battlegrid.js';
@@ -168,6 +169,59 @@ function getPrimaryEnemyAttack(template) {
     return null;
 }
 
+function normalizeActionName(name = '') {
+    return String(name || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+}
+
+function getSupportedSpellIdForAction(action) {
+    const normalized = normalizeActionName(action?.name);
+    return Object.keys(spells).find((spellId) => {
+        const spell = spells[spellId];
+        return normalizeActionName(spellId) === normalized || normalizeActionName(spell.name) === normalized;
+    }) || null;
+}
+
+function buildNpcCombatSupport(template) {
+    const actions = Array.isArray(template?.actions) ? template.actions : [];
+    const abilityNames = actions
+        .filter((action) => action.type === 'ability')
+        .map((action) => normalizeActionName(action.name));
+    const supportedSpellIds = [...new Set(
+        actions
+            .map(getSupportedSpellIdForAction)
+            .filter(Boolean)
+            .filter((spellId) => spells[spellId]?.combatSupported !== false)
+    )];
+
+    let classId = null;
+    let subclassId = null;
+    if (abilityNames.includes('second_wind') || abilityNames.includes('action_surge')) {
+        classId = 'fighter';
+        subclassId = 'champion';
+    } else if (abilityNames.includes('sneak_attack') || abilityNames.includes('cunning_action')) {
+        classId = 'rogue';
+        subclassId = 'thief';
+    } else if (abilityNames.includes('channel_divinity')) {
+        classId = 'cleric';
+        subclassId = 'life';
+    }
+
+    const resources = {};
+    if (abilityNames.includes('second_wind')) resources.second_wind = { current: 1, max: 1 };
+    if (abilityNames.includes('action_surge')) resources.action_surge = { current: 1, max: 1 };
+    if (abilityNames.includes('channel_divinity')) resources.channel_divinity = { current: 1, max: 1 };
+
+    return {
+        classId,
+        subclassId,
+        resources,
+        supportedSpellIds
+    };
+}
+
 function buildEnemyCombatant(id, index) {
     let combatantData;
     let isNpc = false;
@@ -209,6 +263,12 @@ function buildEnemyCombatant(id, index) {
     const dexMod = Math.floor((abilities.DEX - 10) / 2);
     const acTarget = combatantData.ac || (10 + dexMod);
     const level = combatantData.level || gameState.player.level || 1;
+    const npcSupport = isNpc ? buildNpcCombatSupport(combatantData) : {
+        classId: null,
+        subclassId: null,
+        resources: {},
+        supportedSpellIds: []
+    };
 
     const combatant = {
         id,
@@ -216,9 +276,12 @@ function buildEnemyCombatant(id, index) {
         type: 'enemy',
         name: combatantData.name,
         portrait: combatantData.portrait || DEFAULT_PORTRAIT_PATH,
+        classId: npcSupport.classId,
+        subclassId: npcSupport.subclassId,
         level,
         hp: combatantData.hp,
         maxHp: combatantData.hp,
+        maxHpBase: combatantData.hp,
         ac: acTarget,
         abilities: { ...abilities },
         modifiers: {},
@@ -230,10 +293,12 @@ function buildEnemyCombatant(id, index) {
         }),
         equipped: {},
         inventory: [],
-        resources: {},
+        resources: { ...npcSupport.resources },
         spellSlots: {},
         currentSlots: {},
-        knownSpells: [],
+        knownSpells: [...npcSupport.supportedSpellIds.filter((spellId) => spells[spellId]?.level === 0)],
+        preparedSpells: [...npcSupport.supportedSpellIds.filter((spellId) => (spells[spellId]?.level || 0) > 0)],
+        spellbook: [...npcSupport.supportedSpellIds.filter((spellId) => (spells[spellId]?.level || 0) > 0)],
         intent: '',
         fullStats: combatantData,
         attackProfile: {
@@ -244,8 +309,28 @@ function buildEnemyCombatant(id, index) {
             rangeFeet: primaryAttack?.range ? parseInt(String(primaryAttack.range).split('/')[0], 10) : null,
             reachFeet: primaryAttack?.reachFeet || 5
         },
+        attackActions: isNpc
+            ? (combatantData.actions || []).filter((action) => action.type === 'attack').map((action) => ({
+                name: action.name,
+                toHit: action.toHit || combatantData.attackBonus || 2,
+                damage: action.damage || combatantData.damage || '1d4',
+                damageType: action.damageType || combatantData.damageType || 'bludgeoning',
+                rangeFeet: action.range ? parseInt(String(action.range).split('/')[0], 10) : null,
+                reachFeet: action.reachFeet || 5
+            }))
+            : [],
         combatFlags: {}
     };
+
+    if (npcSupport.classId === 'cleric' || npcSupport.classId === 'wizard') {
+        const highestLevelledSpell = npcSupport.supportedSpellIds.reduce((highest, spellId) => {
+            return Math.max(highest, spells[spellId]?.level || 0);
+        }, 0);
+        if (highestLevelledSpell > 0) {
+            combatant.spellSlots = { [highestLevelledSpell]: 1 };
+            combatant.currentSlots = { ...combatant.spellSlots };
+        }
+    }
 
     combatant.mechanics.permanentStatBonuses.ac = acTarget - (10 + dexMod);
     syncActorState(combatant);
@@ -432,6 +517,9 @@ export function applyOpportunityAttacks(moverId, path) {
 
     const triggers = getOpportunityAttackTriggers(gameState.combat.grid, moverId, path);
     triggers.forEach(trigger => {
+        if (mover.combatFlags?.mobileSafeTargets?.includes(trigger.hostileId)) {
+            return;
+        }
         if (!consumeReaction(trigger.hostileId)) {
             return;
         }
@@ -941,8 +1029,7 @@ function hasHostileAdjacent(actorId) {
 }
 
 function hasAdjacentAllyNearTarget(attackerId, targetId) {
-    if (isEnemyId(attackerId)) return false;
-    const allyIds = ['player', ...gameState.party].filter(id => id !== attackerId);
+    const allyIds = getFriendlyIds(attackerId).filter((id) => id !== attackerId);
     return allyIds.some(allyId => {
         const ally = getCombatActor(allyId);
         return ally && ally.hp > 0 && isAdjacent(gameState.combat.grid, allyId, targetId);
@@ -968,7 +1055,9 @@ function beginTurn(actorId) {
         ...(actor.combatFlags || {}),
         reactionAvailable: !effectHasDataFlag(actor, 'reactionLocked'),
         sneakAttackUsedThisTurn: false,
-        turnStartedSpeedZero: getDerivedActorState(actor).speed <= 0
+        turnStartedSpeedZero: getDerivedActorState(actor).speed <= 0,
+        disengage: false,
+        mobileSafeTargets: []
     };
     gameState.combat.uiState = {
         actorId,
@@ -1206,6 +1295,13 @@ function resolveWeaponHit(attackerId, targetId, options = {}) {
         || attackResult.isCritical;
     const hit = attackResult.total >= (targetSnapshot.ac + coverBonus) || attackResult.roll === 20;
 
+    if (!profile.isRanged && actorHasFeat(attacker, 'mobile')) {
+        attacker.combatFlags = {
+            ...(attacker.combatFlags || {}),
+            mobileSafeTargets: [...new Set([...(attacker.combatFlags?.mobileSafeTargets || []), targetId])]
+        };
+    }
+
     uiHooks.logToBattle(`${attacker.name} attacks ${target.name} with ${profile.name}: ${attackResult.total} (vs AC ${targetSnapshot.ac + coverBonus}).`, 'system');
 
     if (!hit) {
@@ -1256,6 +1352,114 @@ function getPreferredEnemyTarget(enemyId) {
         .map(id => ({ id, actor: getCombatActor(id), distance: getRangeDistance(source, getToken(gameState.combat.grid, id)) }))
         .filter(entry => entry.actor && entry.actor.hp > 0)
         .sort((a, b) => a.distance - b.distance)[0]?.id || 'player';
+}
+
+function captureTurnState(actor) {
+    return {
+        hp: actor?.hp ?? 0,
+        actionsRemaining: gameState.combat.actionsRemaining,
+        bonusActionsRemaining: gameState.combat.bonusActionsRemaining,
+        movementRemaining: gameState.combat.movementRemaining,
+        currentSlots: JSON.stringify(actor?.currentSlots || {}),
+        resources: JSON.stringify(actor?.resources || {})
+    };
+}
+
+function actorCommittedTurnChange(actor, snapshot) {
+    if (!actor || !snapshot) return false;
+    return actor.hp !== snapshot.hp
+        || gameState.combat.actionsRemaining !== snapshot.actionsRemaining
+        || gameState.combat.bonusActionsRemaining !== snapshot.bonusActionsRemaining
+        || gameState.combat.movementRemaining !== snapshot.movementRemaining
+        || JSON.stringify(actor.currentSlots || {}) !== snapshot.currentSlots
+        || JSON.stringify(actor.resources || {}) !== snapshot.resources;
+}
+
+function getCombatSpellOptions(actor, predicate) {
+    return getActorSpellList(actor, { combatOnly: true })
+        .map((spellId) => spells[spellId])
+        .filter(Boolean)
+        .filter((spell) => predicate(spell));
+}
+
+function tryEnemySelfPreservation(enemy, targetId) {
+    if (enemy.resources?.second_wind?.current > 0 && enemy.hp <= Math.floor(enemy.maxHp / 2)) {
+        const before = captureTurnState(enemy);
+        performAbility('second_wind', enemy.uniqueId);
+        return actorCommittedTurnChange(enemy, before);
+    }
+
+    const lowAlly = [enemy.uniqueId, ...getFriendlyIds(enemy.uniqueId).filter((id) => id !== enemy.uniqueId)]
+        .map((id) => getCombatActor(id))
+        .filter((candidate) => candidate && candidate.hp > 0 && candidate.hp < candidate.maxHp)
+        .sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp))[0];
+    const supportSpells = getCombatSpellOptions(enemy, (spell) => spell.type === 'heal' || spell.type === 'buff');
+    const spellTargetId = lowAlly?.uniqueId || lowAlly?.id || enemy.uniqueId;
+    const preferredSpell = supportSpells.find((spell) => spell.id === 'shield_of_faith')
+        || supportSpells.find((spell) => spell.id === 'cure_wounds')
+        || supportSpells[0];
+    if (preferredSpell) {
+        const before = captureTurnState(enemy);
+        performCastSpell(preferredSpell.id, spellTargetId, enemy.uniqueId);
+        if (actorCommittedTurnChange(enemy, before)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function tryEnemyOffensiveSpell(enemy, targetId) {
+    const offensiveSpell = getCombatSpellOptions(enemy, (spell) => ['attack', 'save', 'auto', 'auto_status'].includes(spell.type))[0];
+    if (!offensiveSpell) return false;
+    const before = captureTurnState(enemy);
+    performCastSpell(offensiveSpell.id, targetId, enemy.uniqueId);
+    return actorCommittedTurnChange(enemy, before);
+}
+
+function tryEnemyClassFeature(enemy, targetId) {
+    if (enemy.resources?.action_surge?.current > 0 && gameState.combat.actionsRemaining > 0) {
+        const before = captureTurnState(enemy);
+        performActionSurge(enemy.uniqueId);
+        if (actorCommittedTurnChange(enemy, before)) {
+            return tryEnemyAttackOrReposition(enemy, targetId) || true;
+        }
+    }
+
+    if (enemy.resources?.channel_divinity?.current > 0) {
+        const before = captureTurnState(enemy);
+        performAbility('channel_divinity', enemy.uniqueId);
+        if (actorCommittedTurnChange(enemy, before)) {
+            return true;
+        }
+    }
+
+    if (enemy.classId === 'rogue' && gameState.combat.bonusActionsRemaining > 0) {
+        const hostileAdjacent = hasHostileAdjacent(enemy.uniqueId);
+        const before = captureTurnState(enemy);
+        performCunningAction(hostileAdjacent ? 'disengage' : 'hide', enemy.uniqueId);
+        if (actorCommittedTurnChange(enemy, before)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function tryEnemyAttackOrReposition(enemy, targetId) {
+    const beforeAttack = captureTurnState(enemy);
+    const attackResolved = resolveWeaponHit(enemy.uniqueId, targetId, { consumeAction: true });
+    if (attackResolved || actorCommittedTurnChange(enemy, beforeAttack)) {
+        return true;
+    }
+
+    const moved = closeDistanceToTarget(enemy.uniqueId, targetId, getAttackProfile(enemy.uniqueId)?.reachFeet || 5);
+    if (moved) {
+        uiHooks.logToBattle(`${enemy.name} closes for a better angle.`, 'system');
+        return true;
+    }
+
+    return false;
 }
 
 export function startCombat(combatantIds, winScene, loseScene) {
@@ -2020,9 +2224,12 @@ export function enemyTurn(enemy) {
     uiHooks.updateCombatUI();
 
     enemy.intent = "";
-    const attackResolved = resolveWeaponHit(enemy.uniqueId, targetId, { consumeAction: false });
-    if (!attackResolved) {
-        uiHooks.logToBattle(`${enemy.name} closes for a better angle.`, "system");
+    const acted = tryEnemySelfPreservation(enemy, targetId)
+        || tryEnemyOffensiveSpell(enemy, targetId)
+        || tryEnemyClassFeature(enemy, targetId)
+        || tryEnemyAttackOrReposition(enemy, targetId);
+    if (!acted) {
+        uiHooks.logToBattle(`${enemy.name} hesitates, unable to find a clean opening.`, 'system');
     }
 
     if (gameState.player.hp <= 0) {

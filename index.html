@@ -537,6 +537,14 @@
                     <h3>Ability Score Improvement</h3>
                     <div id="lu-feat-options">
                         <div class="asi-row">
+                            <label for="lu-advancement-mode">Choose:</label>
+                            <select class="asi-select" id="lu-advancement-mode">
+                                <option value="asi">Ability Score Increase</option>
+                                <option value="feat">Feat</option>
+                            </select>
+                        </div>
+                        <div id="lu-asi-controls">
+                        <div class="asi-row">
                              <label>Stat 1:</label>
                              <select class="asi-select" id="asi-stat-1"></select>
                         </div>
@@ -544,7 +552,25 @@
                              <label>Stat 2:</label>
                              <select class="asi-select" id="asi-stat-2"></select>
                         </div>
-                        <p id="lu-feat-note" class="system-note"><i>Feat choice is not implemented in this build. This level-up screen currently supports ability score increases only.</i></p>
+                        </div>
+                        <div id="lu-feat-controls" class="hidden">
+                            <div class="asi-row">
+                                <label for="lu-feat-select">Feat:</label>
+                                <select class="asi-select" id="lu-feat-select"></select>
+                            </div>
+                            <div class="asi-row hidden" id="lu-resilient-row">
+                                <label for="lu-resilient-ability">Resilient Save:</label>
+                                <select class="asi-select" id="lu-resilient-ability">
+                                    <option value="STR">STR</option>
+                                    <option value="DEX">DEX</option>
+                                    <option value="CON">CON</option>
+                                    <option value="INT">INT</option>
+                                    <option value="WIS">WIS</option>
+                                    <option value="CHA">CHA</option>
+                                </select>
+                            </div>
+                        </div>
+                        <p id="lu-feat-note" class="system-note"><i>This build supports either a plain ASI or one of four surfaced feats: Alert, Mobile, Resilient, or Tough.</i></p>
                     </div>
                 </div>
             </div>
