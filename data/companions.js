@@ -19,7 +19,7 @@ export const companions = {
         description: 'A Thorne Guild scout who survives by reading patrol patterns, bad lies, and the price hidden in every favor.',
         baseStats: { STR: 11, DEX: 16, CON: 13, INT: 13, WIS: 14, CHA: 14 },
         skills: ['deception', 'insight', 'perception', 'stealth'],
-        portrait: 'portraits/npc_female_placeholder_portrait.png',
+        portrait: 'portraits/neala_portrait.png',
         defaultEquipment: {
             weapon: 'shortsword',
             armor: 'leather_armor'

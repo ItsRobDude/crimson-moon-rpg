@@ -54,9 +54,11 @@ export function goToScene(sceneId) {
         const runOnEnter = !scene.onEnter.once || isFirstVisit;
         if (runOnEnter) {
             if (scene.onEnter.questUpdate) {
-                updateQuestStage(scene.onEnter.questUpdate.id, scene.onEnter.questUpdate.stage);
-                const q = quests[scene.onEnter.questUpdate.id];
-                log(`Quest Updated: ${q.title}`, "gain");
+                const advancedQuest = updateQuestStage(scene.onEnter.questUpdate.id, scene.onEnter.questUpdate.stage);
+                if (advancedQuest) {
+                    const q = quests[scene.onEnter.questUpdate.id];
+                    log(`Quest Updated: ${q.title}`, "gain");
+                }
             }
             if (scene.onEnter.addGold) {
                 addGold(scene.onEnter.addGold);

@@ -244,7 +244,7 @@ export const npcs = {
     "ciara": {
         id: "ciara",
         name: "Ciara",
-        portrait: "portraits/npc_female_placeholder_portrait.png",
+        portrait: "portraits/ciara_portrait.png",
         faction: "silverthorn", // Or Enemy
         description: "A powerful sorceress leading the assault.",
         baseDisposition: "hostile",

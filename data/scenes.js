@@ -5,6 +5,8 @@ export const scenes = {
         background: "landscapes/aodhan_house.png",
         text: "You arrive at Hushbriar Cove a careful distance behind a Silverthorn patrol column. The road shoulders have been hacked clear, footprints press deep into the mud, and the sweet-rot smell from the corpse-choked creek still clings to your clothes. By the time the gates come into view, dusk has collapsed into cold fog and two soldiers stand watch beside a torch too weak for the work being asked of it.",
         onEnter: {
+            once: true,
+            questUpdate: { id: "investigate_whisperwood", stage: 8 },
             addGold: 10 // Starting cash or adjustment
         },
         choices: [
@@ -470,6 +472,9 @@ export const scenes = {
         id: "SCENE_HUSHBRIAR_AFTERMATH_HUNT",
         location: "hushbriar",
         background: "landscapes/foggy_forest.png",
+        onEnter: {
+            questUpdate: { id: "investigate_whisperwood", stage: 9 }
+        },
         displayPages: [
             "The road back into Hushbriar looks worse in false dawn than it did by torchlight. Townsfolk run in bursts between shuttered doors while Silverthorn soldiers drag the stubborn, the wounded, and the merely unlucky into separate lines with all the tenderness of men sorting livestock.",
             "Near the square, a rag-wrapped doomsayer keeps shouting about prophecy, blood, and the girl the town failed to hide. Nobody stops to argue. Too many faces keep cutting toward the bridge, the river docks, and the trail of smashed doors leading that way."
@@ -1784,6 +1789,9 @@ export const scenes = {
         id: "SCENE_DURNHELM_GATES",
         location: "durnhelm",
         background: "landscapes/road_to_durnhelm.png",
+        onEnter: {
+            questUpdate: { id: "investigate_whisperwood", stage: 5 }
+        },
         text: "Durnhelm rises from the mountain like a fortress-temple, but the beauty of the approach dies in the last mile. Broken wagons, splintered trees, and dwarven dead choke the road beneath the gates. One perimeter guard lies where he tried to turn the last wagon back, hand still locked around a warning horn he never had breath left to sound. Some bodies are burned to charcoal, some hacked apart, and some look as though the fight simply tore the shape of them apart mid-breath. The road into the city reads less like an invasion than one terrible man forcing his way through anyone who tried to slow him.",
         choices: [
             {
@@ -1805,7 +1813,7 @@ export const scenes = {
         id: "SCENE_DURNHELM_ENTRY",
         location: "durnhelm",
         background: "landscapes/near_durnhelm.png",
-        text: "Inside the walls, Durnhelm is not empty. It is worse: alive enough to bury its dead. Survivors drag wrapped bodies toward pyres, a smashed storefront near the gate leaks ruined trade goods into the street, and every whispered conversation seems to end on the same pair of words: the forge. The first story you get is only fragments from the gate quarter: an amber-eyed stranger on the road, then the dark-haired wizard behind him, then fire and screaming and a relic no one should have unearthed. The first man still angry enough to make that tale useful is a soot-caked smith named Sven. He jerks his chin east and says the wizard came through like weather with a purpose, demanded answers about the relic, and left Cathal buried under the wreckage when he rode on. It is the closest thing to a road witness Durnhelm has left, and it points you straight toward the holy fire still burning beside the shattered temple.",
+        text: "Inside the walls, Durnhelm is not empty. It is worse: alive enough to bury its dead. Survivors drag wrapped bodies toward pyres, a smashed storefront near the gate leaks ruined trade goods into the street, and every whispered conversation seems to end on the same pair of words: the forge. The first useful account comes in fragments from the gate quarter. An amber-eyed stranger was seen on the road first. The dark-haired wizard followed him like the second blow after the first warning. Then came fire, screaming, and a relic no one believes should have been unearthed at all. The first man still angry enough to make the sequence hold together is a soot-caked smith named Sven. He jerks his chin east and tells you Aodhan tore answers out of the forge quarter, left Cathal buried under the wreckage, and rode on before the dead had finished falling. It is the closest thing to a living road witness Durnhelm has left, and it points you straight toward the holy fire still burning beside the shattered temple.",
         choices: [
             { text: "Search the wrecked gate-quarter shops for context", buttonText: "Search the Gate Quarter", nextScene: "SCENE_DURNHELM_MARKET_RUINS" },
             { text: "Head east toward the holy forge", buttonText: "Head for the Holy Forge", nextScene: "SCENE_DURNHELM_FORGE_APPROACH" },
@@ -1826,7 +1834,7 @@ export const scenes = {
         id: "SCENE_DURNHELM_FORGE_APPROACH",
         location: "durnhelm",
         background: "landscapes/outside_dwarf_cave.png",
-        text: "The forge quarter still glows with holy fire, but everything around it looks as though a battle broke the street and then kept striking after the victory had already become murder. The nearby temple wall has been blasted open, an anvil is lodged impossibly high in the stone, and blood has dried in black fans across the floor. Somewhere inside the rubble, you hear a cough and the scrape of someone too angry to die quietly.",
+        text: "The forge quarter still glows with holy fire, but everything around it looks as though a battle broke the street and then kept striking long after victory had curdled into murder. The nearby temple wall has been blasted open, an anvil is lodged impossibly high in the stone, and blood has dried in black fans across the floor where people tried to keep fighting after the answer was already no. Sven's witness trail still holds together here: scorched drag marks, boot gouges running toward the shattered nave, and one furious cough somewhere under the rubble where Cathal has evidently decided spite is stronger than dying quietly.",
         choices: [
             {
                 text: "Study the blasted stone and bloodwork before you move (Arcana)",
@@ -1847,7 +1855,7 @@ export const scenes = {
         id: "SCENE_DURNHELM_CATHAL",
         location: "durnhelm",
         background: "landscapes/outside_dwarf_cave.png",
-        text: "You find the forgemaster under a spill of broken timber and cracked stone, drunk enough to slur and furious enough to stay awake through it. Cathal Ó Taidhg spits pink into the dirt, swears at the sky, at Aodhan, at kings, at relics, and only then at you for arriving late enough to ask questions. Sven's version of the story was only the roadmark. Cathal gives you the wound itself. When the rage burns thin, he gives the thing its name at last: the Stone of Oblivion. Aodhan stole it after badgering him for how it might be woken. Alderic, Cathal says, took far too keen an interest in the relic long before the courts agreed to leave it in dwarven hands. If anyone living can still tell you what sort of damnation the stone invites, it may be the witch on Lament Hill. 'So go on, then,' Cathal snarls, wiping his mouth with the back of one scarred hand. 'Take your answers where the dead haven't finished with 'em yet.'",
+        text: "You find the forgemaster under a spill of broken timber and cracked stone, drunk enough to slur and furious enough to stay awake through it. Cathal Ó Taidhg spits pink into the dirt, swears at the sky, at Aodhan, at kings, at relics, and only then at you for arriving late enough to ask questions. Sven gave you the trail into Durnhelm. Cathal gives you the wound itself. Aodhan did not come begging for shelter or rumor. He came hunting the Stone of Oblivion, demanding to know how it might be woken, and he tore the answer he could not win cleanly out of a city already too slow to stop him. When Cathal finally forces the name of the relic into the open, the quarter around you seems to darken with it. Alderic, he says, took far too keen an interest in the stone long before the courts agreed to leave it in dwarven hands. If anyone living can still tell you what kind of damnation the thing invites, it may be the witch on Lament Hill. 'So go on, then,' Cathal snarls, wiping his mouth with the back of one scarred hand. 'Take your answers where the dead haven't finished with 'em yet.'",
         choices: [
             { text: "\"Then Lament Hill is next.\"", buttonText: "Take the Lament Hill Lead", nextScene: "SCENE_LAMENT_HILL_APPROACH" },
             { text: "\"If I turn back toward Silverthorn, what meets me there?\"", buttonText: "Ask About Silverthorn", nextScene: "SCENE_SILVERTHORN_QUARANTINE" },
@@ -1857,8 +1865,11 @@ export const scenes = {
     "SCENE_LAMENT_HILL_APPROACH": {
         id: "SCENE_LAMENT_HILL_APPROACH",
         location: "lament_hill",
-        background: "landscapes/forest_walk.png", // Placeholder
-        text: "Rain begins to fall as you ascend Lament Hill. The path is torn by old magic and something much more personal: scorched earth, uprooted trees, boulders broken open from within, and scraps of debris still hanging in the air as though one instant of violence never finished happening. The ruined cottage waits near the summit, with two little graves set off to one side, and the whole hillside watches you with the patience of a wound that remembers the hand that made it.",
+        background: "landscapes/foggy_forest.png",
+        onEnter: {
+            questUpdate: { id: "investigate_whisperwood", stage: 6 }
+        },
+        text: "Rain begins to fall as you ascend Lament Hill. The path is torn by old magic and something much more personal: scorched earth, uprooted trees, boulders broken open from within, and scraps of a ruined household still hanging in branches as though one instant of violence never finished happening. The cottage waits near the summit with two little graves set off to one side, and the whole hillside watches you with the patience of a wound that remembers the hand that made it.",
         choices: [
             { text: "Push higher through the wreckage", buttonText: "Push Higher", nextScene: "SCENE_LAMENT_HILL_VISION" },
             { text: "Look for the graves", buttonText: "Look for the Graves", nextScene: "SCENE_LAMENT_GRAVES" }
@@ -1867,7 +1878,7 @@ export const scenes = {
     "SCENE_LAMENT_HILL_VISION": {
         id: "SCENE_LAMENT_HILL_VISION",
         location: "lament_hill",
-        background: "landscapes/forest_walk.png",
+        background: "landscapes/foggy_forest.png",
         text: "The climb turns treacherous. Vines lie across the path where there should be open ground, a stretch of broken hillside seems to drop away farther than it should, and a lizard skitters lightly over a gap your eyes insist is fatal. The illusion almost holds until the rain passes straight through a wall of thorn that casts a perfect shadow anyway. A woman's voice brushes the inside of your skull, cold with warning and grief: 'You wear a brand of darkness. Leave, or burn like he burned my kin.'",
         choices: [
             { text: "Trust the breaks in the illusion and keep climbing", buttonText: "Trust the Breaks", nextScene: "SCENE_LAMENT_COTTAGE" },
@@ -1877,7 +1888,7 @@ export const scenes = {
     "SCENE_LAMENT_COTTAGE": {
         id: "SCENE_LAMENT_COTTAGE",
         location: "lament_hill",
-        background: "landscapes/forest_walk.png",
+        background: "landscapes/foggy_forest.png",
         text: "The cottage is half-collapsed and cold despite the storm outside. The door hangs splintered on one hinge, the rafters are blackened from fire that burned too hot and too clean, and the bedroom smells faintly of rain-soaked ash beneath the older smell of grief. The pressure in your skull sharpens again. 'You don't belong here,' the same voiceless woman says. 'No one does.' Beneath a tumble of pale cloth on the bed, something small shifts and goes still.",
         choices: [
             { text: "Pull back the cloth and confront whatever is hiding there", buttonText: "Pull Back the Cloth", nextScene: "SCENE_LAMENT_CAT_DISCOVERY" },
@@ -1888,7 +1899,7 @@ export const scenes = {
     "SCENE_LAMENT_GRAVES": {
         id: "SCENE_LAMENT_GRAVES",
         location: "lament_hill",
-        background: "landscapes/forest_walk.png",
+        background: "landscapes/graveyard.png",
         text: "Two small handmade graves rest in the wet earth east of the cottage, close enough to the wall that whoever buried the children meant to keep them near home. Rain gathers in the carved names before spilling down the wood like fresh tears. Nothing on the hill feels peaceful, but here the grief is so concentrated it almost has weight.",
         choices: [
             { text: "Pay respects and listen to the hill's silence", buttonText: "Pay Respects", nextScene: "SCENE_LAMENT_COTTAGE" },
@@ -1898,7 +1909,7 @@ export const scenes = {
     "SCENE_LAMENT_COTTAGE_SIGNS": {
         id: "SCENE_LAMENT_COTTAGE_SIGNS",
         location: "lament_hill",
-        background: "landscapes/forest_walk.png",
+        background: "landscapes/foggy_forest.png",
         text: "The room bears too many kinds of violence at once. One wall is cratered inward as though struck by force meant for a battlefield, while the bedframe beside it is marked by smaller desperate hands and melted iron where bindings must have bitten hot. Under all of it lies a more recent disturbance: tiny pawprints in the dust, a white hair caught on a splinter, and the certain feeling that the thing watching you understands every word you do not say aloud.",
         choices: [
             { text: "Search the bed where something is still hiding", buttonText: "Search the Bed", nextScene: "SCENE_LAMENT_CAT_DISCOVERY" },
@@ -1908,7 +1919,7 @@ export const scenes = {
     "SCENE_LAMENT_CAT_DISCOVERY": {
         id: "SCENE_LAMENT_CAT_DISCOVERY",
         location: "lament_hill",
-        background: "landscapes/forest_walk.png",
+        background: "landscapes/foggy_forest.png",
         text: "You pull back the cloth and uncover a small white cat pressed into the corner of the bed. It hisses, but there is too much calculation in the sound for an ordinary animal. Rainwater beads on its fur without soaking in, and when it recoils the air around it ripples with the unmistakable strain of held magic.",
         choices: [
             { text: "\"You can stop hiding. I'm not drawing steel.\"", buttonText: "Tell Her You're Unarmed", nextScene: "SCENE_LAMENT_AINE_ACCUSATION" },
@@ -1918,7 +1929,7 @@ export const scenes = {
     "SCENE_LAMENT_AINE_ACCUSATION": {
         id: "SCENE_LAMENT_AINE_ACCUSATION",
         location: "lament_hill",
-        background: "landscapes/forest_walk.png",
+        background: "landscapes/foggy_forest.png",
         text: "The cat vanishes in a hard white flare. In its place stands a wood elf woman clothed all in white, beautiful only in the merciless way frost can be. Her grief shows first. Her fear catches it by the throat and turns it into anger. The moment her eyes find the mark you carry, she recoils as though you have pointed a blade at her children a second time. 'Get out,' she snaps, voice fraying on the last word. 'Whatever branded you, take it off my hill. I know what men come here for.'",
         choices: [
             { text: "\"If I knew what this mark was, I wouldn't be asking you.\"", buttonText: "Ask About the Mark", nextScene: "SCENE_LAMENT_AINE_REVEAL" },
@@ -1929,7 +1940,7 @@ export const scenes = {
     "SCENE_LAMENT_AINE_REVEAL": {
         id: "SCENE_LAMENT_AINE_REVEAL",
         location: "lament_hill",
-        background: "landscapes/forest_walk.png",
+        background: "landscapes/foggy_forest.png",
         text: "Aine's stare stays fixed on the mark until anger spends itself and leaves only exhaustion behind. 'Mark of Ciara,' she says at last, like each word tastes foul. 'Blackened Queen. Depth-rot made holy.' She laughs once, without humor, and presses a shaking hand over her mouth before she can lose more of herself than she means to. What follows comes badly, in pieces she clearly wishes she could choke back down. Aodhan came to her for the Stone of Oblivion. He wanted not merely its name, but the key to waking it. When she refused him, he bound her where she stood and burned her children before her eyes so she would hear them die and still not be able to move. The telling breaks there. When she forces herself onward again, her voice is hoarse and hollow. The stone will not wake for prayer, or for common slaughter. It must drink divine blood. A god could rouse it. A demigod could suffice. She bought time by sending Aodhan toward the Forbidden Archives, but only time. 'So choose,' Aine says, looking suddenly older than the hill around her. 'Hushbriar if you mean to deny him the blood. The Archives if you mean to learn what sort of ruin he has already embraced.'",
         choices: [
             { text: "\"Then Hushbriar first. He doesn't get her blood.\"", buttonText: "Go to Hushbriar", nextScene: "SCENE_ARRIVAL_HUSHBRIAR" },
@@ -1940,6 +1951,9 @@ export const scenes = {
         id: "SCENE_ARCHIVES_APPROACH",
         location: "lament_hill",
         background: "landscapes/cave_before_archive.png",
+        onEnter: {
+            questUpdate: { id: "investigate_whisperwood", stage: 7 }
+        },
         text: "You press higher through the rain until the trees thin and the hill gives way to black stone. A cave mouth yawns between two weather-worn figures carved in mourning, and the ground before it is strewn with old bones, newer bodies, and the metallic stink of people who came seeking answers and found only the dark listening back.",
         choices: [
             { text: "Enter the cave and follow the stale breath of the mountain", buttonText: "Enter the Cave", nextScene: "SCENE_ARCHIVES_CAVERN" },
@@ -2028,8 +2042,8 @@ export const scenes = {
                 requires: {
                     notFlag: ["archives_thalion_audience_closed", "archives_alderic_truth_learned", "archives_alderic_truth_missed"]
                 },
-                successText: "At last Thalion relents. Alderic sought forbidden counsel long before Silverthorn named him savior. The prince went below and came back changed, disciplined in all the ways frightened courts mistake for strength. 'If you need a cleaner absolution than that,' Thalion says, 'seek it from someone less honest or less damned.'",
-                failText: "Thalion's mouth hardens. 'You have asked for a confession that belongs to the dead and the damned. I have given you enough to know the prince is not clean. The rest you failed to win.'",
+                successText: "At last Thalion relents. Alderic sought forbidden counsel long before Silverthorn learned to mistake discipline for innocence. The prince went below, came back changed, and has kept too calm a hand on profane matters ever since. 'If you need a cleaner absolution than that,' Thalion says, 'seek it from someone less honest or less damned.'",
+                failText: "Thalion's mouth hardens. 'I have given you enough to know the prince is not clean. The rest would be confession, not guidance, and you have not earned that much of me.'",
                 onSuccess: {
                     effects: [
                         { type: "flag", flagId: "archives_alderic_truth_learned", value: true }
@@ -2321,6 +2335,7 @@ export const scenes = {
         text: "The silence after the choice is worse than the argument before it. At last Liobhán breaks it. 'You think the King means to hold Hushbriar?' she asks. 'He means to empty it.' Neala answers this part like spitting poison. The strong and healthy are being marched toward Silverthorn for processing. The sick, the weak, and anyone too contaminated to be useful are being sent to the Soul Mill instead. Whatever mercy Hushbriar still hoped for has already been sorted into carts, columns, and smoke.",
         onEnter: {
             once: true,
+            questUpdate: { id: "investigate_whisperwood", stage: 10 },
             effects: [
                 { type: "flag", flagId: "processing_truth_learned", value: true }
             ]

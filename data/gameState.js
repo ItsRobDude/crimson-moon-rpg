@@ -767,12 +767,18 @@ export function updateQuestStage(questId, stageNumber) {
         if (quests[questId]) {
             gameState.quests[questId] = JSON.parse(JSON.stringify(quests[questId]));
         } else {
-            return;
+            return false;
         }
     }
-    gameState.quests[questId].currentStage = stageNumber;
+    const currentStage = Number.isFinite(gameState.quests[questId].currentStage)
+        ? gameState.quests[questId].currentStage
+        : 0;
+    const nextStage = Math.max(currentStage, stageNumber);
+    const advanced = nextStage > currentStage;
+    gameState.quests[questId].currentStage = nextStage;
     const questDef = quests[questId];
-    gameState.quests[questId].completed = isQuestStageComplete(questDef, stageNumber);
+    gameState.quests[questId].completed = isQuestStageComplete(questDef, nextStage);
+    return advanced;
 }
 
 export function addGold(amount) {

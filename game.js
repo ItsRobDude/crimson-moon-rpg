@@ -670,6 +670,24 @@ function getQuestUpdateStatusMessage(questId, stage) {
         if (stage === 4) {
             return 'You have several live trails now. Choose which quarter of Sporefall to press before the town swallows the rest.';
         }
+        if (stage === 5) {
+            return 'Sporefall finally points north. Follow the Durnhelm witness trail before Aodhan\'s head start turns into a closed grave.';
+        }
+        if (stage === 6) {
+            return 'Cathal has spent his last honest lead on Aine. Climb Lament Hill and learn what the Stone truly asks in blood.';
+        }
+        if (stage === 7) {
+            return 'The Forbidden Archives can sharpen your understanding, but every truth you steal there still spends time Aodhan can use elsewhere.';
+        }
+        if (stage === 8) {
+            return 'Hushbriar is the late hinge now. Find Fionnlagh, read the occupation pressure, and stay ready for the night to break toward Moonwell.';
+        }
+        if (stage === 9) {
+            return 'Moonwell did not finish the hunt. Follow the broken-night clues through the docks and the guild\'s bridge refuge until Elara is found.';
+        }
+        if (stage === 10) {
+            return 'The processing truth is out in the open now. Hushbriar is being emptied, and the next dark will be worse for knowing how.';
+        }
     }
     return '';
 }
@@ -3303,11 +3321,13 @@ function goToScene(sceneId) {
         const runOnEnter = !scene.onEnter.once || isFirstVisit;
         if (runOnEnter) {
             if (scene.onEnter.questUpdate) {
-                updateQuestStage(scene.onEnter.questUpdate.id, scene.onEnter.questUpdate.stage);
-                const q = quests[scene.onEnter.questUpdate.id];
-                logMessage(`Quest Updated: ${q.title}`, "gain");
-                sceneStatusMessage = getQuestUpdateStatusMessage(scene.onEnter.questUpdate.id, scene.onEnter.questUpdate.stage);
-                sceneStatusTone = 'gain';
+                const advancedQuest = updateQuestStage(scene.onEnter.questUpdate.id, scene.onEnter.questUpdate.stage);
+                if (advancedQuest) {
+                    const q = quests[scene.onEnter.questUpdate.id];
+                    logMessage(`Quest Updated: ${q.title}`, "gain");
+                    sceneStatusMessage = getQuestUpdateStatusMessage(scene.onEnter.questUpdate.id, scene.onEnter.questUpdate.stage);
+                    sceneStatusTone = 'gain';
+                }
             }
             if (scene.onEnter.addGold) {
                 addGold(scene.onEnter.addGold);
