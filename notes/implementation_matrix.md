@@ -38,13 +38,42 @@ Statuses:
 | Rogue `Sneak Attack` | partial | Per-attacker turn gating, adjacency, finesse/ranged checks, and hidden/advantage support exist; fuller 5e edge cases are still incomplete. |
 | Rogue `Cunning Action` | partial | Dash, disengage, and contested hide hooks exist; broader hide/stealth encounter nuance is still incomplete. |
 | Thief `Fast Hands` | implemented | Consumable and gear use now prefers bonus-action object use in combat for thief rogues. |
-| Thief `Second-Story Work` | data-only | Defined in data only. |
+| Thief `Second-Story Work` | data-only | Defined in data, but intentionally hidden from surfaced player feature copy until a real runtime implementation path exists. |
 | Wizard base shell | implemented | Spellbook/prepared flow, slots, and Arcane Recovery shell are present. |
 | Wizard `Arcane Recovery` | implemented | Short-rest slot recovery is wired once per long rest. |
 | Evocation `Sculpt Spells` | implemented | Template evocation save spells now spare allied targets caught in the area. |
 | Cleric base shell | implemented | Prepared casting, slots, default subclass, and combat shell are present. |
 | Cleric `Channel Divinity` | partial | Preserve Life now distributes healing across nearby wounded allies up to half HP; domain breadth is still narrow. |
 | Life `Disciple of Life` | implemented | Healing bonus is applied to qualifying healing spells. |
+
+## Progression and Feats
+
+| Area | Status | Notes |
+| --- | --- | --- |
+| Level 1-4 progression shell | implemented | The current four-class playable slice supports level thresholds, HP growth, resource unlocks, subclass timing, and save-stable actor sync. |
+| Ability Score Improvement | implemented | Level 4 now supports +2 to one ability or +1/+1 across two abilities through the shared progression path. |
+| Curated feat support | implemented | `Alert`, `Mobile`, `Resilient`, and `Tough` are wired through shared feat definitions, save/load state, and derived mechanics. |
+| `Alert` | implemented | Initiative gains a shared +5 bonus through the feat layer. |
+| `Mobile` | partial | Bonus speed and post-melee-attack opportunity-attack protection are wired; fuller dash/terrain/action-expression nuance is still future work. |
+| `Resilient` | implemented | Chosen ability +1 and matching save proficiency are applied through shared feat handling. |
+| `Tough` | implemented | Retroactive and save-stable max HP bonuses are applied through actor sync. |
+| Hidden unsupported surfaced features | implemented | `Thieves' Cant` and `Second-Story Work` stay off the exposed feature surface until they have genuine runtime support. |
+
+## Inventory, Tools, and Sheet Scaffolding
+
+| Area | Status | Notes |
+| --- | --- | --- |
+| Tool and language sheet display honesty | implemented | Character creation now labels tools and languages as on-sheet metadata rather than implying a general live subsystem. |
+| Scene-level tool/item integrity hooks | partial | Early authored checks such as `mason_tools`, `thieves_tools`, and `rope_hempen` are wired and test-covered, but broader tool ecosystem depth remains narrow. |
+| Unsupported background proficiencies | data-only | Items such as `gaming_set` and `vehicles_land` remain sheet data only and should not be surfaced as active gameplay systems. |
+
+## Enemy and NPC Combat Support
+
+| Area | Status | Notes |
+| --- | --- | --- |
+| Shared enemy actor normalization | partial | Combat-capable NPCs now infer shared class flags, resources, supported spells, and combat actions from authored kits, but only supported runtime actions are promoted. |
+| Shared enemy turn priorities | partial | Enemy AI now checks self-preservation, offensive spells, supported class features, and then attack or reposition; deeper bespoke boss logic remains intentionally out of scope. |
+| Honest named-enemy ability surfacing | implemented | Authored NPC abilities that lack shared runtime support remain descriptive data rather than falsely surfaced combat actions. |
 
 ## Spells
 

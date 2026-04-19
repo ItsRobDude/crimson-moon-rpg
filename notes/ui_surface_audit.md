@@ -27,7 +27,7 @@ Statuses:
 | Help / tutorial | Menu -> `#tutorial-overlay` | Give first-session reminders without over-tutorializing the game | `partial` | The new “Field Notes” copy is much more useful, but it still acts as a static primer rather than adaptive help. | Players cannot yet jump directly from help topics into the related surface or mechanic. | Depends on future context-linking, if desired. | Keep it concise and truthful; only add context-aware links or examples if repeated confusion proves it necessary. | `P2` |
 | Shop / supplier panel | Shop scenes -> `#shop-panel` | Read stock, prices, and gear fit, then buy what matters | `partial` | Buy-only is finally explicit, but comparison remains textual and the panel still lacks richer category navigation or stock filters. | Players can now tell selling is absent by design, but not yet compare whole loadouts at a glance. | No selling model in the current build; comparison is intentionally light. | Keep the buy-only model explicit and add only small scanability upgrades before considering sell-back or deeper merchant logic. | `P1` |
 | Rest modal | Rest actions -> `#rest-modal` | Trade time for recovery while judging ambush risk | `partial` | Clearer than before, but still generic across many contexts and does not explain resource recovery per class/feature in detail. | A player still has to infer some class-specific recovery nuance from outcomes rather than the surface itself. | Depends on future per-class rest text if needed. | Keep the modal compact and add context-specific warning copy only where danger or story pressure materially changes the decision. | `P2` |
-| Level-up modal | Click `#char-level` when `pendingLevelUp` is true | Review gains and confirm level advancement | `unfinished` | The surface is honest now, but feat selection is still not implemented and subclass selection is still basic. | Without the explicit note, players would mistake the missing feat path for a bug; the note is necessary because the system is genuinely incomplete. | Feat-choice UI/logic is not implemented yet. | Keep the explicit note, preserve ASI support, and do not expose fuller feat expectations until the path actually exists. | `P1` |
+| Level-up modal | Click `#char-level` when `pendingLevelUp` is true | Review gains and confirm level advancement | `partial` | The surface now supports subclass choice plus ASI or curated feat selection, but it is still a functional rules screen rather than a polished build planner. | The current feat list is intentionally narrow, and some class-feature depth behind later levels still remains outside the playable slice. | Broader feat catalog, deeper subclass branches, and richer build comparison remain intentionally out of scope. | Keep the current honest curated-feat copy, and only widen the build surface when the underlying rules support grows with the same level of test coverage. | `P1` |
 | Battle UI | Combat scenes -> `#battle-screen` | Read turn state, threats, actions, party status, and battle log | `partial` | The hierarchy now reads more honestly and surfaced class-feature paths restore cleanly after load, but placeholder art still keeps combat presentation visibly provisional. | Action menus are cleaner now, though the presentation is still text-first rather than a full visual grid experience. | Battle placeholder background and placeholder portraits. | Keep improving clarity and tactical labels while leaving full visual battlegrid and art replacement for separate focused work. | `P1` |
 
 ## Incomplete Or Placeholder Markers Still Exposed
@@ -40,7 +40,8 @@ Statuses:
 
 ### Partial system messaging
 
-- Level-up feat choice is still intentionally unavailable, now called out directly in [C:/Users/Rob/Documents/dev/crimson-moon-rpg/index.html](C:/Users/Rob/Documents/dev/crimson-moon-rpg/index.html) and [C:/Users/Rob/Documents/dev/crimson-moon-rpg/game.js](C:/Users/Rob/Documents/dev/crimson-moon-rpg/game.js).
+- Level-up now supports subclass choice plus `Alert`, `Mobile`, `Resilient`, and `Tough` in [C:/Users/Rob/Documents/dev/crimson-moon-rpg/index.html](C:/Users/Rob/Documents/dev/crimson-moon-rpg/index.html) and [C:/Users/Rob/Documents/dev/crimson-moon-rpg/game.js](C:/Users/Rob/Documents/dev/crimson-moon-rpg/game.js), and the surface now explicitly avoids implying a larger feat catalog than the runtime supports.
+- Character-creation tools and languages are now framed as sheet-level metadata rather than implied live subsystems in [C:/Users/Rob/Documents/dev/crimson-moon-rpg/game.js](C:/Users/Rob/Documents/dev/crimson-moon-rpg/game.js).
 - Unsupported combat branches should now stay off the exposed action surface in [C:/Users/Rob/Documents/dev/crimson-moon-rpg/game.js](C:/Users/Rob/Documents/dev/crimson-moon-rpg/game.js), but broader non-demo combat depth is still intentionally out of scope for this audit.
 
 ### Utility and platform limits
@@ -52,7 +53,7 @@ Statuses:
 
 Revisit this audit after the next pass that touches one of these areas:
 
-- feat selection or subclass flow
+- feat catalog expansion or deeper subclass branching
 - travel-map depth
 - codex category expansion
 - combat presentation art or broader non-demo combat coverage

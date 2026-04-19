@@ -235,6 +235,10 @@ Start here before editing:
   - unified effect/modifier engine
   - layered stats
   - derived combat and narrative values
+- `data/feats.js`
+  - curated feat definitions
+  - feat normalization
+  - shared feat effect hooks
 - `battlegrid.js`
   - positional combat model
   - targeting, adjacency, and movement helpers
@@ -273,6 +277,7 @@ Do:
 - keep Silverthorn content event-aware
 - keep scene transitions readable and explicit
 - preserve save compatibility where practical
+- keep surfaced mechanics honest: if a player-facing feature, item, tool, or feat clause is not runtime-backed, hide it or relabel it instead of implying fuller support
 - add tests or validations when changing narrative gating, critical flags, or spoiler-sensitive route logic
 
 Do not:

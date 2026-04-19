@@ -272,17 +272,23 @@ Target outcome:
 
 ### 10. Feats and ASIs
 
-Current ASI is basic.
+The level 1-4 playable slice now supports real ASI choice plus a curated first feat pass.
 
-Needed:
+Already shipped:
 
 - proper ASI choices
-- feat definitions
-- feat passive/active effect hooks
+- feat definitions for `Alert`, `Mobile`, `Resilient`, and `Tough`
+- passive and active feat hooks that run through shared actor state and derived mechanics
+
+Still needed:
+
+- a broader feat catalog only when each feat has honest runtime support
+- more active feat hooks as the action/reaction and battlefield layers deepen
+- higher-level progression depth beyond the current level 1-4 slice
 
 Target outcome:
 
-- level-up becomes a real build system
+- level-up grows from a trustworthy narrow build system into a broader one without losing honesty
 
 ## Phase 4: Spell System Expansion
 
@@ -469,7 +475,7 @@ Definition:
 
 - concentration works
 - reactions work
-- feat/ASI support improves builds
+- feat and ASI support expands beyond the current curated slice
 - more races/classes/subclasses behave distinctly
 - scene-authored mechanical effects are easy to add
 
