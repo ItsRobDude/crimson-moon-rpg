@@ -2,7 +2,7 @@ export const scenes = {
     "SCENE_ARRIVAL_HUSHBRIAR": {
         id: "SCENE_ARRIVAL_HUSHBRIAR",
         location: "hushbriar",
-        background: "landscapes/north_sporefall.png",
+        background: "landscapes/hushbriar_occupied_placeholder.png",
         text: "You arrive at Hushbriar Cove a careful distance behind a Silverthorn patrol column. The road shoulders have been hacked clear, footprints press deep into the mud, and the sweet-rot smell from the corpse-choked creek still clings to your clothes. By the time the gates come into view, dusk has collapsed into cold fog and two soldiers stand watch beside a torch too weak for the work being asked of it.",
         onEnter: {
             once: true,
@@ -31,7 +31,7 @@ export const scenes = {
     "SCENE_HUSHBRIAR_GATES": {
         id: "SCENE_HUSHBRIAR_GATES",
         location: "hushbriar",
-        background: "landscapes/north_sporefall.png",
+        background: "landscapes/hushbriar_occupied_placeholder.png",
         text: "'Halt, travelers. State your business, and be quick about it,' the older guard says. He looks tired enough to sway where he stands, but the younger one circles closer, eyes narrowing as he studies your gear, your faces, and anything that might tie you to Silverthorn's failed business in the east.",
         choices: [
             {
@@ -66,7 +66,7 @@ export const scenes = {
     "SCENE_HUSHBRIAR_COMBAT_GUARDS": {
         id: "SCENE_HUSHBRIAR_COMBAT_GUARDS",
         location: "hushbriar",
-        background: "landscapes/north_sporefall.png",
+        background: "landscapes/hushbriar_occupied_placeholder.png",
         text: "Silverthorn soldiers close in through fog, torchlight, and shouted orders. Steel clears leather as you lunge for the only opening before the press of bodies turns into chains.",
         type: "combat",
         enemies: ["silverthorn_guard", "silverthorn_guard"],
@@ -148,7 +148,7 @@ export const scenes = {
     "SCENE_HUSHBRIAR_TOWN": {
         id: "SCENE_HUSHBRIAR_TOWN",
         location: "hushbriar",
-        background: "landscapes/north_sporefall.png",
+        background: "landscapes/hushbriar_occupied_placeholder.png",
         text: "Inside the walls, Hushbriar feels occupied more than governed. Wood elves move in short, careful bursts between doorways, never lingering long enough for a patrol to question them, and the whole town smells of wet ash, horse sweat, and the sweet-rot stink drifting in from the corpse-clogged creek. Silverthorn tack fills the inn stables, but every shuttered home around it looks as if grief is holding the door from the other side. The Briarwood Inn still burns with enough light to gather refugees, pilgrims, and anyone too frightened to sleep alone.",
         choices: [
             {
@@ -183,7 +183,7 @@ export const scenes = {
     "SCENE_HUSHBRIAR_MARKET": {
         id: "SCENE_HUSHBRIAR_MARKET",
         location: "hushbriar",
-        background: "landscapes/north_sporefall.png",
+        background: "landscapes/hushbriar_occupied_placeholder.png",
         text: "The market survives in the way a wound survives: poorly covered and never clean. A sagging herbalist tent trades in bitter roots and fever draughts, a soot-stained provisioner measures food as if every handful might start a fight, and even the little library keeps its door half-shut, as though books have become something a person might be punished for wanting.",
         type: "shop",
         shopId: "silverthorn_market", // Reuse for now
@@ -194,7 +194,7 @@ export const scenes = {
     "SCENE_HUSHBRIAR_CORRUPTED": {
         id: "SCENE_HUSHBRIAR_CORRUPTED",
         location: "hushbriar",
-        background: "landscapes/north_sporefall.png",
+        background: "landscapes/hushbriar_occupied_placeholder.png",
         text: "If you reach this quarter after the town has already started sealing itself against the worst of the night, Hushbriar feels less conquered than abandoned in place. Patrols still pass, but between them the streets are all wet ash, shuttered grief, and red fungal creep climbing the woodwork where the creek-mist settles thickest.",
         choices: [
             {
@@ -309,7 +309,7 @@ export const scenes = {
     "SCENE_HUSHBRIAR_SCREAMS": {
         id: "SCENE_HUSHBRIAR_SCREAMS",
         location: "hushbriar",
-        background: "landscapes/north_sporefall.png",
+        background: "landscapes/hushbriar_occupied_placeholder.png",
         text: "Before Fionnlagh can answer, a child's scream cuts across the night outside. A heartbeat later a woman's cry follows it, higher and more terrible, then several doors slam in panicked sequence as the whole lane tries to pretend it heard nothing. By the time you reach the street, the screaming has stopped. In its place comes the wet drag of something being hauled over mud, and a strand of spider silk glimmering between two fence posts where no web should be.",
         choices: [
             {
@@ -327,7 +327,7 @@ export const scenes = {
     "SCENE_INVESTIGATION": {
         id: "SCENE_INVESTIGATION",
         location: "hushbriar",
-        background: "landscapes/north_sporefall.png",
+        background: "landscapes/hushbriar_occupied_placeholder.png",
         text: "The lane ends in a yard churned to black mud. One cottage door hangs half-off its hinges, and the threshold is glazed with blood already stringing dark in the night air. No one living remains in the yard, only the evidence of panic: dropped prayer charms, a wooden sword snapped in two, and long silken bands caught on the fence where something climbed out with weight enough to bend the posts. Beyond the yard, broken brush and drag-marks lead east toward the treeline.",
         choices: [
             {
@@ -345,7 +345,7 @@ export const scenes = {
     "SCENE_THIEVES_CONFRONTATION": {
         id: "SCENE_THIEVES_CONFRONTATION",
         location: "hushbriar",
-        background: "landscapes/north_sporefall.png",
+        background: "landscapes/hushbriar_occupied_placeholder.png",
         npcPortrait: "portraits/npc_female_placeholder_portrait.png",
         text: "If you come here from an older save, the accusation-path is gone. The yard lies empty now but for blood, silk, and the same east-running trail toward the trees. Whatever did the killing has already left the lane behind.",
         choices: [
@@ -454,7 +454,7 @@ export const scenes = {
     "SCENE_AFTERMATH": {
         id: "SCENE_AFTERMATH",
         location: "hushbriar",
-        background: "landscapes/north_sporefall.png",
+        background: "landscapes/aodhan_house.png",
         displayPages: [
             "Morning does not come. The darkness above the trees deepens until the moon bleeds red enough to stain the clouds around it, and Hushbriar answers the broken night with bells, steel, and screams too small to matter against what has already slipped loose.",
             "Whether Aodhan lives or dies, Sporefall is open now. Whatever had been buried beneath old stories and older prayers is buried no longer. It is here, and the world has already begun changing around that fact. Back in town, somebody is still being hunted hard enough to turn the streets into a battlefield."
@@ -471,7 +471,7 @@ export const scenes = {
     "SCENE_HUSHBRIAR_AFTERMATH_HUNT": {
         id: "SCENE_HUSHBRIAR_AFTERMATH_HUNT",
         location: "hushbriar",
-        background: "landscapes/north_sporefall.png",
+        background: "landscapes/aodhan_house.png",
         onEnter: {
             questUpdate: { id: "investigate_whisperwood", stage: 9 }
         },
@@ -1319,7 +1319,7 @@ export const scenes = {
     "SCENE_SPOREFALL_CATHEDRAL_ENTRY": {
         id: "SCENE_SPOREFALL_CATHEDRAL_ENTRY",
         location: "whisperwood",
-        background: "landscapes/sporefall_whisperwood_reveal.png",
+        background: "landscapes/cathedral_entry.png",
         text: "In the heart of Sporefall looms the Cathedral of Bone, marble and giant-bone architecture made profane by silence. Inside, the nave is strewn with the dead. Where pews should stand, bones lie in rows like the town tried to bury itself and failed.",
         choices: [
             {
@@ -1345,7 +1345,7 @@ export const scenes = {
     "SCENE_SPOREFALL_CATHEDRAL_VISION": {
         id: "SCENE_SPOREFALL_CATHEDRAL_VISION",
         location: "whisperwood",
-        background: "landscapes/sporefall_whisperwood_reveal.png",
+        background: "landscapes/caitriona.png",
         onEnter: {
             once: true,
             effects: [
@@ -1570,7 +1570,7 @@ export const scenes = {
     "SCENE_SPOREFALL_NORTH_BRIDGE": {
         id: "SCENE_SPOREFALL_NORTH_BRIDGE",
         location: "whisperwood",
-        background: "landscapes/sporefall_crimson_frontier.png",
+        background: "landscapes/north_sporefall.png",
         onEnter: {
             once: true,
             effects: [
