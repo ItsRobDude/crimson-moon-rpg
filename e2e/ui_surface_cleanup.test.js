@@ -63,7 +63,10 @@ test.describe('UI Surface Cleanup', () => {
     await page.click('#btn-menu');
     await page.click('#btn-menu-quests');
     await expect(page.locator('#quest-modal')).toBeVisible();
-    await expect(page.locator('#quest-list')).toContainText('Worth considering');
+    await expect(page.locator('#quest-summary')).toContainText('Active Thread');
+    await expect(page.locator('#quest-list')).toContainText('Current Thread');
+    await expect(page.locator('#quest-list')).toContainText('Best-Known Leads');
+    await expect(page.locator('#quest-list')).toContainText('Branch Pressure');
     await expect(page.locator('#quest-list')).toContainText('Temple Road offers blessing');
     await page.keyboard.press('Escape');
     await expect(page.locator('#quest-modal')).toBeHidden();

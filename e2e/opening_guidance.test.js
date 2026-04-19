@@ -55,7 +55,10 @@ test.describe('Opening Guidance', () => {
 
     await page.click('#btn-menu');
     await page.click('#btn-menu-quests');
-    await expect(page.locator('#quest-list')).toContainText('Worth considering');
+    await expect(page.locator('#quest-summary')).toContainText('Active Thread');
+    await expect(page.locator('#quest-list')).toContainText('Current Thread');
+    await expect(page.locator('#quest-list')).toContainText('Best-Known Leads');
+    await expect(page.locator('#quest-list')).toContainText('Branch Pressure');
     await expect(page.locator('#quest-list')).toContainText('The Rusty Blade is a strong first stop');
   });
 });

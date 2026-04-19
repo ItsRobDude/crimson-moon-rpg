@@ -85,7 +85,7 @@ export const npcs = {
     "neala": {
         id: "neala",
         name: "Neala Creach",
-        portrait: "portraits/npc_female_placeholder_portrait.png", // Placeholder
+        portrait: "portraits/neala_portrait.png",
         faction: "thorne_guild",
         description: "A sharp-tongued guild scout who mistakes mercy for weakness.",
         baseDisposition: "hostile",
@@ -135,7 +135,7 @@ export const npcs = {
     "liobhan": {
         id: "liobhan",
         name: "Liobhán Sceith",
-        portrait: "portraits/npc_female_placeholder_portrait.png", // Placeholder
+        portrait: "portraits/liobhan_portrait.png",
         faction: "thorne_guild",
         description: "A calm but deadly guild operative who weighs every word like a threat.",
         baseDisposition: "hostile",
@@ -185,7 +185,7 @@ export const npcs = {
     "aodhan": {
         id: "aodhan",
         name: "Aodhan",
-        portrait: "portraits/npc_male_placeholder_portrait.png", // Placeholder
+        portrait: "portraits/aodhan_portrait.png",
         faction: "whisperwood_survivors", // Formerly?
         description: "A fallen friend, now lost to darkness.",
         baseDisposition: "hostile",
@@ -235,7 +235,7 @@ export const npcs = {
     "elara": {
         id: "elara",
         name: "Elara",
-        portrait: "portraits/npc_female_placeholder_portrait.png",
+        portrait: "portraits/elara_portrait.png",
         faction: "whisperwood_survivors",
         description: "The prophesied demigod, hiding from the sacrifice she knows may save the world.",
         baseDisposition: "wary",
@@ -262,7 +262,7 @@ export const npcs = {
     "aine": {
         id: "aine",
         name: "Aine",
-        portrait: "portraits/npc_female_placeholder_portrait.png",
+        portrait: "portraits/aine_portrait.png",
         faction: "whisperwood_survivors",
         description: "A mysterious cat (or witch) watching from Lament Hill.",
         baseDisposition: "wary",

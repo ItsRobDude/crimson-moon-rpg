@@ -136,8 +136,8 @@ body.hide-log #game-log-panel {
     left: 0;
     width: 100%;
     text-align: center;
-    font-size: 0.8rem;
-    line-height: 20px;
+    font-size: 0.76rem;
+    line-height: 18px;
     text-shadow: 1px 1px 2px black;
 }
 
@@ -1379,17 +1379,17 @@ button:hover {
 }
 
 #stats-bar {
-    padding: 12px 20px;
+    padding: 8px 14px;
     align-items: stretch;
-    gap: 18px;
-    min-height: 76px;
+    gap: 12px;
+    min-height: 58px;
 }
 
 .hud-primary,
 .hud-secondary {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
 }
 
 .hud-primary {
@@ -1399,7 +1399,7 @@ button:hover {
 }
 
 .hud-secondary {
-    flex: 0 1 44%;
+    flex: 0 0 auto;
     justify-content: flex-end;
 }
 
@@ -1415,35 +1415,32 @@ button:hover {
 }
 
 #char-name {
-    font-size: 1.35rem;
+    font-size: 1.15rem;
     line-height: 1.1;
 }
 
 .hud-meta-line {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px 14px;
+    gap: 4px 10px;
     color: #c9c2aa;
-    font-size: 0.9rem;
+    font-size: 0.82rem;
 }
 
 .hud-bars {
     display: flex;
-    gap: 12px;
+    gap: 8px;
     flex-wrap: wrap;
     justify-content: flex-end;
 }
 
 .hud-bars .bar-container {
-    width: 190px;
+    width: 150px;
+    height: 18px;
 }
 
 #char-loadout {
-    color: #cbc190;
-    font-size: 0.9rem;
-    line-height: 1.4;
-    text-align: right;
-    max-width: 360px;
+    display: none;
 }
 
 .menu-tool-grid {
@@ -1460,11 +1457,11 @@ button:hover {
 .stat-group.buttons {
     flex-wrap: wrap;
     justify-content: flex-end;
-    gap: 8px;
+    gap: 6px;
 }
 
 .stat-group.buttons button {
-    padding: 7px 12px;
+    padding: 6px 10px;
 }
 
 body.presentation-mode #game-container {
@@ -1599,6 +1596,42 @@ body.presentation-mode #viewport {
     line-height: 1.5;
 }
 
+#quest-summary {
+    margin-bottom: 12px;
+}
+
+#quest-modal .modal-content {
+    width: 640px;
+    max-width: 94%;
+}
+
+.quest-thread,
+.quest-recent,
+.quest-pressure {
+    color: #cfc7b3;
+    font-size: 0.92rem;
+}
+
+.quest-thread strong,
+.quest-recent strong,
+.quest-pressure strong,
+.quest-suggestions strong {
+    color: #e1d19a;
+}
+
+.quest-suggestions {
+    margin-top: 12px;
+}
+
+.quest-suggestions ul {
+    margin-top: 8px;
+    padding-left: 18px;
+    color: #d3cec1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
 .battle-turn-summary {
     color: #f3efe2;
     line-height: 1.45;
@@ -1628,6 +1661,7 @@ body.presentation-mode #viewport {
     #stats-bar {
         flex-direction: column;
         align-items: stretch;
+        gap: 8px;
     }
 
     .hud-primary,
@@ -1641,13 +1675,8 @@ body.presentation-mode #viewport {
     }
 
     .hud-secondary {
-        justify-content: space-between;
+        justify-content: flex-end;
         flex-wrap: wrap;
-    }
-
-    #char-loadout {
-        text-align: left;
-        max-width: none;
     }
 
     .battle-layout {
@@ -1667,11 +1696,20 @@ body.presentation-mode #viewport {
     }
 
     #stats-bar {
-        padding: 12px;
+        padding: 8px 10px;
     }
 
     .hud-bars .bar-container {
-        width: 100%;
+        width: 132px;
+    }
+
+    .hud-bars .xp-container {
+        display: none;
+    }
+
+    .hud-meta-line {
+        gap: 4px 8px;
+        font-size: 0.78rem;
     }
 
     #choice-layer {

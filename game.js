@@ -404,14 +404,19 @@ function setObjectiveStatus(message = '', tone = 'system') {
 
 function getQuestStageData(stageEntry) {
     if (!stageEntry) {
-        return { text: '', suggestions: [] };
+        return { text: '', suggestions: [], leads: [], thread: '', recentUpdate: '', pressure: '' };
     }
     if (typeof stageEntry === 'string') {
-        return { text: stageEntry, suggestions: [] };
+        return { text: stageEntry, suggestions: [], leads: [], thread: '', recentUpdate: '', pressure: '' };
     }
+    const suggestions = Array.isArray(stageEntry.suggestions) ? stageEntry.suggestions : [];
     return {
         text: stageEntry.text || '',
-        suggestions: Array.isArray(stageEntry.suggestions) ? stageEntry.suggestions : []
+        suggestions,
+        leads: Array.isArray(stageEntry.leads) ? stageEntry.leads : suggestions,
+        thread: stageEntry.thread || '',
+        recentUpdate: stageEntry.recentUpdate || '',
+        pressure: stageEntry.pressure || ''
     };
 }
 
@@ -1377,8 +1382,10 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
             ].filter(Boolean).join(' ');
             scene.text = `You stand once more in Sporefall's central street, where the silence no longer feels abandoned so much as watched. Doors hang open to rooms no one had time to close. A butcher's awning has fused to its frame in black curls. The red light on the stones makes every threshold look blood-washed whether blood touched it or not. The borough still opens west toward the cathedral quarter, east toward the overseer's row, and north toward the bridge Eoin named.${eoinState ? ` ${eoinState}` : ''}`;
             scene.choices = [
-                createChoice('Step back into the central street', 'SCENE_HUB_SPOREFALL'),
-                createChoice(gameState.flags.eoin_recruited ? "See if Eoin can steady himself before you move" : "Go back to Eoin's hiding place", 'SCENE_EOIN_TALK')
+                createChoice('Step back into the central street', 'SCENE_HUB_SPOREFALL', { buttonText: 'Back to the Street' }),
+                createChoice(gameState.flags.eoin_recruited ? "See if Eoin can steady himself before you move" : "Go back to Eoin's hiding place", 'SCENE_EOIN_TALK', {
+                    buttonText: gameState.flags.eoin_recruited ? 'Check on Eoin' : "Back to Eoin"
+                })
             ];
             return scene;
         }
@@ -1387,6 +1394,7 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
         scene.text = "You wake into a borough that feels like it should still be asleep, yet nothing here carries the peace of sleep. The houses lean inward as though bracing against some pressure still building beneath the earth. Ash and black-purple sludge have dried in dark seams between the stones. A door nearby stands open on a room whose walls are striped by dragged fingertips. Somewhere close, something wooden taps softly in the wind, and every sound after that feels like a mistake for existing.";
         scene.choices = [
             createChoice('Search the nearest street for survivors (Perception)', null, {
+                buttonText: 'Search for Survivors (Perception)',
                 type: 'skillCheck',
                 skill: 'perception',
                 dc: 10,
@@ -1405,11 +1413,12 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
                 nextSceneSuccess: 'SCENE_MEET_EOIN',
                 nextSceneFail: 'SCENE_SPOREFALL_STREET_SEARCH'
             }),
-            createChoice('Move between the ruined homes', 'SCENE_SPOREFALL_STREET_SEARCH'),
-            createChoice('Stand still and listen for the living', 'SCENE_SPOREFALL_STREET_SEARCH')
+            createChoice('Move between the ruined homes', 'SCENE_SPOREFALL_STREET_SEARCH', { buttonText: 'Move Between the Homes' }),
+            createChoice('Stand still and listen for the living', 'SCENE_SPOREFALL_STREET_SEARCH', { buttonText: 'Listen for the Living' })
         ];
         if (torchlit) {
             scene.choices.unshift(createChoice('Hold your torch high and read the soot-marked doorways (Perception)', null, {
+                buttonText: 'Read the Doorways (Perception)',
                 type: 'skillCheck',
                 skill: 'perception',
                 dc: 8,
@@ -1444,9 +1453,10 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
             ? "The nearby houses remain empty of life and full of the small humiliations of catastrophe: a child's toy stamped into red mud, a cooking pot left black on cold iron, a shawl dried stiff where something wet once soaked through it. The same restrained cough still betrays a human presence behind the ruined home."
             : "The street is not empty so much as interrupted. Doors have been left wide in the middle of ordinary lives. Bedding trails across thresholds. One wall is marked shoulder-high with the brown smear of someone trying to stay upright after they should already have been down. The deeper you move between the houses, the more the borough feels paused at the exact instant everyone understood they were too late.";
         scene.choices = [
-            createChoice('Follow the coughing behind the house', 'SCENE_MEET_EOIN'),
-            createChoice('Circle wide and cut off whoever is hiding', 'SCENE_MEET_EOIN'),
+            createChoice('Follow the coughing behind the house', 'SCENE_MEET_EOIN', { buttonText: 'Follow the Coughing' }),
+            createChoice('Circle wide and cut off whoever is hiding', 'SCENE_MEET_EOIN', { buttonText: 'Circle the Ruin' }),
             createChoice('Read the ruined thresholds with a healer’s eye (Medicine)', null, {
+                buttonText: 'Read the Thresholds (Medicine)',
                 type: 'skillCheck',
                 skill: 'medicine',
                 dc: 11,
@@ -1473,6 +1483,7 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
         }
         if (!state.eoinComforted && actorHasItem('player', 'rations')) {
             scene.choices.unshift(createChoice('Offer him a ration anyway, if only to give him one human thing to hold', 'SCENE_EOIN_TALK', {
+                buttonText: 'Offer a Ration',
                 effects: [
                     { type: 'consumeItem', itemId: 'rations', quantity: 1, logText: 'You leave one day of rations with Eoin, though comfort is all it can buy here.' },
                     { type: 'relationship', npcId: 'eoin', amount: 1 },
@@ -1518,6 +1529,7 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
 
         if (!recruitmentResolved) {
             scene.choices.push(createChoice("\"All right. Stay close to me and don't fall behind.\"", 'SCENE_EOIN_RECRUITED', {
+                buttonText: 'Bring Him Along',
                 effects: [
                     { type: 'flag', flagId: 'sporefall_eoin_talked', value: true },
                     { type: 'flag', flagId: 'eoin_recruited', value: true },
@@ -1528,12 +1540,14 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
                 ]
             }));
             scene.choices.push(createChoice("\"Stay hidden. If I can clear a road, I'll come back for you.\"", 'SCENE_HUB_SPOREFALL', {
+                buttonText: 'Tell Him to Hide',
                 effects: [
                     { type: 'flag', flagId: 'sporefall_eoin_talked', value: true },
                     { type: 'flag', flagId: 'eoin_refused', value: true }
                 ]
             }));
             scene.choices.push(createChoice("\"I'm not dragging you through this with me.\"", 'SCENE_HUB_SPOREFALL', {
+                buttonText: 'Refuse Him',
                 effects: [
                     { type: 'flag', flagId: 'sporefall_eoin_talked', value: true },
                     { type: 'flag', flagId: 'eoin_locked_out', value: true },
@@ -1574,13 +1588,22 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
 
         scene.text = `${baseScene.text}${suffix}${survivorBeat ? ` ${survivorBeat}` : ''}`;
         scene.choices = [
-            createChoice(state.cathedralVisionSeen ? 'Return west to the Cathedral of Bone' : 'Head west through the cathedral quarter', 'SCENE_SPOREFALL_CATHEDRAL_APPROACH'),
-            createChoice(state.homeUnlocked ? "Return east to Aodhan's house" : "Head east toward the overseer's row", 'SCENE_SPOREFALL_OVERSEER_APPROACH'),
-            createChoice(state.northRouteOpen ? 'Take the northern skip route again' : 'Head north through the broken market road', 'SCENE_SPOREFALL_NORTH_APPROACH'),
-            createChoice(gameState.flags.eoin_recruited ? "Check on Eoin before you choose a road" : "Return to Eoin's hiding place", 'SCENE_EOIN_TALK')
+            createChoice(state.cathedralVisionSeen ? 'Return west to the Cathedral of Bone' : 'Head west through the cathedral quarter', 'SCENE_SPOREFALL_CATHEDRAL_APPROACH', {
+                buttonText: state.cathedralVisionSeen ? 'Back to the Cathedral' : 'Cathedral Quarter'
+            }),
+            createChoice(state.homeUnlocked ? "Return east to Aodhan's house" : "Head east toward the overseer's row", 'SCENE_SPOREFALL_OVERSEER_APPROACH', {
+                buttonText: state.homeUnlocked ? "Back to Aodhan's House" : "Overseer's Row"
+            }),
+            createChoice(state.northRouteOpen ? 'Take the northern skip route again' : 'Head north through the broken market road', 'SCENE_SPOREFALL_NORTH_APPROACH', {
+                buttonText: state.northRouteOpen ? 'North Road Again' : 'North Road'
+            }),
+            createChoice(gameState.flags.eoin_recruited ? "Check on Eoin before you choose a road" : "Return to Eoin's hiding place", 'SCENE_EOIN_TALK', {
+                buttonText: gameState.flags.eoin_recruited ? 'Check on Eoin' : "Back to Eoin"
+            })
         ];
         if (gameState.flags.eoin_recruited) {
             scene.choices.unshift(createChoice("Ask Eoin to show you the way north how he remembers it. (Survival)", null, {
+                buttonText: 'Let Eoin Lead North (Survival)',
                 type: 'skillCheck',
                 skill: 'survival',
                 dc: 10,
@@ -1605,6 +1628,7 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
         scene.choices = [];
         if (!state.cathedralLetterFound) {
             scene.choices.push(createChoice("Search the courier's bag", 'SCENE_SPOREFALL_CATHEDRAL_APPROACH', {
+                buttonText: "Search the Courier's Bag",
                 effects: [
                     { type: 'addItem', itemId: 'urgent_letter_overseer' },
                     { type: 'flag', flagId: 'sporefall_cathedral_letter_found', value: true }
@@ -1613,6 +1637,7 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
         }
         if (!state.cathedralMasonryRead) {
             scene.choices.push(createChoice('Read the cracked cathedral stone before you climb (History)', null, {
+                buttonText: 'Read the Stone (History)',
                 type: 'skillCheck',
                 skill: 'history',
                 dc: 12,
@@ -1641,8 +1666,10 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
             }));
         }
         scene.choices.push(
-            createChoice(state.cathedralVisionSeen ? 'Enter the cathedral again' : 'Climb toward the cathedral doors', 'SCENE_SPOREFALL_CATHEDRAL_ENTRY'),
-            createChoice('Return to the central street', 'SCENE_HUB_SPOREFALL')
+            createChoice(state.cathedralVisionSeen ? 'Enter the cathedral again' : 'Climb toward the cathedral doors', 'SCENE_SPOREFALL_CATHEDRAL_ENTRY', {
+                buttonText: state.cathedralVisionSeen ? 'Enter the Cathedral' : 'Climb to the Doors'
+            }),
+            createChoice('Return to the central street', 'SCENE_HUB_SPOREFALL', { buttonText: 'Back to the Street' })
         );
         return scene;
     }
@@ -1675,7 +1702,7 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
             scene.text = "The ruined door hangs ajar where the arcane circuit finally failed. Whatever answer the trap demanded, it cannot keep you out anymore.";
             scene.choices = [
                 createChoice('Enter the overseer house', 'SCENE_SPOREFALL_OVERSEER_STUDY'),
-                createChoice("Return to the overseer's row", 'SCENE_SPOREFALL_OVERSEER_APPROACH')
+                createChoice("Return to the overseer's row", 'SCENE_SPOREFALL_OVERSEER_APPROACH', { buttonText: "Back to the Row" })
             ];
             return scene;
         }
@@ -1685,6 +1712,7 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
             : baseScene.text;
         scene.choices = [
             createChoice('Study the runes (Arcana)', 'SCENE_SPOREFALL_OVERSEER_DOOR', {
+                buttonText: 'Study the Runes (Arcana)',
                 type: 'skillCheck',
                 skill: 'arcana',
                 dc: 14,
@@ -1699,6 +1727,7 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
                 nextSceneFail: 'SCENE_SPOREFALL_OVERSEER_DOOR'
             }),
             createChoice('Trace the carved grooves (Investigation)', 'SCENE_SPOREFALL_OVERSEER_DOOR', {
+                buttonText: 'Trace the Grooves (Investigation)',
                 type: 'skillCheck',
                 skill: 'investigation',
                 dc: 14,
@@ -1722,11 +1751,13 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
         if (state.homeTrapHint) {
             scene.choices.push(
                 createChoice('Scratch out the Wolf and Serpent runes', 'SCENE_SPOREFALL_OVERSEER_STUDY', {
+                    buttonText: 'Break Wolf and Serpent',
                     effects: [
                         { type: 'flag', flagId: 'sporefall_home_unlocked', value: true }
                     ]
                 }),
                 createChoice('Mar the Crow and Bear runes instead', 'SCENE_SPOREFALL_OVERSEER_DOOR', {
+                    buttonText: 'Mar Crow and Bear',
                     effects: [
                         { type: 'damage', amount: '2d8' },
                         {
@@ -1747,6 +1778,7 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
 
         scene.choices.push(
             createChoice('Force the door and risk the trap', 'SCENE_SPOREFALL_OVERSEER_DOOR', {
+                buttonText: 'Force the Door',
                 effects: [
                     { type: 'damage', amount: '2d8' },
                     {
@@ -1762,7 +1794,7 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
                     }
                 ]
             }),
-            createChoice("Return to the overseer's row", 'SCENE_SPOREFALL_OVERSEER_APPROACH')
+            createChoice("Return to the overseer's row", 'SCENE_SPOREFALL_OVERSEER_APPROACH', { buttonText: "Back to the Row" })
         );
         return scene;
     }
@@ -1774,15 +1806,15 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
             : baseScene.text;
         scene.choices = [];
         if (!state.journalFound) {
-            scene.choices.push(createChoice('Read the surviving journal leaves', 'SCENE_SPOREFALL_OVERSEER_JOURNAL'));
+            scene.choices.push(createChoice('Read the surviving journal leaves', 'SCENE_SPOREFALL_OVERSEER_JOURNAL', { buttonText: 'Read the Journal' }));
         }
         if (!state.letterFound) {
-            scene.choices.push(createChoice('Search the scattered correspondence', 'SCENE_SPOREFALL_OVERSEER_CORRESPONDENCE'));
+            scene.choices.push(createChoice('Search the scattered correspondence', 'SCENE_SPOREFALL_OVERSEER_CORRESPONDENCE', { buttonText: 'Search the Letters' }));
         }
         if (!state.compassFound) {
-            scene.choices.push(createChoice('Open the desk drawer', 'SCENE_SPOREFALL_OVERSEER_DRAWER'));
+            scene.choices.push(createChoice('Open the desk drawer', 'SCENE_SPOREFALL_OVERSEER_DRAWER', { buttonText: 'Open the Drawer' }));
         }
-        scene.choices.push(createChoice('Leave the house for the central street', 'SCENE_HUB_SPOREFALL'));
+        scene.choices.push(createChoice('Leave the house for the central street', 'SCENE_HUB_SPOREFALL', { buttonText: 'Back to the Street' }));
         return scene;
     }
 
@@ -1792,6 +1824,7 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
             : "The northern streets feel flensed. Market stalls stand open with nothing worth taking left in them. A warped district marker still bears the older name, Whisperwood, half-buried under crimson mildew. Ahead, the road widens toward the footbridge Eoin mentioned, then thins again into a route that could carry you deeper into Sporefall without first learning what the cathedral quarter or the overseer's row would tell you.";
         scene.choices = [
             createChoice('Read the old marker and bridgework before the spores swallow them (History)', null, {
+                buttonText: 'Read the Marker (History)',
                 type: 'skillCheck',
                 skill: 'history',
                 dc: 11,
@@ -1815,8 +1848,9 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
                 nextSceneSuccess: 'SCENE_SPOREFALL_NORTH_APPROACH',
                 nextSceneFail: 'SCENE_SPOREFALL_NORTH_APPROACH'
             }),
-            createChoice('Check the ruined footbridge first', 'SCENE_SPOREFALL_NORTH_BRIDGE'),
+            createChoice('Check the ruined footbridge first', 'SCENE_SPOREFALL_NORTH_BRIDGE', { buttonText: 'Check the Footbridge' }),
             createChoice('Slip through the stalls and avoid a straight crossing (Stealth)', null, {
+                buttonText: 'Slip Through the Stalls (Stealth)',
                 type: 'skillCheck',
                 skill: 'stealth',
                 dc: 11,
@@ -1836,6 +1870,7 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
                 nextSceneFail: 'SCENE_SPOREFALL_NORTH_AMBUSH'
             }),
             createChoice('Cross the open street toward the north road (Perception)', null, {
+                buttonText: 'Cross the Open Street (Perception)',
                 type: 'skillCheck',
                 skill: 'perception',
                 dc: 11,
@@ -1849,8 +1884,8 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
                 nextSceneSuccess: 'SCENE_SPOREFALL_NORTH_ROUTE_DISCOVERED',
                 nextSceneFail: 'SCENE_SPOREFALL_NORTH_AMBUSH'
             }),
-            createChoice('Fall back for now and return once you have better ground', 'SCENE_HUB_SPOREFALL'),
-            createChoice('Return to the central street', 'SCENE_HUB_SPOREFALL')
+            createChoice('Fall back for now and return once you have better ground', 'SCENE_HUB_SPOREFALL', { buttonText: 'Fall Back for Now' }),
+            createChoice('Return to the central street', 'SCENE_HUB_SPOREFALL', { buttonText: 'Back to the Street' })
         ];
         return scene;
     }
@@ -1863,6 +1898,7 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
 
         if (!state.bridgeBodySeen) {
             scene.choices.push(createChoice('Climb down beneath the bridge and follow the smell (Athletics)', null, {
+                buttonText: 'Climb Under the Bridge (Athletics)',
                 type: 'skillCheck',
                 skill: 'athletics',
                 dc: 11,
@@ -1897,6 +1933,7 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
 
         scene.choices.push(
             createChoice('Read the shelter like a field camp (Investigation)', null, {
+                buttonText: 'Read the Shelter (Investigation)',
                 type: 'skillCheck',
                 skill: 'investigation',
                 dc: 10,
@@ -1915,8 +1952,8 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
                 nextSceneSuccess: 'SCENE_SPOREFALL_NORTH_BRIDGE',
                 nextSceneFail: 'SCENE_SPOREFALL_NORTH_BRIDGE'
             }),
-            createChoice('Push on toward the north road', 'SCENE_SPOREFALL_NORTH_ROUTE_DISCOVERED'),
-            createChoice('Return to the central street', 'SCENE_HUB_SPOREFALL')
+            createChoice('Push on toward the north road', 'SCENE_SPOREFALL_NORTH_ROUTE_DISCOVERED', { buttonText: 'Take the North Road' }),
+            createChoice('Return to the central street', 'SCENE_HUB_SPOREFALL', { buttonText: 'Back to the Street' })
         );
         return scene;
     }
@@ -1943,8 +1980,11 @@ function buildEarlyHushbriarRuntimeScene(sceneId, baseScene) {
         if (moonwellPending) {
             scene.text = `${scene.text} Somewhere farther east, the night keeps threatening to break into a scream again and then thinking better of it. The whole town seems to be listening for the next one.`;
             scene.choices.unshift(
-                createChoice('Follow the screaming through the east lanes while the town still hesitates.', 'SCENE_HUSHBRIAR_SCREAMS'),
+                createChoice('Follow the screaming through the east lanes while the town still hesitates.', 'SCENE_HUSHBRIAR_SCREAMS', {
+                    buttonText: 'Follow the Screams'
+                }),
                 createChoice('Hole up until dawn and see what the town looks like when fear finishes ripening.', 'SCENE_HUSHBRIAR_MORNING_SETUP', {
+                    buttonText: 'Wait for Dawn',
                     timeAdvance: 1,
                     timeReason: 'You wait out the rest of the night behind barred doors.'
                 })
@@ -1960,8 +2000,11 @@ function buildEarlyHushbriarRuntimeScene(sceneId, baseScene) {
         if (moonwellPending) {
             scene.text = `${scene.text} Every now and then the room pauses as if the whole inn heard something moving wrong in the east lanes.`;
             scene.choices.splice(1, 0,
-                createChoice('Step back outside and follow the screams Fionnlagh feared.', 'SCENE_HUSHBRIAR_SCREAMS'),
+                createChoice('Step back outside and follow the screams Fionnlagh feared.', 'SCENE_HUSHBRIAR_SCREAMS', {
+                    buttonText: 'Follow the Screams'
+                }),
                 createChoice('Bolt the door, keep low, and wait for dawn.', 'SCENE_HUSHBRIAR_MORNING_SETUP', {
+                    buttonText: 'Wait for Dawn',
                     timeAdvance: 1,
                     timeReason: 'You spend the last of the night behind barred shutters and whispered prayers.'
                 })
@@ -3174,9 +3217,9 @@ function finishCharacterCreation() {
     // 7) Jump to explicit starting scene
     goToScene(CANONICAL_START_SCENE);
 
-    logMessage(`Character ${name} created. Prince Alderic awaits in Silverthorn.`, "system");
+    logMessage('Your road begins in Silverthorn. Prince Alderic awaits in his chamber.', "system");
     if (autofillMessages.length > 0) {
-        logMessage(`The unfinished creation choices were settled for you: ${autofillMessages.join(' ')}`, 'system');
+        logMessage(`Some training details were settled for you before the road began: ${autofillMessages.join(' ')}`, 'system');
     }
 }
 
@@ -4262,7 +4305,8 @@ function updateCombatUI(activeCharacterId = 'player') {
 
     updateBattleTutorialNudge(activeCharacterId);
 
-    document.getElementById('battle-scene-image').style.backgroundImage = "url('landscapes/battle_placeholder.webp')";
+    const currentSceneBackground = scenes[gameState.currentSceneId]?.background || 'landscapes/courtyard_battleground.png';
+    document.getElementById('battle-scene-image').style.backgroundImage = `url('${currentSceneBackground}')`;
 }
 
 function createActionButton(label, icon, onClick, extraClass = '', disabled = false) {
@@ -5154,6 +5198,7 @@ function toggleInventory(forceOpen = null, characterId = 'player') {
 function toggleQuestLog() {
     const modal = document.getElementById('quest-modal');
     const list = document.getElementById('quest-list');
+    const summary = document.getElementById('quest-summary');
 
     if (!modal.classList.contains('hidden')) {
         modal.classList.add('hidden');
@@ -5162,25 +5207,55 @@ function toggleQuestLog() {
 
     modal.classList.remove('hidden');
     list.innerHTML = '';
+    if (summary) summary.innerHTML = '';
+
+    const activeQuests = Object.entries(gameState.quests)
+        .filter(([, qData]) => qData.currentStage > 0 && !qData.completed)
+        .sort(([, left], [, right]) => right.currentStage - left.currentStage);
+
+    if (summary) {
+        if (activeQuests.length > 0) {
+            const [, primaryQuest] = activeQuests[0];
+            const primaryStage = getQuestStageData(primaryQuest.stages[primaryQuest.currentStage]);
+            summary.innerHTML = `
+                <strong>Active Thread:</strong> ${primaryStage.thread || primaryQuest.title}
+                <br>
+                <span>${primaryStage.recentUpdate || primaryStage.text || primaryQuest.description || ''}</span>
+            `;
+        } else {
+            summary.innerHTML = 'No active threads are pressing on you right now. When the road knots up again, this log will tell you what you actually know.';
+        }
+    }
 
     for (const [qid, qData] of Object.entries(gameState.quests)) {
         if (qData.currentStage > 0) {
             const stage = getQuestStageData(qData.stages[qData.currentStage]);
             const div = document.createElement('div');
             div.className = 'quest-entry';
-            div.innerHTML = `<h4>${qData.title}</h4><p>${stage.text}</p>`;
-            if (stage.suggestions.length > 0) {
+            div.innerHTML = `
+                <h4>${qData.title}</h4>
+                ${stage.thread ? `<p class="quest-thread"><strong>Current Thread:</strong> ${stage.thread}</p>` : ''}
+                <p>${stage.text}</p>
+                ${stage.recentUpdate ? `<p class="quest-recent"><strong>Recent Update:</strong> ${stage.recentUpdate}</p>` : ''}
+            `;
+            if (stage.leads.length > 0) {
                 const suggestions = document.createElement('div');
                 suggestions.className = 'quest-suggestions';
-                suggestions.innerHTML = `<strong>Worth considering:</strong>`;
+                suggestions.innerHTML = `<strong>Best-Known Leads:</strong>`;
                 const listEl = document.createElement('ul');
-                stage.suggestions.forEach((entry) => {
+                stage.leads.forEach((entry) => {
                     const item = document.createElement('li');
                     item.innerText = entry;
                     listEl.appendChild(item);
                 });
                 suggestions.appendChild(listEl);
                 div.appendChild(suggestions);
+            }
+            if (stage.pressure) {
+                const pressure = document.createElement('p');
+                pressure.className = 'quest-pressure';
+                pressure.innerHTML = `<strong>Branch Pressure:</strong> ${stage.pressure}`;
+                div.appendChild(pressure);
             }
             if (qData.completed) {
                 const completed = document.createElement('span');

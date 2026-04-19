@@ -2,7 +2,7 @@ export const scenes = {
     "SCENE_ARRIVAL_HUSHBRIAR": {
         id: "SCENE_ARRIVAL_HUSHBRIAR",
         location: "hushbriar",
-        background: "landscapes/silverthorn_market_avenue.png", // Placeholder until hushbriar landscape exists
+        background: "landscapes/aodhan_house.png",
         text: "You arrive at Hushbriar Cove a careful distance behind a Silverthorn patrol column. The road shoulders have been hacked clear, footprints press deep into the mud, and the sweet-rot smell from the corpse-choked creek still clings to your clothes. By the time the gates come into view, dusk has collapsed into cold fog and two soldiers stand watch beside a torch too weak for the work being asked of it.",
         onEnter: {
             addGold: 10 // Starting cash or adjustment
@@ -10,10 +10,12 @@ export const scenes = {
         choices: [
             {
                 text: "Approach the gates calmly.",
+                buttonText: "Approach the Gates",
                 nextScene: "SCENE_HUSHBRIAR_GATES"
             },
             {
                 text: "Observe the guards first (Perception)",
+                buttonText: "Read the Guards (Perception)",
                 type: "skillCheck",
                 skill: "perception",
                 dc: 12,
@@ -27,11 +29,12 @@ export const scenes = {
     "SCENE_HUSHBRIAR_GATES": {
         id: "SCENE_HUSHBRIAR_GATES",
         location: "hushbriar",
-        background: "landscapes/silverthorn_market_avenue.png", // Placeholder
+        background: "landscapes/aodhan_house.png",
         text: "'Halt, travelers. State your business, and be quick about it,' the older guard says. He looks tired enough to sway where he stands, but the younger one circles closer, eyes narrowing as he studies your gear, your faces, and anything that might tie you to Silverthorn's failed business in the east.",
         choices: [
             {
                 text: "Say you only seek shelter and keep your heads low (Persuasion)",
+                buttonText: "Ask for Shelter (Persuasion)",
                 type: "skillCheck",
                 skill: "persuasion",
                 dc: 10,
@@ -42,6 +45,7 @@ export const scenes = {
             },
             {
                 text: "Blend in with the late refugees and slip past them (Stealth)",
+                buttonText: "Slip in with the Refugees (Stealth)",
                 type: "skillCheck",
                 skill: "stealth",
                 dc: 14,
@@ -52,6 +56,7 @@ export const scenes = {
             },
             {
                 text: "Refuse the order and go for your weapons",
+                buttonText: "Go for Your Weapons",
                 nextScene: "SCENE_HUSHBRIAR_COMBAT_GUARDS"
             }
         ]
@@ -59,7 +64,7 @@ export const scenes = {
     "SCENE_HUSHBRIAR_COMBAT_GUARDS": {
         id: "SCENE_HUSHBRIAR_COMBAT_GUARDS",
         location: "hushbriar",
-        background: "landscapes/silverthorn_market_avenue.png",
+        background: "landscapes/aodhan_house.png",
         text: "Silverthorn soldiers close in through fog, torchlight, and shouted orders. Steel clears leather as you lunge for the only opening before the press of bodies turns into chains.",
         type: "combat",
         enemies: ["silverthorn_guard", "silverthorn_guard"],
@@ -69,20 +74,21 @@ export const scenes = {
     "SCENE_PRISON_CAPTURE": {
         id: "SCENE_PRISON_CAPTURE",
         location: "hushbriar",
-        background: "landscapes/silverthorn_market_avenue.png",
+        background: "landscapes/hallway_fiona.png",
         text: "The gate watch does not kill you. It binds you, marches you through a city trying not to meet your eyes, and throws you into a holding cell with the promise that traitors do not leave Hushbriar by the front gate.",
         choices: [
-            { text: "Wake to the scrape of boots beyond the bars...", nextScene: "SCENE_PRISON_CELL" }
+            { text: "Wake to the scrape of boots beyond the bars...", buttonText: "Wake in the Cell", nextScene: "SCENE_PRISON_CELL" }
         ]
     },
     "SCENE_PRISON_CELL": {
         id: "SCENE_PRISON_CELL",
         location: "hushbriar",
-        background: "landscapes/alderics_chamber.webp", // Placeholder for cell
+        background: "landscapes/hallway_fiona.png",
         text: "You wake in a cold stone cell with your wrists rubbed raw and your gear piled on a table just beyond the bars. A guard paces the corridor in uneven intervals. 'Twenty-four hours,' he mutters without looking at you. 'Then the scaffold can decide whether the King still remembers your names.'",
         choices: [
             {
                 text: "Work the lock with whatever scrap and wire you can reach (Sleight of Hand)",
+                buttonText: "Work the Lock (Sleight of Hand)",
                 type: "skillCheck",
                 skill: "sleight_of_hand",
                 dc: 14,
@@ -93,11 +99,13 @@ export const scenes = {
             },
             {
                 text: "Offer the guard 50 gold to forget what he heard",
+                buttonText: "Bribe the Guard",
                 cost: 50,
                 nextScene: "SCENE_PRISON_ESCAPE"
             },
             {
                 text: "Wait for the next change of watch",
+                buttonText: "Wait for the Next Watch",
                 nextScene: "SCENE_PRISON_GUARD_RETURN"
             }
         ]
@@ -105,20 +113,23 @@ export const scenes = {
     "SCENE_PRISON_GUARD_RETURN": {
         id: "SCENE_PRISON_GUARD_RETURN",
         location: "hushbriar",
-        background: "landscapes/alderics_chamber.webp",
+        background: "landscapes/hallway_fiona.png",
         text: "The guard stalks back to your cell, listening to the bars and lock with the bitter patience of a man who has heard too many desperate ideas in one night. He does not open the door, but he does lean close enough to make quiet bargains possible.",
         choices: [
             {
                 text: "Press 50 gold through the bars and buy one loose latch",
+                buttonText: "Buy a Loose Latch",
                 cost: 50,
                 nextScene: "SCENE_PRISON_ESCAPE"
             },
             {
                 text: "Lure him close and rush him when he unlocks the bars",
+                buttonText: "Rush the Guard",
                 nextScene: "SCENE_HUSHBRIAR_COMBAT_GUARDS"
             },
             {
                 text: "Stay still until the corridor settles again",
+                buttonText: "Stay Still",
                 nextScene: "SCENE_PRISON_CELL"
             }
         ]
@@ -126,28 +137,31 @@ export const scenes = {
     "SCENE_PRISON_ESCAPE": {
         id: "SCENE_PRISON_ESCAPE",
         location: "hushbriar",
-        background: "landscapes/silverthorn_market_avenue.png",
+        background: "landscapes/hallway_fiona.png",
         text: "Whether by a loosened latch or bought silence, the cell no longer holds you. You reclaim your gear, duck past the watch before the corridor changes hands, and slip back toward Hushbriar's darkened streets.",
         choices: [
-            { text: "Sneak into the town shadows", nextScene: "SCENE_HUSHBRIAR_TOWN" }
+            { text: "Sneak into the town shadows", buttonText: "Slip Back into Town", nextScene: "SCENE_HUSHBRIAR_TOWN" }
         ]
     },
     "SCENE_HUSHBRIAR_TOWN": {
         id: "SCENE_HUSHBRIAR_TOWN",
         location: "hushbriar",
-        background: "landscapes/silverthorn_market_avenue.png",
+        background: "landscapes/aodhan_house.png",
         text: "Inside the walls, Hushbriar feels occupied more than governed. Wood elves move in short, careful bursts between doorways, never lingering long enough for a patrol to question them, and the whole town smells of wet ash, horse sweat, and the sweet-rot stink drifting in from the corpse-clogged creek. Silverthorn tack fills the inn stables, but every shuttered home around it looks as if grief is holding the door from the other side. The Briarwood Inn still burns with enough light to gather refugees, pilgrims, and anyone too frightened to sleep alone.",
         choices: [
             {
                 text: "Enter the Briarwood Inn.",
+                buttonText: "Enter the Briarwood Inn",
                 nextScene: "SCENE_BRIARWOOD_INN"
             },
             {
                 text: "Visit the shops.",
+                buttonText: "Visit the Market",
                 nextScene: "SCENE_HUSHBRIAR_MARKET"
             },
             {
                 text: "Scout the area (Survival)",
+                buttonText: "Scout the Area (Survival)",
                 type: "skillCheck",
                 skill: "survival",
                 dc: 10,
@@ -167,26 +181,28 @@ export const scenes = {
     "SCENE_HUSHBRIAR_MARKET": {
         id: "SCENE_HUSHBRIAR_MARKET",
         location: "hushbriar",
-        background: "landscapes/silverthorn_market_avenue.png",
+        background: "landscapes/aodhan_house.png",
         text: "The market survives in the way a wound survives: poorly covered and never clean. A sagging herbalist tent trades in bitter roots and fever draughts, a soot-stained provisioner measures food as if every handful might start a fight, and even the little library keeps its door half-shut, as though books have become something a person might be punished for wanting.",
         type: "shop",
         shopId: "silverthorn_market", // Reuse for now
         choices: [
-            { text: "Return to town center.", nextScene: "SCENE_HUSHBRIAR_TOWN" }
+            { text: "Return to town center.", buttonText: "Back to Town Center", nextScene: "SCENE_HUSHBRIAR_TOWN" }
         ]
     },
     "SCENE_HUSHBRIAR_CORRUPTED": {
         id: "SCENE_HUSHBRIAR_CORRUPTED",
         location: "hushbriar",
-        background: "landscapes/silverthorn_market_avenue.png", // Placeholder: needs corrupted variant
+        background: "landscapes/aodhan_house.png",
         text: "If you reach this quarter after the town has already started sealing itself against the worst of the night, Hushbriar feels less conquered than abandoned in place. Patrols still pass, but between them the streets are all wet ash, shuttered grief, and red fungal creep climbing the woodwork where the creek-mist settles thickest.",
         choices: [
             {
                 text: "Make for the Briarwood Inn while the patrol turns the corner.",
+                buttonText: "Make for the Inn",
                 nextScene: "SCENE_BRIARWOOD_INN"
             },
             {
                 text: "Slip back toward the town center.",
+                buttonText: "Back to Town Center",
                 nextScene: "SCENE_HUSHBRIAR_TOWN"
             }
         ]
@@ -194,7 +210,7 @@ export const scenes = {
     "SCENE_BRIARWOOD_INN": {
         id: "SCENE_BRIARWOOD_INN",
         location: "hushbriar",
-        background: "landscapes/silverthorn_market_avenue.png", // Placeholder
+        background: "landscapes/aodhan_study.png",
         text: "Heat, damp wool, and low-voiced fear hit you at once. The Briarwood Inn is crowded with refugees sleeping upright over untouched bowls, pilgrims clutching prayer charms hard enough to leave marks in their palms, and locals who only dare speak once they have checked where the Silverthorn guards are standing. Even with the room full, nobody sounds safe. They sound like people trying not to be the loudest thing in a town that has started listening for weakness.",
         onEnter: {
             questUpdate: { id: "investigate_whisperwood", stage: 0 }
@@ -202,11 +218,13 @@ export const scenes = {
         choices: [
             {
                 text: "Pay for hearthspace and let the room watch over your rest",
+                buttonText: "Pay for Hearthspace",
                 cost: 2,
                 action: "shortRest"
             },
             {
                 text: "Sit with the refugees and listen for which roads are still swallowing people (Insight)",
+                buttonText: "Listen to the Refugees (Insight)",
                 type: "skillCheck",
                 skill: "insight",
                 dc: 12,
@@ -222,11 +240,13 @@ export const scenes = {
             },
             {
                 text: "Talk to Fionnlagh (if alive)",
+                buttonText: "Talk to Fionnlagh",
                 requires: { npcState: { id: "fionnlagh", status: "alive" } }, // Logic needed in game.js
                 nextScene: "SCENE_FIONNLAGH_HUB"
             },
             {
                 text: "Leave the Inn",
+                buttonText: "Leave the Inn",
                 nextScene: "SCENE_HUSHBRIAR_TOWN"
             }
         ]
@@ -234,8 +254,7 @@ export const scenes = {
     "SCENE_FIONNLAGH_HUB": {
         id: "SCENE_FIONNLAGH_HUB",
         location: "hushbriar",
-        background: "landscapes/silverthorn_market_avenue.png",
-        npcPortrait: "portraits/npc_male_placeholder_portrait.png",
+        background: "landscapes/aodhan_study.png",
         onEnter: {
             once: true,
             effects: [
@@ -247,18 +266,22 @@ export const scenes = {
         choices: [
             {
                 text: "\"You said this is worse than plague. Tell me what you mean.\"",
+                buttonText: "Ask About the Plague",
                 nextScene: "SCENE_FIONNLAGH_PLAGUE_INFO"
             },
             {
                 text: "\"What became of the clan when all this started?\"",
+                buttonText: "Ask About the Clan",
                 nextScene: "SCENE_FIONNLAGH_CLAN_INFO"
             },
             {
                 text: "\"You keep looking at the door. What are you waiting to hear?\"",
+                buttonText: "Ask What He's Hearing",
                 nextScene: "SCENE_HUSHBRIAR_SCREAMS"
             },
             {
                 text: "Leave him to his drink and his dread.",
+                buttonText: "Leave Him to It",
                 nextScene: "SCENE_BRIARWOOD_INN"
             }
         ]
@@ -266,35 +289,35 @@ export const scenes = {
     "SCENE_FIONNLAGH_PLAGUE_INFO": {
         id: "SCENE_FIONNLAGH_PLAGUE_INFO",
         location: "hushbriar",
-        background: "landscapes/silverthorn_market_avenue.png",
-        npcPortrait: "portraits/npc_male_placeholder_portrait.png",
+        background: "landscapes/aodhan_study.png",
         text: "Fionnlagh drags both hands down his face. 'Do not insult the dead by calling it sickness,' he whispers. He checks the nearest guard before leaning close enough for his voice to fray against your cheek. 'Sickness wastes a body. This thing empties one out and leaves something starving where the soul should be. I have seen men foam black at the mouth, tear at their own faces, and get back up looking at their wives like butcher's stock.'",
         choices: [
-            { text: "\"Tell me the rest.\"", nextScene: "SCENE_FIONNLAGH_HUB" }
+            { text: "\"Tell me the rest.\"", buttonText: "Back to Fionnlagh", nextScene: "SCENE_FIONNLAGH_HUB" }
         ]
     },
     "SCENE_FIONNLAGH_CLAN_INFO": {
         id: "SCENE_FIONNLAGH_CLAN_INFO",
         location: "hushbriar",
-        background: "landscapes/silverthorn_market_avenue.png",
-        npcPortrait: "portraits/npc_male_placeholder_portrait.png",
+        background: "landscapes/aodhan_study.png",
         text: "Fionnlagh stares into his cup as if he expects to find an omen there. 'The clan did not break clean,' he says at last. 'It split along every old wound we were proud enough to call healed. Some blame the humans. Some blame our own. Some ran uphill to pray. Some took to the woods. Some shut their doors and waited for whichever mercy came last. Broken is too soft a word for what is left of us.'",
         choices: [
-            { text: "\"Go on.\"", nextScene: "SCENE_FIONNLAGH_HUB" }
+            { text: "\"Go on.\"", buttonText: "Back to Fionnlagh", nextScene: "SCENE_FIONNLAGH_HUB" }
         ]
     },
     "SCENE_HUSHBRIAR_SCREAMS": {
         id: "SCENE_HUSHBRIAR_SCREAMS",
         location: "hushbriar",
-        background: "landscapes/silverthorn_market_avenue.png",
+        background: "landscapes/aodhan_house.png",
         text: "Before Fionnlagh can answer, a child's scream cuts across the night outside. A heartbeat later a woman's cry follows it, higher and more terrible, then several doors slam in panicked sequence as the whole lane tries to pretend it heard nothing. By the time you reach the street, the screaming has stopped. In its place comes the wet drag of something being hauled over mud, and a strand of spider silk glimmering between two fence posts where no web should be.",
         choices: [
             {
                 text: "Run toward the lane before the silence settles.",
+                buttonText: "Run Toward the Lane",
                 nextScene: "SCENE_INVESTIGATION"
             },
             {
                 text: "Go carefully, hand low and ready for steel.",
+                buttonText: "Go Carefully",
                 nextScene: "SCENE_INVESTIGATION"
             }
         ]
@@ -302,15 +325,17 @@ export const scenes = {
     "SCENE_INVESTIGATION": {
         id: "SCENE_INVESTIGATION",
         location: "hushbriar",
-        background: "landscapes/silverthorn_market_avenue.png",
+        background: "landscapes/aodhan_house.png",
         text: "The lane ends in a yard churned to black mud. One cottage door hangs half-off its hinges, and the threshold is glazed with blood already stringing dark in the night air. No one living remains in the yard, only the evidence of panic: dropped prayer charms, a wooden sword snapped in two, and long silken bands caught on the fence where something climbed out with weight enough to bend the posts. Beyond the yard, broken brush and drag-marks lead east toward the treeline.",
         choices: [
             {
                 text: "Follow the drag-marks before the dark swallows them.",
+                buttonText: "Follow the Drag-Marks",
                 nextScene: "SCENE_TRACKING_CHOLDRITHS"
             },
             {
                 text: "Back away and return to the inn with what you saw.",
+                buttonText: "Back to the Inn",
                 nextScene: "SCENE_BRIARWOOD_INN"
             }
         ]
@@ -318,12 +343,13 @@ export const scenes = {
     "SCENE_THIEVES_CONFRONTATION": {
         id: "SCENE_THIEVES_CONFRONTATION",
         location: "hushbriar",
-        background: "landscapes/silverthorn_market_avenue.png",
+        background: "landscapes/aodhan_house.png",
         npcPortrait: "portraits/npc_female_placeholder_portrait.png",
         text: "If you come here from an older save, the accusation-path is gone. The yard lies empty now but for blood, silk, and the same east-running trail toward the trees. Whatever did the killing has already left the lane behind.",
         choices: [
             {
                 text: "Take the eastern trail toward the Moonwell.",
+                buttonText: "Take the Eastern Trail",
                 nextScene: "SCENE_TRACKING_CHOLDRITHS"
             }
         ]
@@ -334,17 +360,18 @@ export const scenes = {
         background: "landscapes/silverthorn_market_avenue.png",
         text: "This older confrontation no longer resolves into combat in the live route. By the time you reach the yard, the only thing left to fight is the urge to waste more time while the trail east is still wet.",
         choices: [
-            { text: "Take the eastern trail toward the Moonwell.", nextScene: "SCENE_TRACKING_CHOLDRITHS" }
+            { text: "Take the eastern trail toward the Moonwell.", buttonText: "Take the Eastern Trail", nextScene: "SCENE_TRACKING_CHOLDRITHS" }
         ]
     },
     "SCENE_TRACKING_CHOLDRITHS": {
         id: "SCENE_TRACKING_CHOLDRITHS",
         location: "hushbriar",
-        background: "landscapes/forest_walk.png",
+        background: "landscapes/aodhan_at_moonwell.png",
         text: "You follow dark blood, torn silk, and broken brush beyond the last houses of Hushbriar. The trail runs with ugly certainty beneath the trees until even the birds know better than to sing above it. The farther east you go, the colder the air grows, as though some wider darkness has finally remembered the road. At last the trail spills into the clearing of the Moonwell.",
         choices: [
             {
                 text: "Approach the Moonwell in silence.",
+                buttonText: "Approach the Moonwell",
                 nextScene: "SCENE_MOONWELL"
             }
         ]
@@ -367,6 +394,7 @@ export const scenes = {
         choices: [
             {
                 text: "Confront Aodhan.",
+                buttonText: "Confront Aodhan",
                 nextScene: "SCENE_AODHAN_TALK"
             }
         ]
@@ -375,7 +403,7 @@ export const scenes = {
         id: "SCENE_AODHAN_TALK",
         location: "hushbriar",
         background: "landscapes/aodhan_at_moonwell.png",
-        npcPortrait: "portraits/npc_male_placeholder_portrait.png",
+        npcPortrait: "portraits/aodhan_portrait.png",
         displayPages: [
             "Aodhan closes his hand around the Stone of Oblivion and turns at last. Moonlight catches the ruin in his face before anger can hide it. 'Sad, isn't it?' he says quietly, glancing once at the silk-wrapped bodies above the well. 'To die that young. To spend years praying the world kinder, then watch it bare its teeth in one night. Liam should have had more than this.'",
             "His eyes settle on you, fever-bright with exhaustion and fury. 'I held Sporefall shut for as long as I could. Do you feel it? The last ring of the spell is gone. The barrier around the borough has broken. The Underdark is spilling through at full strength now, and the plague is running with it. This is the moment it stops being contained. This is the moment the dark wins ground.'"
@@ -384,10 +412,12 @@ export const scenes = {
         choices: [
             {
                 text: "\"Then this ends here, Aodhan.\"",
+                buttonText: "Tell Him It Ends Here",
                 nextScene: "SCENE_AODHAN_COMBAT"
             },
             {
                 text: "Say nothing and let him pass into the dark.",
+                buttonText: "Let Him Walk",
                 nextScene: "SCENE_AFTERMATH"
             }
         ]
@@ -414,6 +444,7 @@ export const scenes = {
         choices: [
             {
                 text: "Lift your eyes to the sky.",
+                buttonText: "Lift Your Eyes",
                 nextScene: "SCENE_AFTERMATH"
             }
         ]
@@ -421,7 +452,7 @@ export const scenes = {
     "SCENE_AFTERMATH": {
         id: "SCENE_AFTERMATH",
         location: "hushbriar",
-        background: "landscapes/foggy_forest.png",
+        background: "landscapes/aodhan_house.png",
         displayPages: [
             "Morning does not come. The darkness above the trees deepens until the moon bleeds red enough to stain the clouds around it, and Hushbriar answers the broken night with bells, steel, and screams too small to matter against what has already slipped loose.",
             "Whether Aodhan lives or dies, Sporefall is open now. Whatever had been buried beneath old stories and older prayers is buried no longer. It is here, and the world has already begun changing around that fact. Back in town, somebody is still being hunted hard enough to turn the streets into a battlefield."
@@ -430,6 +461,7 @@ export const scenes = {
         choices: [
             {
                 text: "Go back into Hushbriar and learn who the broken night was hunting.",
+                buttonText: "Go Back into Hushbriar",
                 nextScene: "SCENE_HUSHBRIAR_AFTERMATH_HUNT"
             }
         ]
@@ -446,10 +478,12 @@ export const scenes = {
         choices: [
             {
                 text: "Follow the smashed-door trail toward the bridge before the soldiers close it off.",
+                buttonText: "Follow the Smashed-Door Trail",
                 nextScene: "SCENE_HUSHBRIAR_DOCK"
             },
             {
                 text: "Listen to the panic and separate prophecy from useful fear (Insight)",
+                buttonText: "Read the Panic (Insight)",
                 type: "skillCheck",
                 skill: "insight",
                 dc: 12,
@@ -468,6 +502,7 @@ export const scenes = {
         choices: [
             {
                 text: "Demand an audience with Alderic",
+                buttonText: "Demand an Audience",
                 type: "skillCheck",
                 skill: "persuasion",
                 dc: 14,
@@ -478,6 +513,7 @@ export const scenes = {
             },
             {
                 text: "Listen to the guards' rumors",
+                buttonText: "Hear the Rumors",
                 type: "skillCheck",
                 skill: "insight",
                 dc: 12,
@@ -488,6 +524,7 @@ export const scenes = {
             },
             {
                 text: "Turn back and follow the other leads",
+                buttonText: "Back to Silverthorn",
                 action: "openMap"
             }
         ]
@@ -652,8 +689,8 @@ export const scenes = {
         background: "landscapes/silverthorn_market_avenue.png",
         text: "The market district is loud in the way anxious places are loud: too many voices working too hard to prove the city still functions. Traders bark prices over the clatter of wagon wheels, drovers keep skittish animals moving with short tempers, and every third stall seems to be selling the same shrinking comforts to people suddenly afraid of leaving walls without them. A weathered sign for The Rusty Blade swings above a nearby lane while shoppers and quartermasters alike keep one ear turned toward any mention of the eastern road.",
         choices: [
-            { text: "Browse the General Store", nextScene: "SCENE_SILVERTHORN_GENERAL_STORE" },
-            { text: "Visit the blacksmith", nextScene: "SCENE_SILVERTHORN_BLACKSMITH" },
+            { text: "Browse the General Store", buttonText: "General Store", nextScene: "SCENE_SILVERTHORN_GENERAL_STORE" },
+            { text: "Visit the blacksmith", buttonText: "Blacksmith", nextScene: "SCENE_SILVERTHORN_BLACKSMITH" },
             { text: "Step into The Rusty Blade", buttonText: "Step Inside the Rusty Blade", nextScene: "SCENE_RUSTY_BLADE_INN" },
             { text: "Return to City Center", buttonText: "Back to City Center", nextScene: "SCENE_HUB_SILVERTHORN" }
         ]
@@ -751,8 +788,8 @@ export const scenes = {
         background: "landscapes/silverthorn_market_avenue.png",
         text: "Several notices mention the same pattern: scouts vanish near Whisperwood's edge, hunters return feverish and confused, and an entire patrol failed to report back after entering the treeline under Alderic's banner.",
         choices: [
-            { text: "Keep reading the board", nextScene: "SCENE_SILVERTHORN_NOTICE_BOARD" },
-            { text: "Head for the city gates", nextScene: "SCENE_SILVERTHORN_GATES" }
+            { text: "Keep reading the board", buttonText: "Back to the Board", nextScene: "SCENE_SILVERTHORN_NOTICE_BOARD" },
+            { text: "Head for the city gates", buttonText: "Head for the Gates", nextScene: "SCENE_SILVERTHORN_GATES" }
         ]
     },
     "SCENE_SILVERTHORN_NOTICE_CONTRACTS": {
@@ -761,8 +798,8 @@ export const scenes = {
         background: "landscapes/silverthorn_market_avenue.png",
         text: "Most postings are the ordinary labor of a strained city: escort work, cellar pests, and warehouse watches. But newer notices speak in harsher terms of curfew enforcement, vanished smugglers, suspicious alchemists, and sealed inspections no one is meant to ask about twice.",
         choices: [
-            { text: "Return to the notice board", nextScene: "SCENE_SILVERTHORN_NOTICE_BOARD" },
-            { text: "Return to City Center", nextScene: "SCENE_HUB_SILVERTHORN" }
+            { text: "Return to the notice board", buttonText: "Back to the Board", nextScene: "SCENE_SILVERTHORN_NOTICE_BOARD" },
+            { text: "Return to City Center", buttonText: "Back to City Center", nextScene: "SCENE_HUB_SILVERTHORN" }
         ]
     },
     "SCENE_SILVERTHORN_GATES": {
@@ -771,9 +808,9 @@ export const scenes = {
         background: "landscapes/silverthorn_market_avenue.png",
         text: "Silverthorn's eastern gate rises above the road like a fortress wall. Wagons are being inspected before departure, and a tired gate captain keeps one hand on a ledger and the other on the pommel of his sword.",
         choices: [
-            { text: "Ask the gate captain about the road", nextScene: "SCENE_SILVERTHORN_GATE_CAPTAIN" },
-            { text: "Leave Silverthorn for Shadowmire", nextScene: "SCENE_TRAVEL_SHADOWMIRE" },
-            { text: "Return to City Center", nextScene: "SCENE_HUB_SILVERTHORN" }
+            { text: "Ask the gate captain about the road", buttonText: "Ask the Gate Captain", nextScene: "SCENE_SILVERTHORN_GATE_CAPTAIN" },
+            { text: "Leave Silverthorn for Shadowmire", buttonText: "Leave for Shadowmire", nextScene: "SCENE_TRAVEL_SHADOWMIRE" },
+            { text: "Return to City Center", buttonText: "Back to City Center", nextScene: "SCENE_HUB_SILVERTHORN" }
         ]
     },
     "SCENE_SILVERTHORN_GATE_CAPTAIN": {
@@ -782,14 +819,14 @@ export const scenes = {
         background: "landscapes/silverthorn_market_avenue.png",
         text: "The captain taps the route on your writ. 'Stay on the road until the fog thickens, then trust your footing more than your eyes. If the air turns foul, cover your mouth and keep moving. No patrol we sent past the old mile-stone has returned unchanged.'",
         choices: [
-            { text: "Leave Silverthorn now", nextScene: "SCENE_TRAVEL_SHADOWMIRE" },
-            { text: "Return to the gate plaza", nextScene: "SCENE_SILVERTHORN_GATES" }
+            { text: "Leave Silverthorn now", buttonText: "Leave for Shadowmire", nextScene: "SCENE_TRAVEL_SHADOWMIRE" },
+            { text: "Return to the gate plaza", buttonText: "Back to the Gate Plaza", nextScene: "SCENE_SILVERTHORN_GATES" }
         ]
     },
     "SCENE_TRAVEL_SHADOWMIRE": {
         id: "SCENE_TRAVEL_SHADOWMIRE",
         location: "shadowmire",
-        background: "landscapes/forest_walk.png",
+        background: "landscapes/foggy_forest.png",
         text: "You leave Silverthorn behind and follow the eastern road beneath the living canopy of Shadowmire Forest. Pine and damp earth fill the air, but the quiet never settles cleanly. Even before the road begins to climb, the birdsong comes thin and scattered, as though the forest has already started holding its breath around you.",
         onEnter: {
             questUpdate: { id: "investigate_whisperwood", stage: 2 }
@@ -797,6 +834,7 @@ export const scenes = {
         choices: [
             {
                 text: "Keep to the road and press deeper into Shadowmire",
+                buttonText: "Take the Eastern Road",
                 nextScene: "SCENE_SHADOWMIRE_HAZE"
             }
         ]
@@ -809,10 +847,12 @@ export const scenes = {
         choices: [
             {
                 text: "Watch the treetops and listen for what scared them",
+                buttonText: "Watch the Treetops",
                 nextScene: "SCENE_SHADOWMIRE_DYING_BIRDS"
             },
             {
                 text: "Cover your mouth and hurry forward",
+                buttonText: "Cover Your Mouth",
                 nextScene: "SCENE_SHADOWMIRE_DYING_BIRDS"
             }
         ]
@@ -825,6 +865,7 @@ export const scenes = {
         choices: [
             {
                 text: "Fight for one clean breath (CON Save)",
+                buttonText: "Fight for One Breath (CON)",
                 type: "save",
                 ability: "CON",
                 dc: 12,
@@ -843,6 +884,7 @@ export const scenes = {
         choices: [
             {
                 text: "Examine the body before the haze closes in (Medicine)",
+                buttonText: "Examine the Body (Medicine)",
                 type: "skillCheck",
                 skill: "medicine",
                 dc: 11,
@@ -855,6 +897,7 @@ export const scenes = {
             },
             {
                 text: "Reach the coughing stranger before the haze swallows him",
+                buttonText: "Reach the Coughing Stranger",
                 nextScene: "SCENE_SPOREFALL_WAKE"
             }
         ]
@@ -871,6 +914,7 @@ export const scenes = {
         choices: [
             {
                 text: "Steady your breathing and take stock (WIS Check)",
+                buttonText: "Steady Yourself (Insight)",
                 type: "skillCheck",
                 skill: "insight",
                 dc: 11,
@@ -883,6 +927,7 @@ export const scenes = {
             },
             {
                 text: "Lie still and listen to the new forest (Perception)",
+                buttonText: "Listen to the Woods (Perception)",
                 type: "skillCheck",
                 skill: "perception",
                 dc: 12,
@@ -903,6 +948,7 @@ export const scenes = {
         choices: [
             {
                 text: "Search the nearest street for survivors (Perception)",
+                buttonText: "Search for Survivors (Perception)",
                 type: "skillCheck",
                 skill: "perception",
                 dc: 10,
@@ -925,10 +971,12 @@ export const scenes = {
             },
             {
                 text: "Move between the ruined homes",
+                buttonText: "Move Between the Homes",
                 nextScene: "SCENE_SPOREFALL_STREET_SEARCH"
             },
             {
                 text: "Pause and listen for anyone still alive",
+                buttonText: "Listen for the Living",
                 nextScene: "SCENE_SPOREFALL_STREET_SEARCH"
             }
         ]
@@ -941,10 +989,12 @@ export const scenes = {
         choices: [
             {
                 text: "Follow the coughing behind the house",
+                buttonText: "Follow the Coughing",
                 nextScene: "SCENE_MEET_EOIN"
             },
             {
                 text: "Circle wide and cut off whoever is hiding",
+                buttonText: "Circle the Ruin",
                 nextScene: "SCENE_MEET_EOIN"
             }
         ]
@@ -1021,12 +1071,12 @@ export const scenes = {
     "SCENE_MEET_EOIN": {
         id: "SCENE_MEET_EOIN",
         location: "whisperwood",
-        background: "landscapes/sporefall_crimson_frontier.png",
-        npcPortrait: "portraits/npc_male_placeholder_portrait.png",
+        background: "landscapes/eoin_sighted.png",
         text: "A boy no older than his early teens edges out from behind the ruined house, one shoulder still tucked behind the wall as if he might snatch himself back out of sight if you blink wrong. He is pale enough for the red moon to make a ghost of him. His clothes hang in filthy strips, and the broken spear in his hands shakes so badly it looks borrowed from someone braver. 'Stay back,' he whispers, then louder, because fear makes him try again. 'Stay back. Are you real, or is the moon doing it again?'",
         choices: [
             {
                 text: "\"Easy. I'm real. I'm not here to hurt you.\" (Persuasion)",
+                buttonText: "Calm Him (Persuasion)",
                 type: "skillCheck",
                 skill: "persuasion",
                 dc: 12,
@@ -1046,6 +1096,7 @@ export const scenes = {
             },
             {
                 text: "\"Stop shaking and tell me what happened here.\"",
+                buttonText: "Demand Answers",
                 effects: [
                     { type: "flag", flagId: "sporefall_eoin_met", value: true },
                     { type: "relationship", npcId: "eoin", amount: -10 }
@@ -1057,12 +1108,12 @@ export const scenes = {
     "SCENE_EOIN_TALK": {
         id: "SCENE_EOIN_TALK",
         location: "whisperwood",
-        background: "landscapes/sporefall_crimson_frontier.png",
-        npcPortrait: "portraits/npc_male_placeholder_portrait.png",
+        background: "landscapes/eoin_sighted.png",
         text: "Once Eoin believes you are real, the words come in frightened bursts that trip over one another. The cathedral. Bells that never rang right. Something huge in the streets. The north side, where he and his mum slept under a bridge when the weather turned cruel. He keeps stopping to look at his own hands as if they belong to someone just out of sight. He does not say he is dead. He does not seem able to think it. But every time he goes still, the moonlight finds too much of the wall through him.",
         choices: [
             {
                 text: "\"Slow down. Start with the cathedral.\"",
+                buttonText: "Ask About the Cathedral",
                 effects: [
                     { type: "flag", flagId: "sporefall_eoin_talked", value: true }
                 ],
@@ -1070,6 +1121,7 @@ export const scenes = {
             },
             {
                 text: "\"You keep saying north. Is your mum there?\"",
+                buttonText: "Ask About the North Side",
                 effects: [
                     { type: "flag", flagId: "sporefall_eoin_talked", value: true },
                     { type: "relationship", npcId: "eoin", amount: 5 }
@@ -1078,6 +1130,7 @@ export const scenes = {
             },
             {
                 text: "\"Stay down. I need to look around first.\"",
+                buttonText: "Tell Him to Stay Down",
                 effects: [
                     { type: "flag", flagId: "sporefall_eoin_talked", value: true }
                 ],
@@ -1100,10 +1153,12 @@ export const scenes = {
         choices: [
             {
                 text: "Run toward the commotion before Aodhan reaches his quarry.",
+                buttonText: "Run Toward the Commotion",
                 nextScene: "SCENE_MOONWELL"
             },
             {
                 text: "Cut through the side lanes and come in from the flank (Stealth)",
+                buttonText: "Cut Through the Side Lanes",
                 type: "skillCheck",
                 skill: "stealth",
                 dc: 12,
@@ -1117,12 +1172,12 @@ export const scenes = {
     "SCENE_EOIN_RECRUITED": {
         id: "SCENE_EOIN_RECRUITED",
         location: "whisperwood",
-        background: "landscapes/sporefall_crimson_frontier.png",
-        npcPortrait: "portraits/npc_male_placeholder_portrait.png",
+        background: "landscapes/eoin_sighted.png",
         text: "Eoin looks past you toward the street and goes gray with the thought of being left in it. His fingers knot white around the broken spear. 'Don't leave me here,' he says too fast, then winces like he said too much. 'I can be quiet. I know some bits. Not all of it. Just... some. The bridge. The little lanes. Places Mum used to say were safer.' He drags in a thin breath. 'If I stay by myself, I keep hearing the town think.'",
         choices: [
             {
                 text: "Let him come with you.",
+                buttonText: "Let Him Come",
                 nextScene: "SCENE_HUB_SPOREFALL"
             }
         ]
@@ -1130,16 +1185,17 @@ export const scenes = {
     "SCENE_EOIN_RITUAL_TALK": {
         id: "SCENE_EOIN_RITUAL_TALK",
         location: "whisperwood",
-        background: "landscapes/sporefall_crimson_frontier.png",
-        npcPortrait: "portraits/npc_male_placeholder_portrait.png",
+        background: "landscapes/eoin_sighted.png",
         text: "Eoin folds his arms over himself so tightly it looks like he is trying to keep from spilling apart. 'The Overseer was there before it all went wrong. Folk said it was some rite. Something important.' He shakes his head hard. 'Then the dark came down all at once, like it had been waiting above us. After that there were people in the streets, only not right. Bent. Wrong. Like the town kept the shape and took the person out.' He glances west and almost hides behind the spear again. 'If anywhere remembers first, it'd be the cathedral.'",
         choices: [
             {
                 text: "\"Tell me about the north side instead.\"",
+                buttonText: "Ask About the North Side",
                 nextScene: "SCENE_EOIN_MOTHER_TALK"
             },
             {
                 text: "\"All right. Keep your head down.\"",
+                buttonText: "Tell Him to Keep Low",
                 effects: [
                     { type: "flag", flagId: "sporefall_eoin_talked", value: true }
                 ],
@@ -1150,16 +1206,17 @@ export const scenes = {
     "SCENE_EOIN_MOTHER_TALK": {
         id: "SCENE_EOIN_MOTHER_TALK",
         location: "whisperwood",
-        background: "landscapes/sporefall_crimson_frontier.png",
-        npcPortrait: "portraits/npc_male_placeholder_portrait.png",
+        background: "landscapes/eoin_sighted.png",
         text: "At the mention of his mother, Eoin's voice shrinks to something you have to lean in to catch. 'We slept under the footbridge on the north side when we had nowhere else. Mum said the stone kept the wind off if you tucked close enough.' He rubs at one eye with a dirty wrist. 'I was looking for her when it happened. I keep thinking if I could just see the bridge proper, I'd remember where she went. Or what I was meant to do.' He looks north, then snaps his gaze away like the street looked back.",
         choices: [
             {
                 text: "\"Start again. What happened in the cathedral?\"",
+                buttonText: "Ask About the Cathedral",
                 nextScene: "SCENE_EOIN_RITUAL_TALK"
             },
             {
                 text: "\"Stay hidden a little longer.\"",
+                buttonText: "Tell Him to Hide",
                 effects: [
                     { type: "flag", flagId: "sporefall_eoin_talked", value: true }
                 ],
@@ -1171,7 +1228,6 @@ export const scenes = {
         id: "SCENE_EOIN_ASSISTANCE",
         location: "whisperwood",
         background: "landscapes/sporefall_crimson_frontier.png",
-        npcPortrait: "portraits/npc_male_placeholder_portrait.png",
         text: "Eoin keeps glancing over his shoulder as he presses a small vial into your hand, like he expects the street to punish him for helping. 'Take it,' he says. 'Please. Mum always said if you've only got one good thing left, you use it before the bad thing gets to choose for you.' He swallows. 'Don't be gone long. The streets get worse when they think they're alone.'",
         onEnter: {
             addItem: "potion_healing"
@@ -1179,6 +1235,7 @@ export const scenes = {
         choices: [
             {
                 text: "Take the vial and head back into Sporefall.",
+                buttonText: "Take the Vial",
                 nextScene: "SCENE_HUB_SPOREFALL"
             }
         ]
@@ -1191,6 +1248,7 @@ export const scenes = {
         choices: [
             {
                 text: "Follow him carefully",
+                buttonText: "Follow Him",
                 effects: [
                     { type: "flag", flagId: "sporefall_eoin_met", value: true }
                 ],
@@ -1210,18 +1268,22 @@ export const scenes = {
         choices: [
             {
                 text: "Head west through the cathedral quarter",
+                buttonText: "Cathedral Quarter",
                 nextScene: "SCENE_SPOREFALL_CATHEDRAL_APPROACH"
             },
             {
                 text: "Head east toward the overseer's row",
+                buttonText: "Overseer's Row",
                 nextScene: "SCENE_SPOREFALL_OVERSEER_APPROACH"
             },
             {
                 text: "Head north through the broken market road",
+                buttonText: "North Road",
                 nextScene: "SCENE_SPOREFALL_NORTH_APPROACH"
             },
             {
                 text: "Return to Eoin's hiding place",
+                buttonText: "Back to Eoin",
                 nextScene: "SCENE_EOIN_TALK"
             }
         ]
@@ -1234,14 +1296,17 @@ export const scenes = {
         choices: [
             {
                 text: "Search the courier's bag",
+                buttonText: "Search the Courier's Bag",
                 nextScene: "SCENE_SPOREFALL_CATHEDRAL_APPROACH"
             },
             {
                 text: "Climb toward the cathedral doors",
+                buttonText: "Climb to the Doors",
                 nextScene: "SCENE_SPOREFALL_CATHEDRAL_ENTRY"
             },
             {
                 text: "Return to the central street",
+                buttonText: "Back to the Street",
                 nextScene: "SCENE_HUB_SPOREFALL"
             }
         ]
@@ -1254,6 +1319,7 @@ export const scenes = {
         choices: [
             {
                 text: "Listen to the whispering dead (Perception)",
+                buttonText: "Listen to the Dead (Perception)",
                 type: "skillCheck",
                 skill: "perception",
                 dc: 12,
@@ -1266,6 +1332,7 @@ export const scenes = {
             },
             {
                 text: "Withdraw to the cathedral steps",
+                buttonText: "Back to the Steps",
                 nextScene: "SCENE_SPOREFALL_CATHEDRAL_APPROACH"
             }
         ]
@@ -1284,6 +1351,7 @@ export const scenes = {
         choices: [
             {
                 text: "Carry that omen back into the street",
+                buttonText: "Carry the Omen Back",
                 nextScene: "SCENE_HUB_SPOREFALL"
             }
         ]
@@ -1296,10 +1364,12 @@ export const scenes = {
         choices: [
             {
                 text: "Inspect the marked door",
+                buttonText: "Inspect the Door",
                 nextScene: "SCENE_SPOREFALL_OVERSEER_DOOR"
             },
             {
                 text: "Return to the central street",
+                buttonText: "Back to the Street",
                 nextScene: "SCENE_HUB_SPOREFALL"
             }
         ]
@@ -1312,6 +1382,7 @@ export const scenes = {
         choices: [
             {
                 text: "Study the runes (Arcana)",
+                buttonText: "Study the Runes (Arcana)",
                 type: "skillCheck",
                 skill: "arcana",
                 dc: 14,
@@ -1329,6 +1400,7 @@ export const scenes = {
             },
             {
                 text: "Trace the carved grooves (Investigation)",
+                buttonText: "Trace the Grooves (Investigation)",
                 type: "skillCheck",
                 skill: "investigation",
                 dc: 14,
@@ -1346,14 +1418,17 @@ export const scenes = {
             },
             {
                 text: "Scratch out the Wolf and Serpent runes",
+                buttonText: "Break Wolf and Serpent",
                 nextScene: "SCENE_SPOREFALL_OVERSEER_STUDY"
             },
             {
                 text: "Force the door and risk the trap",
+                buttonText: "Force the Door",
                 nextScene: "SCENE_SPOREFALL_OVERSEER_DOOR"
             },
             {
                 text: "Return to overseer's row",
+                buttonText: "Back to the Row",
                 nextScene: "SCENE_SPOREFALL_OVERSEER_APPROACH"
             }
         ]
@@ -1373,18 +1448,22 @@ export const scenes = {
         choices: [
             {
                 text: "Read the surviving journal leaves",
+                buttonText: "Read the Journal",
                 nextScene: "SCENE_SPOREFALL_OVERSEER_JOURNAL"
             },
             {
                 text: "Search the scattered correspondence",
+                buttonText: "Search the Letters",
                 nextScene: "SCENE_SPOREFALL_OVERSEER_CORRESPONDENCE"
             },
             {
                 text: "Open the desk drawer",
+                buttonText: "Open the Drawer",
                 nextScene: "SCENE_SPOREFALL_OVERSEER_DRAWER"
             },
             {
                 text: "Leave the house for the central street",
+                buttonText: "Back to the Street",
                 nextScene: "SCENE_HUB_SPOREFALL"
             }
         ]
@@ -1404,6 +1483,7 @@ export const scenes = {
         choices: [
             {
                 text: "Return to the study",
+                buttonText: "Back to the Study",
                 nextScene: "SCENE_SPOREFALL_OVERSEER_STUDY"
             }
         ]
@@ -1423,6 +1503,7 @@ export const scenes = {
         choices: [
             {
                 text: "Return to the study",
+                buttonText: "Back to the Study",
                 nextScene: "SCENE_SPOREFALL_OVERSEER_STUDY"
             }
         ]
@@ -1442,6 +1523,7 @@ export const scenes = {
         choices: [
             {
                 text: "Return to the study",
+                buttonText: "Back to the Study",
                 nextScene: "SCENE_SPOREFALL_OVERSEER_STUDY"
             }
         ]
@@ -1454,6 +1536,7 @@ export const scenes = {
         choices: [
             {
                 text: "Cross the open street toward the north road (Perception)",
+                buttonText: "Cross the Street (Perception)",
                 type: "skillCheck",
                 skill: "perception",
                 dc: 11,
@@ -1469,10 +1552,12 @@ export const scenes = {
             },
             {
                 text: "Check the ruined footbridge first",
+                buttonText: "Check the Footbridge",
                 nextScene: "SCENE_SPOREFALL_NORTH_BRIDGE"
             },
             {
                 text: "Return to the central street",
+                buttonText: "Back to the Street",
                 nextScene: "SCENE_HUB_SPOREFALL"
             }
         ]
@@ -1491,10 +1576,12 @@ export const scenes = {
         choices: [
             {
                 text: "Push on toward the north road",
+                buttonText: "Take the North Road",
                 nextScene: "SCENE_SPOREFALL_NORTH_ROUTE_DISCOVERED"
             },
             {
                 text: "Return to the central street",
+                buttonText: "Back to the Street",
                 nextScene: "SCENE_HUB_SPOREFALL"
             }
         ]
@@ -1524,6 +1611,7 @@ export const scenes = {
         choices: [
             {
                 text: "Mark the northern route and return to the central street",
+                buttonText: "Mark the Route",
                 nextScene: "SCENE_HUB_SPOREFALL"
             }
         ]
@@ -1643,7 +1731,7 @@ export const scenes = {
     "SCENE_SHADOWMIRE_SPOTTED": {
         id: "SCENE_SHADOWMIRE_SPOTTED",
         location: "shadowmire",
-        background: "landscapes/forest_walk_alt.png",
+        background: "landscapes/forbidden_archive.png",
         text: "You spot the wolf before it strikes. It snarls, realizing it has been seen.",
         choices: [
             {
@@ -1700,6 +1788,7 @@ export const scenes = {
         choices: [
             {
                 text: "Read the slaughter outside the gates before you enter (Perception)",
+                buttonText: "Read the Slaughter (Perception)",
                 type: "skillCheck",
                 skill: "perception",
                 dc: 12,
@@ -1708,8 +1797,8 @@ export const scenes = {
                 nextSceneSuccess: "SCENE_DURNHELM_ENTRY",
                 nextSceneFail: "SCENE_DURNHELM_ENTRY"
             },
-            { text: "Push through the broken gatehouse", nextScene: "SCENE_DURNHELM_ENTRY" },
-            { text: "Turn away and follow the Lament Hill road instead", nextScene: "SCENE_LAMENT_HILL_APPROACH" }
+            { text: "Push through the broken gatehouse", buttonText: "Push Through the Gatehouse", nextScene: "SCENE_DURNHELM_ENTRY" },
+            { text: "Turn away and follow the Lament Hill road instead", buttonText: "Take the Lament Hill Road", nextScene: "SCENE_LAMENT_HILL_APPROACH" }
         ]
     },
     "SCENE_DURNHELM_ENTRY": {
@@ -1718,9 +1807,9 @@ export const scenes = {
         background: "landscapes/near_durnhelm.png",
         text: "Inside the walls, Durnhelm is not empty. It is worse: alive enough to bury its dead. Survivors drag wrapped bodies toward pyres, a smashed storefront near the gate leaks ruined trade goods into the street, and every whispered conversation seems to end on the same pair of words: the forge. The first story you get is only fragments from the gate quarter: an amber-eyed stranger on the road, then the dark-haired wizard behind him, then fire and screaming and a relic no one should have unearthed. The first man still angry enough to make that tale useful is a soot-caked smith named Sven. He jerks his chin east and says the wizard came through like weather with a purpose, demanded answers about the relic, and left Cathal buried under the wreckage when he rode on. It is the closest thing to a road witness Durnhelm has left, and it points you straight toward the holy fire still burning beside the shattered temple.",
         choices: [
-            { text: "Search the wrecked gate-quarter shops for context", nextScene: "SCENE_DURNHELM_MARKET_RUINS" },
-            { text: "Head east toward the holy forge", nextScene: "SCENE_DURNHELM_FORGE_APPROACH" },
-            { text: "Withdraw and take the Lament Hill lead instead", nextScene: "SCENE_LAMENT_HILL_APPROACH" }
+            { text: "Search the wrecked gate-quarter shops for context", buttonText: "Search the Gate Quarter", nextScene: "SCENE_DURNHELM_MARKET_RUINS" },
+            { text: "Head east toward the holy forge", buttonText: "Head for the Holy Forge", nextScene: "SCENE_DURNHELM_FORGE_APPROACH" },
+            { text: "Withdraw and take the Lament Hill lead instead", buttonText: "Take the Lament Hill Lead", nextScene: "SCENE_LAMENT_HILL_APPROACH" }
         ]
     },
     "SCENE_DURNHELM_MARKET_RUINS": {
@@ -1729,8 +1818,8 @@ export const scenes = {
         background: "landscapes/near_durnhelm.png",
         text: "The gate-quarter shops tell the story the survivors are too tired to repeat twice. A general store has been half-collapsed by collateral damage from the city guard's last fight. A magic shop stands open and gutted, its shelves smashed and its keeper clearly not among the living. Even the alchemist's surviving stock has been marked up into desperation. Everyone who will still speak points you east, toward the forge and the temple ruins where the wizard demanded answers.",
         choices: [
-            { text: "Follow the east-side lead to the holy forge", nextScene: "SCENE_DURNHELM_FORGE_APPROACH" },
-            { text: "Return to the main thoroughfare", nextScene: "SCENE_DURNHELM_ENTRY" }
+            { text: "Follow the east-side lead to the holy forge", buttonText: "Follow the East-Side Lead", nextScene: "SCENE_DURNHELM_FORGE_APPROACH" },
+            { text: "Return to the main thoroughfare", buttonText: "Back to the Thoroughfare", nextScene: "SCENE_DURNHELM_ENTRY" }
         ]
     },
     "SCENE_DURNHELM_FORGE_APPROACH": {
@@ -1741,6 +1830,7 @@ export const scenes = {
         choices: [
             {
                 text: "Study the blasted stone and bloodwork before you move (Arcana)",
+                buttonText: "Read the Stonework (Arcana)",
                 type: "skillCheck",
                 skill: "arcana",
                 dc: 12,
@@ -1749,20 +1839,19 @@ export const scenes = {
                 nextSceneSuccess: "SCENE_DURNHELM_CATHAL",
                 nextSceneFail: "SCENE_DURNHELM_CATHAL"
             },
-            { text: "Follow the coughing through the wreckage", nextScene: "SCENE_DURNHELM_CATHAL" },
-            { text: "Fall back toward the gate quarter", nextScene: "SCENE_DURNHELM_ENTRY" }
+            { text: "Follow the coughing through the wreckage", buttonText: "Follow the Coughing", nextScene: "SCENE_DURNHELM_CATHAL" },
+            { text: "Fall back toward the gate quarter", buttonText: "Back to the Gate Quarter", nextScene: "SCENE_DURNHELM_ENTRY" }
         ]
     },
     "SCENE_DURNHELM_CATHAL": {
         id: "SCENE_DURNHELM_CATHAL",
         location: "durnhelm",
         background: "landscapes/outside_dwarf_cave.png",
-        npcPortrait: "portraits/npc_male_placeholder_portrait.png",
         text: "You find the forgemaster under a spill of broken timber and cracked stone, drunk enough to slur and furious enough to stay awake through it. Cathal Ó Taidhg spits pink into the dirt, swears at the sky, at Aodhan, at kings, at relics, and only then at you for arriving late enough to ask questions. Sven's version of the story was only the roadmark. Cathal gives you the wound itself. When the rage burns thin, he gives the thing its name at last: the Stone of Oblivion. Aodhan stole it after badgering him for how it might be woken. Alderic, Cathal says, took far too keen an interest in the relic long before the courts agreed to leave it in dwarven hands. If anyone living can still tell you what sort of damnation the stone invites, it may be the witch on Lament Hill. 'So go on, then,' Cathal snarls, wiping his mouth with the back of one scarred hand. 'Take your answers where the dead haven't finished with 'em yet.'",
         choices: [
-            { text: "\"Then Lament Hill is next.\"", nextScene: "SCENE_LAMENT_HILL_APPROACH" },
-            { text: "\"If I turn back toward Silverthorn, what meets me there?\"", nextScene: "SCENE_SILVERTHORN_QUARANTINE" },
-            { text: "\"Sit tight if you can. I'll carry the warning.\"", nextScene: "SCENE_DURNHELM_ENTRY" }
+            { text: "\"Then Lament Hill is next.\"", buttonText: "Take the Lament Hill Lead", nextScene: "SCENE_LAMENT_HILL_APPROACH" },
+            { text: "\"If I turn back toward Silverthorn, what meets me there?\"", buttonText: "Ask About Silverthorn", nextScene: "SCENE_SILVERTHORN_QUARANTINE" },
+            { text: "\"Sit tight if you can. I'll carry the warning.\"", buttonText: "Leave Cathal Behind", nextScene: "SCENE_DURNHELM_ENTRY" }
         ]
     },
     "SCENE_LAMENT_HILL_APPROACH": {
@@ -1771,8 +1860,8 @@ export const scenes = {
         background: "landscapes/forest_walk.png", // Placeholder
         text: "Rain begins to fall as you ascend Lament Hill. The path is torn by old magic and something much more personal: scorched earth, uprooted trees, boulders broken open from within, and scraps of debris still hanging in the air as though one instant of violence never finished happening. The ruined cottage waits near the summit, with two little graves set off to one side, and the whole hillside watches you with the patience of a wound that remembers the hand that made it.",
         choices: [
-            { text: "Push higher through the wreckage", nextScene: "SCENE_LAMENT_HILL_VISION" },
-            { text: "Look for the graves", nextScene: "SCENE_LAMENT_GRAVES" }
+            { text: "Push higher through the wreckage", buttonText: "Push Higher", nextScene: "SCENE_LAMENT_HILL_VISION" },
+            { text: "Look for the graves", buttonText: "Look for the Graves", nextScene: "SCENE_LAMENT_GRAVES" }
         ]
     },
     "SCENE_LAMENT_HILL_VISION": {
@@ -1781,8 +1870,8 @@ export const scenes = {
         background: "landscapes/forest_walk.png",
         text: "The climb turns treacherous. Vines lie across the path where there should be open ground, a stretch of broken hillside seems to drop away farther than it should, and a lizard skitters lightly over a gap your eyes insist is fatal. The illusion almost holds until the rain passes straight through a wall of thorn that casts a perfect shadow anyway. A woman's voice brushes the inside of your skull, cold with warning and grief: 'You wear a brand of darkness. Leave, or burn like he burned my kin.'",
         choices: [
-            { text: "Trust the breaks in the illusion and keep climbing", nextScene: "SCENE_LAMENT_COTTAGE" },
-            { text: "Circle toward the graves and approach from the east", nextScene: "SCENE_LAMENT_GRAVES" }
+            { text: "Trust the breaks in the illusion and keep climbing", buttonText: "Trust the Breaks", nextScene: "SCENE_LAMENT_COTTAGE" },
+            { text: "Circle toward the graves and approach from the east", buttonText: "Circle Toward the Graves", nextScene: "SCENE_LAMENT_GRAVES" }
         ]
     },
     "SCENE_LAMENT_COTTAGE": {
@@ -1791,9 +1880,9 @@ export const scenes = {
         background: "landscapes/forest_walk.png",
         text: "The cottage is half-collapsed and cold despite the storm outside. The door hangs splintered on one hinge, the rafters are blackened from fire that burned too hot and too clean, and the bedroom smells faintly of rain-soaked ash beneath the older smell of grief. The pressure in your skull sharpens again. 'You don't belong here,' the same voiceless woman says. 'No one does.' Beneath a tumble of pale cloth on the bed, something small shifts and goes still.",
         choices: [
-            { text: "Pull back the cloth and confront whatever is hiding there", nextScene: "SCENE_LAMENT_CAT_DISCOVERY" },
-            { text: "Study the scorch marks and shattered room first", nextScene: "SCENE_LAMENT_COTTAGE_SIGNS" },
-            { text: "Step back outside and gather yourself by the graves", nextScene: "SCENE_LAMENT_GRAVES" }
+            { text: "Pull back the cloth and confront whatever is hiding there", buttonText: "Pull Back the Cloth", nextScene: "SCENE_LAMENT_CAT_DISCOVERY" },
+            { text: "Study the scorch marks and shattered room first", buttonText: "Study the Room", nextScene: "SCENE_LAMENT_COTTAGE_SIGNS" },
+            { text: "Step back outside and gather yourself by the graves", buttonText: "Back to the Graves", nextScene: "SCENE_LAMENT_GRAVES" }
         ]
     },
     "SCENE_LAMENT_GRAVES": {
@@ -1802,8 +1891,8 @@ export const scenes = {
         background: "landscapes/forest_walk.png",
         text: "Two small handmade graves rest in the wet earth east of the cottage, close enough to the wall that whoever buried the children meant to keep them near home. Rain gathers in the carved names before spilling down the wood like fresh tears. Nothing on the hill feels peaceful, but here the grief is so concentrated it almost has weight.",
         choices: [
-            { text: "Pay respects and listen to the hill's silence", nextScene: "SCENE_LAMENT_COTTAGE" },
-            { text: "Return to the cottage", nextScene: "SCENE_LAMENT_COTTAGE" }
+            { text: "Pay respects and listen to the hill's silence", buttonText: "Pay Respects", nextScene: "SCENE_LAMENT_COTTAGE" },
+            { text: "Return to the cottage", buttonText: "Return to the Cottage", nextScene: "SCENE_LAMENT_COTTAGE" }
         ]
     },
     "SCENE_LAMENT_COTTAGE_SIGNS": {
@@ -1812,8 +1901,8 @@ export const scenes = {
         background: "landscapes/forest_walk.png",
         text: "The room bears too many kinds of violence at once. One wall is cratered inward as though struck by force meant for a battlefield, while the bedframe beside it is marked by smaller desperate hands and melted iron where bindings must have bitten hot. Under all of it lies a more recent disturbance: tiny pawprints in the dust, a white hair caught on a splinter, and the certain feeling that the thing watching you understands every word you do not say aloud.",
         choices: [
-            { text: "Search the bed where something is still hiding", nextScene: "SCENE_LAMENT_CAT_DISCOVERY" },
-            { text: "Speak into the room and swear you did not come for blood", nextScene: "SCENE_LAMENT_AINE_ACCUSATION" }
+            { text: "Search the bed where something is still hiding", buttonText: "Search the Bed", nextScene: "SCENE_LAMENT_CAT_DISCOVERY" },
+            { text: "Speak into the room and swear you did not come for blood", buttonText: "Swear You Didn't Come for Blood", nextScene: "SCENE_LAMENT_AINE_ACCUSATION" }
         ]
     },
     "SCENE_LAMENT_CAT_DISCOVERY": {
@@ -1822,8 +1911,8 @@ export const scenes = {
         background: "landscapes/forest_walk.png",
         text: "You pull back the cloth and uncover a small white cat pressed into the corner of the bed. It hisses, but there is too much calculation in the sound for an ordinary animal. Rainwater beads on its fur without soaking in, and when it recoils the air around it ripples with the unmistakable strain of held magic.",
         choices: [
-            { text: "\"You can stop hiding. I'm not drawing steel.\"", nextScene: "SCENE_LAMENT_AINE_ACCUSATION" },
-            { text: "Step back and keep your hands well away from your weapon", nextScene: "SCENE_LAMENT_AINE_ACCUSATION" }
+            { text: "\"You can stop hiding. I'm not drawing steel.\"", buttonText: "Tell Her You're Unarmed", nextScene: "SCENE_LAMENT_AINE_ACCUSATION" },
+            { text: "Step back and keep your hands well away from your weapon", buttonText: "Step Back from Your Weapon", nextScene: "SCENE_LAMENT_AINE_ACCUSATION" }
         ]
     },
     "SCENE_LAMENT_AINE_ACCUSATION": {
@@ -1832,9 +1921,9 @@ export const scenes = {
         background: "landscapes/forest_walk.png",
         text: "The cat vanishes in a hard white flare. In its place stands a wood elf woman clothed all in white, beautiful only in the merciless way frost can be. Her grief shows first. Her fear catches it by the throat and turns it into anger. The moment her eyes find the mark you carry, she recoils as though you have pointed a blade at her children a second time. 'Get out,' she snaps, voice fraying on the last word. 'Whatever branded you, take it off my hill. I know what men come here for.'",
         choices: [
-            { text: "\"If I knew what this mark was, I wouldn't be asking you.\"", nextScene: "SCENE_LAMENT_AINE_REVEAL" },
-            { text: "\"I came after Aodhan. Not to finish what he started.\"", nextScene: "SCENE_LAMENT_AINE_REVEAL" },
-            { text: "\"Then tell me what he wanted badly enough to do this.\"", nextScene: "SCENE_LAMENT_AINE_REVEAL" }
+            { text: "\"If I knew what this mark was, I wouldn't be asking you.\"", buttonText: "Ask About the Mark", nextScene: "SCENE_LAMENT_AINE_REVEAL" },
+            { text: "\"I came after Aodhan. Not to finish what he started.\"", buttonText: "Tell Her You Hunt Aodhan", nextScene: "SCENE_LAMENT_AINE_REVEAL" },
+            { text: "\"Then tell me what he wanted badly enough to do this.\"", buttonText: "Ask What Aodhan Wanted", nextScene: "SCENE_LAMENT_AINE_REVEAL" }
         ]
     },
     "SCENE_LAMENT_AINE_REVEAL": {
@@ -1843,19 +1932,20 @@ export const scenes = {
         background: "landscapes/forest_walk.png",
         text: "Aine's stare stays fixed on the mark until anger spends itself and leaves only exhaustion behind. 'Mark of Ciara,' she says at last, like each word tastes foul. 'Blackened Queen. Depth-rot made holy.' She laughs once, without humor, and presses a shaking hand over her mouth before she can lose more of herself than she means to. What follows comes badly, in pieces she clearly wishes she could choke back down. Aodhan came to her for the Stone of Oblivion. He wanted not merely its name, but the key to waking it. When she refused him, he bound her where she stood and burned her children before her eyes so she would hear them die and still not be able to move. The telling breaks there. When she forces herself onward again, her voice is hoarse and hollow. The stone will not wake for prayer, or for common slaughter. It must drink divine blood. A god could rouse it. A demigod could suffice. She bought time by sending Aodhan toward the Forbidden Archives, but only time. 'So choose,' Aine says, looking suddenly older than the hill around her. 'Hushbriar if you mean to deny him the blood. The Archives if you mean to learn what sort of ruin he has already embraced.'",
         choices: [
-            { text: "\"Then Hushbriar first. He doesn't get her blood.\"", nextScene: "SCENE_ARRIVAL_HUSHBRIAR" },
-            { text: "\"I'll take the Archives truth before I follow him lower.\"", nextScene: "SCENE_ARCHIVES_APPROACH" }
+            { text: "\"Then Hushbriar first. He doesn't get her blood.\"", buttonText: "Go to Hushbriar", nextScene: "SCENE_ARRIVAL_HUSHBRIAR" },
+            { text: "\"I'll take the Archives truth before I follow him lower.\"", buttonText: "Seek the Archives", nextScene: "SCENE_ARCHIVES_APPROACH" }
         ]
     },
     "SCENE_ARCHIVES_APPROACH": {
         id: "SCENE_ARCHIVES_APPROACH",
         location: "lament_hill",
-        background: "landscapes/forest_walk.png",
+        background: "landscapes/cave_before_archive.png",
         text: "You press higher through the rain until the trees thin and the hill gives way to black stone. A cave mouth yawns between two weather-worn figures carved in mourning, and the ground before it is strewn with old bones, newer bodies, and the metallic stink of people who came seeking answers and found only the dark listening back.",
         choices: [
-            { text: "Enter the cave and follow the stale breath of the mountain", nextScene: "SCENE_ARCHIVES_CAVERN" },
+            { text: "Enter the cave and follow the stale breath of the mountain", buttonText: "Enter the Cave", nextScene: "SCENE_ARCHIVES_CAVERN" },
             {
                 text: "Study the dead before you pass them (Perception)",
+                buttonText: "Study the Dead (Perception)",
                 type: "skillCheck",
                 skill: "perception",
                 dc: 12,
@@ -1869,11 +1959,12 @@ export const scenes = {
     "SCENE_ARCHIVES_CAVERN": {
         id: "SCENE_ARCHIVES_CAVERN",
         location: "lament_hill",
-        background: "landscapes/forest_walk_alt.png",
+        background: "landscapes/forbidden_archive.png",
         text: "Inside, the cave air turns wet and heavy. Bodies lie where panic or exhaustion dropped them, and farther in the tunnel opens into a cemetery that cannot possibly fit inside the hill. Lightning flashes across a sky that should not exist here. A death knight rises among the graves, sword scraping free while shapes all around it begin to stand.",
         choices: [
             {
                 text: "Hold to the truth of the stone under your feet (Insight)",
+                buttonText: "Hold to the Truth (Insight)",
                 type: "skillCheck",
                 skill: "insight",
                 dc: 12,
@@ -1882,22 +1973,24 @@ export const scenes = {
                 nextSceneSuccess: "SCENE_ARCHIVES_GATEKEEPER",
                 nextSceneFail: "SCENE_ARCHIVES_GATEKEEPER"
             },
-            { text: "Walk straight at the false dead and refuse them your fear", nextScene: "SCENE_ARCHIVES_GATEKEEPER" }
+            { text: "Walk straight at the false dead and refuse them your fear", buttonText: "Walk Through the False Dead", nextScene: "SCENE_ARCHIVES_GATEKEEPER" }
         ]
     },
     "SCENE_ARCHIVES_GATEKEEPER": {
         id: "SCENE_ARCHIVES_GATEKEEPER",
         location: "lament_hill",
-        background: "landscapes/forest_walk_alt.png",
-        npcPortrait: "portraits/npc_male_placeholder_portrait.png",
+        background: "landscapes/forbidden_archive.png",
+        npcPortrait: "portraits/thalion_portrait.png",
         text: "The iron door parts no wider than a coffin lid before a figure coheres out of the dark behind it: tall, gaunt, robed in ruin, with pale fire banked where living eyes once were. When he speaks, it is with the patience of a sentence already being carried out. 'I am Thalion Ebonhart, last keeper and longest penitent of these halls. Speak plain. Those who come here hungry for convenient truth are devoured by truer things.'",
         choices: [
             {
                 text: "\"I seek the truth Aodhan came here to steal.\"",
+                buttonText: "Ask for Aodhan's Truth",
                 nextScene: "SCENE_ARCHIVES_TRUTH_CHAMBER"
             },
             {
                 text: "\"What toll do these halls take from the people who enter them?\" (Persuasion)",
+                buttonText: "Ask the Cost (Persuasion)",
                 type: "skillCheck",
                 skill: "persuasion",
                 dc: 11,
@@ -1911,23 +2004,24 @@ export const scenes = {
     "SCENE_ARCHIVES_TRUTH_CHAMBER": {
         id: "SCENE_ARCHIVES_TRUTH_CHAMBER",
         location: "lament_hill",
-        background: "landscapes/forest_walk_alt.png",
-        npcPortrait: "portraits/npc_male_placeholder_portrait.png",
+        background: "landscapes/forbidden_archive.png",
+        npcPortrait: "portraits/thalion_portrait.png",
         text: "The Archives are older than comfort and grander than mercy. Dark shelves climb into shadow, pale lights drift between them like captive moons, and every step sounds indecently loud, as though the dead in the walls resent being reminded of the living. Thalion leads you to a lectern where a silver-and-midnight tome lies open beside diagrams that never seem to hold still long enough to be safely understood. He does not give the answer as a scholar would. He gives it like testimony. The Stone of Oblivion does not wake for prayer, nor for ordinary slaughter. What stirs in the margins of the pages is holier and fouler than that. It must drink divinity. A god could rouse it. A demigod could suffice. Only after letting that sentence bruise the air between you does Thalion admit, with loathing that points inward, that he knows because he once helped profane a divine life and bought eternity at the price of becoming the warning now speaking to you.",
         choices: [
-            { text: "\"Then answer what you still can before you close your mouth to me.\"", nextScene: "SCENE_ARCHIVES_AUDIENCE" },
-            { text: "\"That is enough. Hushbriar cannot wait.\"", nextScene: "SCENE_ARRIVAL_HUSHBRIAR" }
+            { text: "\"Then answer what you still can before you close your mouth to me.\"", buttonText: "Ask for More Truth", nextScene: "SCENE_ARCHIVES_AUDIENCE" },
+            { text: "\"That is enough. Hushbriar cannot wait.\"", buttonText: "Leave for Hushbriar", nextScene: "SCENE_ARRIVAL_HUSHBRIAR" }
         ]
     },
     "SCENE_ARCHIVES_AUDIENCE": {
         id: "SCENE_ARCHIVES_AUDIENCE",
         location: "lament_hill",
-        background: "landscapes/forest_walk_alt.png",
-        npcPortrait: "portraits/npc_male_placeholder_portrait.png",
+        background: "landscapes/forbidden_archive.png",
+        npcPortrait: "portraits/thalion_portrait.png",
         text: "Thalion's patience is not endless, but for one narrow window he permits questions. Even now he answers like a man measuring out confession by the drop: every truth weighed, every silence deliberate, every glance a reminder that some doors are merciful only once.",
         choices: [
             {
                 text: "\"How long has Alderic been keeping forbidden counsel?\" (Persuasion)",
+                buttonText: "Ask About Alderic (Persuasion)",
                 type: "skillCheck",
                 skill: "persuasion",
                 dc: 14,
@@ -1951,6 +2045,7 @@ export const scenes = {
             },
             {
                 text: "\"What sin chained you to these halls?\" (Persuasion)",
+                buttonText: "Ask About Thalion's Sin",
                 type: "skillCheck",
                 skill: "persuasion",
                 dc: 13,
@@ -1974,6 +2069,7 @@ export const scenes = {
             },
             {
                 text: "\"If Aodhan learns this, where does he go next?\"",
+                buttonText: "Ask Where Aodhan Goes",
                 requires: {
                     notFlag: "archives_thalion_audience_closed"
                 },
@@ -1981,6 +2077,7 @@ export const scenes = {
             },
             {
                 text: "Bow out before he decides you have already taken too much.",
+                buttonText: "Leave the Audience",
                 effects: [
                     { type: "flag", flagId: "archives_thalion_audience_closed", value: true }
                 ],
@@ -1991,13 +2088,14 @@ export const scenes = {
     "SCENE_ARCHIVES_AODHAN_WARNING": {
         id: "SCENE_ARCHIVES_AODHAN_WARNING",
         location: "lament_hill",
-        background: "landscapes/forest_walk_alt.png",
-        npcPortrait: "portraits/npc_male_placeholder_portrait.png",
+        background: "landscapes/forbidden_archive.png",
+        npcPortrait: "portraits/thalion_portrait.png",
         text: "'He will go where prophecy has already done half his hunting for him,' Thalion says. 'To Hushbriar. To the demigod who has spent her life dreading the day the stone would teach men her name.' He studies your face as though weighing whether this warning is mercy, or only a slower cruelty.",
         choices: [
-            { text: "Risk one more question while he still permits it.", nextScene: "SCENE_ARCHIVES_AUDIENCE" },
+            { text: "Risk one more question while he still permits it.", buttonText: "Ask One More Question", nextScene: "SCENE_ARCHIVES_AUDIENCE" },
             {
                 text: "Take the warning and descend toward Hushbriar.",
+                buttonText: "Descend to Hushbriar",
                 effects: [
                     { type: "flag", flagId: "archives_thalion_audience_closed", value: true }
                 ],
@@ -2008,11 +2106,11 @@ export const scenes = {
     "SCENE_ARCHIVES_AFTERMATH": {
         id: "SCENE_ARCHIVES_AFTERMATH",
         location: "lament_hill",
-        background: "landscapes/forest_walk_alt.png",
+        background: "landscapes/forbidden_archive.png",
         text: "Once you step away from the lectern, the Archives become colder and less welcoming, as though the place itself has agreed with Thalion that the richest truths have already been spent on you. The road back down the hill waits in storm-dark silence, with Hushbriar looming now not as rumor but as obligation.",
         choices: [
-            { text: "Descend toward Hushbriar and the demigod lead", nextScene: "SCENE_ARRIVAL_HUSHBRIAR" },
-            { text: "Climb back toward Aine's hill and reconsider", nextScene: "SCENE_LAMENT_HILL_APPROACH" }
+            { text: "Descend toward Hushbriar and the demigod lead", buttonText: "Descend to Hushbriar", nextScene: "SCENE_ARRIVAL_HUSHBRIAR" },
+            { text: "Climb back toward Aine's hill and reconsider", buttonText: "Back to Aine's Hill", nextScene: "SCENE_LAMENT_HILL_APPROACH" }
         ]
     },
     "SCENE_HUSHBRIAR_DOCK": {
@@ -2021,8 +2119,8 @@ export const scenes = {
         background: "landscapes/aodhan_house.png",
         text: "Beneath the bridge, river rot mingles with lamp oil and damp hemp. A small rowboat knocks softly against the pilings, half-hidden behind stacked crates, boot-scuffs, and the kind of hurried drag marks panic leaves when it has to move something alive. One ledger lies open beneath a weighted stone, its wet pages curling as if someone had to abandon it faster than they liked.",
         choices: [
-            { text: "Read the ledger before the river takes the ink", nextScene: "SCENE_HUSHBRIAR_LEDGER" },
-            { text: "Wait in the dark and see who comes back for the boat", nextScene: "SCENE_THIEVES_HIDEOUT" }
+            { text: "Read the ledger before the river takes the ink", buttonText: "Read the Ledger", nextScene: "SCENE_HUSHBRIAR_LEDGER" },
+            { text: "Wait in the dark and see who comes back for the boat", buttonText: "Wait by the Boat", nextScene: "SCENE_THIEVES_HIDEOUT" }
         ]
     },
     "SCENE_HUSHBRIAR_LEDGER": {
@@ -2037,19 +2135,20 @@ export const scenes = {
             ]
         },
         choices: [
-            { text: "Follow the dock trail to whoever owns this ledger", nextScene: "SCENE_THIEVES_HIDEOUT" },
-            { text: "Back away and return to the square with the clue in hand", nextScene: "SCENE_HUSHBRIAR_AFTERMATH_HUNT" }
+            { text: "Follow the dock trail to whoever owns this ledger", buttonText: "Follow the Dock Trail", nextScene: "SCENE_THIEVES_HIDEOUT" },
+            { text: "Back away and return to the square with the clue in hand", buttonText: "Back to the Square", nextScene: "SCENE_HUSHBRIAR_AFTERMATH_HUNT" }
         ]
     },
     "SCENE_THIEVES_HIDEOUT": {
         id: "SCENE_THIEVES_HIDEOUT",
         location: "hushbriar",
         background: "landscapes/aodhan_study.png",
-        npcPortrait: "portraits/npc_female_placeholder_portrait.png",
+        npcPortrait: "portraits/neala_portrait.png",
         text: "The dock trail ends at a low, screened chamber built into the underside of the bridge itself. Neala steps out first with her blade already bare, anger arriving a heartbeat before the rest of her. Liobhán follows in silence so controlled it feels practiced. Neither woman looks surprised to see you. 'You nose through our bridge, touch our ledger, and come walking deeper like you think that makes you brave,' Neala says. Liobhán's gaze moves from your hands to your throat and back again. 'It only makes your next sentence expensive,' she says quietly. 'Spend it well.'",
         choices: [
             {
                 text: "Hold out the ledger and say you came before Aodhan did. (Persuasion)",
+                buttonText: "Offer the Ledger (Persuasion)",
                 type: "skillCheck",
                 skill: "persuasion",
                 dc: 13,
@@ -2074,6 +2173,7 @@ export const scenes = {
             },
             {
                 text: "Tell them Silverthorn would pay well for whatever they are hiding.",
+                buttonText: "Offer Silverthorn's Gold",
                 effects: [
                     { type: "reputation", factionId: "thorne_guild", amount: -30 },
                     { type: "flag", flagId: "hushbriar_guild_hostile", value: true }
@@ -2086,12 +2186,13 @@ export const scenes = {
         id: "SCENE_GUILD_BARGAIN",
         location: "hushbriar",
         background: "landscapes/aodhan_study.png",
-        npcPortrait: "portraits/npc_female_placeholder_portrait.png",
+        npcPortrait: "portraits/neala_portrait.png",
         text: "Once they stop treating you like a body to dispose of, the truth comes in pieces and barbs. The cargo is not contraband at all but a person, and not merely a person: Elara, the prophesied demigod. Neala says the word like daring you to act shocked. The guild is not protecting her out of kindness. A demigod who lives because of them owes a debt no king, priest, or butcher can ignore. 'That's leverage,' Neala says bluntly. Liobhán's mouth hardly moves when she answers, 'That is survival with a shape ugly enough to be honest.'",
         choices: [
-            { text: "\"Take me to her. The broken night already points straight here.\"", nextScene: "SCENE_ELARA_HIDEAWAY" },
+            { text: "\"Take me to her. The broken night already points straight here.\"", buttonText: "Take Me to Her", nextScene: "SCENE_ELARA_HIDEAWAY" },
             {
                 text: "Show them the Stone and say the choice it demands cannot stay rumor any longer.",
+                buttonText: "Show Them the Stone",
                 requires: { itemId: "stone_of_oblivion" },
                 nextScene: "SCENE_ELARA_HIDEAWAY"
             }
@@ -2101,21 +2202,22 @@ export const scenes = {
         id: "SCENE_GUILD_REFUSAL",
         location: "hushbriar",
         background: "landscapes/aodhan_study.png",
-        npcPortrait: "portraits/npc_female_placeholder_portrait.png",
+        npcPortrait: "portraits/liobhan_portrait.png",
         text: "Trust dies quickly in the hideout. Neala wants you thrown back to the river with your curiosity split open beside you. Liobhán wants to know whether your ignorance is real or merely badly performed. Then another shout rises out in town, followed by the crack of something magical striking timber hard enough to shake dust from the bridge overhead. Liobhán's eyes sharpen at once. 'Fine,' she says. 'You do not deserve the truth. But if Aodhan or the King's men are already tearing the lanes apart for her, we no longer have time to keep you ignorant.'",
         choices: [
             {
                 text: "Go with them before the hunt above turns into a massacre.",
+                buttonText: "Go with Them",
                 nextScene: "SCENE_ELARA_HIDEAWAY"
             },
-            { text: "Swear you came to keep Silverthorn's hands off her blood.", nextScene: "SCENE_ELARA_HIDEAWAY" }
+            { text: "Swear you came to keep Silverthorn's hands off her blood.", buttonText: "Swear for Elara", nextScene: "SCENE_ELARA_HIDEAWAY" }
         ]
     },
     "SCENE_ELARA_HIDEAWAY": {
         id: "SCENE_ELARA_HIDEAWAY",
         location: "hushbriar",
         background: "landscapes/aodhan_study.png",
-        npcPortrait: "landscapes/elara_portrait.png",
+        npcPortrait: "portraits/elara_portrait.png",
         displayPages: [
             "Elara is hidden in the innermost chamber behind stacked crates, damp blankets, and a ward circle drawn by hands too tired to trust their own lines. She looks younger than prophecy has any right to allow and far more exhausted by fear than any holy story would ever admit.",
             "Sleep has been losing to dread for days. When her eyes catch the mark you carry, her whole body tightens around a recognition she has been waiting her life to dread. She knows what relic was found. She knows why men will come for her blood. Shame and terror chase each other across her face as she speaks the truth she has never managed to live with: she is torn between dying for the world and running until someone crueller chooses for her."
@@ -2130,11 +2232,13 @@ export const scenes = {
         choices: [
             {
                 text: "\"I have the Stone. Before the blood dries, we decide what it will cost.\"",
+                buttonText: "Show Elara the Stone",
                 requires: { itemId: "stone_of_oblivion" },
                 nextScene: "SCENE_ELARA_COUNSEL"
             },
             {
                 text: "\"Aodhan still carries the Stone. Tell me how close his hunt runs behind us.\"",
+                buttonText: "Ask About Aodhan",
                 requires: { notFlag: "aodhan_dead" },
                 nextScene: "SCENE_ELARA_AODHAN_WARNING"
             }
@@ -2144,11 +2248,12 @@ export const scenes = {
         id: "SCENE_ELARA_COUNSEL",
         location: "hushbriar",
         background: "landscapes/aodhan_study.png",
-        npcPortrait: "landscapes/elara_portrait.png",
+        npcPortrait: "portraits/elara_portrait.png",
         text: "For one frail minute no one reaches for the choice itself. Neala turns away first and plants both hands on the nearest crate like the wood is the only thing in the room she trusts not to beg. Liobhán watches Elara instead, not with pity but with the flinty patience of someone forcing herself to count every cost before she names one aloud. Elara says nothing. Her breathing alone makes the room feel smaller. The Stone between you has already made the air sound like judgment.",
         choices: [
             {
                 text: "Make them say the cost plainly before the room loses its nerve.",
+                buttonText: "Make Them Name the Cost",
                 nextScene: "SCENE_ELARA_STONE_DECISION"
             }
         ]
@@ -2157,7 +2262,7 @@ export const scenes = {
         id: "SCENE_ELARA_STONE_DECISION",
         location: "hushbriar",
         background: "landscapes/aodhan_study.png",
-        npcPortrait: "landscapes/elara_portrait.png",
+        npcPortrait: "portraits/elara_portrait.png",
         displayPages: [
             "The Stone of Oblivion feels heavier in the hideout than it ever did under the moon. Elara watches it the way condemned people watch an executioner testing the edge. Even Neala's anger has gone still around it.",
             "Liobhán looks from the Stone to Elara and back again, doing the arithmetic no decent person should ever have to say aloud. 'If there is a choice worth the name,' she says quietly, 'it lives here. Now. Before the blood dries and the world chooses for us.'"
@@ -2166,6 +2271,7 @@ export const scenes = {
         choices: [
             {
                 text: "\"Your blood stays unspent. We keep you breathing and damn the cost for now.\"",
+                buttonText: "Spare Elara",
                 effects: [
                     { type: "flag", flagId: "elara_choice_spared", value: true },
                     { type: "relationship", npcId: "elara", amount: 15 },
@@ -2175,6 +2281,7 @@ export const scenes = {
             },
             {
                 text: "\"If the Stone can only wake through your divinity, then say what saving the world would ask of you.\"",
+                buttonText: "Ask the Cost of Sacrifice",
                 effects: [
                     { type: "flag", flagId: "elara_choice_sacrifice_declared", value: true },
                     { type: "reputation", factionId: "thorne_guild", amount: -10 }
@@ -2187,11 +2294,12 @@ export const scenes = {
         id: "SCENE_ELARA_AODHAN_WARNING",
         location: "hushbriar",
         background: "landscapes/aodhan_study.png",
-        npcPortrait: "landscapes/elara_portrait.png",
+        npcPortrait: "portraits/elara_portrait.png",
         text: "At Aodhan's name, every lantern in the hideout seems to shrink. Elara folds in on herself at once. Neala curses under her breath. Liobhán says nothing for a long time, then finally answers with the bleak clarity of someone who has no use left for false comfort. 'Then the Stone is still in motion, and the choice it forces is not ours tonight,' she says. 'That does not save her. It only means the blood and the bargain are both still hunting us.'",
         choices: [
             {
                 text: "\"Then we keep her breathing until a real choice still belongs to us.\"",
+                buttonText: "Keep Her Breathing",
                 effects: [
                     { type: "flag", flagId: "elara_choice_deferred_by_aodhan", value: true },
                     { type: "flag", flagId: "elara_choice_spared", value: true },
@@ -2205,7 +2313,7 @@ export const scenes = {
         id: "SCENE_HUSHBRIAR_PROCESSING_REVELATION",
         location: "hushbriar",
         background: "landscapes/aodhan_study.png",
-        npcPortrait: "landscapes/elara_portrait.png",
+        npcPortrait: "portraits/elara_portrait.png",
         displayPages: [
             "The silence after the choice is worse than the argument before it. At last Liobhán breaks it. 'You think the King means to hold Hushbriar?' she asks. 'He means to empty it.'",
             "Neala answers this part like spitting poison. The strong and healthy are being marched toward Silverthorn for processing. The sick, the weak, and anyone too contaminated to be useful are being sent to the Soul Mill instead. Whatever mercy Hushbriar still hoped for has already been sorted into carts, columns, and smoke."
@@ -2220,6 +2328,7 @@ export const scenes = {
         choices: [
             {
                 text: "Carry the knowledge into the next dark.",
+                buttonText: "Carry the Knowledge Forward",
                 action: "showStartMenu"
             }
         ]

@@ -31,6 +31,7 @@ test.describe('HUD Staging', () => {
     await page.click('#btn-start-game');
 
     await expect(page.locator('#btn-menu')).toBeVisible();
+    await expect(page.locator('#char-loadout')).toBeHidden();
     await expect(page.locator('#btn-inventory')).toBeHidden();
     await expect(page.locator('#btn-quests')).toBeHidden();
     await expect(page.locator('#btn-map')).toBeHidden();
@@ -59,5 +60,19 @@ test.describe('HUD Staging', () => {
     await page.click('#btn-menu');
     await expect(page.locator('#btn-menu-map')).toBeVisible();
     await expect(page.locator('#btn-menu-codex')).toBeVisible();
+  });
+
+  test('mobile narrative HUD yields more space to the scene than the old dashboard shell', async ({ page }) => {
+    await page.setViewportSize({ width: 393, height: 851 });
+    await page.goto('/');
+    await page.waitForFunction(() => window.gameReady);
+
+    await page.click('#btn-start-new');
+    await page.fill('#cc-name', 'MobileHud');
+    await page.click('#btn-start-game');
+
+    await expect(page.locator('#char-loadout')).toBeHidden();
+    await expect(page.locator('#xp-bar-fill')).toBeHidden();
+    await expect(page.locator('#btn-menu')).toBeVisible();
   });
 });
