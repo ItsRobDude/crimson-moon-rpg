@@ -13,7 +13,7 @@ Use the following structured prompts to continue development. Each prompt is sta
     *   Implement enemy intent hints ("the beast lowers its head to charge") to give players a chance to counter or defend.
 
 3.  **Stateful NPC Interactions**
-    *   Persist relationship states for allies like Eoin; choices should unlock different follow-up dialogue, aid in combat, or shortcuts on repeat visits.
+    *   Persist relationship states for survivors and allies carefully; for Eoin specifically, choices should unlock different follow-up dialogue, shelter-bound guidance, or revisit texture without turning him into a combatant or travel companion.
     *   Add a small reputation-driven merchant or healer in Silverthorn whose inventory or prices change based on prior aid to survivors.
     *   Make certain one-off dialogue branches truly single-use by tagging choices with flags and filtering them once selected.
 

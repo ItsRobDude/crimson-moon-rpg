@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { companions } from '../data/companions.js';
+import { races } from '../data/races.js';
 import { gameState, addCompanion, initializeNewGame, loadGame, resetGameState, saveGame, SAVE_STORAGE_KEY } from '../data/gameState.js';
 import { narrativeStateRegistry } from '../data/narrativeSafety.js';
 import { scenes } from '../data/scenes.js';
@@ -33,8 +34,12 @@ beforeEach(() => {
 
 test('companion roster now only ships canon-safe recruit candidates', () => {
   expect(Object.keys(companions).sort()).toEqual(['kieran_brogan', 'lark', 'neala']);
-  expect(companions.lark.description).toContain('Veridian Forest');
-  expect(companions.kieran_brogan.description).toContain('Ilmatari conscience');
+  expect(companions.lark.raceId).toBe('viridian_mixedling');
+  expect(companions.lark.presentation?.stature).toBe('small');
+  expect(companions.lark.presentation?.ancestry).toBe('mixed_viridian');
+  expect(companions.lark.description).toContain('Viridian blood');
+  expect(races.viridian_mixedling.playerSelectable).toBe(false);
+  expect(companions.kieran_brogan.description).toContain('warm heart for his own');
   expect(companions.neala.description).toContain('Thorne Guild');
 });
 
@@ -101,17 +106,23 @@ test('travel event pool filters by route and party state without reviving the ol
 
 test('companion-aid hooks exist on existing routes without making companions mandatory', () => {
   const northApproachChoice = scenes.SCENE_SPOREFALL_NORTH_APPROACH.choices.find((choice) => choice.text.includes('Cross the open street'));
+  const hazeChoice = scenes.SCENE_SHADOWMIRE_HAZE.choices.find((choice) => choice.text.includes('Watch the treetops'));
+  const arrivalChoice = scenes.SCENE_ARRIVAL_WHISPERWOOD.choices.find((choice) => choice.text.includes('Search the nearest street'));
+  const trapChoice = scenes.SCENE_SPOREFALL_OVERSEER_DOOR.choices.find((choice) => choice.text.includes('Trace the carved grooves'));
   const townScoutChoice = scenes.SCENE_HUSHBRIAR_TOWN.choices.find((choice) => choice.text.includes('Scout the area'));
   const stoneScene = scenes.SCENE_ELARA_STONE_DECISION;
 
-  expect(northApproachChoice.companionAid).toBeUndefined();
+  expect(hazeChoice.companionAid?.companionId).toBe('lark');
+  expect(arrivalChoice.companionAid?.companionId).toBe('lark');
+  expect(northApproachChoice.companionAid?.companionId).toBe('lark');
+  expect(trapChoice.companionAid?.companionId).toBe('kieran_brogan');
   expect(townScoutChoice.companionAid?.companionId).toBe('neala');
   expect(stoneScene.choices.some((choice) => choice.text.includes('blood stays unspent'))).toBe(true);
   expect(stoneScene.choices.some((choice) => choice.text.includes('saving the world'))).toBe(true);
 });
 
 test('current early-thread and late-route flags are registered in both safety sources', () => {
-  ['sporefall_eoin_glimpsed', 'sporefall_eoin_met', 'sporefall_eoin_talked', 'sporefall_eoin_comforted', 'elara_choice_spared', 'elara_choice_sacrifice_declared', 'elara_choice_deferred_by_aodhan', 'processing_truth_learned'].forEach((flagId) => {
+  ['silverthorn_watch_hostile', 'sporefall_eoin_glimpsed', 'sporefall_eoin_met', 'sporefall_eoin_talked', 'sporefall_eoin_comforted', 'elara_choice_spared', 'elara_choice_sacrifice_declared', 'elara_choice_deferred_by_aodhan', 'processing_truth_learned'].forEach((flagId) => {
     expect(narrativeStateRegistry.flags[flagId]).toBeDefined();
     expect(registryNote).toContain(`\`${flagId}\``);
   });

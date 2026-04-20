@@ -72,6 +72,7 @@ Statuses:
 | Area | Status | Notes |
 | --- | --- | --- |
 | Shared enemy actor normalization | partial | Combat-capable NPCs now infer shared class flags, resources, supported spells, and combat actions from authored kits, but only supported runtime actions are promoted. |
+| Shared boss action support | partial | Shared enemy data now supports multiattack, recharge-gated special actions, turn-start regeneration with fire/radiant suppression hooks, and grapple/restrain pressure for authored bosses like the Dreadcap, but bespoke phase scripting remains intentionally out of scope. |
 | Shared enemy turn priorities | partial | Enemy AI now checks self-preservation, offensive spells, supported class features, and then attack or reposition; deeper bespoke boss logic remains intentionally out of scope. |
 | Honest named-enemy ability surfacing | implemented | Authored NPC abilities that lack shared runtime support remain descriptive data rather than falsely surfaced combat actions. |
 

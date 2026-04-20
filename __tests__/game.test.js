@@ -1,4 +1,4 @@
-import { addItem, advanceTime, applyPendingLevelUp, equipItem, gameState, getInventoryEntries, getInventoryUseCost, getStoredSaveState, initializeNewGame, loadGame, performLongRest, performShortRest, resetGameState, SAVE_STORAGE_KEY, saveGame, useConsumable } from '../data/gameState.js';
+import { addCompanion, addItem, advanceTime, applyPendingLevelUp, changeRelationship, equipItem, gameState, getInventoryEntries, getInventoryUseCost, getStoredSaveState, initializeNewGame, loadGame, performLongRest, performShortRest, resetGameState, SAVE_STORAGE_KEY, saveGame, useConsumable } from '../data/gameState.js';
 import { scenes } from '../data/scenes.js';
 import { addEffectToActor } from '../data/mechanics.js';
 import { companions } from '../data/companions.js';
@@ -616,7 +616,7 @@ test('silverthorn gate flow now musters Lark and Kieran before departure', () =>
   expect(gateScene.choices.some((choice) => choice.nextScene === 'SCENE_TRAVEL_SHADOWMIRE')).toBe(false);
 });
 
-test('lark recruitment copy now reflects his Veridian split and Alderic-aligned direction', () => {
+test('lark recruitment copy now reflects his Viridian split and Alderic-aligned direction', () => {
   initializeNewGame(
     'Bran',
     'human',
@@ -628,9 +628,89 @@ test('lark recruitment copy now reflects his Veridian split and Alderic-aligned 
   );
 
   const larkScene = buildSilverthornRuntimeScene('SCENE_SILVERTHORN_LARK_RECRUIT', scenes.SCENE_SILVERTHORN_LARK_RECRUIT);
-  expect(companions.lark.description).toMatch(/Veridian Forest/i);
+  expect(companions.lark.description).toMatch(/Viridian blood/i);
   expect(larkScene.text).toMatch(/his hood down/i);
   expect(larkScene.text).toMatch(/Alderic's summons/i);
+});
+
+test('silverthorn gate surfaces sparse companion check-ins once the road-party is assembled', () => {
+  initializeNewGame(
+    'Bran',
+    'human',
+    'fighter',
+    'soldier',
+    { STR: 15, DEX: 12, CON: 14, INT: 10, WIS: 10, CHA: 8 },
+    ['athletics', 'survival'],
+    []
+  );
+
+  addCompanion('lark');
+  addCompanion('kieran_brogan');
+
+  const gateScene = buildSilverthornRuntimeScene('SCENE_SILVERTHORN_GATES', scenes.SCENE_SILVERTHORN_GATES);
+  expect(gateScene.choices.some((choice) => choice.nextScene === 'SCENE_SILVERTHORN_LARK_CHECKIN')).toBe(true);
+  expect(gateScene.choices.some((choice) => choice.nextScene === 'SCENE_SILVERTHORN_KIERAN_CHECKIN')).toBe(true);
+});
+
+test('silverthorn crackdown text reflects companion fallout after a hostile gate choice', () => {
+  initializeNewGame(
+    'Bran',
+    'human',
+    'fighter',
+    'soldier',
+    { STR: 15, DEX: 12, CON: 14, INT: 10, WIS: 10, CHA: 8 },
+    ['athletics', 'survival'],
+    []
+  );
+
+  gameState.flags.silverthorn_watch_hostile = true;
+  gameState.flags.silverthorn_lark_recruited = true;
+  gameState.flags.silverthorn_kieran_recruited = true;
+
+  const crackdownScene = buildSilverthornRuntimeScene('SCENE_SILVERTHORN_WATCH_CRACKDOWN', scenes.SCENE_SILVERTHORN_WATCH_CRACKDOWN);
+  expect(crackdownScene.text).toMatch(/Lark is already gone/i);
+  expect(crackdownScene.text).toMatch(/Kieran does not go quickly/i);
+  expect(crackdownScene.text).toMatch(/better reason to stay/i);
+});
+
+test('hostile Silverthorn state hard-closes later city-center surfaces back toward the gate', () => {
+  initializeNewGame(
+    'Bran',
+    'human',
+    'fighter',
+    'soldier',
+    { STR: 15, DEX: 12, CON: 14, INT: 10, WIS: 10, CHA: 8 },
+    ['athletics', 'survival'],
+    []
+  );
+
+  gameState.flags.silverthorn_watch_hostile = true;
+
+  const hubScene = buildSilverthornRuntimeScene('SCENE_HUB_SILVERTHORN', scenes.SCENE_HUB_SILVERTHORN);
+  expect(hubScene.text).toMatch(/Silverthorn is no longer a place you get to pace through/i);
+  expect(hubScene.choices).toEqual([
+    expect.objectContaining({ nextScene: 'SCENE_SILVERTHORN_GATES', buttonText: 'Under Watch' })
+  ]);
+});
+
+test('negative Eoin trust removes the north-guidance shortcut while keeping him shelter-bound', () => {
+  initializeNewGame(
+    'Bran',
+    'human',
+    'fighter',
+    'soldier',
+    { STR: 15, DEX: 12, CON: 14, INT: 10, WIS: 10, CHA: 8 },
+    ['athletics', 'survival'],
+    []
+  );
+
+  gameState.flags.sporefall_eoin_met = true;
+  gameState.flags.sporefall_eoin_talked = true;
+  changeRelationship('eoin', -2);
+
+  const hubScene = buildSporefallRuntimeScene('SCENE_HUB_SPOREFALL', scenes.SCENE_HUB_SPOREFALL);
+  expect(hubScene.choices.some((choice) => choice.buttonText === 'Let Eoin Lead North (Survival)')).toBe(false);
+  expect(hubScene.text).toMatch(/Whatever trust he offered before/i);
 });
 
 test('dreadcap linger option only appears after key Eoin info and a handling choice', () => {

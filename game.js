@@ -1003,15 +1003,23 @@ function applyPartySceneVariation(sceneId, scene) {
 
     const partyNames = formatNameList(partyActors.map((actor) => actor.name));
     const hasNeala = actorHasCompanion('neala');
+    const hasLark = actorHasCompanion('lark');
+    const hasKieran = actorHasCompanion('kieran_brogan');
 
     if (sceneId === 'SCENE_TRAVEL_SHADOWMIRE') {
-        scene.text = `${scene.text} ${partyNames} keep a tighter marching distance than comfort allows, because the forest is easier to trust than the open road only until something in it starts listening back.`;
+        const roadBeat = hasLark && hasKieran
+            ? "Kieran starts one dry remark about cursed roads and bad employers; Lark lets it die after a glance toward the trees, and even Kieran takes the correction."
+            : `${partyNames} keep a tighter marching distance than comfort allows, because the forest is easier to trust than the open road only until something in it starts listening back.`;
+        scene.text = `${scene.text} ${roadBeat}`;
         return scene;
     }
 
     if (sceneId === 'SCENE_HUB_SPOREFALL') {
         const witness = `${partyNames} spread through the street with the wary discipline of people who know ruin can still lunge.`;
-        scene.text = `${scene.text} ${witness}`;
+        const crossComment = hasLark && hasKieran
+            ? "Kieran mutters that even the silence here feels looted. Lark answers, quiet and flat, that the place was not robbed. It was left to rot on purpose."
+            : '';
+        scene.text = `${scene.text} ${witness}${crossComment ? ` ${crossComment}` : ''}`;
         return scene;
     }
 
@@ -1026,7 +1034,9 @@ function applyPartySceneVariation(sceneId, scene) {
     if (sceneId === 'SCENE_BRIARWOOD_INN') {
         const innBeat = hasNeala
             ? 'Neala marks doors, exits, and armed drunks before she even thinks about sitting, and the room feels her doing it.'
-            : `${partyNames} have to fold themselves smaller than they would like to fit around one table, and the innkeeper charges extra in the look he gives you for the trouble.`;
+            : hasLark && hasKieran
+                ? "Lark takes the wall and says almost nothing. Kieran makes himself agreeable to the room on instinct, then spends the rest of the minute quietly marking who is armed, who is hungry, and who is lying about one of the two."
+                : `${partyNames} have to fold themselves smaller than they would like to fit around one table, and the innkeeper charges extra in the look he gives you for the trouble.`;
         scene.text = `${scene.text} ${innBeat}`;
         return scene;
     }
@@ -1044,6 +1054,18 @@ export function buildSilverthornRuntimeScene(sceneId, baseScene) {
     const hasLark = actorHasCompanion('lark');
     const hasKieran = actorHasCompanion('kieran_brogan');
     const partyReady = hasLark && hasKieran;
+    const watchHostile = !!gameState.flags.silverthorn_watch_hostile;
+    const silverthornHardCloseExceptions = ['SCENE_SILVERTHORN_GATES', 'SCENE_SILVERTHORN_GATE_CAPTAIN', 'SCENE_SILVERTHORN_WATCH_CRACKDOWN'];
+
+    if (watchHostile && !silverthornHardCloseExceptions.includes(sceneId)) {
+        scene.text = "The watch has already made its judgment. Silverthorn is no longer a place you get to pace through for comfort, trade, or counsel. Every route that still leads you inside the walls ends with hard faces, shortened tempers, and a plain expectation that you keep moving east before someone decides to make an example of you.";
+        scene.choices = [
+            createChoice('Report back to the eastern gate under watch.', 'SCENE_SILVERTHORN_GATES', {
+                buttonText: 'Under Watch'
+            })
+        ];
+        return scene;
+    }
 
     if (sceneId === 'SCENE_HUB_SILVERTHORN') {
         const curfewBeat = time.isDusk
@@ -1213,6 +1235,13 @@ export function buildSilverthornRuntimeScene(sceneId, baseScene) {
         scene.text = heardBefore
             ? "On repetition the room grows no kinder. The names change hands, but the shape of the dread remains the same: dwarves unearthed something in Durnhelm that may yet drag the realms into war, Whisperwood stopped answering the road, and every telling ends with someone feverish, missing, or buried before they can say what happened beneath the trees. No one says they expect peace. They only argue over what will break first."
             : "You keep your cup low and listen. One table swears the dwarves found a relic in Durnhelm powerful enough to drag every realm into a fresh quarrel. Another spits that the relic talk is court poison and the real terror is simpler: caravans stop reaching Whisperwood, patrols vanish on the road, and the few souls who stagger back are already burning with fever and too short of breath to say much before the healers carry them away. The room cannot agree on the truth. It agrees perfectly on the danger.";
+        if (hasLark && hasKieran) {
+            scene.text = `${scene.text} Kieran thinks the room is telling on the city by what it fears losing first. Lark only says the forest was disturbed before the road learned the word for it. Neither sounds reassured by the other.`;
+        } else if (hasLark) {
+            scene.text = `${scene.text} Lark listens without interrupting, then says the birds would have left before the caravans did if the forest truly sensed what was coming.`;
+        } else if (hasKieran) {
+            scene.text = `${scene.text} Kieran mutters that a city only starts speaking this softly when it knows the poor will be the first meat fed to whatever is coming.`;
+        }
         scene.choices = [
             createChoice('Return to the common room', 'SCENE_RUSTY_BLADE_INN', { buttonText: 'Back to the Common Room' }),
             createChoice('Head for the eastern gate', 'SCENE_SILVERTHORN_GATES', { buttonText: 'Eastern Gate' })
@@ -1245,6 +1274,9 @@ export function buildSilverthornRuntimeScene(sceneId, baseScene) {
         scene.text = hasTempleWard
             ? `${baseScene.text} One of the healers recognizes the juniper-and-ash ward already drying on your gloves and tells you not to waste the blessing before the eastern road turns fouler still.`
             : `${baseScene.text} One of the senior healers lingers over a brazier of juniper, ash, and bitter herbs, offering a ward to travelers willing to take the warning seriously.`;
+        if (hasKieran) {
+            scene.text = `${scene.text} Kieran does not joke here. He bows his head at Ilmater's name with a sincerity that sits oddly beside the rest of him, then tells you to take whatever honest help the city still offers before it remembers to be mean again.`;
+        }
         scene.choices = [];
 
         if (!hasTempleWard) {
@@ -1252,6 +1284,11 @@ export function buildSilverthornRuntimeScene(sceneId, baseScene) {
                 type: 'skillCheck',
                 skill: 'religion',
                 dc: 11,
+                companionAid: {
+                    companionId: 'kieran_brogan',
+                    bonus: 2,
+                    logText: 'Kieran settles into the prayer with an Ilmatari steadiness that keeps the rite from fraying in your hands.'
+                },
                 timeAdvance: 1,
                 timeReason: 'You stay while the healers prepare a proper road ward.',
                 inSilverthorn: true,
@@ -1311,15 +1348,33 @@ export function buildSilverthornRuntimeScene(sceneId, baseScene) {
     if (sceneId === 'SCENE_SILVERTHORN_NOTICE_WHISPERWOOD') {
         setSceneMemory('silverthorn_notice_whisperwood', true);
         scene.text = "The postings have been layered one over another until the whole board feels swollen with panic. Patrol rosters stop mid-name. Three merchant families ask after kin who never came back from Whisperwood. A militia order warns travelers not to press past the eastern milestones without writ or escort. At the bottom, someone has scrawled in shaking charcoal: 'Nothing good is coming back down that road.'";
+        if (hasLark) {
+            scene.text = `${scene.text} Lark reads the board in a silence so long it stops feeling passive. When he finally speaks, it is only to say that forests do not make this many people vanish without someone first teaching them how to suffer.`;
+        }
         return scene;
     }
 
     if (sceneId === 'SCENE_SILVERTHORN_NOTICE_CONTRACTS') {
         scene.text = "Escort work and rat bounties still cling to the older layers of the board, but the fresh postings tell a harsher story. Curfew fines. Closed-route compensation. Special wagons requisitioned under council seal. One clipped notice offers good silver for verified intelligence from Durnhelm, then disappears beneath wax before anyone can linger over it. You come away with the sense that Silverthorn is already bracing for something larger than one vanished borough.";
+        if (hasKieran) {
+            scene.text = `${scene.text} Kieran skims the fines first, of course. He says the city has the good grace to print its cruelty in straight lines even when the council would rather call it necessity.`;
+        }
         return scene;
     }
 
     if (sceneId === 'SCENE_SILVERTHORN_GATES') {
+        if (watchHostile) {
+            scene.text = "Word has already reached the gate before you do. The captain's people watch you with the blank hostility of men under orders not to start bloodshed unless you give them an excuse. There will be no more circling Silverthorn for comfort. Whatever happens next happens east of these walls.";
+            scene.choices = [
+                createChoice('Take the road before someone decides to close even this mercy.', 'SCENE_TRAVEL_SHADOWMIRE', {
+                    buttonText: 'Driven to the Road',
+                    timeAdvance: 1,
+                    timeReason: 'The watch drives you out through the eastern gate before tempers can make a second mistake.',
+                    inSilverthorn: true
+                })
+            ];
+            return scene;
+        }
         const gateMood = time.isNight
             ? 'The gate stands under doubled watch, with fewer departures, harsher questions, and the unspoken expectation that anyone leaving may not return.'
             : time.isDusk
@@ -1327,10 +1382,12 @@ export function buildSilverthornRuntimeScene(sceneId, baseScene) {
                 : 'Traffic still moves, but every outbound cart is inspected twice and every face is studied as if the walls themselves have learned suspicion.';
         const partyBeat = partyReady
             ? ` Lark and Kieran Brogan wait near the roadward wagons with the tense stillness of people who have already decided to leave and are only waiting on you to stop circling it.`
-            : ` The prince's road-party is not fully assembled yet. ${!hasLark && !hasKieran ? 'Lark waits somewhere near the gate traffic, and the dwarf Alderic vouched for has not reported to your side yet.' : !hasLark ? 'Lark still has not taken her place beside you.' : 'Kieran Brogan still has to be pulled away from whatever small act of defiance is keeping him busy.'}`;
+            : ` The prince's road-party is not fully assembled yet. ${!hasLark && !hasKieran ? 'Lark waits somewhere near the gate traffic, and the dwarf Alderic vouched for has not reported to your side yet.' : !hasLark ? 'Lark still has not taken his place beside you.' : 'Kieran Brogan still has to be pulled away from whatever small act of defiance is keeping him busy.'}`;
         scene.text = `${baseScene.text} ${gateMood}${partyBeat}`;
         scene.choices = [
             createChoice('Take counsel from the gate captain', 'SCENE_SILVERTHORN_GATE_CAPTAIN', { timeAdvance: 1, timeReason: 'You spend time getting the latest road intelligence.', inSilverthorn: true }),
+            ...(hasLark ? [createChoice('Ask Lark what the road smells like to him.', 'SCENE_SILVERTHORN_LARK_CHECKIN', { buttonText: 'Ask Lark' })] : []),
+            ...(hasKieran ? [createChoice('Ask Kieran what he makes of the gate square.', 'SCENE_SILVERTHORN_KIERAN_CHECKIN', { buttonText: 'Ask Kieran' })] : []),
             ...(!hasLark ? [createChoice('Find Lark and settle who is marching with you', 'SCENE_SILVERTHORN_LARK_RECRUIT', { buttonText: 'Find Lark' })] : []),
             ...(!hasKieran ? [createChoice('Track down the dwarf Alderic assigned to the road-party', 'SCENE_SILVERTHORN_KIERAN_RECRUIT', { buttonText: 'Find Kieran' })] : []),
             createChoice(
@@ -1348,6 +1405,18 @@ export function buildSilverthornRuntimeScene(sceneId, baseScene) {
     }
 
     if (sceneId === 'SCENE_SILVERTHORN_GATE_CAPTAIN') {
+        if (watchHostile) {
+            scene.text = "The captain does not reopen the conversation. He only points east with two fingers and lets the guards around him make the meaning plain: your words have already cost you everything inside these walls they are willing to lose.";
+            scene.choices = [
+                createChoice('Take the road under watchful eyes.', 'SCENE_TRAVEL_SHADOWMIRE', {
+                    buttonText: 'Driven to the Road',
+                    timeAdvance: 1,
+                    timeReason: 'The watch sees you through the gate without another word.',
+                    inSilverthorn: true
+                })
+            ];
+            return scene;
+        }
         const warnedAlready = !!getSceneMemory('silverthorn_gate_captain_seen');
         const hasRouteBriefing = !!gameState.flags.silverthorn_gate_route_briefed;
         setSceneMemory('silverthorn_gate_captain_seen', true);
@@ -1395,6 +1464,9 @@ export function buildSilverthornRuntimeScene(sceneId, baseScene) {
         }
 
         scene.choices.push(
+            createChoice('Tell him you are done being spoken to like a recruit and force the matter.', 'SCENE_SILVERTHORN_WATCH_CRACKDOWN', {
+                buttonText: 'Threaten the Captain'
+            }),
             createChoice(
                 partyReady ? 'Leave Silverthorn now' : 'Gather the road-party before you leave',
                 partyReady ? 'SCENE_TRAVEL_SHADOWMIRE' : 'SCENE_SILVERTHORN_PARTY_MUSTER',
@@ -1436,7 +1508,7 @@ export function buildSilverthornRuntimeScene(sceneId, baseScene) {
             ];
             return scene;
         }
-        scene.text = "Lark stands just off the traffic line with his hood down and his bow already waxed against damp. The look he gives the eastern road is not ordinary caution but old argument carried too far to be put down. He tells you, flatly, that the Veridian clans began splitting when the disruptions in the wild stopped behaving like weather and started feeling chosen, and Sporefall was the final cut. Alderic's summons is the first road east he has trusted since.";
+        scene.text = "Lark stands just off the traffic line with his hood down and his bow already waxed against damp. The look he gives the eastern road is not ordinary caution but old argument carried too far to be put down. He tells you, flatly, that the Viridian clans began splitting when the disruptions in the wild stopped behaving like weather and started feeling chosen, and Sporefall was the final cut. Alderic's summons is the first road east he has trusted since.";
         scene.choices = [
             createChoice('"Take your place on my flank. If the forest is calling men to answer, it can answer us together."', 'SCENE_SILVERTHORN_GATES', {
                 buttonText: 'Bring Lark',
@@ -1469,6 +1541,24 @@ export function buildSilverthornRuntimeScene(sceneId, baseScene) {
             }),
             createChoice('Leave him to his argument with the clerk.', 'SCENE_SILVERTHORN_GATES', { buttonText: 'Back to the Gate Plaza' })
         ];
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_SILVERTHORN_LARK_CHECKIN' || sceneId === 'SCENE_SILVERTHORN_KIERAN_CHECKIN') {
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_SILVERTHORN_WATCH_CRACKDOWN') {
+        const larkGone = !!gameState.flags.silverthorn_lark_recruited && !hasLark;
+        const kieranGone = !!gameState.flags.silverthorn_kieran_recruited && !hasKieran;
+        const fallout = [];
+        if (larkGone) {
+            fallout.push('Lark is already gone from your side, choosing the open road over marching beneath anger he no longer trusts.');
+        }
+        if (kieranGone) {
+            fallout.push("Kieran does not go quickly. He lingers just long enough to look sick over the choice, then leaves you with the disappointment of a man who wanted a better reason to stay.");
+        }
+        scene.text = `${baseScene.text}${fallout.length ? ` ${fallout.join(' ')}` : ''}`;
         return scene;
     }
 
@@ -1682,6 +1772,7 @@ export function buildSporefallRuntimeScene(sceneId, baseScene) {
 
     if (sceneId === 'SCENE_HUB_SPOREFALL') {
         const clueBeat = [];
+        const eoinTrust = getRelationship('eoin');
         const durnhelmLeadAvailable = isLocationUnlocked('durnhelm');
         if (state.cathedralLetterFound) clueBeat.push('the courier letter has already tied the cathedral quarter to the overseer');
         if (state.journalFound || state.letterFound || state.compassFound) clueBeat.push("Aodhan's house has begun giving up its secrets");
@@ -1711,7 +1802,7 @@ export function buildSporefallRuntimeScene(sceneId, baseScene) {
                 buttonText: state.eoinTalked ? 'Check on Eoin' : "Back to Eoin"
             })
         ];
-        if (state.eoinTalked) {
+        if (state.eoinTalked && eoinTrust >= 0) {
             scene.choices.unshift(createChoice("Ask Eoin to show you the way north how he remembers it. (Survival)", null, {
                 buttonText: 'Let Eoin Lead North (Survival)',
                 type: 'skillCheck',
@@ -1722,6 +1813,8 @@ export function buildSporefallRuntimeScene(sceneId, baseScene) {
                 nextSceneSuccess: 'SCENE_SPOREFALL_NORTH_APPROACH',
                 nextSceneFail: 'SCENE_SPOREFALL_NORTH_APPROACH'
             }));
+        } else if (state.eoinTalked && eoinTrust < 0) {
+            scene.text = `${scene.text} Eoin still watches the northern street, but not for your sake. Whatever trust he offered before, you have taught him to keep it close.`;
         }
         if (durnhelmLeadAvailable) {
             scene.choices.unshift(createChoice('Follow the northbound trail toward Durnhelm', 'SCENE_DURNHELM_GATES', {
@@ -2252,9 +2345,10 @@ function applySceneEffect(effect, source = 'scene') {
     }
 
     if (effect.type === 'removeCompanion' && effect.companionId) {
+        const wasInParty = gameState.party.includes(effect.companionId);
         removeCompanion(effect.companionId);
         const companion = companions[effect.companionId];
-        if (companion) {
+        if (wasInParty && companion) {
             logMessage(logText || `${companion.name} leaves the party.`, 'system');
         }
         return;
@@ -2354,6 +2448,7 @@ export function showCharacterCreation() {
     classSelect.innerHTML = "";
     backgroundSelect.innerHTML = "";
     for (const [key, race] of Object.entries(races)) {
+        if (race.playerSelectable === false) continue;
         const opt = document.createElement('option');
         opt.value = key;
         opt.innerText = race.name;
@@ -3585,10 +3680,12 @@ function renderChoices(choices = null) {
     if (pageChoices.length === 0) {
         const currentScene = scenes[gameState.currentSceneId];
         const fallbackScene = currentScene?.location === 'silverthorn'
-            ? 'SCENE_HUB_SILVERTHORN'
+            ? (gameState.flags.silverthorn_watch_hostile ? 'SCENE_SILVERTHORN_GATES' : 'SCENE_HUB_SILVERTHORN')
             : CANONICAL_START_SCENE;
         const fallback = createChoiceButton({
-            text: currentScene?.location === 'silverthorn' ? 'Return to City Center' : 'Continue'
+            text: currentScene?.location === 'silverthorn'
+                ? (gameState.flags.silverthorn_watch_hostile ? 'Report to the Eastern Gate' : 'Return to City Center')
+                : 'Continue'
         });
         fallback.onclick = () => goToScene(fallbackScene);
         choiceContainer.appendChild(fallback);
@@ -4034,8 +4131,8 @@ function buildTravelEventText(event) {
     if (actorHasCompanion('neala') && event.destinations?.includes('hushbriar')) {
         return `${event.text} Neala keeps cutting her eyes toward the margins of the road, reading the places where a guild scout or a hunter would choose to wait.`;
     }
-    if (actorHasCompanion('eoin') && event.destinations?.includes('whisperwood')) {
-        return `${event.text} Eoin goes pale at the sight of it, but still names what the ruin used to be before the road can swallow the memory whole.`;
+    if (actorHasCompanion('lark') && event.destinations?.includes('whisperwood')) {
+        return `${event.text} Lark keeps reading the treeline instead of the road, as if he still expects the forest to confess what was done to it before the borough does.`;
     }
     return `${event.text} ${partyNames} keep moving in a silence that feels shared rather than empty.`;
 }
@@ -4121,6 +4218,9 @@ function travelTo(locationId) {
 }
 
 export function getHubSceneForLocation(locationId) {
+    if (locationId === 'silverthorn' && gameState.flags.silverthorn_watch_hostile) {
+        return 'SCENE_SILVERTHORN_GATES';
+    }
     if (locationId === 'silverthorn' && gameState.flags['aodhan_dead']) {
         return 'SCENE_SILVERTHORN_QUARANTINE';
     }

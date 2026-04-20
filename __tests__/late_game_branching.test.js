@@ -87,6 +87,11 @@ test('retired and dormant late routes no longer resolve as default hubs', () => 
   expect(getHubSceneForLocation('solasmor')).toBe('SCENE_HUSHBRIAR_TOWN');
 });
 
+test('Silverthorn hub resolution hard-closes to the eastern gate after the watch turns hostile', () => {
+  gameState.flags.silverthorn_watch_hostile = true;
+  expect(getHubSceneForLocation('silverthorn')).toBe('SCENE_SILVERTHORN_GATES');
+});
+
 test('canonical late-route surfaces stay authored while deleted holdfast and teaser scenes stay out of the live scene map', () => {
   expect(scenes.SCENE_THIEVES_HIDEOUT.choices.length).toBeGreaterThan(0);
   expect(scenes.SCENE_HUSHBRIAR_PROCESSING_REVELATION.choices).toEqual([

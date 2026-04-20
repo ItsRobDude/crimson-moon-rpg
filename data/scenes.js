@@ -825,6 +825,7 @@ export const scenes = {
         text: "The captain taps the route on your writ. 'Stay on the road until the fog thickens, then trust your footing more than your eyes. If the air turns foul, cover your mouth and keep moving. No patrol we sent past the old mile-stone has returned unchanged.'",
         choices: [
             { text: "Leave Silverthorn now", buttonText: "Leave for Shadowmire", nextScene: "SCENE_TRAVEL_SHADOWMIRE" },
+            { text: "Threaten the captain and force the matter", buttonText: "Threaten the Captain", nextScene: "SCENE_SILVERTHORN_WATCH_CRACKDOWN" },
             { text: "Return to the gate plaza", buttonText: "Back to the Gate Plaza", nextScene: "SCENE_SILVERTHORN_GATES" }
         ]
     },
@@ -843,7 +844,7 @@ export const scenes = {
         id: "SCENE_SILVERTHORN_LARK_RECRUIT",
         location: "silverthorn",
         background: "landscapes/silverthorn_market_avenue.png",
-        text: "Lark waits with his bow already waxed and strung, watching the eastern gate like the next wagon might carry news that proves his clan did not break apart for nothing. The Veridian forest has not let him look at a treeline innocently since Whisperwood began to go wrong.",
+        text: "Lark waits with his bow already waxed and strung, watching the eastern gate like the next wagon might carry news that proves his clan did not break apart for nothing. The Viridian forest has not let him look at a treeline innocently since Whisperwood began to go wrong.",
         choices: [
             { text: "Ask Lark to take his place in the road-party.", buttonText: "Bring Lark", nextScene: "SCENE_SILVERTHORN_GATES" },
             { text: "Leave him with the gate traffic for the moment.", buttonText: "Back to the Gate Plaza", nextScene: "SCENE_SILVERTHORN_GATES" }
@@ -857,6 +858,43 @@ export const scenes = {
         choices: [
             { text: "Take Kieran Brogan as the third blade on the road.", buttonText: "Bring Kieran", nextScene: "SCENE_SILVERTHORN_GATES" },
             { text: "Leave him to pick a better fight.", buttonText: "Back to the Gate Plaza", nextScene: "SCENE_SILVERTHORN_GATES" }
+        ]
+    },
+    "SCENE_SILVERTHORN_LARK_CHECKIN": {
+        id: "SCENE_SILVERTHORN_LARK_CHECKIN",
+        location: "silverthorn",
+        background: "landscapes/silverthorn_market_avenue.png",
+        text: "Lark keeps his eyes on the eastern road even while he answers. He says the treeline east of Silverthorn is wrong in the same quiet way a wound is wrong before it starts to rot: too still where it should stir, too attentive where it should only be alive. Alderic's summons did not give him certainty. It only gave him a direction sharp enough to stand inside.",
+        choices: [
+            { text: "Let the silence stand and return to the gate plaza.", buttonText: "Back to the Gate Plaza", nextScene: "SCENE_SILVERTHORN_GATES" }
+        ]
+    },
+    "SCENE_SILVERTHORN_KIERAN_CHECKIN": {
+        id: "SCENE_SILVERTHORN_KIERAN_CHECKIN",
+        location: "silverthorn",
+        background: "landscapes/silverthorn_market_avenue.png",
+        text: "Kieran watches the watch more than the road. He mutters that men at a gate will tell you what kind of city you serve by what they make the hungry surrender first. When he finally glances east, the sarcasm thins. 'Still. Better a cursed road than another honest day helping bastards count bread.'",
+        choices: [
+            { text: "Leave him with the last word and return to the gate plaza.", buttonText: "Back to the Gate Plaza", nextScene: "SCENE_SILVERTHORN_GATES" }
+        ]
+    },
+    "SCENE_SILVERTHORN_WATCH_CRACKDOWN": {
+        id: "SCENE_SILVERTHORN_WATCH_CRACKDOWN",
+        location: "silverthorn",
+        background: "landscapes/silverthorn_market_avenue.png",
+        text: "The captain does not rise to the bait with a speech. He gives one flat order, and the gate square tightens around you with the speed of a trap already rehearsed. Steel leaves leather. Ledgers slam shut. A writ that opened roads a breath ago becomes the excuse to get you out from inside the walls before your temper costs the city more trouble than your mission is worth.",
+        onEnter: {
+            once: true,
+            effects: [
+                { type: "flag", flagId: "silverthorn_watch_hostile", value: true },
+                { type: "relationship", npcId: "alderic", amount: -2 },
+                { type: "reputation", factionId: "silverthorn", amount: -2 },
+                { type: "removeCompanion", companionId: "lark", logText: "Lark peels away from the road-party rather than march under a leader who mistakes anger for direction." },
+                { type: "removeCompanion", companionId: "kieran_brogan", logText: "Kieran spits a prayer sharp enough to count as a curse, hesitates like he still wants to help, then refuses to follow your bad judgment east." }
+            ]
+        },
+        choices: [
+            { text: "Take the road while the watch is still willing to let you keep it.", buttonText: "Driven to the Road", nextScene: "SCENE_TRAVEL_SHADOWMIRE" }
         ]
     },
     "SCENE_TRAVEL_SHADOWMIRE": {
@@ -884,6 +922,11 @@ export const scenes = {
             {
                 text: "Watch the treetops and listen for what scared them",
                 buttonText: "Watch the Treetops",
+                companionAid: {
+                    companionId: "lark",
+                    bonus: 2,
+                    logText: "Lark follows the panic in the branches instead of the road beneath it and gives the danger a shape before it reaches you."
+                },
                 nextScene: "SCENE_SHADOWMIRE_DYING_BIRDS"
             },
             {
@@ -988,6 +1031,11 @@ export const scenes = {
                 type: "skillCheck",
                 skill: "perception",
                 dc: 10,
+                companionAid: {
+                    companionId: "lark",
+                    bonus: 2,
+                    logText: "Lark reads the spoiled growth like trampled spoor and points out the one patch of movement still trying to stay human."
+                },
                 successText: "Out of the corner of your eye, something pale and human slips behind a nearby house. It is too careful to be a beast.",
                 failText: "The growths split wetly under your fingers, leaving them glazed in cold mucus and black grit. Somewhere close by, something answers the sound with a slow, dragging shift.",
                 onSuccess: {
@@ -1508,6 +1556,11 @@ export const scenes = {
                 type: "skillCheck",
                 skill: "investigation",
                 dc: 14,
+                companionAid: {
+                    companionId: "kieran_brogan",
+                    bonus: 2,
+                    logText: "Kieran treats the rune grooves like a rigged lock and talks you through the cuts that belong versus the cuts meant to punish impatience."
+                },
                 successText: "Faint cuts in the wood reveal how the magic flows. Some of the animals belong. Two are only there to punish the impatient.",
                 failText: "You find the grooves but not the pattern that would let you break it safely.",
                 onSuccess: {
@@ -1644,6 +1697,11 @@ export const scenes = {
                 type: "skillCheck",
                 skill: "perception",
                 dc: 11,
+                companionAid: {
+                    companionId: "lark",
+                    bonus: 2,
+                    logText: "Lark spots where the ash has been disturbed by something that knows how to wait and angles you through the least fatal lane."
+                },
                 successText: "You catch the ambush before it closes and pick your way through the dead ground without giving it your throat.",
                 failText: "Something lunges from behind an overturned cart before you can choose your footing.",
                 nextSceneSuccess: "SCENE_SPOREFALL_NORTH_ROUTE_DISCOVERED",

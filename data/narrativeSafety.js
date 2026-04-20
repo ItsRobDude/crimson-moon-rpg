@@ -63,6 +63,14 @@ export const narrativeStateRegistry = {
             revealSensitivity: 'public',
             semantics: 'one_time_outcome'
         },
+        silverthorn_watch_hostile: {
+            owner: 'SCENE_SILVERTHORN_WATCH_CRACKDOWN',
+            thread: 'silverthorn_prep',
+            meaning: 'The player turned the eastern gate watch hostile and was forced out onto the road, closing the safer Silverthorn departure loop.',
+            allowedValues: [true],
+            revealSensitivity: 'public',
+            semantics: 'route_lock'
+        },
         sporefall_eoin_glimpsed: {
             owner: 'SCENE_ARRIVAL_WHISPERWOOD',
             thread: 'eoin_thread',

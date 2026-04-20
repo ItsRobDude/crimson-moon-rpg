@@ -94,6 +94,11 @@ export const traitDefinitions = {
         bonusToolChoices: 1,
         toolChoices: ['smith_tools', 'brewer_supplies', 'mason_tools']
     },
+    small_bodied: {
+        id: 'small_bodied',
+        name: 'Small-Bodied',
+        description: 'You are light on your feet and used to being underestimated because of your stature.'
+    },
     fighting_style_defense: {
         id: 'fighting_style_defense',
         name: 'Defense Fighting Style',

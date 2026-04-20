@@ -43,6 +43,7 @@ Player-facing early knowledge should stay narrow:
 
 ## Character Guardrails
 
+- `Lark` is of mixed Viridian blood; internally, treat him as specifically wood elf/human mixed ancestry and keep that sharper truth out of general player-facing docs and early exposition.
 - `Aodhan` must remain morally unresolved: grief-stricken, reactive, dangerous, and impossible to sort neatly into hero or villain.
 - `Neala` and `Liobhan` are not early-route content. They belong to the later bypass route that reaches the Viridian Forest / Hushbriar thread.
 - `Eoin` is a ghostlike, displaced survivor who does not understand the full truth of his own state.
@@ -54,6 +55,8 @@ These are contributor-facing voice anchors for current player-facing NPCs. Check
 
 - `Eoin`
   Young, frightened, lonely, and disoriented. He clings to concrete memories like his mother, hiding, hunger, the bridge, and getting lost. He should not sound tactically polished, emotionally fluent, or like a hardened scout.
+- `Lark`
+  Sparse, contemplative, morally conflicted, and sharper than his youth first suggests. He should sound like someone still arguing with a broken forest and only reluctantly trusting the direction Alderic gave him.
 - `Neala`
   Blunt, accusatory, impatient, and street-hard. Her threats are direct and hot-blooded. She should sound like someone ready to cut first and listen second.
 - `Liobhan`

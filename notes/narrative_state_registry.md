@@ -25,6 +25,7 @@ If you add a new story-critical key, update both this note and the JS registry i
 | --- | --- | --- | --- | --- | --- |
 | `silverthorn_temple_ward_taken` | `SCENE_SILVERTHORN_TEMPLE_COUNSEL` | `silverthorn_prep` | Temple ward already resolved. | public | one_time_outcome |
 | `silverthorn_gate_route_briefed` | `SCENE_SILVERTHORN_GATE_CAPTAIN` | `silverthorn_prep` | Route-study reward already resolved. | public | one_time_outcome |
+| `silverthorn_watch_hostile` | `SCENE_SILVERTHORN_WATCH_CRACKDOWN` | `silverthorn_prep` | Gate watch turned hostile and forced the player onto the eastern road. | public | route_lock |
 | `sporefall_eoin_glimpsed` | `SCENE_ARRIVAL_WHISPERWOOD` | `eoin_thread` | Eoin sensed nearby before full meeting. | public | story_progression |
 | `sporefall_eoin_met` | `SCENE_MEET_EOIN` | `eoin_thread` | First direct Eoin encounter happened. | public | story_progression |
 | `sporefall_eoin_talked` | `SCENE_EOIN_TALK` | `eoin_thread` | Eoin's first major conversation is complete. | public | story_progression |

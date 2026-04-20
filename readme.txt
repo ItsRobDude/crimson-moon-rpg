@@ -21,7 +21,7 @@ For character systems, prioritize deeper class support over broad shallow expans
 
 See `notes/salvage_pitch.md` for a concrete gameplay loop and story structure that ties these pieces together.
 See `notes/story_timeline_model.md` for the canonical Silverthorn opening and the new event-driven timeline model.
-The current Act II recovery slice assumes: Alderic briefing -> Silverthorn prep -> Shadowmire road -> blackout -> early Sporefall -> early Eoin -> directional borough investigation.
+The current Act II recovery slice assumes: Alderic briefing -> Silverthorn prep -> party mustering -> Shadowmire road -> blackout -> early Sporefall -> early Eoin -> directional borough investigation.
 See `notes/5e_mechanics_roadmap.md` for the rules-depth plan.
 See `notes/trustworthy_5e_lite_status.md` for the current near-term milestone target.
 See `notes/implementation_matrix.md` for the current shipped-state audit of exposed 5e-lite mechanics.
