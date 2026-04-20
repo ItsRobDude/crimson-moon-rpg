@@ -881,7 +881,10 @@ function isSceneInSilverthorn(sceneId) {
         'SCENE_SILVERTHORN_NOTICE_WHISPERWOOD',
         'SCENE_SILVERTHORN_NOTICE_CONTRACTS',
         'SCENE_SILVERTHORN_GATES',
-        'SCENE_SILVERTHORN_GATE_CAPTAIN'
+        'SCENE_SILVERTHORN_GATE_CAPTAIN',
+        'SCENE_SILVERTHORN_PARTY_MUSTER',
+        'SCENE_SILVERTHORN_LARK_RECRUIT',
+        'SCENE_SILVERTHORN_KIERAN_RECRUIT'
     ].includes(sceneId);
 }
 
@@ -893,6 +896,8 @@ function isSceneInSporefall(sceneId) {
         'SCENE_EOIN_TALK',
         'SCENE_EOIN_RITUAL_TALK',
         'SCENE_EOIN_MOTHER_TALK',
+        'SCENE_DREADCAP_WARNING',
+        'SCENE_DREADCAP_AFTERMATH',
         'SCENE_ALONE_AGAIN',
         'SCENE_HUB_SPOREFALL',
         'SCENE_SPOREFALL_CATHEDRAL_APPROACH',
@@ -1036,9 +1041,12 @@ function applyPartySceneVariation(sceneId, scene) {
     return scene;
 }
 
-function buildSilverthornRuntimeScene(sceneId, baseScene) {
+export function buildSilverthornRuntimeScene(sceneId, baseScene) {
     const time = getSilverthornTimeState();
     const scene = cloneScene(sceneId);
+    const hasLark = actorHasCompanion('lark');
+    const hasKieran = actorHasCompanion('kieran_brogan');
+    const partyReady = hasLark && hasKieran;
 
     if (sceneId === 'SCENE_HUB_SILVERTHORN') {
         const curfewBeat = time.isDusk
@@ -1320,10 +1328,23 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
             : time.isDusk
                 ? 'The last approved wagons are being hurried through before the watch seals the night.'
                 : 'Traffic still moves, but every outbound cart is inspected twice and every face is studied as if the walls themselves have learned suspicion.';
-        scene.text = `${baseScene.text} ${gateMood}`;
+        const partyBeat = partyReady
+            ? ` Lark and Kieran Brogan wait near the roadward wagons with the tense stillness of people who have already decided to leave and are only waiting on you to stop circling it.`
+            : ` The prince's road-party is not fully assembled yet. ${!hasLark && !hasKieran ? 'Lark waits somewhere near the gate traffic, and the dwarf Alderic vouched for has not reported to your side yet.' : !hasLark ? 'Lark still has not taken her place beside you.' : 'Kieran Brogan still has to be pulled away from whatever small act of defiance is keeping him busy.'}`;
+        scene.text = `${baseScene.text} ${gateMood}${partyBeat}`;
         scene.choices = [
             createChoice('Take counsel from the gate captain', 'SCENE_SILVERTHORN_GATE_CAPTAIN', { timeAdvance: 1, timeReason: 'You spend time getting the latest road intelligence.', inSilverthorn: true }),
-            createChoice(time.isNight ? 'Pass beyond the walls despite the hour' : 'Take the eastern road into Shadowmire', 'SCENE_TRAVEL_SHADOWMIRE', { timeAdvance: 1, timeReason: 'You finalize your departure and pass beyond the walls.', inSilverthorn: true }),
+            ...(!hasLark ? [createChoice('Find Lark and settle who is marching with you', 'SCENE_SILVERTHORN_LARK_RECRUIT', { buttonText: 'Find Lark' })] : []),
+            ...(!hasKieran ? [createChoice('Track down the dwarf Alderic assigned to the road-party', 'SCENE_SILVERTHORN_KIERAN_RECRUIT', { buttonText: 'Find Kieran' })] : []),
+            createChoice(
+                partyReady
+                    ? (time.isNight ? 'Pass beyond the walls despite the hour' : 'Take the eastern road into Shadowmire')
+                    : 'Muster the party before you leave Silverthorn',
+                partyReady ? 'SCENE_TRAVEL_SHADOWMIRE' : 'SCENE_SILVERTHORN_PARTY_MUSTER',
+                partyReady
+                    ? { timeAdvance: 1, timeReason: 'You finalize your departure and pass beyond the walls.', inSilverthorn: true }
+                    : { buttonText: 'Muster the Party' }
+            ),
             createChoice('Return to the city center', 'SCENE_HUB_SILVERTHORN')
         ];
         return scene;
@@ -1377,16 +1398,87 @@ function buildSilverthornRuntimeScene(sceneId, baseScene) {
         }
 
         scene.choices.push(
-            createChoice('Leave Silverthorn now', 'SCENE_TRAVEL_SHADOWMIRE', { timeAdvance: 1, timeReason: 'You leave before the city can hold you any longer.', inSilverthorn: true }),
+            createChoice(
+                partyReady ? 'Leave Silverthorn now' : 'Gather the road-party before you leave',
+                partyReady ? 'SCENE_TRAVEL_SHADOWMIRE' : 'SCENE_SILVERTHORN_PARTY_MUSTER',
+                partyReady
+                    ? { timeAdvance: 1, timeReason: 'You leave before the city can hold you any longer.', inSilverthorn: true }
+                    : { buttonText: 'Muster the Party' }
+            ),
             createChoice('Return to the gate plaza', 'SCENE_SILVERTHORN_GATES')
         );
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_SILVERTHORN_PARTY_MUSTER') {
+        const missing = [
+            !hasLark ? 'Lark' : null,
+            !hasKieran ? 'Kieran Brogan' : null
+        ].filter(Boolean);
+        if (missing.length === 0) {
+            scene.text = "Your road-party is finally in order. The eastern gate feels less like an exit now and more like a sentence already underway.";
+            scene.choices = [
+                createChoice('Return to the gate plaza and leave while nerve still holds.', 'SCENE_SILVERTHORN_GATES', { buttonText: 'Back to the Gate Plaza' })
+            ];
+            return scene;
+        }
+        scene.text = `You run a hard eye over the people meant to go east with you and the count still comes up short. ${formatNameList(missing)} still need to be brought under the same grim decision before the road can mean anything.`;
+        scene.choices = [
+            ...(!hasLark ? [createChoice('Find Lark at the gate traffic.', 'SCENE_SILVERTHORN_LARK_RECRUIT', { buttonText: 'Find Lark' })] : []),
+            ...(!hasKieran ? [createChoice('Drag Kieran Brogan away from the customs desk.', 'SCENE_SILVERTHORN_KIERAN_RECRUIT', { buttonText: 'Find Kieran' })] : []),
+            createChoice('Return to the gate plaza', 'SCENE_SILVERTHORN_GATES', { buttonText: 'Back to the Gate Plaza' })
+        ];
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_SILVERTHORN_LARK_RECRUIT') {
+        if (hasLark) {
+            scene.text = "Lark is already in position by the outbound wagons, bow waxed, shoulders square, and very clearly done waiting for Silverthorn to talk itself out of danger.";
+            scene.choices = [
+                createChoice('Return to the gate plaza.', 'SCENE_SILVERTHORN_GATES', { buttonText: 'Back to the Gate Plaza' })
+            ];
+            return scene;
+        }
+        scene.text = "Lark stands just off the traffic line with her hood down and her bow already waxed against damp. She watches the eastern road with the expression of someone who expects it to answer badly and means to be there when it does.";
+        scene.choices = [
+            createChoice('"Take your place on my flank. We leave together."', 'SCENE_SILVERTHORN_GATES', {
+                buttonText: 'Bring Lark',
+                effects: [
+                    { type: 'flag', flagId: 'silverthorn_lark_recruited', value: true },
+                    { type: 'addCompanion', companionId: 'lark', logText: 'Lark joins the road-party without another wasted word.' }
+                ]
+            }),
+            createChoice('Leave her to the gate for a little longer.', 'SCENE_SILVERTHORN_GATES', { buttonText: 'Back to the Gate Plaza' })
+        ];
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_SILVERTHORN_KIERAN_RECRUIT') {
+        if (hasKieran) {
+            scene.text = "Kieran Brogan is already with the road-party, muttering something pious and unkind about tax ledgers, noble timing, and the many inventive uses of a customs stamp.";
+            scene.choices = [
+                createChoice('Return to the gate plaza.', 'SCENE_SILVERTHORN_GATES', { buttonText: 'Back to the Gate Plaza' })
+            ];
+            return scene;
+        }
+        scene.text = "Kieran Brogan has one boot on a customs crate and one hand on a loaf the watch clearly meant to confiscate from somebody poorer than themselves. He clocks your writ, drops back to the cobbles, and gives you a grin too sharp to trust and too tired to hate.";
+        scene.choices = [
+            createChoice('"If you want to spite the right people, come east with me."', 'SCENE_SILVERTHORN_GATES', {
+                buttonText: 'Bring Kieran',
+                effects: [
+                    { type: 'flag', flagId: 'silverthorn_kieran_recruited', value: true },
+                    { type: 'addCompanion', companionId: 'kieran_brogan', logText: 'Kieran Brogan falls in with the party, prayerful in theory and insubordinate in all the useful ways.' }
+                ]
+            }),
+            createChoice('Leave him to his argument with the clerk.', 'SCENE_SILVERTHORN_GATES', { buttonText: 'Back to the Gate Plaza' })
+        ];
         return scene;
     }
 
     return scene;
 }
 
-function buildSporefallRuntimeScene(sceneId, baseScene) {
+export function buildSporefallRuntimeScene(sceneId, baseScene) {
     const scene = cloneScene(sceneId);
     const state = getSporefallState();
     const clueNotes = [];
@@ -1516,6 +1608,7 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
     if (sceneId === 'SCENE_EOIN_TALK') {
         scene.choices = [...(scene.choices || [])];
         const recruitmentResolved = !!(gameState.flags.eoin_recruited || gameState.flags.eoin_refused || gameState.flags.eoin_locked_out);
+        const dreadcapCanTrigger = state.eoinKeyInfoHeard && state.eoinChoiceMade && !state.dreadcapTriggered && !state.dreadcapDefeated;
         if (state.eoinTalked) {
             const reactions = [];
             if (clueNotes.includes('cathedral')) {
@@ -1551,6 +1644,7 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
                 buttonText: 'Bring Him Along',
                 effects: [
                     { type: 'flag', flagId: 'sporefall_eoin_talked', value: true },
+                    { type: 'flag', flagId: 'sporefall_eoin_choice_made', value: true },
                     { type: 'flag', flagId: 'eoin_recruited', value: true },
                     { type: 'flag', flagId: 'eoin_bonded', value: true },
                     { type: 'relationship', npcId: 'eoin', amount: 10 },
@@ -1562,6 +1656,7 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
                 buttonText: 'Tell Him to Hide',
                 effects: [
                     { type: 'flag', flagId: 'sporefall_eoin_talked', value: true },
+                    { type: 'flag', flagId: 'sporefall_eoin_choice_made', value: true },
                     { type: 'flag', flagId: 'eoin_refused', value: true }
                 ]
             }));
@@ -1569,8 +1664,17 @@ function buildSporefallRuntimeScene(sceneId, baseScene) {
                 buttonText: 'Refuse Him',
                 effects: [
                     { type: 'flag', flagId: 'sporefall_eoin_talked', value: true },
+                    { type: 'flag', flagId: 'sporefall_eoin_choice_made', value: true },
                     { type: 'flag', flagId: 'eoin_locked_out', value: true },
                     { type: 'relationship', npcId: 'eoin', amount: -15 }
+                ]
+            }));
+        }
+        if (dreadcapCanTrigger) {
+            scene.choices.push(createChoice('Linger a little longer and press Eoin on what keeps prowling these streets.', 'SCENE_DREADCAP_WARNING', {
+                buttonText: 'Linger Too Long',
+                effects: [
+                    { type: 'flag', flagId: 'sporefall_dreadcap_triggered', value: true }
                 ]
             }));
         }
@@ -5598,6 +5702,8 @@ function getSporefallState() {
         eoinTalked: !!gameState.flags.sporefall_eoin_talked,
         eoinGlimpsed: !!gameState.flags.sporefall_eoin_glimpsed,
         eoinComforted: !!gameState.flags.sporefall_eoin_comforted,
+        eoinChoiceMade: !!gameState.flags.sporefall_eoin_choice_made,
+        eoinKeyInfoHeard: !!gameState.flags.sporefall_eoin_key_info_heard,
         cathedralLetterFound: !!gameState.flags.sporefall_cathedral_letter_found,
         cathedralVisionSeen: !!gameState.flags.sporefall_cathedral_vision_seen,
         cathedralMasonryRead: !!gameState.flags.sporefall_cathedral_masonry_read,
@@ -5608,7 +5714,9 @@ function getSporefallState() {
         compassFound: !!gameState.flags.sporefall_compass_found,
         bridgeSeen: !!gameState.flags.sporefall_bridge_seen,
         bridgeBodySeen: !!gameState.flags.sporefall_bridge_body_seen,
-        northRouteOpen: !!gameState.flags.sporefall_north_route_open
+        northRouteOpen: !!gameState.flags.sporefall_north_route_open,
+        dreadcapTriggered: !!gameState.flags.sporefall_dreadcap_triggered,
+        dreadcapDefeated: !!gameState.flags.sporefall_dreadcap_defeated
     };
 }
 

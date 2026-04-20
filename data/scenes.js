@@ -828,6 +828,37 @@ export const scenes = {
             { text: "Return to the gate plaza", buttonText: "Back to the Gate Plaza", nextScene: "SCENE_SILVERTHORN_GATES" }
         ]
     },
+    "SCENE_SILVERTHORN_PARTY_MUSTER": {
+        id: "SCENE_SILVERTHORN_PARTY_MUSTER",
+        location: "silverthorn",
+        background: "landscapes/silverthorn_market_avenue.png",
+        text: "The eastern gate is no place to discover too late that you left your road-party scattered across Silverthorn. Alderic's charge is too ugly for that kind of pride.",
+        choices: [
+            { text: "Find Lark before departure", buttonText: "Find Lark", nextScene: "SCENE_SILVERTHORN_LARK_RECRUIT" },
+            { text: "Look for the dwarf meant to fill out the road-party", buttonText: "Find Kieran", nextScene: "SCENE_SILVERTHORN_KIERAN_RECRUIT" },
+            { text: "Return to the gate plaza", buttonText: "Back to the Gate Plaza", nextScene: "SCENE_SILVERTHORN_GATES" }
+        ]
+    },
+    "SCENE_SILVERTHORN_LARK_RECRUIT": {
+        id: "SCENE_SILVERTHORN_LARK_RECRUIT",
+        location: "silverthorn",
+        background: "landscapes/silverthorn_market_avenue.png",
+        text: "Lark waits with her bow already waxed and strung, watching the traffic at the eastern gate like every wagon might split open and spill a warning nobody else can hear.",
+        choices: [
+            { text: "Ask Lark to take her place in the road-party.", buttonText: "Bring Lark", nextScene: "SCENE_SILVERTHORN_GATES" },
+            { text: "Leave her to her thoughts for the moment.", buttonText: "Back to the Gate Plaza", nextScene: "SCENE_SILVERTHORN_GATES" }
+        ]
+    },
+    "SCENE_SILVERTHORN_KIERAN_RECRUIT": {
+        id: "SCENE_SILVERTHORN_KIERAN_RECRUIT",
+        location: "silverthorn",
+        background: "landscapes/silverthorn_market_avenue.png",
+        text: "A broad-shouldered dwarf in patched leather is arguing with a customs clerk over whether confiscating extra trail bread counts as honest taxation or simply slow theft. He spots your writ, spits to the side, and grins without much warmth.",
+        choices: [
+            { text: "Take Kieran Brogan as the third blade on the road.", buttonText: "Bring Kieran", nextScene: "SCENE_SILVERTHORN_GATES" },
+            { text: "Leave him to pick a better fight.", buttonText: "Back to the Gate Plaza", nextScene: "SCENE_SILVERTHORN_GATES" }
+        ]
+    },
     "SCENE_TRAVEL_SHADOWMIRE": {
         id: "SCENE_TRAVEL_SHADOWMIRE",
         location: "shadowmire",
@@ -1038,7 +1069,18 @@ export const scenes = {
         background: "landscapes/sporefall_outskirt_encounter.png",
         text: "The Fungal Beast erupts from the haze, black-purple dust and wet fungal slurry streaming from its matted hide as it barrels toward you!",
         type: "combat",
-        enemies: ["fungal_beast"],
+        enemies: ["fungal_beast", "fungal_beast"],
+        battlefield: {
+            width: 9,
+            height: 6,
+            tileSize: 5,
+            terrain: [
+                { x: 3, y: 1, difficult: true, name: "Fungal Overgrowth" },
+                { x: 3, y: 4, difficult: true, name: "Fungal Overgrowth" },
+                { x: 5, y: 2, difficult: true, name: "Fungal Overgrowth" },
+                { x: 5, y: 3, difficult: true, name: "Fungal Overgrowth" }
+            ]
+        },
         winScene: "SCENE_VICTORY",
         loseScene: "SCENE_DEFEAT"
     },
@@ -1120,7 +1162,8 @@ export const scenes = {
                 text: "\"Slow down. Start with the cathedral.\"",
                 buttonText: "Ask About the Cathedral",
                 effects: [
-                    { type: "flag", flagId: "sporefall_eoin_talked", value: true }
+                    { type: "flag", flagId: "sporefall_eoin_talked", value: true },
+                    { type: "flag", flagId: "sporefall_eoin_key_info_heard", value: true }
                 ],
                 nextScene: "SCENE_EOIN_RITUAL_TALK"
             },
@@ -1129,6 +1172,7 @@ export const scenes = {
                 buttonText: "Ask About the North Side",
                 effects: [
                     { type: "flag", flagId: "sporefall_eoin_talked", value: true },
+                    { type: "flag", flagId: "sporefall_eoin_key_info_heard", value: true },
                     { type: "relationship", npcId: "eoin", amount: 5 }
                 ],
                 nextScene: "SCENE_EOIN_MOTHER_TALK"
@@ -1137,7 +1181,8 @@ export const scenes = {
                 text: "\"Stay down. I need to look around first.\"",
                 buttonText: "Tell Him to Stay Down",
                 effects: [
-                    { type: "flag", flagId: "sporefall_eoin_talked", value: true }
+                    { type: "flag", flagId: "sporefall_eoin_talked", value: true },
+                    { type: "flag", flagId: "sporefall_eoin_choice_made", value: true }
                 ],
                 nextScene: "SCENE_HUB_SPOREFALL"
             }
@@ -1202,7 +1247,8 @@ export const scenes = {
                 text: "\"All right. Keep your head down.\"",
                 buttonText: "Tell Him to Keep Low",
                 effects: [
-                    { type: "flag", flagId: "sporefall_eoin_talked", value: true }
+                    { type: "flag", flagId: "sporefall_eoin_talked", value: true },
+                    { type: "flag", flagId: "sporefall_eoin_choice_made", value: true }
                 ],
                 nextScene: "SCENE_HUB_SPOREFALL"
             }
@@ -1223,8 +1269,74 @@ export const scenes = {
                 text: "\"Stay hidden a little longer.\"",
                 buttonText: "Tell Him to Hide",
                 effects: [
-                    { type: "flag", flagId: "sporefall_eoin_talked", value: true }
+                    { type: "flag", flagId: "sporefall_eoin_talked", value: true },
+                    { type: "flag", flagId: "sporefall_eoin_choice_made", value: true }
                 ],
+                nextScene: "SCENE_HUB_SPOREFALL"
+            }
+        ]
+    },
+    "SCENE_DREADCAP_WARNING": {
+        id: "SCENE_DREADCAP_WARNING",
+        location: "whisperwood",
+        background: "landscapes/eoin_sighted.png",
+        text: "The cold comes first. Warmth leaves your hands and breath ghosts white in front of your face though the night has not changed. Eoin looks past you into the street and every scrap of steadiness in him tears loose at once. 'It's here,' he whispers, then louder, breaking on the words. 'Don't just stand there. It's here.' Something vast drags itself through the haze beyond the house, and the street begins to tremble under the weight of it.",
+        choices: [
+            {
+                text: "Turn and meet it in the street.",
+                buttonText: "Face the Dreadcap",
+                nextScene: "SCENE_DREADCAP_COLOSSUS"
+            }
+        ]
+    },
+    "SCENE_DREADCAP_COLOSSUS": {
+        id: "SCENE_DREADCAP_COLOSSUS",
+        location: "whisperwood",
+        background: "landscapes/sporefall_outskirt_encounter.png",
+        text: "A Dreadcap Colossus heaves into view: a towering knot of corpse-fungus, roots, and wet black muscle with a ruin of antler-like caps breaking from its back. It reeks of turned earth, sweet rot, and something older than both.",
+        type: "combat",
+        enemies: ["dreadcap_colossus_lesser"],
+        battlefield: {
+            width: 11,
+            height: 7,
+            tileSize: 5,
+            terrain: [
+                { x: 3, y: 0, difficult: true, name: "Spore-choked Growth" },
+                { x: 3, y: 1, difficult: true, name: "Spore-choked Growth" },
+                { x: 3, y: 5, difficult: true, name: "Spore-choked Growth" },
+                { x: 3, y: 6, difficult: true, name: "Spore-choked Growth" },
+                { x: 6, y: 0, difficult: true, name: "Spore-choked Growth" },
+                { x: 6, y: 1, difficult: true, name: "Spore-choked Growth" },
+                { x: 6, y: 5, difficult: true, name: "Spore-choked Growth" },
+                { x: 6, y: 6, difficult: true, name: "Spore-choked Growth" },
+                { x: 8, y: 2, difficult: true, name: "Matted Roots" },
+                { x: 8, y: 3, difficult: true, name: "Matted Roots" },
+                { x: 8, y: 4, difficult: true, name: "Matted Roots" }
+            ],
+            effects: [
+                { x: 5, y: 2, id: "spore_bloom_1", name: "Spore Bloom", damage: "1d4", damageType: "poison", statusEffectId: "poisoned", statusDuration: 1 },
+                { x: 5, y: 4, id: "spore_bloom_2", name: "Spore Bloom", damage: "1d4", damageType: "poison", statusEffectId: "poisoned", statusDuration: 1 }
+            ]
+        },
+        winScene: "SCENE_DREADCAP_AFTERMATH",
+        loseScene: "SCENE_DEFEAT"
+    },
+    "SCENE_DREADCAP_AFTERMATH": {
+        id: "SCENE_DREADCAP_AFTERMATH",
+        location: "whisperwood",
+        background: "landscapes/sporefall_outskirt_encounter.png",
+        onEnter: {
+            once: true,
+            effects: [
+                { type: "flag", flagId: "sporefall_dreadcap_defeated", value: true },
+                { type: "addItem", itemId: "aislings_corrupt_vigil", logText: "You wrench a warped longbow free of the Dreadcap sludge: Aisling's Corrupt Vigil." }
+            ]
+        },
+        text: "The colossus comes apart in stages rather than death: caps split, vines slacken, and the great body sags into a stinking heap of black sludge. Something in the ruin catches the crimson light. Half-buried in the filth lies a warped longbow, its limbs veined with fungal glow and a mark you wish you had not learned to recognize.",
+        choices: [
+            {
+                text: "Take the bow and pull back into the street before anything else answers.",
+                buttonText: "Take the Bow",
                 nextScene: "SCENE_HUB_SPOREFALL"
             }
         ]
@@ -1761,7 +1873,18 @@ export const scenes = {
         background: "landscapes/forest_walk_alt.png",
         text: "Suddenly, a growl erupts from the mist! A wolf leaps at you from the shadows!",
         type: "combat",
-        enemies: ["wolf"],
+        enemies: ["wolf", "wolf"],
+        battlefield: {
+            width: 8,
+            height: 6,
+            tileSize: 5,
+            terrain: [
+                { x: 3, y: 0, difficult: true, name: "Root Snarl" },
+                { x: 3, y: 5, difficult: true, name: "Root Snarl" },
+                { x: 4, y: 2, difficult: true, name: "Brush" },
+                { x: 4, y: 3, difficult: true, name: "Brush" }
+            ]
+        },
         winScene: "SCENE_TRAVEL_SHADOWMIRE",
         loseScene: "SCENE_DEFEAT"
     },

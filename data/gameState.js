@@ -938,10 +938,10 @@ export function addCompanion(companionId) {
             portrait: compDef.portrait,
             subclassId: cls?.subclassLevel === 1 ? (cls.defaultSubclass || null) : null,
             statusEffects: [],
-            expertiseSkills: [],
-            fightingStyle: null,
+            expertiseSkills: [...(compDef.expertiseSkills || [])],
+            fightingStyle: compDef.fightingStyle || null,
             feats: [],
-            mechanics: createDefaultMechanicsState(compDef.baseStats, {
+            mechanics: createDefaultMechanicsState(stats, {
                 saveProficiencies: cls ? (cls.saveProficiencies || []) : [],
                 proficiencies,
                 baseSpeed: 30

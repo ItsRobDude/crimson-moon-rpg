@@ -19,6 +19,12 @@ async function advanceSceneUntilChoice(page, choiceName) {
       continue;
     }
 
+    const moreButton = page.getByRole('button', { name: /more/i });
+    if (await moreButton.isVisible().catch(() => false)) {
+      await moreButton.click();
+      continue;
+    }
+
     break;
   }
 
@@ -50,6 +56,10 @@ test.describe('Canonical Spine Route', () => {
     await clickChoice(page, /accept the charge/i);
     await clickChoice(page, /exit alderic's chamber/i);
     await clickChoice(page, /eastern gate/i);
+    await clickChoice(page, /find lark/i);
+    await clickChoice(page, /bring lark/i);
+    await clickChoice(page, /find kieran/i);
+    await clickChoice(page, /bring kieran/i);
     await clickChoice(page, /shadowmire/i);
     await clickChoice(page, /take the eastern road/i);
     await clickChoice(page, /watch the treetops/i);
@@ -128,5 +138,44 @@ test.describe('Canonical Spine Route', () => {
     await clickChoice(page, /carry the knowledge forward/i);
     await expect(page.locator('#start-menu')).toBeVisible();
     await expect(page.locator('#start-menu')).toContainText('Start');
+  });
+
+  test('the Sporefall linger route can launch the Dreadcap fight after Eoin info plus a handling choice', async ({ page }) => {
+    await page.addInitScript(() => {
+      Math.random = () => 0.99;
+    });
+
+    await page.goto('/');
+    await page.waitForFunction(() => window.gameReady);
+
+    await page.click('#btn-start-new');
+    await page.fill('#cc-name', 'DreadcapRoute');
+    await page.click('#btn-start-game');
+
+    await clickChoice(page, /press alderic/i);
+    await clickChoice(page, /accept the charge/i);
+    await clickChoice(page, /exit alderic's chamber/i);
+    await clickChoice(page, /eastern gate/i);
+    await clickChoice(page, /find lark/i);
+    await clickChoice(page, /bring lark/i);
+    await clickChoice(page, /find kieran/i);
+    await clickChoice(page, /bring kieran/i);
+    await clickChoice(page, /shadowmire/i);
+    await clickChoice(page, /take the eastern road/i);
+    await clickChoice(page, /watch the treetops/i);
+    await clickChoice(page, /fight for one breath/i);
+    await clickChoice(page, /reach the coughing stranger/i);
+    await clickChoice(page, /steady yourself/i);
+    await clickChoice(page, /search for survivors/i);
+    await clickChoice(page, /calm him/i);
+    await clickChoice(page, /ask about the cathedral/i);
+    await clickChoice(page, /tell him to keep low/i);
+    await clickChoice(page, /continue/i);
+    await clickChoice(page, /continue/i);
+    await clickChoice(page, /linger too long/i);
+    await clickChoice(page, /face the dreadcap/i);
+
+    await expect(page.locator('#battle-screen')).not.toHaveClass(/hidden/);
+    await expect(page.getByText(/A Dreadcap Colossus heaves into view/i)).toBeVisible();
   });
 });

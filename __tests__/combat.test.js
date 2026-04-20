@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 import { createBattleGrid, placeToken } from '../battlegrid.js';
-import { applyOpportunityAttacks, enemyTurn, getMovementPreview, hasReactionAvailable, initCombatSystem, performActionSurge, performAttack, performCastSpell, performCombatManeuver, performCunningAction, performAbility, performEscape, performMove, performStand, startCombat } from '../combat.js';
+import { applyOpportunityAttacks, beginTurn, buildEnemyCombatant, enemyTurn, getMovementPreview, hasReactionAvailable, initCombatSystem, performActionSurge, performAttack, performCastSpell, performCombatManeuver, performCunningAction, performAbility, performEnemySpecialAction, performEscape, performMove, performStand, resolveDamage, startCombat } from '../combat.js';
 import { gameState, resetGameState, syncActorState } from '../data/gameState.js';
 import { addEffectToActor, createDefaultMechanicsState } from '../data/mechanics.js';
 
@@ -1514,6 +1514,161 @@ test('rogue hide uses a stealth contest instead of granting hidden automatically
   performCunningAction('hide', 'player');
 
   expect(gameState.player.combatFlags.hidden).toBe(true);
+
+  randomSpy.mockRestore();
+});
+
+test('low-level dreadcap regeneration is suppressed by fire until its next turn and then returns', () => {
+  gameState.player = createActor({ name: 'Hero', hp: 20, maxHp: 20 });
+  syncActorState(gameState.player);
+
+  const dreadcap = buildEnemyCombatant('dreadcap_colossus_lesser', 0);
+  dreadcap.hp = 40;
+
+  gameState.combat = {
+    ...gameState.combat,
+    active: true,
+    activeActorId: dreadcap.uniqueId,
+    actionsRemaining: 1,
+    bonusActionsRemaining: 1,
+    grid: createBattleGrid(10, 8, 5),
+    enemies: [dreadcap],
+    turnOrder: [dreadcap.uniqueId, 'player']
+  };
+
+  placeToken(gameState.combat.grid, { id: 'player', x: 1, y: 3, team: 'allies', hp: gameState.player.hp, reach: 1 });
+  placeToken(gameState.combat.grid, { id: dreadcap.uniqueId, x: 7, y: 3, team: 'enemies', hp: dreadcap.hp, reach: 2 });
+
+  resolveDamage(dreadcap, 5, 'fire');
+  const afterFire = dreadcap.hp;
+  expect(dreadcap.combatFlags.regenerationSuppressedTurns).toBe(1);
+
+  beginTurn(dreadcap.uniqueId);
+  expect(dreadcap.hp).toBe(afterFire);
+  expect(dreadcap.combatFlags.regenerationSuppressedTurns).toBe(0);
+
+  dreadcap.hp = 30;
+  beginTurn(dreadcap.uniqueId);
+  expect(dreadcap.hp).toBe(36);
+});
+
+test('dreadcap spore cloud recharges and applies poison-blind pressure', () => {
+  const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.0);
+
+  gameState.player = createActor({
+    name: 'Hero',
+    abilities: { STR: 10, DEX: 10, CON: 8, INT: 10, WIS: 10, CHA: 10 },
+    hp: 20,
+    maxHp: 20
+  });
+  gameState.roster.lark = createActor({
+    id: 'lark',
+    name: 'Lark',
+    abilities: { STR: 10, DEX: 14, CON: 8, INT: 10, WIS: 12, CHA: 10 },
+    hp: 16,
+    maxHp: 16
+  });
+  gameState.party = ['lark'];
+  syncActorState(gameState.player);
+  syncActorState(gameState.roster.lark);
+
+  const dreadcap = buildEnemyCombatant('dreadcap_colossus_lesser', 0);
+
+  gameState.combat = {
+    ...gameState.combat,
+    active: true,
+    activeActorId: dreadcap.uniqueId,
+    actionsRemaining: 1,
+    bonusActionsRemaining: 1,
+    grid: createBattleGrid(10, 8, 5),
+    enemies: [dreadcap],
+    turnOrder: [dreadcap.uniqueId, 'player', 'lark']
+  };
+
+  placeToken(gameState.combat.grid, { id: 'player', x: 5, y: 3, team: 'allies', hp: gameState.player.hp, reach: 1 });
+  placeToken(gameState.combat.grid, { id: 'lark', x: 6, y: 4, team: 'allies', hp: gameState.roster.lark.hp, reach: 1 });
+  placeToken(gameState.combat.grid, { id: dreadcap.uniqueId, x: 6, y: 3, team: 'enemies', hp: dreadcap.hp, reach: 2 });
+
+  expect(performEnemySpecialAction(dreadcap, 'spore_cloud', 'player')).toBe(true);
+  expect(gameState.player.mechanics.activeEffects.some((effect) => effect.id === 'poisoned')).toBe(true);
+  expect(gameState.player.mechanics.activeEffects.some((effect) => effect.id === 'blinded')).toBe(true);
+  expect(dreadcap.combatFlags.specialActionAvailability.spore_cloud).toBe(false);
+
+  randomSpy.mockReset();
+  randomSpy.mockReturnValue(0.99);
+  gameState.combat.actionsRemaining = 1;
+  beginTurn(dreadcap.uniqueId);
+  expect(dreadcap.combatFlags.specialActionAvailability.spore_cloud).toBe(true);
+
+  randomSpy.mockRestore();
+});
+
+test('dreadcap vines can restrain and grapple a target', () => {
+  const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.0);
+
+  gameState.player = createActor({
+    name: 'Hero',
+    abilities: { STR: 8, DEX: 10, CON: 10, INT: 10, WIS: 10, CHA: 10 }
+  });
+  syncActorState(gameState.player);
+
+  const dreadcap = buildEnemyCombatant('dreadcap_colossus_lesser', 0);
+
+  gameState.combat = {
+    ...gameState.combat,
+    active: true,
+    activeActorId: dreadcap.uniqueId,
+    actionsRemaining: 1,
+    bonusActionsRemaining: 1,
+    grid: createBattleGrid(10, 8, 5),
+    enemies: [dreadcap],
+    turnOrder: [dreadcap.uniqueId, 'player']
+  };
+
+  placeToken(gameState.combat.grid, { id: 'player', x: 4, y: 3, team: 'allies', hp: gameState.player.hp, reach: 1 });
+  placeToken(gameState.combat.grid, { id: dreadcap.uniqueId, x: 7, y: 3, team: 'enemies', hp: dreadcap.hp, reach: 2 });
+
+  expect(performEnemySpecialAction(dreadcap, 'ensnaring_vines', 'player')).toBe(true);
+  expect(gameState.player.mechanics.activeEffects.some((effect) => effect.id === 'grappled')).toBe(true);
+  expect(gameState.player.mechanics.activeEffects.some((effect) => effect.id === 'restrained')).toBe(true);
+
+  randomSpy.mockRestore();
+});
+
+test('dreadcap multiattack lands two weapon hits when no special action is available', () => {
+  const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.99);
+
+  gameState.player = createActor({
+    name: 'Hero',
+    hp: 20,
+    maxHp: 20,
+    ac: 8
+  });
+  syncActorState(gameState.player);
+
+  const dreadcap = buildEnemyCombatant('dreadcap_colossus_lesser', 0);
+  dreadcap.attackProfile.toHit = 100;
+  dreadcap.attackProfile.damage = '1d1';
+  dreadcap.fullStats.specialActions = [];
+  dreadcap.specialActions = [];
+
+  gameState.combat = {
+    ...gameState.combat,
+    active: true,
+    activeActorId: dreadcap.uniqueId,
+    actionsRemaining: 1,
+    bonusActionsRemaining: 1,
+    grid: createBattleGrid(10, 8, 5),
+    enemies: [dreadcap],
+    turnOrder: [dreadcap.uniqueId, 'player']
+  };
+
+  placeToken(gameState.combat.grid, { id: 'player', x: 5, y: 3, team: 'allies', hp: gameState.player.hp, reach: 1 });
+  placeToken(gameState.combat.grid, { id: dreadcap.uniqueId, x: 6, y: 3, team: 'enemies', hp: dreadcap.hp, reach: 2 });
+
+  enemyTurn(dreadcap);
+
+  expect(gameState.player.hp).toBe(16);
 
   randomSpy.mockRestore();
 });

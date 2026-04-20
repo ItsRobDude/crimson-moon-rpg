@@ -165,6 +165,45 @@ export const items = {
         price: 25,
         description: 'A small bow used for hunting and skirmishing.'
     },
+    longbow: {
+        id: 'longbow',
+        name: 'Longbow',
+        type: 'weapon',
+        equipmentSlot: 'weapon',
+        subtype: 'longbow',
+        weaponCategory: 'martial',
+        damage: '1d8',
+        modifier: 'DEX',
+        damageType: 'piercing',
+        properties: ['ammunition', 'heavy', 'two_handed', 'ranged'],
+        rangeFeet: 150,
+        longRangeFeet: 600,
+        ammoType: 'arrows',
+        price: 50,
+        description: 'A war bow built to punch arrows through distance and poor cover alike.'
+    },
+    aislings_corrupt_vigil: {
+        id: 'aislings_corrupt_vigil',
+        name: "Aisling's Corrupt Vigil",
+        type: 'weapon',
+        equipmentSlot: 'weapon',
+        subtype: 'longbow',
+        weaponCategory: 'martial',
+        damage: '1d8+1',
+        modifier: 'DEX',
+        damageType: 'piercing',
+        properties: ['ammunition', 'heavy', 'two_handed', 'ranged'],
+        rangeFeet: 150,
+        longRangeFeet: 600,
+        ammoType: 'arrows',
+        modifiers: {
+            toHit: 1
+        },
+        rarity: 'uncommon',
+        requiresAttunement: true,
+        price: 0,
+        description: 'A fungus-warped longbow pried from the Dreadcap sludge. In the current slice it functions as a +1 longbow, its worse hungers still sleeping.'
+    },
     battleaxe: {
         id: 'battleaxe',
         name: 'Battleaxe',

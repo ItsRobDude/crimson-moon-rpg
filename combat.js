@@ -222,7 +222,18 @@ function buildNpcCombatSupport(template) {
     };
 }
 
-function buildEnemyCombatant(id, index) {
+function cloneSpecialActions(actions = []) {
+    return JSON.parse(JSON.stringify(actions || []));
+}
+
+function buildEnemyActionAvailability(combatantData = {}) {
+    return (combatantData.specialActions || []).reduce((availability, action) => {
+        availability[action.id] = true;
+        return availability;
+    }, {});
+}
+
+export function buildEnemyCombatant(id, index) {
     let combatantData;
     let isNpc = false;
 
@@ -243,11 +254,12 @@ function buildEnemyCombatant(id, index) {
     const primaryAttack = isNpc
         ? getPrimaryEnemyAttack(combatantData)
         : {
-            name: 'Attack',
+            name: combatantData.attackName || 'Attack',
             type: 'attack',
             toHit: combatantData.attackBonus || 2,
             damage: combatantData.damage || '1d4',
-            damageType: combatantData.damageType || 'bludgeoning'
+            damageType: combatantData.damageType || 'bludgeoning',
+            reachFeet: combatantData.reachFeet || 5
         };
 
     const fallbackAbilities = {
@@ -307,7 +319,7 @@ function buildEnemyCombatant(id, index) {
             damage: primaryAttack?.damage || combatantData.damage || '1d4',
             damageType: primaryAttack?.damageType || combatantData.damageType || 'bludgeoning',
             rangeFeet: primaryAttack?.range ? parseInt(String(primaryAttack.range).split('/')[0], 10) : null,
-            reachFeet: primaryAttack?.reachFeet || 5
+            reachFeet: primaryAttack?.reachFeet || combatantData.reachFeet || 5
         },
         attackActions: isNpc
             ? (combatantData.actions || []).filter((action) => action.type === 'attack').map((action) => ({
@@ -319,7 +331,11 @@ function buildEnemyCombatant(id, index) {
                 reachFeet: action.reachFeet || 5
             }))
             : [],
-        combatFlags: {}
+        specialActions: cloneSpecialActions(combatantData.specialActions),
+        combatFlags: {
+            specialActionAvailability: buildEnemyActionAvailability(combatantData),
+            regenerationSuppressedTurns: 0
+        }
     };
 
     if (npcSupport.classId === 'cleric' || npcSupport.classId === 'wizard') {
@@ -336,6 +352,57 @@ function buildEnemyCombatant(id, index) {
     syncActorState(combatant);
     combatant.ac = getDerivedActorState(combatant).ac;
     return combatant;
+}
+
+function getEnemySpecialActions(enemy) {
+    return Array.isArray(enemy?.specialActions) ? enemy.specialActions : [];
+}
+
+function isSpecialActionReady(enemy, actionId) {
+    if (!actionId) return false;
+    if (!enemy?.combatFlags?.specialActionAvailability) return true;
+    return enemy.combatFlags.specialActionAvailability[actionId] !== false;
+}
+
+function markSpecialActionUsed(enemy, action) {
+    if (!enemy || !action?.recharge) return;
+    enemy.combatFlags = {
+        ...(enemy.combatFlags || {}),
+        specialActionAvailability: {
+            ...(enemy.combatFlags?.specialActionAvailability || {}),
+            [action.id]: false
+        }
+    };
+}
+
+function refreshEnemySpecialActions(enemy) {
+    getEnemySpecialActions(enemy).forEach((action) => {
+        if (!action?.recharge || isSpecialActionReady(enemy, action.id)) return;
+        const roll = rollDie(6);
+        if (roll >= action.recharge) {
+            enemy.combatFlags.specialActionAvailability[action.id] = true;
+            uiHooks.logToBattle(`${enemy.name} recovers ${action.name}.`, 'system');
+        }
+    });
+}
+
+function applyEnemyRegeneration(actor) {
+    const regeneration = actor?.fullStats?.regeneration;
+    if (!regeneration || actor.hp <= 0 || actor.hp >= actor.maxHp) return;
+    const suppressedTurns = actor.combatFlags?.regenerationSuppressedTurns || 0;
+    if (suppressedTurns > 0) {
+        actor.combatFlags.regenerationSuppressedTurns = Math.max(0, suppressedTurns - 1);
+        uiHooks.logToBattle(`${actor.name}'s regeneration fails to knit under fire and holy pain.`, 'system');
+        return;
+    }
+    const amount = typeof regeneration.amount === 'string'
+        ? rollDiceExpression(regeneration.amount).total
+        : Math.max(0, regeneration.amount || 0);
+    if (amount <= 0) return;
+    actor.hp = Math.min(actor.maxHp, actor.hp + amount);
+    syncActorState(actor);
+    syncGridToken(actor.uniqueId || actor.id || 'player');
+    uiHooks.logToBattle(`${actor.name} knits ${amount} HP back together.`, 'gain');
 }
 
 function getAttackProfile(actorId) {
@@ -1036,7 +1103,7 @@ function hasAdjacentAllyNearTarget(attackerId, targetId) {
     });
 }
 
-function beginTurn(actorId) {
+export function beginTurn(actorId) {
     const actor = getCombatActor(actorId);
     if (!actor || actor.hp <= 0) return false;
 
@@ -1065,6 +1132,10 @@ function beginTurn(actorId) {
     };
     gameState.combat.transientPreview = null;
     reconcileTileEffects(actorId, 'turn_start');
+    if (isEnemyId(actorId)) {
+        refreshEnemySpecialActions(actor);
+        applyEnemyRegeneration(actor);
+    }
     return true;
 }
 
@@ -1220,7 +1291,7 @@ function handleConcentrationFromDamage(target, damage) {
     }
 }
 
-function resolveDamage(target, amount, damageType = 'bludgeoning') {
+export function resolveDamage(target, amount, damageType = 'bludgeoning') {
     const targetStats = target.fullStats || enemies[target.id] || target;
     const { finalDamage, message } = calculateDamageReduction(amount, damageType, targetStats);
     if (message) uiHooks.logToBattle(message, 'system');
@@ -1230,10 +1301,113 @@ function resolveDamage(target, amount, damageType = 'bludgeoning') {
     if (target.hp === 0) {
         addEffectToActor(target, 'unconscious');
     }
+    const suppressionTypes = target.fullStats?.regeneration?.suppressedBy || [];
+    if (Math.max(1, finalDamage) > 0 && suppressionTypes.includes(damageType)) {
+        target.combatFlags = {
+            ...(target.combatFlags || {}),
+            regenerationSuppressedTurns: 1
+        };
+    }
     syncActorState(target);
     syncGridToken(target.uniqueId || target.id || 'player');
     handleConcentrationFromDamage(target, Math.max(1, finalDamage));
     return finalDamage;
+}
+
+function applySpecialActionEffects(sourceActorId, target, effects = []) {
+    effects.forEach((effect) => {
+        if (!effect?.id) return;
+        addEffectToActor(target, effect.id, {
+            id: effect.id,
+            source: `special:${sourceActorId}:${effect.id}`,
+            sourceActorId,
+            remaining: effect.remaining,
+            durationType: effect.durationType || 'turns',
+            escapeDc: effect.escapeDc
+        });
+    });
+    syncActorState(target);
+    syncGridToken(target.uniqueId || target.id || 'player');
+}
+
+function resolveEnemySpecialActionAgainstTarget(enemy, target, action) {
+    if (!enemy || !target || !action) return false;
+    const save = action.saveAbility ? rollSavingThrow(target, action.saveAbility) : null;
+    const dc = action.saveDc || 12;
+    const failedSave = !save || save.total < dc;
+
+    if (action.damage) {
+        const rolled = rollDiceExpression(action.damage).total;
+        const damage = !save
+            ? rolled
+            : failedSave
+                ? rolled
+                : (action.halfOnSave ? Math.floor(rolled / 2) : 0);
+        if (damage > 0) {
+            const finalDamage = resolveDamage(target, damage, action.damageType || 'bludgeoning');
+            uiHooks.logToBattle(`${action.name} tears into ${target.name} for ${finalDamage} ${action.damageType || 'bludgeoning'} damage.`, 'combat');
+            uiHooks.showBattleEventText(`${finalDamage}`);
+        }
+    }
+
+    if (failedSave && Array.isArray(action.applyEffectsOnFail)) {
+        applySpecialActionEffects(enemy.uniqueId, target, action.applyEffectsOnFail);
+    }
+
+    if (save) {
+        uiHooks.logToBattle(`${target.name} makes a ${action.saveAbility} save against ${action.name}: ${save.total} vs DC ${dc}.`, failedSave ? 'combat' : 'gain');
+    }
+    return true;
+}
+
+export function performEnemySpecialAction(enemy, actionId, targetId) {
+    if (!enemy || !gameState.combat?.active) return false;
+    const action = getEnemySpecialActions(enemy).find((entry) => entry.id === actionId);
+    if (!action || !isSpecialActionReady(enemy, action.id)) return false;
+    const target = getCombatActor(targetId);
+    if (!target || target.hp <= 0) return false;
+    if (!spendAction(enemy.uniqueId)) return false;
+
+    if (action.kind === 'burst') {
+        const sourceToken = getToken(gameState.combat.grid, enemy.uniqueId);
+        if (!sourceToken) {
+            gameState.combat.actionsRemaining += 1;
+            return false;
+        }
+        const targets = getHostileIds(enemy.uniqueId)
+            .map((id) => ({ id, actor: getCombatActor(id) }))
+            .filter((entry) => entry.actor && entry.actor.hp > 0)
+            .filter((entry) => {
+                const actorToken = getToken(gameState.combat.grid, entry.id);
+                return actorToken && (getRangeDistance(sourceToken, actorToken) * gameState.combat.grid.tileSize) <= (action.radiusFeet || 5);
+            });
+        if (targets.length === 0) {
+            gameState.combat.actionsRemaining += 1;
+            return false;
+        }
+        uiHooks.logToBattle(`${enemy.name} unleashes ${action.name}!`, 'combat');
+        targets.forEach((entry) => resolveEnemySpecialActionAgainstTarget(enemy, entry.actor, action));
+        markSpecialActionUsed(enemy, action);
+        return true;
+    }
+
+    const blockedStatuses = Array.isArray(action.ignoreIfTargetHas) ? action.ignoreIfTargetHas : [];
+    if (blockedStatuses.some((statusId) => actorHasCombatEffect(target, statusId))) {
+        gameState.combat.actionsRemaining += 1;
+        return false;
+    }
+    const inRange = ensureTargetInRange(enemy.uniqueId, targetId, {
+        rangeFeet: action.rangeFeet || null,
+        reachFeet: action.reachFeet || 5
+    });
+    if (!inRange) {
+        gameState.combat.actionsRemaining += 1;
+        return false;
+    }
+    uiHooks.logToBattle(`${enemy.name} uses ${action.name} on ${target.name}.`, 'combat');
+    resolveEnemySpecialActionAgainstTarget(enemy, target, action);
+    markSpecialActionUsed(enemy, action);
+    return true;
 }
 
 function resolveWeaponHit(attackerId, targetId, options = {}) {
@@ -1450,6 +1624,13 @@ function tryEnemyAttackOrReposition(enemy, targetId) {
     const beforeAttack = captureTurnState(enemy);
     const attackResolved = resolveWeaponHit(enemy.uniqueId, targetId, { consumeAction: true });
     if (attackResolved || actorCommittedTurnChange(enemy, beforeAttack)) {
+        const attackCount = Math.max(1, enemy.fullStats?.multiattack || 1);
+        for (let attackIndex = 1; attackIndex < attackCount; attackIndex += 1) {
+            const followUpTargetId = getPreferredEnemyTarget(enemy.uniqueId);
+            if (!followUpTargetId) break;
+            const followUpResolved = resolveWeaponHit(enemy.uniqueId, followUpTargetId, { consumeAction: false });
+            if (!followUpResolved) break;
+        }
         return true;
     }
 
@@ -2227,6 +2408,20 @@ export function enemyTurn(enemy) {
     const acted = tryEnemySelfPreservation(enemy, targetId)
         || tryEnemyOffensiveSpell(enemy, targetId)
         || tryEnemyClassFeature(enemy, targetId)
+        || getEnemySpecialActions(enemy).some((action) => {
+            if (!isSpecialActionReady(enemy, action.id)) return false;
+            if (action.kind === 'burst') {
+                const sourceToken = getToken(gameState.combat.grid, enemy.uniqueId);
+                if (!sourceToken) return false;
+                const hostileCountInBurst = getHostileIds(enemy.uniqueId)
+                    .map((id) => getToken(gameState.combat.grid, id))
+                    .filter(Boolean)
+                    .filter((token) => (getRangeDistance(sourceToken, token) * gameState.combat.grid.tileSize) <= (action.radiusFeet || 5))
+                    .length;
+                if (hostileCountInBurst < Math.max(1, action.minTargets || 1)) return false;
+            }
+            return performEnemySpecialAction(enemy, action.id, targetId);
+        })
         || tryEnemyAttackOrReposition(enemy, targetId);
     if (!acted) {
         uiHooks.logToBattle(`${enemy.name} hesitates, unable to find a clean opening.`, 'system');

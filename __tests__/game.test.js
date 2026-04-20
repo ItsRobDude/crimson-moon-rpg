@@ -1,5 +1,7 @@
 import { addItem, advanceTime, applyPendingLevelUp, equipItem, gameState, getInventoryEntries, getInventoryUseCost, getStoredSaveState, initializeNewGame, loadGame, performLongRest, performShortRest, resetGameState, SAVE_STORAGE_KEY, saveGame, useConsumable } from '../data/gameState.js';
+import { scenes } from '../data/scenes.js';
 import { addEffectToActor } from '../data/mechanics.js';
+import { buildSilverthornRuntimeScene, buildSporefallRuntimeScene } from '../game.js';
 
 beforeEach(() => {
   resetGameState();
@@ -594,4 +596,67 @@ test('load normalizes malformed combat ui state into a safe neutral submenu', ()
     subMenu: null
   });
   expect(gameState.combat.transientPreview).toBeNull();
+});
+
+test('silverthorn gate flow now musters Lark and Kieran before departure', () => {
+  initializeNewGame(
+    'Bran',
+    'human',
+    'fighter',
+    'soldier',
+    { STR: 15, DEX: 12, CON: 14, INT: 10, WIS: 10, CHA: 8 },
+    ['athletics', 'survival'],
+    []
+  );
+
+  const gateScene = buildSilverthornRuntimeScene('SCENE_SILVERTHORN_GATES', scenes.SCENE_SILVERTHORN_GATES);
+  expect(gateScene.choices.some((choice) => choice.nextScene === 'SCENE_SILVERTHORN_LARK_RECRUIT')).toBe(true);
+  expect(gateScene.choices.some((choice) => choice.nextScene === 'SCENE_SILVERTHORN_KIERAN_RECRUIT')).toBe(true);
+  expect(gateScene.choices.some((choice) => choice.nextScene === 'SCENE_TRAVEL_SHADOWMIRE')).toBe(false);
+});
+
+test('dreadcap linger option only appears after key Eoin info and a handling choice', () => {
+  initializeNewGame(
+    'Bran',
+    'human',
+    'fighter',
+    'soldier',
+    { STR: 15, DEX: 12, CON: 14, INT: 10, WIS: 10, CHA: 8 },
+    ['athletics', 'survival'],
+    []
+  );
+
+  let eoinTalk = buildSporefallRuntimeScene('SCENE_EOIN_TALK', scenes.SCENE_EOIN_TALK);
+  expect(eoinTalk.choices.some((choice) => choice.nextScene === 'SCENE_DREADCAP_WARNING')).toBe(false);
+
+  gameState.flags.sporefall_eoin_key_info_heard = true;
+  gameState.flags.sporefall_eoin_choice_made = true;
+
+  eoinTalk = buildSporefallRuntimeScene('SCENE_EOIN_TALK', scenes.SCENE_EOIN_TALK);
+  expect(eoinTalk.choices.some((choice) => choice.nextScene === 'SCENE_DREADCAP_WARNING')).toBe(true);
+});
+
+test('leaving promptly after the Eoin choice bypasses the dreadcap on that pass', () => {
+  initializeNewGame(
+    'Bran',
+    'human',
+    'fighter',
+    'soldier',
+    { STR: 15, DEX: 12, CON: 14, INT: 10, WIS: 10, CHA: 8 },
+    ['athletics', 'survival'],
+    []
+  );
+
+  gameState.flags.sporefall_eoin_key_info_heard = true;
+  gameState.flags.sporefall_eoin_choice_made = true;
+
+  const hubScene = buildSporefallRuntimeScene('SCENE_HUB_SPOREFALL', scenes.SCENE_HUB_SPOREFALL);
+  expect(hubScene.choices.some((choice) => choice.nextScene === 'SCENE_DREADCAP_WARNING')).toBe(false);
+  expect(hubScene.choices.some((choice) => choice.nextScene === 'SCENE_EOIN_TALK')).toBe(true);
+});
+
+test('dreadcap aftermath is the true-kill reward scene and defeat path does not grant the bow', () => {
+  expect(scenes.SCENE_DREADCAP_COLOSSUS.winScene).toBe('SCENE_DREADCAP_AFTERMATH');
+  expect(scenes.SCENE_DREADCAP_COLOSSUS.loseScene).toBe('SCENE_DEFEAT');
+  expect(scenes.SCENE_DREADCAP_AFTERMATH.onEnter.effects.some((effect) => effect.type === 'addItem' && effect.itemId === 'aislings_corrupt_vigil')).toBe(true);
 });

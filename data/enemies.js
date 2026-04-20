@@ -58,5 +58,60 @@ export const enemies = {
         portrait: GENERIC_ENEMY_PORTRAIT,
         description: "A tired city soldier enforcing the Blackened King's will.",
         vulnerabilities: []
+    },
+    "dreadcap_colossus_lesser": {
+        name: "Dreadcap Colossus",
+        hp: 58,
+        ac: 13,
+        attackBonus: 5,
+        attackName: "Rot-Slick Slam",
+        damage: "1d10+3",
+        damageType: "bludgeoning",
+        speed: 25,
+        reachFeet: 10,
+        multiattack: 2,
+        xp: 250,
+        portrait: GENERIC_ENEMY_PORTRAIT,
+        description: "A huge knot of corpse-fungus and rooted muscle that prowls Sporefall when the living linger too long.",
+        resistances: ["poison"],
+        vulnerabilities: ["fire"],
+        regeneration: {
+            amount: 6,
+            suppressedBy: ["fire", "radiant"]
+        },
+        specialActions: [
+            {
+                id: "spore_cloud",
+                name: "Spore Cloud",
+                kind: "burst",
+                radiusFeet: 10,
+                damage: "2d6",
+                damageType: "poison",
+                saveAbility: "CON",
+                saveDc: 12,
+                halfOnSave: true,
+                recharge: 5,
+                minTargets: 2,
+                applyEffectsOnFail: [
+                    { id: "poisoned", remaining: 2, durationType: "turns" },
+                    { id: "blinded", remaining: 1, durationType: "turns" }
+                ]
+            },
+            {
+                id: "ensnaring_vines",
+                name: "Ensnaring Vines",
+                kind: "single",
+                rangeFeet: 15,
+                damage: "1d6+2",
+                damageType: "bludgeoning",
+                saveAbility: "STR",
+                saveDc: 12,
+                ignoreIfTargetHas: ["grappled", "restrained"],
+                applyEffectsOnFail: [
+                    { id: "grappled", remaining: 10, durationType: "turns", escapeDc: 13 },
+                    { id: "restrained", remaining: 2, durationType: "turns", escapeDc: 13 }
+                ]
+            }
+        ]
     }
 };
