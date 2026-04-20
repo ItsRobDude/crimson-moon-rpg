@@ -95,38 +95,6 @@ export const narrativeStateRegistry = {
             revealSensitivity: 'public',
             semantics: 'optional_clue'
         },
-        eoin_recruited: {
-            owner: 'SCENE_EOIN_TALK',
-            thread: 'eoin_thread',
-            meaning: 'Eoin has joined the active party and should appear in travel, combat, and Sporefall route text.',
-            allowedValues: [true],
-            revealSensitivity: 'public',
-            semantics: 'story_progression'
-        },
-        eoin_refused: {
-            owner: 'SCENE_EOIN_TALK',
-            thread: 'eoin_thread',
-            meaning: 'The player declined to bring Eoin along, leaving him hidden in Sporefall for now.',
-            allowedValues: [true],
-            revealSensitivity: 'public',
-            semantics: 'one_time_outcome'
-        },
-        eoin_locked_out: {
-            owner: 'SCENE_EOIN_TALK',
-            thread: 'eoin_thread',
-            meaning: 'The player handled Eoin harshly enough that he will no longer trust a recruitment offer.',
-            allowedValues: [true],
-            revealSensitivity: 'public',
-            semantics: 'one_time_outcome'
-        },
-        eoin_bonded: {
-            owner: 'SCENE_EOIN_TALK',
-            thread: 'eoin_thread',
-            meaning: 'Eoin now trusts the party enough to offer route-specific survival help.',
-            allowedValues: [true],
-            revealSensitivity: 'public',
-            semantics: 'optional_clue'
-        },
         sporefall_cathedral_letter_found: {
             owner: 'SCENE_SPOREFALL_CATHEDRAL_APPROACH',
             thread: 'sporefall_investigation',

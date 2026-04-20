@@ -202,7 +202,7 @@ export const items = {
         rarity: 'uncommon',
         requiresAttunement: true,
         price: 0,
-        description: 'A fungus-warped longbow pried from the Dreadcap sludge. In the current slice it functions as a +1 longbow, its worse hungers still sleeping.'
+        description: 'A warped longbow veined with dim fungal crimson, as if grief learned how to root and bend wood around an old vigil. In the current slice it functions as a +1 longbow.'
     },
     battleaxe: {
         id: 'battleaxe',

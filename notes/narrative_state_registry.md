@@ -29,10 +29,6 @@ If you add a new story-critical key, update both this note and the JS registry i
 | `sporefall_eoin_met` | `SCENE_MEET_EOIN` | `eoin_thread` | First direct Eoin encounter happened. | public | story_progression |
 | `sporefall_eoin_talked` | `SCENE_EOIN_TALK` | `eoin_thread` | Eoin's first major conversation is complete. | public | story_progression |
 | `sporefall_eoin_comforted` | `SCENE_MEET_EOIN` / `SCENE_EOIN_TALK` | `eoin_thread` | Player offered Eoin a symbolic kindness. | public | optional_clue |
-| `eoin_recruited` | `SCENE_EOIN_TALK` | `eoin_thread` | Eoin joined the active party. | public | story_progression |
-| `eoin_refused` | `SCENE_EOIN_TALK` | `eoin_thread` | Player left Eoin hidden in Sporefall instead of recruiting him. | public | one_time_outcome |
-| `eoin_locked_out` | `SCENE_EOIN_TALK` | `eoin_thread` | Player handled Eoin harshly enough to close off recruitment. | public | one_time_outcome |
-| `eoin_bonded` | `SCENE_EOIN_TALK` | `eoin_thread` | Eoin trusts the party enough to offer route-specific help. | public | optional_clue |
 | `sporefall_cathedral_letter_found` | `SCENE_SPOREFALL_CATHEDRAL_APPROACH` | `sporefall_investigation` | Courier bag clue already claimed. | rumor_only | one_time_outcome |
 | `sporefall_cathedral_vision_seen` | `SCENE_SPOREFALL_CATHEDRAL_VISION` | `aodhan_thread` | Cathedral vision was seen. | spoiler_sensitive | story_progression |
 | `sporefall_cathedral_masonry_read` | `SCENE_SPOREFALL_CATHEDRAL_APPROACH` | `sporefall_investigation` | Stonework clue interpreted. | rumor_only | optional_clue |

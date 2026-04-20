@@ -32,20 +32,22 @@ beforeEach(() => {
 });
 
 test('companion roster now only ships canon-safe recruit candidates', () => {
-  expect(Object.keys(companions).sort()).toEqual(['eoin', 'neala']);
-  expect(companions.eoin.description).toContain('Sporefall survivor');
+  expect(Object.keys(companions).sort()).toEqual(['kieran_brogan', 'lark', 'neala']);
+  expect(companions.lark.description).toContain('Veridian Forest');
+  expect(companions.kieran_brogan.description).toContain('Ilmatari conscience');
   expect(companions.neala.description).toContain('Thorne Guild');
 });
 
-test('Eoin talk now exposes recruit, refusal, and lockout outcomes before the route is resolved', () => {
+test('Eoin talk now keeps him sheltered while still exposing route and protection choices', () => {
   const scene = getRuntimeScene('SCENE_EOIN_TALK');
   const labels = scene.choices.map((choice) => choice.text);
 
   expect(labels).toEqual(expect.arrayContaining([
-    expect.stringContaining("Stay close to me"),
     expect.stringContaining("Stay hidden"),
-    expect.stringContaining("not dragging you")
+    expect.stringContaining("Show me the north road"),
+    expect.stringContaining("Keep lower in the cellar mouth")
   ]));
+  expect(labels.some((label) => label.includes('Stay close to me'))).toBe(false);
 });
 
 test('adding a late companion at higher level now stays numerically stable', () => {
@@ -60,26 +62,25 @@ test('adding a late companion at higher level now stays numerically stable', () 
 });
 
 test('party state persists across save and load once a companion is recruited', () => {
-  addCompanion('eoin');
-  gameState.flags.eoin_recruited = true;
+  addCompanion('lark');
 
   saveGame();
   resetGameState();
 
   expect(loadGame()).toBe(true);
   expect(localStorage.getItem(SAVE_STORAGE_KEY)).not.toBeNull();
-  expect(gameState.party).toContain('eoin');
-  expect(gameState.roster.eoin?.name).toBe('Eoin');
+  expect(gameState.party).toContain('lark');
+  expect(gameState.roster.lark?.name).toBe('Lark');
 });
 
-test('runtime scenes react to traveling as a group and surface companion-specific route help', () => {
-  addCompanion('eoin');
-  gameState.flags.eoin_recruited = true;
+test('runtime scenes react to traveling as a group while Eoin remains a revisitable survivor', () => {
+  addCompanion('lark');
+  addCompanion('kieran_brogan');
   gameState.flags.sporefall_eoin_met = true;
   gameState.flags.sporefall_eoin_talked = true;
 
   let scene = getRuntimeScene('SCENE_HUB_SPOREFALL');
-  expect(scene.text).toContain('Eoin stays close enough');
+  expect(scene.text).toContain('Lark and Kieran Brogan spread through the street');
   expect(scene.choices.some((choice) => choice.text.includes('show you the way north'))).toBe(true);
 
   addCompanion('neala');
@@ -91,7 +92,7 @@ test('travel event pool filters by route and party state without reviving the ol
   let pool = getTravelEventPool('whisperwood');
   expect(pool.some((event) => event.id === 'whisperwood_refugee_trace')).toBe(false);
 
-  addCompanion('eoin');
+  addCompanion('lark');
   pool = getTravelEventPool('whisperwood');
   expect(pool.some((event) => event.id === 'whisperwood_refugee_trace')).toBe(true);
   expect(pool.every((event) => event.destinations.includes('whisperwood'))).toBe(true);
@@ -103,14 +104,14 @@ test('companion-aid hooks exist on existing routes without making companions man
   const townScoutChoice = scenes.SCENE_HUSHBRIAR_TOWN.choices.find((choice) => choice.text.includes('Scout the area'));
   const stoneScene = scenes.SCENE_ELARA_STONE_DECISION;
 
-  expect(northApproachChoice.companionAid?.companionId).toBe('eoin');
+  expect(northApproachChoice.companionAid).toBeUndefined();
   expect(townScoutChoice.companionAid?.companionId).toBe('neala');
   expect(stoneScene.choices.some((choice) => choice.text.includes('blood stays unspent'))).toBe(true);
   expect(stoneScene.choices.some((choice) => choice.text.includes('saving the world'))).toBe(true);
 });
 
-test('current companion and late-route flags are registered in both safety sources', () => {
-  ['eoin_recruited', 'eoin_refused', 'eoin_locked_out', 'eoin_bonded', 'elara_choice_spared', 'elara_choice_sacrifice_declared', 'elara_choice_deferred_by_aodhan', 'processing_truth_learned'].forEach((flagId) => {
+test('current early-thread and late-route flags are registered in both safety sources', () => {
+  ['sporefall_eoin_glimpsed', 'sporefall_eoin_met', 'sporefall_eoin_talked', 'sporefall_eoin_comforted', 'elara_choice_spared', 'elara_choice_sacrifice_declared', 'elara_choice_deferred_by_aodhan', 'processing_truth_learned'].forEach((flagId) => {
     expect(narrativeStateRegistry.flags[flagId]).toBeDefined();
     expect(registryNote).toContain(`\`${flagId}\``);
   });

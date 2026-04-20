@@ -381,7 +381,7 @@ function refreshEnemySpecialActions(enemy) {
         const roll = rollDie(6);
         if (roll >= action.recharge) {
             enemy.combatFlags.specialActionAvailability[action.id] = true;
-            uiHooks.logToBattle(`${enemy.name} recovers ${action.name}.`, 'system');
+            uiHooks.logToBattle(action.recoverText || `${enemy.name} recovers ${action.name}.`, 'system');
         }
     });
 }
@@ -392,7 +392,7 @@ function applyEnemyRegeneration(actor) {
     const suppressedTurns = actor.combatFlags?.regenerationSuppressedTurns || 0;
     if (suppressedTurns > 0) {
         actor.combatFlags.regenerationSuppressedTurns = Math.max(0, suppressedTurns - 1);
-        uiHooks.logToBattle(`${actor.name}'s regeneration fails to knit under fire and holy pain.`, 'system');
+        uiHooks.logToBattle(regeneration.suppressionText || `${actor.name}'s regeneration fails to knit under fire and holy pain.`, 'system');
         return;
     }
     const amount = typeof regeneration.amount === 'string'
@@ -402,6 +402,9 @@ function applyEnemyRegeneration(actor) {
     actor.hp = Math.min(actor.maxHp, actor.hp + amount);
     syncActorState(actor);
     syncGridToken(actor.uniqueId || actor.id || 'player');
+    if (regeneration.activeText) {
+        uiHooks.logToBattle(regeneration.activeText, 'system');
+    }
     uiHooks.logToBattle(`${actor.name} knits ${amount} HP back together.`, 'gain');
 }
 
@@ -1307,6 +1310,7 @@ export function resolveDamage(target, amount, damageType = 'bludgeoning') {
             ...(target.combatFlags || {}),
             regenerationSuppressedTurns: 1
         };
+        uiHooks.logToBattle(target.fullStats?.regeneration?.suppressionText || `${target.name}'s regeneration fails to knit under fire and holy pain.`, 'system');
     }
     syncActorState(target);
     syncGridToken(target.uniqueId || target.id || 'player');
@@ -1385,6 +1389,9 @@ export function performEnemySpecialAction(enemy, actionId, targetId) {
             gameState.combat.actionsRemaining += 1;
             return false;
         }
+        if (action.telegraphText) {
+            uiHooks.logToBattle(action.telegraphText, 'system');
+        }
         uiHooks.logToBattle(`${enemy.name} unleashes ${action.name}!`, 'combat');
         targets.forEach((entry) => resolveEnemySpecialActionAgainstTarget(enemy, entry.actor, action));
         markSpecialActionUsed(enemy, action);
@@ -1403,6 +1410,9 @@ export function performEnemySpecialAction(enemy, actionId, targetId) {
     if (!inRange) {
         gameState.combat.actionsRemaining += 1;
         return false;
+    }
+    if (action.telegraphText) {
+        uiHooks.logToBattle(action.telegraphText, 'system');
     }
     uiHooks.logToBattle(`${enemy.name} uses ${action.name} on ${target.name}.`, 'combat');
     resolveEnemySpecialActionAgainstTarget(enemy, target, action);

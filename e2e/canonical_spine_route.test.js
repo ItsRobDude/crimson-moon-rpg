@@ -170,8 +170,7 @@ test.describe('Canonical Spine Route', () => {
     await clickChoice(page, /calm him/i);
     await clickChoice(page, /ask about the cathedral/i);
     await clickChoice(page, /tell him to keep low/i);
-    await clickChoice(page, /continue/i);
-    await clickChoice(page, /continue/i);
+    await clickChoice(page, /check on eoin/i);
     await clickChoice(page, /linger too long/i);
     await clickChoice(page, /face the dreadcap/i);
 

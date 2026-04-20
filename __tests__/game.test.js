@@ -1,6 +1,7 @@
 import { addItem, advanceTime, applyPendingLevelUp, equipItem, gameState, getInventoryEntries, getInventoryUseCost, getStoredSaveState, initializeNewGame, loadGame, performLongRest, performShortRest, resetGameState, SAVE_STORAGE_KEY, saveGame, useConsumable } from '../data/gameState.js';
 import { scenes } from '../data/scenes.js';
 import { addEffectToActor } from '../data/mechanics.js';
+import { companions } from '../data/companions.js';
 import { buildSilverthornRuntimeScene, buildSporefallRuntimeScene } from '../game.js';
 
 beforeEach(() => {
@@ -613,6 +614,23 @@ test('silverthorn gate flow now musters Lark and Kieran before departure', () =>
   expect(gateScene.choices.some((choice) => choice.nextScene === 'SCENE_SILVERTHORN_LARK_RECRUIT')).toBe(true);
   expect(gateScene.choices.some((choice) => choice.nextScene === 'SCENE_SILVERTHORN_KIERAN_RECRUIT')).toBe(true);
   expect(gateScene.choices.some((choice) => choice.nextScene === 'SCENE_TRAVEL_SHADOWMIRE')).toBe(false);
+});
+
+test('lark recruitment copy now reflects his Veridian split and Alderic-aligned direction', () => {
+  initializeNewGame(
+    'Bran',
+    'human',
+    'fighter',
+    'soldier',
+    { STR: 15, DEX: 12, CON: 14, INT: 10, WIS: 10, CHA: 8 },
+    ['athletics', 'survival'],
+    []
+  );
+
+  const larkScene = buildSilverthornRuntimeScene('SCENE_SILVERTHORN_LARK_RECRUIT', scenes.SCENE_SILVERTHORN_LARK_RECRUIT);
+  expect(companions.lark.description).toMatch(/Veridian Forest/i);
+  expect(larkScene.text).toMatch(/his hood down/i);
+  expect(larkScene.text).toMatch(/Alderic's summons/i);
 });
 
 test('dreadcap linger option only appears after key Eoin info and a handling choice', () => {

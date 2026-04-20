@@ -294,7 +294,6 @@ test('legacy Eoin assistance no longer routes back into the old ruins prototype'
 
 test('Eoin authored dialogue no longer reads like a mature tactical helper', () => {
   expect(scenes.SCENE_MEET_EOIN.text).toContain('boy');
-  expect(scenes.SCENE_EOIN_RECRUITED.text).toContain("Don't leave me here");
   expect(scenes.SCENE_EOIN_TALK.choices.some((choice) => choice.text.includes('mum'))).toBe(true);
   expect(scenes.SCENE_EOIN_TALK.choices.some((choice) => choice.text.includes('keep the borough from taking you blind'))).toBe(false);
 });

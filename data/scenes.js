@@ -843,17 +843,17 @@ export const scenes = {
         id: "SCENE_SILVERTHORN_LARK_RECRUIT",
         location: "silverthorn",
         background: "landscapes/silverthorn_market_avenue.png",
-        text: "Lark waits with her bow already waxed and strung, watching the traffic at the eastern gate like every wagon might split open and spill a warning nobody else can hear.",
+        text: "Lark waits with his bow already waxed and strung, watching the eastern gate like the next wagon might carry news that proves his clan did not break apart for nothing. The Veridian forest has not let him look at a treeline innocently since Whisperwood began to go wrong.",
         choices: [
-            { text: "Ask Lark to take her place in the road-party.", buttonText: "Bring Lark", nextScene: "SCENE_SILVERTHORN_GATES" },
-            { text: "Leave her to her thoughts for the moment.", buttonText: "Back to the Gate Plaza", nextScene: "SCENE_SILVERTHORN_GATES" }
+            { text: "Ask Lark to take his place in the road-party.", buttonText: "Bring Lark", nextScene: "SCENE_SILVERTHORN_GATES" },
+            { text: "Leave him with the gate traffic for the moment.", buttonText: "Back to the Gate Plaza", nextScene: "SCENE_SILVERTHORN_GATES" }
         ]
     },
     "SCENE_SILVERTHORN_KIERAN_RECRUIT": {
         id: "SCENE_SILVERTHORN_KIERAN_RECRUIT",
         location: "silverthorn",
         background: "landscapes/silverthorn_market_avenue.png",
-        text: "A broad-shouldered dwarf in patched leather is arguing with a customs clerk over whether confiscating extra trail bread counts as honest taxation or simply slow theft. He spots your writ, spits to the side, and grins without much warmth.",
+        text: "A broad-shouldered dwarf in patched leather is giving a customs clerk the kind of answer that sounds obedient right until it empties the wrong man's ledger. He has one hand on a loaf the watch meant to call contraband and the other lifted in a half-prayer that sounds suspiciously like an insult.",
         choices: [
             { text: "Take Kieran Brogan as the third blade on the road.", buttonText: "Bring Kieran", nextScene: "SCENE_SILVERTHORN_GATES" },
             { text: "Leave him to pick a better fight.", buttonText: "Back to the Gate Plaza", nextScene: "SCENE_SILVERTHORN_GATES" }
@@ -1219,19 +1219,6 @@ export const scenes = {
             }
         ]
     },
-    "SCENE_EOIN_RECRUITED": {
-        id: "SCENE_EOIN_RECRUITED",
-        location: "whisperwood",
-        background: "landscapes/eoin_sighted.png",
-        text: "Eoin looks past you toward the street and goes gray with the thought of being left in it. His fingers knot white around the broken spear. 'Don't leave me here,' he says too fast, then winces like he said too much. 'I can be quiet. I know some bits. Not all of it. Just... some. The bridge. The little lanes. Places Mum used to say were safer.' He drags in a thin breath. 'If I stay by myself, I keep hearing the town think.'",
-        choices: [
-            {
-                text: "Let him come with you.",
-                buttonText: "Let Him Come",
-                nextScene: "SCENE_HUB_SPOREFALL"
-            }
-        ]
-    },
     "SCENE_EOIN_RITUAL_TALK": {
         id: "SCENE_EOIN_RITUAL_TALK",
         location: "whisperwood",
@@ -1280,7 +1267,7 @@ export const scenes = {
         id: "SCENE_DREADCAP_WARNING",
         location: "whisperwood",
         background: "landscapes/eoin_sighted.png",
-        text: "The cold comes first. Warmth leaves your hands and breath ghosts white in front of your face though the night has not changed. Eoin looks past you into the street and every scrap of steadiness in him tears loose at once. 'It's here,' he whispers, then louder, breaking on the words. 'Don't just stand there. It's here.' Something vast drags itself through the haze beyond the house, and the street begins to tremble under the weight of it.",
+        text: "The cold comes first. Warmth leaves your hands and breath ghosts white in front of your face though the night has not changed. Then the haze ahead of the house bulges as if something underneath it has started breathing. Eoin looks past you and every scrap of steadiness in him tears loose at once. 'It's here,' he whispers, then louder, breaking on the words. 'Don't just stand there. It's here.' The caps on a shape in the fog pulse wetly before roots drag over stone and the whole street begins to tremble.",
         choices: [
             {
                 text: "Turn and meet it in the street.",
@@ -1293,7 +1280,7 @@ export const scenes = {
         id: "SCENE_DREADCAP_COLOSSUS",
         location: "whisperwood",
         background: "landscapes/sporefall_outskirt_encounter.png",
-        text: "A Dreadcap Colossus heaves into view: a towering knot of corpse-fungus, roots, and wet black muscle with a ruin of antler-like caps breaking from its back. It reeks of turned earth, sweet rot, and something older than both.",
+        text: "A Dreadcap Colossus heaves into view: a towering knot of corpse-fungus, roots, and wet black muscle with a ruin of antler-like caps breaking from its back. It reeks of turned earth, sweet rot, and something older than both. Spore blooms pulse out of the broken cobbles around it while root-snarls choke the flanks, leaving only a few half-clean lanes if you mean to keep clear of its reach.",
         type: "combat",
         enemies: ["dreadcap_colossus_lesser"],
         battlefield: {
@@ -1301,21 +1288,21 @@ export const scenes = {
             height: 7,
             tileSize: 5,
             terrain: [
-                { x: 3, y: 0, difficult: true, name: "Spore-choked Growth" },
-                { x: 3, y: 1, difficult: true, name: "Spore-choked Growth" },
-                { x: 3, y: 5, difficult: true, name: "Spore-choked Growth" },
-                { x: 3, y: 6, difficult: true, name: "Spore-choked Growth" },
-                { x: 6, y: 0, difficult: true, name: "Spore-choked Growth" },
-                { x: 6, y: 1, difficult: true, name: "Spore-choked Growth" },
-                { x: 6, y: 5, difficult: true, name: "Spore-choked Growth" },
-                { x: 6, y: 6, difficult: true, name: "Spore-choked Growth" },
-                { x: 8, y: 2, difficult: true, name: "Matted Roots" },
-                { x: 8, y: 3, difficult: true, name: "Matted Roots" },
-                { x: 8, y: 4, difficult: true, name: "Matted Roots" }
+                { x: 3, y: 0, difficult: true, name: "Spore-Slick Verge" },
+                { x: 3, y: 1, difficult: true, name: "Spore-Slick Verge" },
+                { x: 3, y: 5, difficult: true, name: "Spore-Slick Verge" },
+                { x: 3, y: 6, difficult: true, name: "Spore-Slick Verge" },
+                { x: 6, y: 0, difficult: true, name: "Spore-Slick Verge" },
+                { x: 6, y: 1, difficult: true, name: "Spore-Slick Verge" },
+                { x: 6, y: 5, difficult: true, name: "Spore-Slick Verge" },
+                { x: 6, y: 6, difficult: true, name: "Spore-Slick Verge" },
+                { x: 8, y: 2, difficult: true, name: "Root-Snarled Crossing" },
+                { x: 8, y: 3, difficult: true, name: "Root-Snarled Crossing" },
+                { x: 8, y: 4, difficult: true, name: "Root-Snarled Crossing" }
             ],
             effects: [
-                { x: 5, y: 2, id: "spore_bloom_1", name: "Spore Bloom", damage: "1d4", damageType: "poison", statusEffectId: "poisoned", statusDuration: 1 },
-                { x: 5, y: 4, id: "spore_bloom_2", name: "Spore Bloom", damage: "1d4", damageType: "poison", statusEffectId: "poisoned", statusDuration: 1 }
+                { x: 5, y: 2, id: "spore_bloom_1", name: "Bursting Spore Bloom", damage: "1d4", damageType: "poison", statusEffectId: "poisoned", statusDuration: 1 },
+                { x: 5, y: 4, id: "spore_bloom_2", name: "Bursting Spore Bloom", damage: "1d4", damageType: "poison", statusEffectId: "poisoned", statusDuration: 1 }
             ]
         },
         winScene: "SCENE_DREADCAP_AFTERMATH",
@@ -1332,7 +1319,7 @@ export const scenes = {
                 { type: "addItem", itemId: "aislings_corrupt_vigil", logText: "You wrench a warped longbow free of the Dreadcap sludge: Aisling's Corrupt Vigil." }
             ]
         },
-        text: "The colossus comes apart in stages rather than death: caps split, vines slacken, and the great body sags into a stinking heap of black sludge. Something in the ruin catches the crimson light. Half-buried in the filth lies a warped longbow, its limbs veined with fungal glow and a mark you wish you had not learned to recognize.",
+        text: "The colossus comes apart in stages rather than death: caps split, vines slacken, and the great body sags into a stinking heap of black sludge. Something in the ruin catches the crimson light. Half-buried in the filth lies a warped longbow, its limbs veined with fungal glow and bent into a shape that looks less forged than mourned into being. The mark worked into its grip lands in the chest before the mind can name why.",
         choices: [
             {
                 text: "Take the bow and pull back into the street before anything else answers.",
@@ -1657,11 +1644,6 @@ export const scenes = {
                 type: "skillCheck",
                 skill: "perception",
                 dc: 11,
-                companionAid: {
-                    companionId: "eoin",
-                    bonus: 2,
-                    logText: "Eoin still knows which stalls hid the desperate and which ones taught predators where to wait."
-                },
                 successText: "You catch the ambush before it closes and pick your way through the dead ground without giving it your throat.",
                 failText: "Something lunges from behind an overturned cart before you can choose your footing.",
                 nextSceneSuccess: "SCENE_SPOREFALL_NORTH_ROUTE_DISCOVERED",

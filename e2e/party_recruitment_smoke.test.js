@@ -14,24 +14,24 @@ test.describe('Party Recruitment Smoke', () => {
 
     await page.evaluate(async () => {
       const gameStateModule = await import('/data/gameState.js');
-      window.gameState.flags.eoin_recruited = true;
-      gameStateModule.addCompanion('eoin');
+      window.gameState.flags.silverthorn_lark_recruited = true;
+      gameStateModule.addCompanion('lark');
       gameStateModule.saveGame();
     });
 
-    await expect.poll(async () => page.evaluate(() => window.gameState.party.includes('eoin'))).toBe(true);
+    await expect.poll(async () => page.evaluate(() => window.gameState.party.includes('lark'))).toBe(true);
 
     await page.evaluate(() => window.goToScene('SCENE_SPOREFALL_NORTH_AMBUSH'));
     await expect(page.locator('#battle-screen')).not.toHaveClass(/hidden/);
-    await expect(page.locator('#party-container')).toContainText('Eoin');
+    await expect(page.locator('#party-container')).toContainText('Lark');
 
     await page.reload();
     await page.waitForFunction(() => window.gameReady);
     await page.click('#btn-start-continue');
     await page.waitForSelector('#char-name');
 
-    await expect.poll(async () => page.evaluate(() => window.gameState.party.includes('eoin'))).toBe(true);
+    await expect.poll(async () => page.evaluate(() => window.gameState.party.includes('lark'))).toBe(true);
     await page.evaluate(() => window.goToScene('SCENE_SPOREFALL_NORTH_AMBUSH'));
-    await expect(page.locator('#party-container')).toContainText('Eoin');
+    await expect(page.locator('#party-container')).toContainText('Lark');
   });
 });

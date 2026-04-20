@@ -77,12 +77,16 @@ export const enemies = {
         vulnerabilities: ["fire"],
         regeneration: {
             amount: 6,
-            suppressedBy: ["fire", "radiant"]
+            suppressedBy: ["fire", "radiant"],
+            suppressionText: "Fire and holy force blacken the fungal seams, stopping the thing's obscene knitting.",
+            activeText: "Black rot and root-flesh crawl back together."
         },
         specialActions: [
             {
                 id: "spore_cloud",
                 name: "Spore Cloud",
+                telegraphText: "The antler-caps along its back swell and split, venting a grave-sweet haze across the street.",
+                recoverText: "The swollen caps pulse full again.",
                 kind: "burst",
                 radiusFeet: 10,
                 damage: "2d6",
@@ -100,6 +104,7 @@ export const enemies = {
             {
                 id: "ensnaring_vines",
                 name: "Ensnaring Vines",
+                telegraphText: "Root-vines whip low through the rubble, searching for ankles, wrists, and throats.",
                 kind: "single",
                 rangeFeet: 15,
                 damage: "1d6+2",

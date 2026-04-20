@@ -1002,7 +1002,6 @@ function applyPartySceneVariation(sceneId, scene) {
     if (partyActors.length === 0) return scene;
 
     const partyNames = formatNameList(partyActors.map((actor) => actor.name));
-    const hasEoin = actorHasCompanion('eoin');
     const hasNeala = actorHasCompanion('neala');
 
     if (sceneId === 'SCENE_TRAVEL_SHADOWMIRE') {
@@ -1011,9 +1010,7 @@ function applyPartySceneVariation(sceneId, scene) {
     }
 
     if (sceneId === 'SCENE_HUB_SPOREFALL') {
-        const witness = hasEoin
-            ? 'Eoin stays close enough that his sleeve brushes yours when the street opens too wide, flinching at every corner he still half-recognizes.'
-            : `${partyNames} spread through the street with the wary discipline of people who know ruin can still lunge.`;
+        const witness = `${partyNames} spread through the street with the wary discipline of people who know ruin can still lunge.`;
         scene.text = `${scene.text} ${witness}`;
         return scene;
     }
@@ -1433,41 +1430,41 @@ export function buildSilverthornRuntimeScene(sceneId, baseScene) {
 
     if (sceneId === 'SCENE_SILVERTHORN_LARK_RECRUIT') {
         if (hasLark) {
-            scene.text = "Lark is already in position by the outbound wagons, bow waxed, shoulders square, and very clearly done waiting for Silverthorn to talk itself out of danger.";
+            scene.text = "Lark is already in position by the outbound wagons, bow waxed, shoulders square, and looking east with the fixed attention of a man who has already watched one forest begin to answer wrong.";
             scene.choices = [
                 createChoice('Return to the gate plaza.', 'SCENE_SILVERTHORN_GATES', { buttonText: 'Back to the Gate Plaza' })
             ];
             return scene;
         }
-        scene.text = "Lark stands just off the traffic line with her hood down and her bow already waxed against damp. She watches the eastern road with the expression of someone who expects it to answer badly and means to be there when it does.";
+        scene.text = "Lark stands just off the traffic line with his hood down and his bow already waxed against damp. The look he gives the eastern road is not ordinary caution but old argument carried too far to be put down. He tells you, flatly, that the Veridian clans began splitting when the disruptions in the wild stopped behaving like weather and started feeling chosen, and Sporefall was the final cut. Alderic's summons is the first road east he has trusted since.";
         scene.choices = [
-            createChoice('"Take your place on my flank. We leave together."', 'SCENE_SILVERTHORN_GATES', {
+            createChoice('"Take your place on my flank. If the forest is calling men to answer, it can answer us together."', 'SCENE_SILVERTHORN_GATES', {
                 buttonText: 'Bring Lark',
                 effects: [
                     { type: 'flag', flagId: 'silverthorn_lark_recruited', value: true },
-                    { type: 'addCompanion', companionId: 'lark', logText: 'Lark joins the road-party without another wasted word.' }
+                    { type: 'addCompanion', companionId: 'lark', logText: 'Lark joins the road-party with the hard relief of a man who finally has a direction worth distrusting.' }
                 ]
             }),
-            createChoice('Leave her to the gate for a little longer.', 'SCENE_SILVERTHORN_GATES', { buttonText: 'Back to the Gate Plaza' })
+            createChoice('Leave him with the gate traffic for a little longer.', 'SCENE_SILVERTHORN_GATES', { buttonText: 'Back to the Gate Plaza' })
         ];
         return scene;
     }
 
     if (sceneId === 'SCENE_SILVERTHORN_KIERAN_RECRUIT') {
         if (hasKieran) {
-            scene.text = "Kieran Brogan is already with the road-party, muttering something pious and unkind about tax ledgers, noble timing, and the many inventive uses of a customs stamp.";
+            scene.text = "Kieran Brogan is already with the road-party, muttering an Ilmatari prayer that has somehow turned into a curse on false measures, sealed ledgers, and men who call theft civic duty.";
             scene.choices = [
                 createChoice('Return to the gate plaza.', 'SCENE_SILVERTHORN_GATES', { buttonText: 'Back to the Gate Plaza' })
             ];
             return scene;
         }
-        scene.text = "Kieran Brogan has one boot on a customs crate and one hand on a loaf the watch clearly meant to confiscate from somebody poorer than themselves. He clocks your writ, drops back to the cobbles, and gives you a grin too sharp to trust and too tired to hate.";
+        scene.text = "Kieran Brogan has one boot on a customs crate and one hand on a loaf the watch clearly meant to confiscate from somebody poorer than themselves. He is in the middle of explaining, with devotional politeness sharpened into a blade, why Saint Ilmater would likely break the clerk's fingers before blessing this ledger. He clocks your writ, drops back to the cobbles, and gives you a grin too sharp to trust and too tired to dismiss.";
         scene.choices = [
-            createChoice('"If you want to spite the right people, come east with me."', 'SCENE_SILVERTHORN_GATES', {
+            createChoice('"If you want to spite the right people, come east with me. Save your mercy for folk who still deserve it."', 'SCENE_SILVERTHORN_GATES', {
                 buttonText: 'Bring Kieran',
                 effects: [
                     { type: 'flag', flagId: 'silverthorn_kieran_recruited', value: true },
-                    { type: 'addCompanion', companionId: 'kieran_brogan', logText: 'Kieran Brogan falls in with the party, prayerful in theory and insubordinate in all the useful ways.' }
+                    { type: 'addCompanion', companionId: 'kieran_brogan', logText: 'Kieran Brogan falls in with the party, pious enough to mean it and crooked enough to put mercy where the law refuses.' }
                 ]
             }),
             createChoice('Leave him to his argument with the clerk.', 'SCENE_SILVERTHORN_GATES', { buttonText: 'Back to the Gate Plaza' })
@@ -1494,8 +1491,8 @@ export function buildSporefallRuntimeScene(sceneId, baseScene) {
             scene.text = `You stand once more in Sporefall's central street, where the silence no longer feels abandoned so much as watched. Doors hang open to rooms no one had time to close. A butcher's awning has fused to its frame in black curls. The red light on the stones makes every threshold look blood-washed whether blood touched it or not. The borough still opens west toward the cathedral quarter, east toward the overseer's row, and north toward the bridge Eoin named.${eoinState ? ` ${eoinState}` : ''}`;
             scene.choices = [
                 createChoice('Step back into the central street', 'SCENE_HUB_SPOREFALL', { buttonText: 'Back to the Street' }),
-                createChoice(gameState.flags.eoin_recruited ? "See if Eoin can steady himself before you move" : "Go back to Eoin's hiding place", 'SCENE_EOIN_TALK', {
-                    buttonText: gameState.flags.eoin_recruited ? 'Check on Eoin' : "Back to Eoin"
+                createChoice(state.eoinTalked ? "See if Eoin can steady himself before you move" : "Go back to Eoin's hiding place", 'SCENE_EOIN_TALK', {
+                    buttonText: state.eoinTalked ? 'Check on Eoin' : "Back to Eoin"
                 })
             ];
             return scene;
@@ -1607,7 +1604,6 @@ export function buildSporefallRuntimeScene(sceneId, baseScene) {
 
     if (sceneId === 'SCENE_EOIN_TALK') {
         scene.choices = [...(scene.choices || [])];
-        const recruitmentResolved = !!(gameState.flags.eoin_recruited || gameState.flags.eoin_refused || gameState.flags.eoin_locked_out);
         const dreadcapCanTrigger = state.eoinKeyInfoHeard && state.eoinChoiceMade && !state.dreadcapTriggered && !state.dreadcapDefeated;
         if (state.eoinTalked) {
             const reactions = [];
@@ -1627,51 +1623,38 @@ export function buildSporefallRuntimeScene(sceneId, baseScene) {
             const comfortBeat = [
                 state.eoinComforted ? 'The ration still lies where you left it, untouched and useless except for the fact that he has stopped bracing for cruelty every time you speak.' : null
             ].filter(Boolean).join(' ');
-            const recruitBeat = gameState.flags.eoin_recruited
-                ? 'He still startles at every noise, but now he waits for your next move instead of curling back into the cellar mouth.'
-                : gameState.flags.eoin_refused
-                    ? 'He keeps close to the cellar mouth now, trying to look smaller than the ruin around him.'
-                    : gameState.flags.eoin_locked_out
-                        ? 'He answers what he must, but the hurt in him has gone careful and quiet.'
-                        : null;
-            scene.text = `Eoin is calmer now, though never steady. He keeps watching the empty street between words, as if expecting the town itself to overhear him. The same three hurts still pull at him: the cathedral, the north-side bridge, and the impossible feeling that part of him is here while part of him has already gone missing.${suffix}${comfortBeat ? ` ${comfortBeat}` : ''}${recruitBeat ? ` ${recruitBeat}` : ''}`;
+            const shelterBeat = state.eoinChoiceMade
+                ? 'He keeps close to the cellar mouth now, trying to make himself smaller than the ruin around him while he waits to see whether you keep your word.'
+                : null;
+            scene.text = `Eoin is calmer now, though never steady. He keeps watching the empty street between words, as if expecting the town itself to overhear him. The same three hurts still pull at him: the cathedral, the north-side bridge, and the impossible feeling that part of him is here while part of him has already gone missing.${suffix}${comfortBeat ? ` ${comfortBeat}` : ''}${shelterBeat ? ` ${shelterBeat}` : ''}`;
         } else {
             scene.text = "Once the spear lowers a little, the story comes out in broken pieces: quarantine lines, prayers that turned into orders, a mum he lost near the northern bridge where they used to sleep under the stonework, and a town that seemed to sicken all at once after the moon rose wrong. He still calls the place Whisperwood when he forgets himself. He speaks like a child afraid the whole truth might hear its name and come back.";
         }
 
-        if (!recruitmentResolved) {
-            scene.choices.push(createChoice("\"All right. Stay close to me and don't fall behind.\"", 'SCENE_EOIN_RECRUITED', {
-                buttonText: 'Bring Him Along',
-                effects: [
-                    { type: 'flag', flagId: 'sporefall_eoin_talked', value: true },
-                    { type: 'flag', flagId: 'sporefall_eoin_choice_made', value: true },
-                    { type: 'flag', flagId: 'eoin_recruited', value: true },
-                    { type: 'flag', flagId: 'eoin_bonded', value: true },
-                    { type: 'relationship', npcId: 'eoin', amount: 10 },
-                    { type: 'reputation', factionId: 'whisperwood_survivors', amount: 5 },
-                    { type: 'addCompanion', companionId: 'eoin', logText: 'Eoin joins the party, frightened through and through, but too afraid of being left behind to stay hidden.' }
-                ]
-            }));
-            scene.choices.push(createChoice("\"Stay hidden. If I can clear a road, I'll come back for you.\"", 'SCENE_HUB_SPOREFALL', {
-                buttonText: 'Tell Him to Hide',
-                effects: [
-                    { type: 'flag', flagId: 'sporefall_eoin_talked', value: true },
-                    { type: 'flag', flagId: 'sporefall_eoin_choice_made', value: true },
-                    { type: 'flag', flagId: 'eoin_refused', value: true }
-                ]
-            }));
-            scene.choices.push(createChoice("\"I'm not dragging you through this with me.\"", 'SCENE_HUB_SPOREFALL', {
-                buttonText: 'Refuse Him',
-                effects: [
-                    { type: 'flag', flagId: 'sporefall_eoin_talked', value: true },
-                    { type: 'flag', flagId: 'sporefall_eoin_choice_made', value: true },
-                    { type: 'flag', flagId: 'eoin_locked_out', value: true },
-                    { type: 'relationship', npcId: 'eoin', amount: -15 }
-                ]
-            }));
-        }
+        scene.choices.push(createChoice("\"Stay hidden. If I can clear a road, I'll come back for you.\"", 'SCENE_HUB_SPOREFALL', {
+            buttonText: 'Tell Him to Hide',
+            effects: [
+                { type: 'flag', flagId: 'sporefall_eoin_talked', value: true },
+                { type: 'flag', flagId: 'sporefall_eoin_choice_made', value: true }
+            ]
+        }));
+        scene.choices.push(createChoice("\"Show me the north road the way you remember it, then get back under cover.\"", 'SCENE_HUB_SPOREFALL', {
+            buttonText: 'Ask About the North Road',
+            effects: [
+                { type: 'flag', flagId: 'sporefall_eoin_talked', value: true },
+                { type: 'flag', flagId: 'sporefall_eoin_choice_made', value: true },
+                { type: 'relationship', npcId: 'eoin', amount: 5 }
+            ]
+        }));
+        scene.choices.push(createChoice("\"Keep lower in the cellar mouth. Do not come out unless you hear my voice.\"", 'SCENE_HUB_SPOREFALL', {
+            buttonText: 'Keep Him Sheltered',
+            effects: [
+                { type: 'flag', flagId: 'sporefall_eoin_talked', value: true },
+                { type: 'flag', flagId: 'sporefall_eoin_choice_made', value: true }
+            ]
+        }));
         if (dreadcapCanTrigger) {
-            scene.choices.push(createChoice('Linger a little longer and press Eoin on what keeps prowling these streets.', 'SCENE_DREADCAP_WARNING', {
+            scene.choices.push(createChoice('Keep him talking even though the street has gone too still and the air has started turning colder by the heartbeat.', 'SCENE_DREADCAP_WARNING', {
                 buttonText: 'Linger Too Long',
                 effects: [
                     { type: 'flag', flagId: 'sporefall_dreadcap_triggered', value: true }
@@ -1724,21 +1707,16 @@ export function buildSporefallRuntimeScene(sceneId, baseScene) {
             createChoice(state.northRouteOpen ? 'Take the northern skip route again' : 'Head north through the broken market road', 'SCENE_SPOREFALL_NORTH_APPROACH', {
                 buttonText: state.northRouteOpen ? 'North Road Again' : 'North Road'
             }),
-            createChoice(gameState.flags.eoin_recruited ? "Check on Eoin before you choose a road" : "Return to Eoin's hiding place", 'SCENE_EOIN_TALK', {
-                buttonText: gameState.flags.eoin_recruited ? 'Check on Eoin' : "Back to Eoin"
+            createChoice(state.eoinTalked ? "Check on Eoin before you choose a road" : "Return to Eoin's hiding place", 'SCENE_EOIN_TALK', {
+                buttonText: state.eoinTalked ? 'Check on Eoin' : "Back to Eoin"
             })
         ];
-        if (gameState.flags.eoin_recruited) {
+        if (state.eoinTalked) {
             scene.choices.unshift(createChoice("Ask Eoin to show you the way north how he remembers it. (Survival)", null, {
                 buttonText: 'Let Eoin Lead North (Survival)',
                 type: 'skillCheck',
                 skill: 'survival',
                 dc: 10,
-                companionAid: {
-                    companionId: 'eoin',
-                    bonus: 2,
-                    logText: 'Eoin remembers the hungry-child ways through Sporefall: cellar lips, shelter walls, and alleys that used to hide him and his mum.'
-                },
                 successText: 'With Eoin following memory more than confidence, you reach the north road without giving the dead ground a fair chance to answer.',
                 failText: 'Even Eoin cannot make Sporefall harmless, but his frightened guesses still keep the worst of the streets from folding over you.',
                 nextSceneSuccess: 'SCENE_SPOREFALL_NORTH_APPROACH',

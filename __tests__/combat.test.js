@@ -4,6 +4,8 @@ import { applyOpportunityAttacks, beginTurn, buildEnemyCombatant, enemyTurn, get
 import { gameState, resetGameState, syncActorState } from '../data/gameState.js';
 import { addEffectToActor, createDefaultMechanicsState } from '../data/mechanics.js';
 
+let battleLog;
+
 function createActor(overrides = {}) {
   const abilities = overrides.abilities || { STR: 10, DEX: 10, CON: 10, INT: 10, WIS: 10, CHA: 10 };
   return {
@@ -33,9 +35,12 @@ function createActor(overrides = {}) {
 
 beforeEach(() => {
   resetGameState();
+  battleLog = [];
   initCombatSystem({
     updateCombatUI: () => {},
-    logToBattle: () => {},
+    logToBattle: (message) => {
+      battleLog.push(message);
+    },
     showBattleEventText: () => {},
     createActionButton: () => ({}),
     goToScene: () => {},
@@ -1542,6 +1547,7 @@ test('low-level dreadcap regeneration is suppressed by fire until its next turn 
   resolveDamage(dreadcap, 5, 'fire');
   const afterFire = dreadcap.hp;
   expect(dreadcap.combatFlags.regenerationSuppressedTurns).toBe(1);
+  expect(battleLog.some((entry) => entry.includes('stopping the thing\'s obscene knitting'))).toBe(true);
 
   beginTurn(dreadcap.uniqueId);
   expect(dreadcap.hp).toBe(afterFire);
@@ -1550,6 +1556,7 @@ test('low-level dreadcap regeneration is suppressed by fire until its next turn 
   dreadcap.hp = 30;
   beginTurn(dreadcap.uniqueId);
   expect(dreadcap.hp).toBe(36);
+  expect(battleLog.some((entry) => entry.includes('crawl back together'))).toBe(true);
 });
 
 test('dreadcap spore cloud recharges and applies poison-blind pressure', () => {
@@ -1593,12 +1600,14 @@ test('dreadcap spore cloud recharges and applies poison-blind pressure', () => {
   expect(gameState.player.mechanics.activeEffects.some((effect) => effect.id === 'poisoned')).toBe(true);
   expect(gameState.player.mechanics.activeEffects.some((effect) => effect.id === 'blinded')).toBe(true);
   expect(dreadcap.combatFlags.specialActionAvailability.spore_cloud).toBe(false);
+  expect(battleLog.some((entry) => entry.includes('venting a grave-sweet haze'))).toBe(true);
 
   randomSpy.mockReset();
   randomSpy.mockReturnValue(0.99);
   gameState.combat.actionsRemaining = 1;
   beginTurn(dreadcap.uniqueId);
   expect(dreadcap.combatFlags.specialActionAvailability.spore_cloud).toBe(true);
+  expect(battleLog.some((entry) => entry.includes('pulse full again'))).toBe(true);
 
   randomSpy.mockRestore();
 });
@@ -1631,6 +1640,7 @@ test('dreadcap vines can restrain and grapple a target', () => {
   expect(performEnemySpecialAction(dreadcap, 'ensnaring_vines', 'player')).toBe(true);
   expect(gameState.player.mechanics.activeEffects.some((effect) => effect.id === 'grappled')).toBe(true);
   expect(gameState.player.mechanics.activeEffects.some((effect) => effect.id === 'restrained')).toBe(true);
+  expect(battleLog.some((entry) => entry.includes('Root-vines whip low through the rubble'))).toBe(true);
 
   randomSpy.mockRestore();
 });
