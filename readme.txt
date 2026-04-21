@@ -20,6 +20,7 @@ Long-term combat/system planning should preserve a path toward mid-combat saves.
 For character systems, prioritize deeper class support over broad shallow expansion.
 
 See `notes/salvage_pitch.md` for a concrete gameplay loop and story structure that ties these pieces together.
+See `notes/contributor_quickstart.md` for the shortest safe orientation pass before using the deeper canon/runtime/tone docs.
 See `notes/story_timeline_model.md` for the canonical Silverthorn opening and the new event-driven timeline model.
 The current Act II recovery slice assumes: Alderic briefing -> Silverthorn prep -> party mustering -> Shadowmire road -> blackout -> early Sporefall -> early Eoin -> directional borough investigation.
 See `notes/5e_mechanics_roadmap.md` for the rules-depth plan.

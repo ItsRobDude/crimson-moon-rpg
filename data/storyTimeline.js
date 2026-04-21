@@ -115,34 +115,19 @@ export const storyEvents = {
         id: 'dormant_hushbriar_future_route',
         actId: 'act_5_hushbriar_endgame',
         title: 'Dormant Hushbriar Future Routes',
-        summary: 'Solasmor and the Soul Mill remain documented late-route hooks, but must stay unreachable until they have draft-safe entry beats.'
+        summary: 'Solasmor and the Soul Mill remain documented late-route hooks whose eventlines stay dormant until they have draft-safe ambient hubs and entry beats.'
     }
 };
 
 export const locationStoryRequirements = {
-    silverthorn: null,
-    shadowmire: { id: 'silverthorn_departure', oneOf: [STORY_EVENT_STATUS.AVAILABLE, STORY_EVENT_STATUS.ACTIVE, STORY_EVENT_STATUS.COMPLETED] },
-    whisperwood: { id: 'sporefall_arrival', oneOf: [STORY_EVENT_STATUS.AVAILABLE, STORY_EVENT_STATUS.ACTIVE, STORY_EVENT_STATUS.COMPLETED] },
-    durnhelm: { id: 'durnhelm_thread', oneOf: [STORY_EVENT_STATUS.AVAILABLE, STORY_EVENT_STATUS.ACTIVE, STORY_EVENT_STATUS.COMPLETED] },
-    lament_hill: { id: 'lament_hill_thread', oneOf: [STORY_EVENT_STATUS.AVAILABLE, STORY_EVENT_STATUS.ACTIVE, STORY_EVENT_STATUS.COMPLETED] },
-    hushbriar: { id: 'hushbriar_demigod_thread', oneOf: [STORY_EVENT_STATUS.AVAILABLE, STORY_EVENT_STATUS.ACTIVE, STORY_EVENT_STATUS.COMPLETED] },
-    thieves_hideout: { id: 'retired_hushbriar_guild_branch', oneOf: [STORY_EVENT_STATUS.AVAILABLE, STORY_EVENT_STATUS.ACTIVE, STORY_EVENT_STATUS.COMPLETED] },
-    soul_mill: { id: 'dormant_hushbriar_future_route', oneOf: [STORY_EVENT_STATUS.AVAILABLE, STORY_EVENT_STATUS.ACTIVE, STORY_EVENT_STATUS.COMPLETED] },
-    solasmor: { id: 'dormant_hushbriar_future_route', oneOf: [STORY_EVENT_STATUS.AVAILABLE, STORY_EVENT_STATUS.ACTIVE, STORY_EVENT_STATUS.COMPLETED] }
+    thieves_hideout: { id: 'retired_hushbriar_guild_branch', oneOf: [STORY_EVENT_STATUS.AVAILABLE, STORY_EVENT_STATUS.ACTIVE, STORY_EVENT_STATUS.COMPLETED] }
 };
 
 export const locationUnlockHints = {
-    shadowmire: 'Leave Silverthorn after Alderic briefs you.',
-    whisperwood: 'Push the Whisperwood investigation past the road into Sporefall.',
-    durnhelm: 'Push the Sporefall investigation far enough to confirm Aodhan as the next lead.',
-    lament_hill: 'Finish Cathal\'s Durnhelm lead to open the witch on Lament Hill.',
-    hushbriar: 'Advance Lament Hill until Aine opens the Hushbriar demigod lead.',
-    thieves_hideout: 'This route is retired until the guild-first bridge branch is rewritten to fit the draft-first Hushbriar order.',
-    soul_mill: 'This route is dormant until its design packet is implemented through a draft-aligned late Hushbriar entry beat.',
-    solasmor: 'This route is dormant until its design packet is implemented through a draft-aligned late Hushbriar entry beat.'
+    thieves_hideout: 'This place must still be discovered in-scene; it is not a direct map destination.'
 };
 
-export const storyDrivenLocationReveals = ['durnhelm', 'lament_hill', 'hushbriar'];
+export const storyDrivenLocationReveals = [];
 
 export const storySceneTriggers = {
     SCENE_BRIEFING: {
@@ -281,59 +266,11 @@ export const storySceneTriggers = {
         activate: ['hushbriar_demigod_thread'],
         actId: 'act_5_hushbriar_endgame'
     },
-    SCENE_HUSHBRIAR_TOWN: {
-        activate: ['hushbriar_demigod_thread'],
-        actId: 'act_5_hushbriar_endgame'
-    },
-    SCENE_BRIARWOOD_INN: {
-        activate: ['hushbriar_demigod_thread'],
-        actId: 'act_5_hushbriar_endgame'
-    },
-    SCENE_FIONNLAGH_HUB: {
-        activate: ['hushbriar_demigod_thread'],
-        actId: 'act_5_hushbriar_endgame'
-    },
-    SCENE_HUSHBRIAR_SCREAMS: {
-        activate: ['hushbriar_demigod_thread'],
-        actId: 'act_5_hushbriar_endgame'
-    },
-    SCENE_INVESTIGATION: {
-        activate: ['hushbriar_demigod_thread'],
-        actId: 'act_5_hushbriar_endgame'
-    },
-    SCENE_TRACKING_CHOLDRITHS: {
-        activate: ['hushbriar_demigod_thread'],
-        actId: 'act_5_hushbriar_endgame'
-    },
-    SCENE_HUSHBRIAR_MORNING_SETUP: {
-        activate: ['hushbriar_demigod_thread'],
-        actId: 'act_5_hushbriar_endgame'
-    },
-    SCENE_MOONWELL: {
-        activate: ['hushbriar_demigod_thread'],
-        actId: 'act_5_hushbriar_endgame'
-    },
     SCENE_HUSHBRIAR_AFTERMATH_HUNT: {
         activate: ['hushbriar_elara_resolution'],
         actId: 'act_5_hushbriar_endgame'
     },
-    SCENE_THIEVES_HIDEOUT: {
-        activate: ['hushbriar_elara_resolution'],
-        actId: 'act_5_hushbriar_endgame'
-    },
     SCENE_ELARA_HIDEAWAY: {
-        activate: ['hushbriar_elara_resolution'],
-        actId: 'act_5_hushbriar_endgame'
-    },
-    SCENE_ELARA_COUNSEL: {
-        activate: ['hushbriar_elara_resolution'],
-        actId: 'act_5_hushbriar_endgame'
-    },
-    SCENE_ELARA_STONE_DECISION: {
-        activate: ['hushbriar_elara_resolution'],
-        actId: 'act_5_hushbriar_endgame'
-    },
-    SCENE_ELARA_AODHAN_WARNING: {
         activate: ['hushbriar_elara_resolution'],
         actId: 'act_5_hushbriar_endgame'
     },
@@ -537,30 +474,24 @@ export const sceneSafetyPolicies = {
             storyEvents: ['hushbriar_demigod_thread']
         },
         fallbackMode: SCENE_FALLBACK_MODES.REDIRECT,
-        ifReachedTooEarly: 'Keep Hushbriar closed until the draft route opens it through Aine or the Archives.',
+        ifReachedTooEarly: 'Use the normal road-arrival chain only when the canonical demigod route has actually turned toward Hushbriar.',
         ifPartiallyInformed: 'Use occupation pressure, guard suspicion, and civic dread before Moonwell or guild stakes surface.',
         onRevisit: 'Treat first arrival as a committed late-route handoff rather than a reusable travel beat.',
         neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
     },
     SCENE_HUSHBRIAR_TOWN: {
         thread: 'hushbriar_demigod_thread',
-        prerequisites: {
-            storyEvents: ['hushbriar_demigod_thread']
-        },
         fallbackMode: SCENE_FALLBACK_MODES.DEGRADE,
-        ifReachedTooEarly: 'Do not surface Hushbriar before the Lament Hill truth opens the demigod route.',
-        ifPartiallyInformed: 'Keep the town focused on occupation, fear, and the pressure leading toward Fionnlagh and Moonwell.',
-        onRevisit: 'Maintain town pressure without replacing the Moonwell hinge with guild-first detours.',
+        ifReachedTooEarly: 'Allow the town as an ambient sandbox hub: occupation, clan tension, relic gossip, and Whisperwood dread, but no forced late-route escalation.',
+        ifPartiallyInformed: 'Keep the town focused on occupation, fear, and local faction strain before Moonwell or demigod pressure sharpens.',
+        onRevisit: 'Maintain town pressure without turning Hushbriar into a neutral services hub.',
         neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
     },
     SCENE_BRIARWOOD_INN: {
         thread: 'hushbriar_demigod_thread',
-        prerequisites: {
-            storyEvents: ['hushbriar_demigod_thread']
-        },
         fallbackMode: SCENE_FALLBACK_MODES.DEGRADE,
-        ifReachedTooEarly: 'Keep the inn unavailable until Hushbriar itself is legitimately open.',
-        ifPartiallyInformed: 'Center refugees, pilgrim fear, Fionnlagh, and the missable Moonwell night pressure.',
+        ifReachedTooEarly: 'Keep the inn available as a tense local room without surfacing Fionnlagh before the late route is active.',
+        ifPartiallyInformed: 'Center refugees, pilgrim fear, clan strain, and rumor pressure before the missable Moonwell night window exists.',
         onRevisit: 'Revisit text may adapt, but the inn should not become a generic services node.',
         neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
     },
@@ -581,9 +512,17 @@ export const sceneSafetyPolicies = {
             storyEvents: ['hushbriar_demigod_thread']
         },
         fallbackMode: SCENE_FALLBACK_MODES.DEGRADE,
-        ifReachedTooEarly: 'Do not surface Moonwell before the late Hushbriar spine earns it through town pressure and the night event.',
+        ifReachedTooEarly: 'Reserve this catastrophic Moonwell version for the late Hushbriar spine; earlier travel should use an ambient Moonwell surface instead.',
         ifPartiallyInformed: 'Keep Moonwell as a protected emotional hinge, not a bypass to earlier route knowledge.',
         onRevisit: 'Preserve the weight of the set piece and avoid flattening it into a generic boss room.',
+        neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
+    },
+    SCENE_MOONWELL_AMBIENT: {
+        thread: 'hushbriar_demigod_thread',
+        fallbackMode: SCENE_FALLBACK_MODES.SHOW_RUMOR_ONLY_VERSION,
+        ifReachedTooEarly: 'Allow the Moonwell as a real holy place before the catastrophe arrives there.',
+        ifPartiallyInformed: 'Keep it restorative, local, and spiritually tense without surfacing Aodhan or the broken-night set piece.',
+        onRevisit: 'Let it remain a physical place with low-stakes reflection rather than a route shortcut.',
         neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
     },
     SCENE_HUSHBRIAR_AFTERMATH_HUNT: {
@@ -606,6 +545,25 @@ export const sceneSafetyPolicies = {
         ifReachedTooEarly: 'Keep the hideout hidden until the aftermath clue path points there directly.',
         ifPartiallyInformed: 'Let Neala and Liobhan stay hard-edged and distrustful without turning the hideout into a side hub.',
         onRevisit: 'Keep the hideout tense and inward-facing rather than reusable as a base.',
+        neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
+    },
+    SCENE_THIEVES_HIDEOUT_CONTACT: {
+        thread: 'hushbriar_elara_resolution',
+        fallbackMode: SCENE_FALLBACK_MODES.SHOW_RUMOR_ONLY_VERSION,
+        ifReachedTooEarly: 'Allow tense contact with the hidden guild before the Elara route is truly in play, but do not surface the demigod payload.',
+        ifPartiallyInformed: 'Keep Neala and Liobhan guarded, territorial, and short on useful answers.',
+        onRevisit: 'Keep early contact sharp and low-yield rather than turning the hideout into a repeatable side base.',
+        neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
+    },
+    SCENE_HIDEOUT_BREACH_APPROACH: {
+        thread: 'hushbriar_elara_resolution',
+        prerequisites: {
+            storyEvents: ['hushbriar_elara_resolution']
+        },
+        fallbackMode: SCENE_FALLBACK_MODES.DEGRADE,
+        ifReachedTooEarly: 'Do not surface the violent breach path before the guild and Elara route are actually in conflict.',
+        ifPartiallyInformed: 'Keep the breach about immediate pressure and bad choices, not about opening new destination sprawl.',
+        onRevisit: 'Treat a breach as a collapsing moment, not a reusable alternate corridor.',
         neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
     },
     SCENE_ELARA_HIDEAWAY: {

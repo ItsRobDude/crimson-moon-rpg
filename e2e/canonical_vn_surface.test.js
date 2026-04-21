@@ -41,11 +41,11 @@ test.describe('Canonical VN Surface', () => {
     await page.getByRole('button', { name: /^more$/i }).click();
     await expect(page.getByRole('button', { name: 'Market District' })).toBeVisible();
 
-    await page.evaluate(() => window.goToScene('SCENE_DURNHELM_ENTRY'));
-    await advanceSceneUntilChoice(page, /search the gate quarter/i);
-    await expect(page.getByRole('button', { name: 'Search the Gate Quarter' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Head for the Holy Forge' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Take the Lament Hill Lead' })).toBeVisible();
+    await page.evaluate(() => window.goToScene('SCENE_HUB_DURNHELM'));
+    await advanceSceneUntilChoice(page, /inspect the gate approach/i);
+    await expect(page.getByRole('button', { name: 'Inspect the Gate Approach' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Question the Survivors' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Go to Lament Hill' })).toBeVisible();
 
     await page.evaluate(async () => {
       const stateModule = await import('/data/gameState.js');
@@ -58,5 +58,25 @@ test.describe('Canonical VN Surface', () => {
     await page.getByRole('button', { name: 'Show Elara the Stone' }).click();
     await advanceSceneUntilChoice(page, /make them name the cost/i);
     await expect(page.getByRole('button', { name: 'Make Them Name the Cost' })).toBeVisible();
+  });
+
+  test('off-spine Hushbriar detour stays ambient before the late event route is active', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForFunction(() => window.gameReady);
+
+    await page.click('#btn-start-new');
+    await page.fill('#cc-name', 'HushbriarSandbox');
+    await page.click('#btn-start-game');
+
+    await page.evaluate(() => window.goToScene('SCENE_HUSHBRIAR_TOWN'));
+    await advanceSceneUntilChoice(page, /visit the moonwell/i);
+    await page.getByRole('button', { name: /^more$/i }).click();
+    await expect(page.getByRole('button', { name: 'Visit the Moonwell' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Follow the Bridge Shadows' })).toBeVisible();
+
+    await page.evaluate(() => window.goToScene('SCENE_BRIARWOOD_INN'));
+    await advanceSceneUntilChoice(page, /listen to the room/i);
+    await expect(page.getByRole('button', { name: 'Listen to the Room (Insight)' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Talk to Fionnlagh' })).toHaveCount(0);
   });
 });

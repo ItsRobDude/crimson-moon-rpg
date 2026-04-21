@@ -26,9 +26,13 @@ If you add a new story-critical key, update both this note and the JS registry i
 | `silverthorn_temple_ward_taken` | `SCENE_SILVERTHORN_TEMPLE_COUNSEL` | `silverthorn_prep` | Temple ward already resolved. | public | one_time_outcome |
 | `silverthorn_gate_route_briefed` | `SCENE_SILVERTHORN_GATE_CAPTAIN` | `silverthorn_prep` | Route-study reward already resolved. | public | one_time_outcome |
 | `silverthorn_watch_hostile` | `SCENE_SILVERTHORN_WATCH_CRACKDOWN` | `silverthorn_prep` | Gate watch turned hostile and forced the player onto the eastern road. | public | route_lock |
+| `silverthorn_lark_recruited` | `SCENE_LARK_RECRUIT` | `silverthorn_prep` | Lark has already joined the road party. | public | story_progression |
+| `silverthorn_kieran_recruited` | `SCENE_KIERAN_RECRUIT` | `silverthorn_prep` | Kieran has already joined the road party. | public | story_progression |
 | `sporefall_eoin_glimpsed` | `SCENE_ARRIVAL_WHISPERWOOD` | `eoin_thread` | Eoin sensed nearby before full meeting. | public | story_progression |
 | `sporefall_eoin_met` | `SCENE_MEET_EOIN` | `eoin_thread` | First direct Eoin encounter happened. | public | story_progression |
 | `sporefall_eoin_talked` | `SCENE_EOIN_TALK` | `eoin_thread` | Eoin's first major conversation is complete. | public | story_progression |
+| `sporefall_eoin_key_info_heard` | `SCENE_EOIN_TALK` | `eoin_thread` | Eoin's first major directional clue was heard. | public | story_progression |
+| `sporefall_eoin_choice_made` | `SCENE_EOIN_TALK` / `SCENE_EOIN_RITUAL_TALK` | `eoin_thread` | Eoin's first urgent branch has been resolved into a next action. | public | story_progression |
 | `sporefall_eoin_comforted` | `SCENE_MEET_EOIN` / `SCENE_EOIN_TALK` | `eoin_thread` | Player offered Eoin a symbolic kindness. | public | optional_clue |
 | `sporefall_cathedral_letter_found` | `SCENE_SPOREFALL_CATHEDRAL_APPROACH` | `sporefall_investigation` | Courier bag clue already claimed. | rumor_only | one_time_outcome |
 | `sporefall_cathedral_vision_seen` | `SCENE_SPOREFALL_CATHEDRAL_VISION` | `aodhan_thread` | Cathedral vision was seen. | spoiler_sensitive | story_progression |
@@ -41,6 +45,8 @@ If you add a new story-critical key, update both this note and the JS registry i
 | `sporefall_bridge_seen` | `SCENE_SPOREFALL_NORTH_BRIDGE` | `north_bridge` | Bridge shelter investigated. | rumor_only | optional_clue |
 | `sporefall_bridge_body_seen` | `SCENE_SPOREFALL_NORTH_BRIDGE` | `north_bridge` | Eoin's mother found under the bridge. | spoiler_sensitive | optional_clue |
 | `sporefall_north_route_open` | `SCENE_SPOREFALL_NORTH_ROUTE_DISCOVERED` | `north_skip_route` | Northern skip route opened. | public | story_progression |
+| `sporefall_dreadcap_triggered` | `SCENE_HUB_SPOREFALL` | `north_skip_route` | Sporefall lingered long enough to trigger the Dreadcap escalation. | public | story_progression |
+| `sporefall_dreadcap_defeated` | `SCENE_DREADCAP_AFTERMATH` | `north_skip_route` | Dreadcap escalation already resolved. | public | one_time_outcome |
 | `sporefall_north_route_avoided_fight` | `SCENE_SPOREFALL_NORTH_ROUTE_DISCOVERED` | `north_skip_route` | Northern route was reached through the evasive branch rather than the ambush. | public | optional_clue |
 | `hushbriar_fionnlagh_met` | `SCENE_FIONNLAGH_HUB` | `hushbriar_demigod_thread` | Fionnlagh meeting completed and Moonwell night window opened. | public | story_progression |
 | `moonwell_night_available` | `SCENE_FIONNLAGH_HUB` | `hushbriar_demigod_thread` | Moonwell night event is available before dawn. | public | story_progression |
@@ -54,7 +60,7 @@ If you add a new story-critical key, update both this note and the JS registry i
 | `archives_thalion_confession_missed` | `SCENE_ARCHIVES_THALION_REBUFF` | `archives_truth` | Thalion's personal confession permanently missed. | spoiler_sensitive | one_time_outcome |
 | `hushbriar_guild_ledger_found` | `SCENE_HUSHBRIAR_LEDGER` | `hushbriar_elara_resolution` | Loading-dock ledger clue found. | public | optional_clue |
 | `hushbriar_guild_trusted` | `SCENE_THIEVES_HIDEOUT` | `hushbriar_elara_resolution` | Guild trust earned enough to reach Elara cooperatively. | public | story_progression |
-| `hushbriar_guild_hostile` | `SCENE_THIEVES_HIDEOUT` | `hushbriar_elara_resolution` | Guild relationship turned openly hostile, but the route still pushes toward Elara under pressure. | public | story_progression |
+| `hushbriar_guild_hostile` | `SCENE_THIEVES_HIDEOUT` | `hushbriar_elara_resolution` | Guild relationship turned openly hostile and future Elara access must come through breach or coercion, not cooperation. | public | story_progression |
 | `elara_met` | `SCENE_ELARA_HIDEAWAY` | `hushbriar_elara_resolution` | Elara personally encountered. | spoiler_sensitive | story_progression |
 | `elara_choice_spared` | `SCENE_ELARA_STONE_DECISION` | `hushbriar_elara_resolution` | Party committed to keeping Elara alive rather than spending her blood immediately. | spoiler_sensitive | story_progression |
 | `elara_choice_sacrifice_declared` | `SCENE_ELARA_STONE_DECISION` | `hushbriar_elara_resolution` | Party declared that Elara's divinity may need to be spent to wake the Stone. | spoiler_sensitive | story_progression |

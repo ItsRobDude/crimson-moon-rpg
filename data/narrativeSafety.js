@@ -71,6 +71,22 @@ export const narrativeStateRegistry = {
             revealSensitivity: 'public',
             semantics: 'route_lock'
         },
+        silverthorn_lark_recruited: {
+            owner: 'SCENE_LARK_RECRUIT',
+            thread: 'silverthorn_prep',
+            meaning: 'Lark agreed to join the road party and Silverthorn runtime should treat him as already recruited.',
+            allowedValues: [true],
+            revealSensitivity: 'public',
+            semantics: 'story_progression'
+        },
+        silverthorn_kieran_recruited: {
+            owner: 'SCENE_KIERAN_RECRUIT',
+            thread: 'silverthorn_prep',
+            meaning: 'Kieran agreed to join the road party and Silverthorn runtime should treat him as already recruited.',
+            allowedValues: [true],
+            revealSensitivity: 'public',
+            semantics: 'story_progression'
+        },
         sporefall_eoin_glimpsed: {
             owner: 'SCENE_ARRIVAL_WHISPERWOOD',
             thread: 'eoin_thread',
@@ -91,6 +107,22 @@ export const narrativeStateRegistry = {
             owner: 'SCENE_EOIN_TALK',
             thread: 'eoin_thread',
             meaning: 'The player completed Eoin’s first major conversation and unlocked the first borough sandbox slice.',
+            allowedValues: [true],
+            revealSensitivity: 'public',
+            semantics: 'story_progression'
+        },
+        sporefall_eoin_key_info_heard: {
+            owner: 'SCENE_EOIN_TALK',
+            thread: 'eoin_thread',
+            meaning: 'The player heard the first essential directional information from Eoin, regardless of which initial question path they chose.',
+            allowedValues: [true],
+            revealSensitivity: 'public',
+            semantics: 'story_progression'
+        },
+        sporefall_eoin_choice_made: {
+            owner: 'SCENE_EOIN_TALK / SCENE_EOIN_RITUAL_TALK',
+            thread: 'eoin_thread',
+            meaning: 'The player finished Eoin’s first urgent dialogue branch and committed to the next borough-facing action.',
             allowedValues: [true],
             revealSensitivity: 'public',
             semantics: 'story_progression'
@@ -190,6 +222,22 @@ export const narrativeStateRegistry = {
             allowedValues: [true],
             revealSensitivity: 'public',
             semantics: 'story_progression'
+        },
+        sporefall_dreadcap_triggered: {
+            owner: 'SCENE_HUB_SPOREFALL',
+            thread: 'north_skip_route',
+            meaning: 'The player lingered in Sporefall long enough after Eoin to trigger the Dreadcap escalation.',
+            allowedValues: [true],
+            revealSensitivity: 'public',
+            semantics: 'story_progression'
+        },
+        sporefall_dreadcap_defeated: {
+            owner: 'SCENE_DREADCAP_AFTERMATH',
+            thread: 'north_skip_route',
+            meaning: 'The Dreadcap escalation has already been resolved and should not trigger again.',
+            allowedValues: [true],
+            revealSensitivity: 'public',
+            semantics: 'one_time_outcome'
         },
         sporefall_north_route_avoided_fight: {
             owner: 'SCENE_SPOREFALL_NORTH_ROUTE_DISCOVERED',

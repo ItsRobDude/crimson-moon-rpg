@@ -85,10 +85,13 @@ test.describe('Canonical Spine Route', () => {
     await expect(page.locator('#map-modal')).toBeHidden();
 
     await clickChoice(page, /take the durnhelm lead/i);
+    await clickChoice(page, /inspect the gate approach/i);
     await clickChoice(page, /push through the gatehouse/i);
     await clickChoice(page, /head for the holy forge/i);
     await clickChoice(page, /follow the coughing/i);
     await clickChoice(page, /take the lament hill lead/i);
+    await clickChoice(page, /survey the lower slope/i);
+    await clickChoice(page, /climb toward the cottage/i);
     await clickChoice(page, /look for the graves/i);
     await clickChoice(page, /return to the cottage/i);
     await clickChoice(page, /pull back the cloth/i);

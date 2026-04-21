@@ -71,7 +71,7 @@ Use only these route classes:
 * `alternate_aligned`
   Optional branch that stays inside draft order, named locations, and NPC identity.
 * `dormant`
-  Documented but incomplete or intentionally unreachable until aligned.
+  Documented but incomplete or intentionally inactive at the event level until aligned.
 * `retired`
   Intentionally off-route until rewritten or deleted.
 
@@ -89,9 +89,11 @@ Any new side quest or alternate route must:
 Use story events as the main gate, not the map:
 
 * A location can be visible before its critical event is available.
+* Known world places may stay traversable if they have an authored ambient hub.
 * Important scenes should check story-event availability or completion before exposing the next branch.
 * Missing a beat should usually adapt the route rather than dead-end the story.
-* Retired or dormant late-route branches must not become the normal hub/default destination.
+* Hidden sublocations and unfinished destination reveals should stay off the map until their local entry logic exists.
+* Retired or dormant late-route branches must not become the normal default event payload or auto-promoted destination.
 * Combat should resolve local stakes, while the timeline system decides when global stakes move forward.
 * Status effects, injuries, blessings, curses, and other modifiers should eventually be able to influence dialogue and skill scenes, not just combat.
 

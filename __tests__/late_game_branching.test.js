@@ -56,6 +56,8 @@ test('Thalion audience contains one-pass missable truth gates and a closing flag
 test('Hushbriar now opens on the canonical town route and the post-Moonwell continuation is authored', () => {
   expect(getHubSceneForLocation('hushbriar')).toBe('SCENE_HUSHBRIAR_TOWN');
   expect(scenes.SCENE_ARRIVAL_HUSHBRIAR.choices.some((choice) => choice.nextScene === 'SCENE_HUSHBRIAR_GATES')).toBe(true);
+  expect(scenes.SCENE_MOONWELL_AMBIENT.choices.some((choice) => choice.nextScene === 'SCENE_HUSHBRIAR_TOWN')).toBe(true);
+  expect(scenes.SCENE_THIEVES_HIDEOUT_CONTACT.choices.some((choice) => choice.nextScene === 'SCENE_ELARA_HIDEAWAY')).toBe(false);
   expect(scenes.SCENE_AFTERMATH.choices.some((choice) => choice.nextScene === 'SCENE_HUSHBRIAR_AFTERMATH_HUNT')).toBe(true);
   expect(scenes.SCENE_HUSHBRIAR_LEDGER.onEnter.effects).toContainEqual({ type: 'flag', flagId: 'hushbriar_guild_ledger_found', value: true });
   expect(scenes.SCENE_ELARA_HIDEAWAY.onEnter.effects).toContainEqual({ type: 'flag', flagId: 'elara_met', value: true });
@@ -71,20 +73,29 @@ test('Elara route now converges on a stone decision or an Aodhan-still-holds-the
   const counselChoices = scenes.SCENE_ELARA_COUNSEL.choices;
   const stoneDecisionChoices = scenes.SCENE_ELARA_STONE_DECISION.choices;
   const warningChoices = scenes.SCENE_ELARA_AODHAN_WARNING.choices;
+  const refusalChoices = scenes.SCENE_GUILD_REFUSAL.choices;
+  const breachChoices = scenes.SCENE_HIDEOUT_BREACH_APPROACH.choices;
 
   expect(stoneChoice.requires.itemId).toBe('stone_of_oblivion');
   expect(aodhanChoice.requires.notFlag).toBe('aodhan_dead');
   expect(counselChoices[0].nextScene).toBe('SCENE_ELARA_STONE_DECISION');
+  expect(refusalChoices.every((choice) => choice.nextScene === 'SCENE_HIDEOUT_BREACH_APPROACH')).toBe(true);
+  expect(breachChoices.every((choice) => {
+    if (choice.type === 'skillCheck') {
+      return choice.nextSceneSuccess === 'SCENE_ELARA_HIDEAWAY' && choice.nextSceneFail === 'SCENE_ELARA_HIDEAWAY';
+    }
+    return false;
+  })).toBe(true);
 
   expect(stoneDecisionChoices[0].effects).toContainEqual({ type: 'flag', flagId: 'elara_choice_spared', value: true });
   expect(stoneDecisionChoices[1].effects).toContainEqual({ type: 'flag', flagId: 'elara_choice_sacrifice_declared', value: true });
   expect(warningChoices[0].effects).toContainEqual({ type: 'flag', flagId: 'elara_choice_deferred_by_aodhan', value: true });
 });
 
-test('retired and dormant late routes no longer resolve as default hubs', () => {
-  expect(getHubSceneForLocation('thieves_hideout')).toBe('SCENE_HUSHBRIAR_TOWN');
-  expect(getHubSceneForLocation('soul_mill')).toBe('SCENE_HUSHBRIAR_TOWN');
-  expect(getHubSceneForLocation('solasmor')).toBe('SCENE_HUSHBRIAR_TOWN');
+test('hidden or under-authored late routes do not resolve as direct map hubs', () => {
+  expect(getHubSceneForLocation('thieves_hideout')).toBeNull();
+  expect(getHubSceneForLocation('soul_mill')).toBeNull();
+  expect(getHubSceneForLocation('solasmor')).toBeNull();
 });
 
 test('Silverthorn hub resolution hard-closes to the eastern gate after the watch turns hostile', () => {
@@ -130,8 +141,8 @@ test('route-status note documents the new canonical continuation, aligned altern
   expect(storySceneTriggers.SCENE_ARRIVAL_HUSHBRIAR.activate).toEqual(['hushbriar_demigod_thread']);
   expect(storySceneTriggers.SCENE_AFTERMATH.unlock).toEqual(['hushbriar_elara_resolution']);
   expect(storySceneTriggers.SCENE_HUSHBRIAR_AFTERMATH_HUNT.activate).toEqual(['hushbriar_elara_resolution']);
-  expect(storySceneTriggers.SCENE_THIEVES_HIDEOUT.activate).toEqual(['hushbriar_elara_resolution']);
-  expect(storySceneTriggers.SCENE_ELARA_COUNSEL.activate).toEqual(['hushbriar_elara_resolution']);
+  expect(storySceneTriggers.SCENE_THIEVES_HIDEOUT).toBeUndefined();
+  expect(storySceneTriggers.SCENE_ELARA_HIDEAWAY.activate).toEqual(['hushbriar_elara_resolution']);
   expect(storySceneTriggers.SCENE_HUSHBRIAR_PROCESSING_REVELATION.complete).toEqual(['hushbriar_elara_resolution']);
 });
 

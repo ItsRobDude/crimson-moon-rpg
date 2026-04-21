@@ -13,7 +13,7 @@ Use Solasmor as a late religious-pressure route that expands the world after the
 
 ## Guardrails
 
-- Must stay unreachable through normal travel until its late-Hushbriar entry beat is authored
+- May be named in dialogue before it is playable, but must stay off the map through normal travel until its late-Hushbriar entry beat and ambient hub are authored
 - Must not compete with the canonical town -> inn -> Fionnlagh -> screams -> Moonwell order
 - Must not change any established NPC identity, motivation, or timeline role
 - Must remain consistent with the campaign draft's named locations and implied political pressure
@@ -22,4 +22,4 @@ Use Solasmor as a late religious-pressure route that expands the world after the
 
 - Define the exact canonical aftermath beat that can open Solasmor
 - Replace the current gate-only teaser with at least one meaningful follow-up scene
-- Add route-specific tests proving Solasmor cannot unlock before its documented entry beat
+- Add route-specific tests proving Solasmor can be discussed without becoming a travel destination before its documented entry beat

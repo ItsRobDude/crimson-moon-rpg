@@ -49,7 +49,8 @@ Rules:
 
 - `canonical` routes are the draft-backed main path and must remain playable.
 - `alternate_aligned` routes may be playable, but only if they preserve draft order, named locations, and NPC identity/goals.
-- `dormant` and `retired` routes must not be normal hub destinations or default location returns.
+- `dormant` and `retired` routes govern event payloads, branch restoration, and promotion safety rather than forcing every known world place off the map.
+- known `world` locations may remain traversable if they have a canon-safe ambient hub, but hidden sublocations and unfinished reveal beats must stay gated until authored.
 - if a branch is incomplete or not yet canon-aligned, it must be documented as `dormant` or `retired` before any further runtime expansion.
 - dormant or retired late routes with named destinations must also have a matching design packet in `notes/route_packets/` before contributors extend them again.
 
@@ -59,6 +60,16 @@ Any new side quest or alternate route must:
 - stay inside named locations already established by draft or canon notes
 - use only canon-named NPCs in ways consistent with their identity and goals
 - be added to `notes/campaign_route_status.md` before it becomes reachable
+
+## Location Travel Contract
+
+Use this shared travel rule before adding new destinations or reopening old ones:
+
+- `world` locations may become map-traversable once they are known and have an authored ambient hub
+- `hidden` locations do not become direct map destinations and must still be found in-scene
+- a place being discussable is not the same thing as it being travel-ready; named late places may stay off the map until their own ambient hubs exist
+- route class applies to event payloads and branch authority, not to the bare physical existence of a place in the world
+- when a player reaches a place early, prefer an ambient local surface over fake lockouts or premature late-route payloads
 
 ## NPC Identity Safety
 
@@ -201,5 +212,5 @@ Any narrative safety work should preserve:
 - no tonal drift that replaces concrete horror with generic mood language in protected scenes
 - no runtime variant that strips physical aftermath, social fear, or grief from the authored baseline
 - no protected NPC voice drifting into polished exposition, modern helper phrasing, or emotionally detached summary
-- no dormant or retired route becoming the active hub/default destination
+- no dormant or retired route becoming the active event spine, default event payload, or hidden-location auto-unlock
 - no new side route becoming playable without a matching `notes/campaign_route_status.md` entry

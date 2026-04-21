@@ -191,6 +191,16 @@ export const scenes = {
             { text: "Return to town center.", buttonText: "Back to Town Center", nextScene: "SCENE_HUSHBRIAR_TOWN" }
         ]
     },
+    "SCENE_MOONWELL_AMBIENT": {
+        id: "SCENE_MOONWELL_AMBIENT",
+        location: "hushbriar",
+        background: "landscapes/aodhan_at_moonwell.png",
+        text: "Away from the square and its patrol cries, the path to the Moonwell passes between dark cedar, prayer-rags gone damp with mist, and old markers carved by wood-elf hands that still expect reverence from anyone using the trail. The well itself glows softly beneath the branches. Moonlight gathers in its water even when the clouds try to hide it, and the air around it tastes cleaner than the town below. Two wood-elf votive bowls rest at the stoneside, half-full of wilted herbs and creek pennies. Nothing here speaks of the broken night yet. It only feels like a holy place being watched too closely by a frightened town.",
+        choices: [
+            { text: "Study the water and the old druid marks (Arcana)", buttonText: "Study the Well (Arcana)", type: "skillCheck", skill: "arcana", dc: 12, successText: "The Moonwell hums with real restorative power, but the older carvings around it also suggest boundaries, oaths, and watchfulness. Whatever the elves once trusted this place to do, it was never meant to belong to soldiers or priests from Silverthorn.", failText: "You read sanctity before you read detail: old blessings, old fear, and a silence that feels guarded rather than empty.", nextSceneSuccess: "SCENE_MOONWELL_AMBIENT", nextSceneFail: "SCENE_MOONWELL_AMBIENT" },
+            { text: "Head back toward Hushbriar before the patrols start counting shadows again.", buttonText: "Back to Town", nextScene: "SCENE_HUSHBRIAR_TOWN" }
+        ]
+    },
     "SCENE_HUSHBRIAR_CORRUPTED": {
         id: "SCENE_HUSHBRIAR_CORRUPTED",
         location: "hushbriar",
@@ -1496,7 +1506,8 @@ export const scenes = {
         onEnter: {
             once: true,
             effects: [
-                { type: "flag", flagId: "sporefall_cathedral_vision_seen", value: true }
+                { type: "flag", flagId: "sporefall_cathedral_vision_seen", value: true },
+                { type: "discoverLocation", locationId: "durnhelm", logText: "The trail ahead no longer feels local. Whatever comes next points north toward Durnhelm." }
             ]
         },
         text: "Sorrow hits like a physical blow. For one impossible instant you see a ritual chamber, a man on an altar, and darkness exploding from him as the rite breaks wrong. When the vision tears away, a chained specter stands in the aisle only long enough to point down a corridor before vanishing.",
@@ -1633,7 +1644,8 @@ export const scenes = {
             once: true,
             effects: [
                 { type: "addItem", itemId: "aodhan_journal_leaf" },
-                { type: "flag", flagId: "sporefall_journal_found", value: true }
+                { type: "flag", flagId: "sporefall_journal_found", value: true },
+                { type: "discoverLocation", locationId: "durnhelm", logText: "Aodhan's trail hardens into a real northern lead. Durnhelm is no longer just rumor." }
             ]
         },
         text: "Most of the journal has been torn away. The surviving leaves tell two stories: one of Aodhan's warmth toward Fiona and the court he once believed in, and one of pure fury at Alderic for corrupting the ritual that should have protected Liam and the borough. The final surviving line is clear enough to wound: he will begin the real work in the cathedral.",
@@ -1653,7 +1665,8 @@ export const scenes = {
             once: true,
             effects: [
                 { type: "addItem", itemId: "liam_letter" },
-                { type: "flag", flagId: "sporefall_letter_found", value: true }
+                { type: "flag", flagId: "sporefall_letter_found", value: true },
+                { type: "discoverLocation", locationId: "durnhelm", logText: "The correspondence ties Aodhan's crisis to Durnhelm. You now have a real road to follow north." }
             ]
         },
         text: "One letter survives the rot better than the others. Liam writes to Aodhan about a powerful relic the dwarves uncovered, Alderic's concern, and the need for ritual support to protect their people. The letter does not read like a warning. It reads like trust waiting to be betrayed.",
@@ -1761,7 +1774,8 @@ export const scenes = {
             once: true,
             questUpdate: { id: "investigate_whisperwood", stage: 4 },
             effects: [
-                { type: "flag", flagId: "sporefall_north_route_open", value: true }
+                { type: "flag", flagId: "sporefall_north_route_open", value: true },
+                { type: "discoverLocation", locationId: "durnhelm", logText: "The north road is good enough to mark now, and every sign on it points toward Durnhelm." }
             ]
         },
         text: "Beyond the ambush, the northern road opens deeper into the ruined borough. You could keep moving this way and skip the cathedral quarter and overseer's row entirely, but you would be trading understanding for speed. The route is viable. It is not generous.",
@@ -1948,6 +1962,24 @@ export const scenes = {
             { text: "Fall back toward Silverthorn while you still can", nextScene: "SCENE_HUB_SILVERTHORN" }
         ]
     },
+    "SCENE_HUB_DURNHELM": {
+        id: "SCENE_HUB_DURNHELM",
+        location: "durnhelm",
+        background: "landscapes/near_durnhelm.png",
+        onEnter: {
+            once: true,
+            effects: [
+                { type: "discoverLocation", locationId: "lament_hill", logText: "Between pyres and survivor whispers, one road keeps coming up: Lament Hill." }
+            ]
+        },
+        text: "Durnhelm sprawls wounded across the mountain roots. Smoke from funeral pyres drifts over the lower road, battered survivors move with the numb efficiency of people who have not had time to stop, and even from here the city sounds wrong: too many hammers, too few voices, too much silence between each order barked above the dead. The road back south still exists. So does the one climbing toward Lament Hill. Neither looks kind.",
+        choices: [
+            { text: "Pick through the ruined gate approach and read the first scale of the damage.", buttonText: "Inspect the Gate Approach", nextScene: "SCENE_DURNHELM_GATES" },
+            { text: "Press farther inside and listen for where the survivors keep naming the forge.", buttonText: "Question the Survivors", nextScene: "SCENE_DURNHELM_ENTRY" },
+            { text: "Take the road survivors keep muttering about and see what waits on Lament Hill.", buttonText: "Go to Lament Hill", nextScene: "SCENE_HUB_LAMENT_HILL" },
+            { text: "Open your map and choose another road.", buttonText: "Open the Map", action: "openMap" }
+        ]
+    },
     "SCENE_DURNHELM_GATES": {
         id: "SCENE_DURNHELM_GATES",
         location: "durnhelm",
@@ -1968,8 +2000,7 @@ export const scenes = {
                 nextSceneSuccess: "SCENE_DURNHELM_ENTRY",
                 nextSceneFail: "SCENE_DURNHELM_ENTRY"
             },
-            { text: "Push through the broken gatehouse", buttonText: "Push Through the Gatehouse", nextScene: "SCENE_DURNHELM_ENTRY" },
-            { text: "Turn away and follow the Lament Hill road instead", buttonText: "Take the Lament Hill Road", nextScene: "SCENE_LAMENT_HILL_APPROACH" }
+            { text: "Push through the broken gatehouse", buttonText: "Push Through the Gatehouse", nextScene: "SCENE_DURNHELM_ENTRY" }
         ]
     },
     "SCENE_DURNHELM_ENTRY": {
@@ -1979,8 +2010,7 @@ export const scenes = {
         text: "Inside the walls, Durnhelm is not empty. It is worse: alive enough to bury its dead. Survivors drag wrapped bodies toward pyres, a smashed storefront near the gate leaks ruined trade goods into the street, and every whispered conversation seems to end on the same pair of words: the forge. The first useful account comes in fragments from the gate quarter. An amber-eyed stranger was seen on the road first. The dark-haired wizard followed him like the second blow after the first warning. Then came fire, screaming, and a relic no one believes should have been unearthed at all. The first man still angry enough to make the sequence hold together is a soot-caked smith named Sven. He jerks his chin east and tells you Aodhan tore answers out of the forge quarter, left Cathal buried under the wreckage, and rode on before the dead had finished falling. It is the closest thing to a living road witness Durnhelm has left, and it points you straight toward the holy fire still burning beside the shattered temple.",
         choices: [
             { text: "Search the wrecked gate-quarter shops for context", buttonText: "Search the Gate Quarter", nextScene: "SCENE_DURNHELM_MARKET_RUINS" },
-            { text: "Head east toward the holy forge", buttonText: "Head for the Holy Forge", nextScene: "SCENE_DURNHELM_FORGE_APPROACH" },
-            { text: "Withdraw and take the Lament Hill lead instead", buttonText: "Take the Lament Hill Lead", nextScene: "SCENE_LAMENT_HILL_APPROACH" }
+            { text: "Head east toward the holy forge", buttonText: "Head for the Holy Forge", nextScene: "SCENE_DURNHELM_FORGE_APPROACH" }
         ]
     },
     "SCENE_DURNHELM_MARKET_RUINS": {
@@ -2018,11 +2048,58 @@ export const scenes = {
         id: "SCENE_DURNHELM_CATHAL",
         location: "durnhelm",
         background: "landscapes/outside_dwarf_cave.png",
+        onEnter: {
+            once: true,
+            effects: [
+                { type: "discoverLocation", locationId: "lament_hill" }
+            ]
+        },
         text: "You find the forgemaster under a spill of broken timber and cracked stone, drunk enough to slur and furious enough to stay awake through it. Cathal Ó Taidhg spits pink into the dirt, swears at the sky, at Aodhan, at kings, at relics, and only then at you for arriving late enough to ask questions. Sven gave you the trail into Durnhelm. Cathal gives you the wound itself. Aodhan did not come begging for shelter or rumor. He came hunting the Stone of Oblivion, demanding to know how it might be woken, and he tore the answer he could not win cleanly out of a city already too slow to stop him. When Cathal finally forces the name of the relic into the open, the quarter around you seems to darken with it. Alderic, he says, took far too keen an interest in the stone long before the courts agreed to leave it in dwarven hands. If anyone living can still tell you what kind of damnation the thing invites, it may be the witch on Lament Hill. 'So go on, then,' Cathal snarls, wiping his mouth with the back of one scarred hand. 'Take your answers where the dead haven't finished with 'em yet.'",
         choices: [
-            { text: "\"Then Lament Hill is next.\"", buttonText: "Take the Lament Hill Lead", nextScene: "SCENE_LAMENT_HILL_APPROACH" },
+            { text: "\"Then Lament Hill is next.\"", buttonText: "Take the Lament Hill Lead", nextScene: "SCENE_HUB_LAMENT_HILL" },
             { text: "\"If I turn back toward Silverthorn, what meets me there?\"", buttonText: "Ask About Silverthorn", nextScene: "SCENE_SILVERTHORN_QUARANTINE" },
             { text: "\"Sit tight if you can. I'll carry the warning.\"", buttonText: "Leave Cathal Behind", nextScene: "SCENE_DURNHELM_ENTRY" }
+        ]
+    },
+    "SCENE_HUB_LAMENT_HILL": {
+        id: "SCENE_HUB_LAMENT_HILL",
+        location: "lament_hill",
+        background: "landscapes/foggy_forest.png",
+        text: "Lament Hill rises out of the rain like a wound that never accepted being called old. The lower slope is all blackened roots, broken stone, and the uneasy feeling that the storm here remembers what it was asked to witness. A cottage waits higher up, but from down here the hill still offers room to look, listen, and decide whether you mean to trespass on grief or only stand near it.",
+        choices: [
+            { text: "Walk the lower slope and read the storm-scars before you climb any higher.", buttonText: "Survey the Lower Slope", nextScene: "SCENE_LAMENT_HILL_LOWER_SLOPE" },
+            {
+                text: "Climb toward the ruined cottage and the graves above it.",
+                buttonText: "Climb Toward the Cottage",
+                requires: {
+                    storyEvent: {
+                        id: "lament_hill_thread",
+                        oneOf: ["available", "active", "completed"]
+                    }
+                },
+                nextScene: "SCENE_LAMENT_HILL_APPROACH"
+            },
+            { text: "Open your map and choose another road.", buttonText: "Open the Map", action: "openMap" }
+        ]
+    },
+    "SCENE_LAMENT_HILL_LOWER_SLOPE": {
+        id: "SCENE_LAMENT_HILL_LOWER_SLOPE",
+        location: "lament_hill",
+        background: "landscapes/foggy_forest.png",
+        text: "The lower slope answers scrutiny with small violences. Thorn-vines grip stone as though still trying to strangle it, rainwater runs black through the old blast-scars, and somewhere above you the hill gives back one short sound that might have been wind and might have been a warning. Nothing here invites comfort. It only makes the higher climb feel more personal.",
+        choices: [
+            { text: "Return to the lower road and gather yourself.", buttonText: "Back to the Lower Road", nextScene: "SCENE_HUB_LAMENT_HILL" },
+            {
+                text: "Climb toward the ruined cottage after all.",
+                buttonText: "Climb Toward the Cottage",
+                requires: {
+                    storyEvent: {
+                        id: "lament_hill_thread",
+                        oneOf: ["available", "active", "completed"]
+                    }
+                },
+                nextScene: "SCENE_LAMENT_HILL_APPROACH"
+            }
         ]
     },
     "SCENE_LAMENT_HILL_APPROACH": {
@@ -2104,6 +2181,12 @@ export const scenes = {
         id: "SCENE_LAMENT_AINE_REVEAL",
         location: "lament_hill",
         background: "landscapes/foggy_forest.png",
+        onEnter: {
+            once: true,
+            effects: [
+                { type: "discoverLocation", locationId: "hushbriar", logText: "Aine's warning turns Hushbriar from a rumor into a reachable place." }
+            ]
+        },
         text: "Aine's stare stays fixed on the mark until anger spends itself and leaves only exhaustion behind. 'Mark of Ciara,' she says at last, like each word tastes foul. 'Blackened Queen. Depth-rot made holy.' She laughs once, without humor, and presses a shaking hand over her mouth before she can lose more of herself than she means to. What follows comes badly, in pieces she clearly wishes she could choke back down. Aodhan came to her for the Stone of Oblivion. He wanted not merely its name, but the key to waking it. When she refused him, he bound her where she stood and burned her children before her eyes so she would hear them die and still not be able to move. The telling breaks there. When she forces herself onward again, her voice is hoarse and hollow. The stone will not wake for prayer, or for common slaughter. It must drink divine blood. A god could rouse it. A demigod could suffice. She bought time by sending Aodhan toward the Forbidden Archives, but only time. 'So choose,' Aine says, looking suddenly older than the hill around her. 'Hushbriar if you mean to deny him the blood. The Archives if you mean to learn what sort of ruin he has already embraced.'",
         choices: [
             { text: "\"Then Hushbriar first. He doesn't get her blood.\"", buttonText: "Go to Hushbriar", nextScene: "SCENE_ARRIVAL_HUSHBRIAR" },
@@ -2267,6 +2350,12 @@ export const scenes = {
         location: "lament_hill",
         background: "landscapes/forbidden_archive.png",
         npcPortrait: "portraits/thalion_portrait.png",
+        onEnter: {
+            once: true,
+            effects: [
+                { type: "discoverLocation", locationId: "hushbriar", logText: "Thalion's warning fixes Hushbriar on the map of what must be reached next." }
+            ]
+        },
         text: "'He will go where prophecy has already done half his hunting for him,' Thalion says. 'To Hushbriar. To the demigod who has spent her life dreading the day the stone would teach men her name.' He studies your face as though weighing whether this warning is mercy, or only a slower cruelty.",
         choices: [
             { text: "Risk one more question while he still permits it.", buttonText: "Ask One More Question", nextScene: "SCENE_ARCHIVES_AUDIENCE" },
@@ -2298,6 +2387,28 @@ export const scenes = {
         choices: [
             { text: "Read the ledger before the river takes the ink", buttonText: "Read the Ledger", nextScene: "SCENE_HUSHBRIAR_LEDGER" },
             { text: "Wait in the dark and see who comes back for the boat", buttonText: "Wait by the Boat", nextScene: "SCENE_THIEVES_HIDEOUT" }
+        ]
+    },
+    "SCENE_HUSHBRIAR_BRIDGE_SHADOWS": {
+        id: "SCENE_HUSHBRIAR_BRIDGE_SHADOWS",
+        location: "hushbriar",
+        background: "landscapes/north_sporefall.png",
+        text: "Following the river stink beneath the bridge means slipping past stacked crates, eel baskets, and the kind of damp timber hollows smugglers trust more than daylight. Somebody has been using the underside of the bridge for more than cargo. The scuffs are too disciplined, the lookout angles too good, and once you stop moving you can hear the soft answer of steel being shifted somewhere deeper in the supports.",
+        choices: [
+            { text: "Announce that you are not here for Silverthorn and see who answers.", buttonText: "Call Into the Shadows", nextScene: "SCENE_THIEVES_HIDEOUT_CONTACT" },
+            { text: "Back away before curiosity gets priced in blood.", buttonText: "Back to Town", nextScene: "SCENE_HUSHBRIAR_TOWN" }
+        ]
+    },
+    "SCENE_THIEVES_HIDEOUT_CONTACT": {
+        id: "SCENE_THIEVES_HIDEOUT_CONTACT",
+        location: "hushbriar",
+        background: "landscapes/aodhan_study.png",
+        npcPortrait: "portraits/neala_portrait.png",
+        text: "Neala shows herself first with one knife already out and the second still deciding whether it likes your throat. Liobhán remains deeper in the bridge chamber where the light reaches her badly, which somehow makes the room feel more controlled, not less. Neither woman offers a name. Neither asks yours. 'You found a place you were not meant to find,' Neala says. 'That can end with a warning if you choose your next breath well.' Liobhán's voice comes after, quiet and mercilessly level. 'Ask for shelter, gossip, or charity and you leave empty. Ask for the wrong person and you leave worse.'",
+        choices: [
+            { text: "Ask what the town is hiding from Silverthorn without naming names. (Persuasion)", buttonText: "Probe for Rumors", type: "skillCheck", skill: "persuasion", dc: 13, successText: "Liobhán gives you almost nothing, which in Hushbriar is still an answer. 'The town is hiding itself,' she says. 'And doing it badly.' Neala adds only this: 'If you want truth here, earn the right to be expensive.'", failText: "Neala's laugh has no humor in it. 'You came empty and still thought you'd leave heavier.' Liobhán tips her head toward the bridge mouth. 'Go.'", nextSceneSuccess: "SCENE_HUSHBRIAR_BRIDGE_SHADOWS", nextSceneFail: "SCENE_HUSHBRIAR_BRIDGE_SHADOWS" },
+            { text: "Mention the patrols, the druid roads, and the dwarf-relic talk to show you are listening.", buttonText: "Show You Listen", type: "skillCheck", skill: "insight", dc: 12, successText: "That earns you one less hostile silence. Neala mutters that everybody from the forest priests to the dock runners is waiting to see whether Silverthorn means to occupy Hushbriar or strip it for parts. Liobhán cuts the exchange short before it becomes useful. 'Enough. You have heard more than most strangers.'", failText: "The words land wrong. Neala hears court poison in them and reaches for the second knife. Liobhán stops her with a glance, but the warning is over. 'Leave,' she says. 'Whatever road you think leads deeper from here does not open for you tonight.'", nextSceneSuccess: "SCENE_HUSHBRIAR_BRIDGE_SHADOWS", nextSceneFail: "SCENE_HUSHBRIAR_BRIDGE_SHADOWS" },
+            { text: "Leave before they decide your curiosity deserves a cleaner ending.", buttonText: "Leave the Hideout", nextScene: "SCENE_HUSHBRIAR_TOWN" }
         ]
     },
     "SCENE_HUSHBRIAR_LEDGER": {
@@ -2380,14 +2491,44 @@ export const scenes = {
         location: "hushbriar",
         background: "landscapes/aodhan_study.png",
         npcPortrait: "portraits/liobhan_portrait.png",
-        text: "Trust dies quickly in the hideout. Neala wants you thrown back to the river with your curiosity split open beside you. Liobhán wants to know whether your ignorance is real or merely badly performed. Then another shout rises out in town, followed by the crack of something magical striking timber hard enough to shake dust from the bridge overhead. Liobhán's eyes sharpen at once. 'Fine,' she says. 'You do not deserve the truth. But if Aodhan or the King's men are already tearing the lanes apart for her, we no longer have time to keep you ignorant.'",
+        text: "Trust dies quickly in the hideout. Neala wants you thrown back to the river with your curiosity split open beside you. Liobhán wants to know whether your ignorance is real or merely badly performed. Then another shout rises out in town, followed by the crack of something magical striking timber hard enough to shake dust from the bridge overhead. The room tightens all at once. Neala curses and turns for the inner chambers. Liobhán does not invite you after her. 'You have mistaken urgency for welcome,' she says. 'That mistake is still yours to survive.'",
         choices: [
             {
-                text: "Go with them before the hunt above turns into a massacre.",
-                buttonText: "Go with Them",
-                nextScene: "SCENE_ELARA_HIDEAWAY"
+                text: "Force your way deeper before they seal the inner chamber.",
+                buttonText: "Force the Inner Door",
+                nextScene: "SCENE_HIDEOUT_BREACH_APPROACH"
             },
-            { text: "Swear you came to keep Silverthorn's hands off her blood.", buttonText: "Swear for Elara", nextScene: "SCENE_ELARA_HIDEAWAY" }
+            { text: "Break for the crawlspace and come at the chamber from the river side.", buttonText: "Find Another Way In", nextScene: "SCENE_HIDEOUT_BREACH_APPROACH" }
+        ]
+    },
+    "SCENE_HIDEOUT_BREACH_APPROACH": {
+        id: "SCENE_HIDEOUT_BREACH_APPROACH",
+        location: "hushbriar",
+        background: "landscapes/aodhan_study.png",
+        text: "The bridge chamber splits in two directions: one route after Neala and the barred inner door she means to defend, another through a crawlspace where damp river light leaks between rotting boards. Somewhere past both, somebody is being hidden hard enough to turn every second into a wager.",
+        choices: [
+            {
+                text: "Hammer through the warded inner door before the guild can brace it. (Athletics)",
+                buttonText: "Break the Door (Athletics)",
+                type: "skillCheck",
+                skill: "athletics",
+                dc: 13,
+                successText: "The bar splinters under brute force and bad timing. By the time Neala wheels back toward you, you are already through the threshold she meant to hold.",
+                failText: "The ward bites first, then the timber. You lose a breath, a shoulder, and whatever chance remained of making this look like anything but an assault. It is still enough to get through.",
+                nextSceneSuccess: "SCENE_ELARA_HIDEAWAY",
+                nextSceneFail: "SCENE_ELARA_HIDEAWAY"
+            },
+            {
+                text: "Wedge yourself through the crawlspace and come up behind the inner room. (Stealth)",
+                buttonText: "Take the Crawlspace (Stealth)",
+                type: "skillCheck",
+                skill: "stealth",
+                dc: 12,
+                successText: "You slide through river-stink, damp rope, and rotted planks until the crawlspace opens behind stacked crates and a half-finished ward circle.",
+                failText: "You scrape timber loud enough to warn anyone listening, but the crawlspace still spills you into the chamber they were trying to keep hidden.",
+                nextSceneSuccess: "SCENE_ELARA_HIDEAWAY",
+                nextSceneFail: "SCENE_ELARA_HIDEAWAY"
+            }
         ]
     },
     "SCENE_ELARA_HIDEAWAY": {

@@ -5,7 +5,6 @@ import {
   ensureStoryState,
   getLocationStoryRequirement,
   getStoryEventStatus,
-  meetsStoryRequirement,
   syncStoryStateForScene
 } from '../data/storyTimeline.js';
 
@@ -38,41 +37,16 @@ test('ensureStoryState upgrades legacy saves without story data', () => {
   expect(getStoryEventStatus(storyState, 'alderic_briefing')).toBe(STORY_EVENT_STATUS.AVAILABLE);
 });
 
-test('late-game locations stay locked until their story threads open', () => {
-  const storyState = createDefaultStoryState();
-
-  expect(meetsStoryRequirement(storyState, getLocationStoryRequirement('durnhelm'))).toBe(false);
-  expect(meetsStoryRequirement(storyState, getLocationStoryRequirement('hushbriar'))).toBe(false);
-  expect(meetsStoryRequirement(storyState, getLocationStoryRequirement('thieves_hideout'))).toBe(false);
-  expect(meetsStoryRequirement(storyState, getLocationStoryRequirement('solasmor'))).toBe(false);
-  expect(meetsStoryRequirement(storyState, getLocationStoryRequirement('soul_mill'))).toBe(false);
-
-  syncStoryStateForScene(storyState, 'SCENE_BRIEFING');
-  syncStoryStateForScene(storyState, 'SCENE_HUB_SILVERTHORN');
-  syncStoryStateForScene(storyState, 'SCENE_TRAVEL_SHADOWMIRE');
-  syncStoryStateForScene(storyState, 'SCENE_ARRIVAL_WHISPERWOOD');
-  syncStoryStateForScene(storyState, 'SCENE_MEET_EOIN');
-  syncStoryStateForScene(storyState, 'SCENE_EOIN_TALK');
-  syncStoryStateForScene(storyState, 'SCENE_HUB_SPOREFALL');
-  syncStoryStateForScene(storyState, 'SCENE_SPOREFALL_OVERSEER_JOURNAL');
-
-  expect(meetsStoryRequirement(storyState, getLocationStoryRequirement('durnhelm'))).toBe(true);
-  expect(meetsStoryRequirement(storyState, getLocationStoryRequirement('hushbriar'))).toBe(false);
-
-  syncStoryStateForScene(storyState, 'SCENE_DURNHELM_GATES');
-  syncStoryStateForScene(storyState, 'SCENE_DURNHELM_ENTRY');
-  syncStoryStateForScene(storyState, 'SCENE_DURNHELM_CATHAL');
-
-  expect(meetsStoryRequirement(storyState, getLocationStoryRequirement('lament_hill'))).toBe(true);
-  expect(meetsStoryRequirement(storyState, getLocationStoryRequirement('hushbriar'))).toBe(false);
-
-  syncStoryStateForScene(storyState, 'SCENE_LAMENT_HILL_APPROACH');
-  syncStoryStateForScene(storyState, 'SCENE_LAMENT_AINE_REVEAL');
-
-  expect(meetsStoryRequirement(storyState, getLocationStoryRequirement('hushbriar'))).toBe(true);
-  expect(meetsStoryRequirement(storyState, getLocationStoryRequirement('thieves_hideout'))).toBe(false);
-  expect(meetsStoryRequirement(storyState, getLocationStoryRequirement('solasmor'))).toBe(false);
-  expect(meetsStoryRequirement(storyState, getLocationStoryRequirement('soul_mill'))).toBe(false);
+test('location story requirements now remain local to hidden sublocations only', () => {
+  expect(getLocationStoryRequirement('durnhelm')).toBeNull();
+  expect(getLocationStoryRequirement('lament_hill')).toBeNull();
+  expect(getLocationStoryRequirement('hushbriar')).toBeNull();
+  expect(getLocationStoryRequirement('solasmor')).toBeNull();
+  expect(getLocationStoryRequirement('soul_mill')).toBeNull();
+  expect(getLocationStoryRequirement('thieves_hideout')).toEqual({
+    id: 'retired_hushbriar_guild_branch',
+    oneOf: ['available', 'active', 'completed']
+  });
 });
 
 test('sporefall investigation now unlocks Aodhan and Durnhelm before Lament Hill or Hushbriar open', () => {
@@ -160,7 +134,10 @@ test('post-Moonwell continuation stays on the canonical Elara route and keeps do
   expect(getStoryEventStatus(storyState, 'hushbriar_elara_resolution')).toBe(STORY_EVENT_STATUS.COMPLETED);
   expect(getStoryEventStatus(storyState, 'retired_hushbriar_guild_branch')).toBe(STORY_EVENT_STATUS.LOCKED);
   expect(getStoryEventStatus(storyState, 'dormant_hushbriar_future_route')).toBe(STORY_EVENT_STATUS.LOCKED);
-  expect(meetsStoryRequirement(storyState, getLocationStoryRequirement('thieves_hideout'))).toBe(false);
-  expect(meetsStoryRequirement(storyState, getLocationStoryRequirement('soul_mill'))).toBe(false);
-  expect(meetsStoryRequirement(storyState, getLocationStoryRequirement('solasmor'))).toBe(false);
+  expect(getLocationStoryRequirement('thieves_hideout')).toEqual({
+    id: 'retired_hushbriar_guild_branch',
+    oneOf: ['available', 'active', 'completed']
+  });
+  expect(getLocationStoryRequirement('soul_mill')).toBeNull();
+  expect(getLocationStoryRequirement('solasmor')).toBeNull();
 });

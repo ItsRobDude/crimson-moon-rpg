@@ -17,17 +17,23 @@ beforeEach(() => {
   resetGameState();
 });
 
-test('Durnhelm route now exposes an authored local loop instead of an immediate map bounce', () => {
+test('Durnhelm now lands in an ambient hub and still routes through its authored local loop', () => {
+  const hubChoices = scenes.SCENE_HUB_DURNHELM.choices;
   const gateChoices = scenes.SCENE_DURNHELM_GATES.choices;
   const entryChoices = scenes.SCENE_DURNHELM_ENTRY.choices;
   const forgeChoices = scenes.SCENE_DURNHELM_FORGE_APPROACH.choices;
   const cathalChoices = scenes.SCENE_DURNHELM_CATHAL.choices;
 
+  expect(hubChoices.some((choice) => choice.nextScene === 'SCENE_DURNHELM_GATES')).toBe(true);
+  expect(hubChoices.some((choice) => choice.nextScene === 'SCENE_HUB_LAMENT_HILL')).toBe(true);
+  expect(hubChoices.some((choice) => choice.action === 'openMap')).toBe(true);
   expect(gateChoices.some((choice) => choice.nextScene === 'SCENE_DURNHELM_ENTRY')).toBe(true);
+  expect(gateChoices.some((choice) => choice.nextScene === 'SCENE_LAMENT_HILL_APPROACH')).toBe(false);
   expect(entryChoices.some((choice) => choice.nextScene === 'SCENE_DURNHELM_FORGE_APPROACH')).toBe(true);
+  expect(entryChoices.some((choice) => choice.nextScene === 'SCENE_LAMENT_HILL_APPROACH')).toBe(false);
   expect(entryChoices.some((choice) => choice.action === 'openMap')).toBe(false);
   expect(forgeChoices.some((choice) => choice.nextScene === 'SCENE_DURNHELM_CATHAL')).toBe(true);
-  expect(cathalChoices.some((choice) => choice.nextScene === 'SCENE_LAMENT_HILL_APPROACH')).toBe(true);
+  expect(cathalChoices.some((choice) => choice.nextScene === 'SCENE_HUB_LAMENT_HILL')).toBe(true);
   expect(scenes.SCENE_DURNHELM_ENTRY.text).toContain('amber-eyed stranger');
 });
 
@@ -108,7 +114,9 @@ test('Hushbriar town and inn keep the occupied dread through the Fionnlagh path'
   expect(scenes.SCENE_HUSHBRIAR_CORRUPTED.choices.some((choice) => choice.action === 'openMap')).toBe(false);
 });
 
-test('Lament Hill now routes through authored scenes to Aine before unlocking the next threads', () => {
+test('Lament Hill now has an ambient hub and only surfaces the Aine path when its thread is active', () => {
+  const hubChoices = scenes.SCENE_HUB_LAMENT_HILL.choices;
+  const lowerSlopeChoices = scenes.SCENE_LAMENT_HILL_LOWER_SLOPE.choices;
   const approachChoices = scenes.SCENE_LAMENT_HILL_APPROACH.choices;
   const visionChoices = scenes.SCENE_LAMENT_HILL_VISION.choices;
   const cottageChoices = scenes.SCENE_LAMENT_COTTAGE.choices;
@@ -117,6 +125,17 @@ test('Lament Hill now routes through authored scenes to Aine before unlocking th
   const gravesChoices = scenes.SCENE_LAMENT_GRAVES.choices;
   const accusationChoices = scenes.SCENE_LAMENT_AINE_ACCUSATION.choices;
 
+  expect(hubChoices.some((choice) => choice.nextScene === 'SCENE_LAMENT_HILL_LOWER_SLOPE')).toBe(true);
+  expect(hubChoices.some((choice) => choice.nextScene === 'SCENE_LAMENT_HILL_APPROACH')).toBe(true);
+  expect(hubChoices.some((choice) => choice.action === 'openMap')).toBe(true);
+  expect(hubChoices.find((choice) => choice.nextScene === 'SCENE_LAMENT_HILL_APPROACH').requires.storyEvent).toEqual({
+    id: 'lament_hill_thread',
+    oneOf: ['available', 'active', 'completed']
+  });
+  expect(lowerSlopeChoices.find((choice) => choice.nextScene === 'SCENE_LAMENT_HILL_APPROACH').requires.storyEvent).toEqual({
+    id: 'lament_hill_thread',
+    oneOf: ['available', 'active', 'completed']
+  });
   expect(approachChoices.some((choice) => choice.nextScene === 'SCENE_LAMENT_HILL_VISION')).toBe(true);
   expect(visionChoices.some((choice) => choice.nextScene === 'SCENE_LAMENT_COTTAGE')).toBe(true);
   expect(cottageChoices.some((choice) => choice.nextScene === 'SCENE_LAMENT_CAT_DISCOVERY')).toBe(true);
@@ -135,6 +154,7 @@ test('Lament Hill now routes through authored scenes to Aine before unlocking th
 test('late-game conversations preserve stronger distinct voices after the rewrite', () => {
   expect(scenes.SCENE_ARCHIVES_GATEKEEPER.text).toContain('last keeper and longest penitent');
   expect(scenes.SCENE_THIEVES_HIDEOUT.text).toContain('next sentence expensive');
+  expect(scenes.SCENE_THIEVES_HIDEOUT_CONTACT.text).toContain('Ask for the wrong person');
   expect(scenes.SCENE_GUILD_BARGAIN.text).toContain("That's leverage");
   expect(scenes.SCENE_ELARA_HIDEAWAY.text).toContain('torn between dying for the world and running');
   expect(scenes.SCENE_DURNHELM_CATHAL.text).toContain('swears at the sky');
@@ -174,8 +194,8 @@ test('after meeting Fionnlagh, Hushbriar at night surfaces the missable Moonwell
   gameState.flags.moonwell_night_available = true;
 
   let scene = getRuntimeScene('SCENE_BRIARWOOD_INN');
-  expect(scene.choices.some((choice) => choice.text.includes('follow the screams'))).toBe(true);
-  expect(scene.choices.some((choice) => choice.text.includes('wait for dawn'))).toBe(true);
+  expect(scene.choices.some((choice) => choice.text.toLowerCase().includes('follow the screams'))).toBe(true);
+  expect(scene.choices.some((choice) => choice.text.toLowerCase().includes('wait for dawn'))).toBe(true);
 
   scene = getRuntimeScene('SCENE_HUSHBRIAR_TOWN');
   expect(scene.choices.some((choice) => choice.text.includes('Follow the screaming'))).toBe(true);
@@ -204,4 +224,21 @@ test('morning-after runtime keeps the panic on Aodhan and the nearby interventio
   expect(town.text).toContain('Aodhan turned guards and guild alike into obstacles');
   expect(inn.text).toContain('shattered doors');
   expect(inn.text).toContain('guild blades');
+});
+
+test('ambient Hushbriar stays low-yield before the demigod route is active', () => {
+  const town = getRuntimeScene('SCENE_HUSHBRIAR_TOWN');
+  const inn = getRuntimeScene('SCENE_BRIARWOOD_INN');
+
+  expect(town.choices.some((choice) => choice.nextScene === 'SCENE_MOONWELL_AMBIENT')).toBe(true);
+  expect(town.choices.some((choice) => choice.nextScene === 'SCENE_HUSHBRIAR_BRIDGE_SHADOWS')).toBe(true);
+  expect(inn.choices.some((choice) => choice.nextScene === 'SCENE_FIONNLAGH_HUB')).toBe(false);
+  expect(inn.text).toContain('druids');
+  expect(inn.text).toContain('Durnhelm');
+});
+
+test('hostile guild access now requires a breach path instead of a forced escort', () => {
+  expect(scenes.SCENE_GUILD_REFUSAL.choices.every((choice) => choice.nextScene === 'SCENE_HIDEOUT_BREACH_APPROACH')).toBe(true);
+  expect(scenes.SCENE_HIDEOUT_BREACH_APPROACH.choices.some((choice) => choice.nextScene === 'SCENE_ELARA_HIDEAWAY')).toBe(false);
+  expect(scenes.SCENE_HIDEOUT_BREACH_APPROACH.choices.every((choice) => choice.nextSceneSuccess === 'SCENE_ELARA_HIDEAWAY' && choice.nextSceneFail === 'SCENE_ELARA_HIDEAWAY')).toBe(true);
 });

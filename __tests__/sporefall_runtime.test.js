@@ -1,4 +1,4 @@
-import { addItem, gameState, initializeNewGame, isLocationDiscovered, resetGameState, syncStoryLocationDiscovery } from '../data/gameState.js';
+import { addItem, discoverLocation, gameState, initializeNewGame, isLocationDiscovered, resetGameState } from '../data/gameState.js';
 import { addEffectToActor } from '../data/mechanics.js';
 import { syncStoryStateForScene } from '../data/storyTimeline.js';
 import { getRuntimeScene } from '../game.js';
@@ -148,7 +148,7 @@ test('overseer door now gives up the trap hint after one real attempt', () => {
   expect(scene.choices.some((choice) => choice.text.includes('Wolf and Serpent'))).toBe(true);
 });
 
-test('valid Sporefall clues now reveal Durnhelm on the map and in the hub', () => {
+test('valid Sporefall clues now carry an explicit Durnhelm discovery effect and route into the Durnhelm hub', () => {
   gameState.flags.sporefall_eoin_met = true;
   gameState.flags.sporefall_eoin_talked = true;
 
@@ -157,14 +157,18 @@ test('valid Sporefall clues now reveal Durnhelm on the map and in the hub', () =
   syncStoryStateForScene(gameState.story, 'SCENE_HUB_SPOREFALL');
   syncStoryStateForScene(gameState.story, 'SCENE_SPOREFALL_OVERSEER_JOURNAL');
 
-  expect(syncStoryLocationDiscovery(gameState.story)).toContain('durnhelm');
+  expect(scenes.SCENE_SPOREFALL_OVERSEER_JOURNAL.onEnter.effects).toEqual(expect.arrayContaining([
+    expect.objectContaining({ type: 'discoverLocation', locationId: 'durnhelm' })
+  ]));
+
+  discoverLocation('durnhelm');
   expect(isLocationDiscovered('durnhelm')).toBe(true);
 
   const scene = getRuntimeScene('SCENE_HUB_SPOREFALL');
   const durnhelmChoice = scene.choices.find((choice) => choice.buttonText === 'Take the Durnhelm Lead');
 
   expect(durnhelmChoice).toBeDefined();
-  expect(durnhelmChoice.nextScene).toBe('SCENE_DURNHELM_GATES');
+  expect(durnhelmChoice.nextScene).toBe('SCENE_HUB_DURNHELM');
   expect(durnhelmChoice.timeAdvance).toBe(1);
   expect(scene.text).toContain('points north toward Durnhelm');
 });

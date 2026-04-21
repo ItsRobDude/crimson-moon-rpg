@@ -13,7 +13,7 @@ import { npcs } from './data/npcs.js';
 import { companions } from './data/companions.js';
 import { factions } from './data/factions.js';
 import { gameState, getActorCastableSpells, getInventoryEntries, getItemCount, getItemEquipFailure, getInventoryUseCost, getPreparedSpellLimit, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, addCompanion, removeCompanion, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, setNpcStatus, processNarrativeTrigger, unequipItem, syncPartyLevels, saveGame, loadGame as loadGameData, removeItem, advanceTime, getTimelineLabel, getTimeSlotLabel, getSceneMemory, setSceneMemory, performShortRest as gsPerformShortRest, performLongRest as gsPerformLongRest, syncCharacterState, getStoredSaveState, SAVE_STORAGE_KEY, syncStoryLocationDiscovery, applyPendingLevelUp, getPendingLevelUpPreview } from './data/gameState.js';
-import { CANONICAL_START_SCENE, ensureStoryState, getLocationStoryRequirement, getLocationUnlockHint, meetsStoryRequirement, storyActs, storyEvents, syncStoryStateForScene } from './data/storyTimeline.js';
+import { CANONICAL_START_SCENE, STORY_EVENT_STATUS, ensureStoryState, meetsStoryRequirement, storyActs, storyEvents, syncStoryStateForScene } from './data/storyTimeline.js';
 import { addEffectToActor, getActorTraitDefinitions, getBonusSkillChoiceCount, getBonusToolChoiceCount, getBonusToolChoiceOptions, getDerivedActorState, getRaceTraitDefinitions, removeEffectFromActor } from './data/mechanics.js';
 import { featDefinitions } from './data/feats.js';
 import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod, generateScaledStats, getPlayerAC } from './rules.js';
@@ -22,6 +22,7 @@ import { getCoverBetween, getToken, isAdjacent } from './battlegrid.js';
 import { clearTrackedTimeout, scheduleTrackedTimeout } from './timers.js';
 
 const DEFAULT_PORTRAIT_PATH = 'portraits/npc_male_placeholder_portrait.png';
+const OPENING_FUNNEL_ALLOWED_LOCATIONS = new Set(['silverthorn', 'shadowmire', 'whisperwood']);
 
 export function getCharacterById(characterId) {
     if (characterId === 'player') {
@@ -1773,7 +1774,7 @@ export function buildSporefallRuntimeScene(sceneId, baseScene) {
     if (sceneId === 'SCENE_HUB_SPOREFALL') {
         const clueBeat = [];
         const eoinTrust = getRelationship('eoin');
-        const durnhelmLeadAvailable = isLocationUnlocked('durnhelm');
+        const durnhelmLeadAvailable = isLocationTraversable('durnhelm');
         if (state.cathedralLetterFound) clueBeat.push('the courier letter has already tied the cathedral quarter to the overseer');
         if (state.journalFound || state.letterFound || state.compassFound) clueBeat.push("Aodhan's house has begun giving up its secrets");
         if (state.northRouteOpen) clueBeat.push('the north road is open if speed matters more than certainty');
@@ -1817,7 +1818,7 @@ export function buildSporefallRuntimeScene(sceneId, baseScene) {
             scene.text = `${scene.text} Eoin still watches the northern street, but not for your sake. Whatever trust he offered before, you have taught him to keep it close.`;
         }
         if (durnhelmLeadAvailable) {
-            scene.choices.unshift(createChoice('Follow the northbound trail toward Durnhelm', 'SCENE_DURNHELM_GATES', {
+            scene.choices.unshift(createChoice('Follow the northbound trail toward Durnhelm', 'SCENE_HUB_DURNHELM', {
                 buttonText: 'Take the Durnhelm Lead',
                 timeAdvance: 1,
                 timeReason: 'You follow the last clear northbound trail out of Sporefall toward Durnhelm.'
@@ -2188,8 +2189,13 @@ export function buildSporefallRuntimeScene(sceneId, baseScene) {
 
 function buildEarlyHushbriarRuntimeScene(sceneId, baseScene) {
     const scene = cloneScene(sceneId);
+    const demigodThreadOpen = meetsStoryRequirement(gameState.story, {
+        id: 'hushbriar_demigod_thread',
+        oneOf: [STORY_EVENT_STATUS.AVAILABLE, STORY_EVENT_STATUS.ACTIVE, STORY_EVENT_STATUS.COMPLETED]
+    });
     const moonwellPending = !!gameState.flags.moonwell_night_available && !gameState.flags.moonwell_seen && !gameState.flags.moonwell_missed;
     const morningAfterSeen = !!gameState.flags.moonwell_morning_setup_seen;
+    const lateHushbriarPressure = demigodThreadOpen || !!gameState.flags.hushbriar_fionnlagh_met || moonwellPending || morningAfterSeen || !!gameState.flags.moonwell_seen || !!gameState.flags.moonwell_missed;
 
     if (sceneId === 'SCENE_HUSHBRIAR_TOWN') {
         scene.choices = [...(scene.choices || [])];
@@ -2207,6 +2213,16 @@ function buildEarlyHushbriarRuntimeScene(sceneId, baseScene) {
             );
         } else if (morningAfterSeen) {
             scene.text = `${scene.text} The square still carries the aftertaste of failed dawn panic, and every rumor in town now bends around the same hard truth: Aodhan turned guards and guild alike into obstacles on his way east.`;
+        } else if (!lateHushbriarPressure) {
+            scene.text = `${scene.text} Nobody in the square agrees on which pressure will break Hushbriar first. One whisper says the druids in the Viridian forest are done forgiving soldiers and tax men alike. Another swears the dwarves unearthed a relic in Durnhelm powerful enough to drag every realm into the same quarrel. A third never bothers dressing itself up as rumor at all: Whisperwood disappeared, and everybody can feel that sort of wound moving west.`;
+            scene.choices.push(
+                createChoice('Take the old prayer path east and see whether the Moonwell still feels holy.', 'SCENE_MOONWELL_AMBIENT', {
+                    buttonText: 'Visit the Moonwell'
+                }),
+                createChoice('Work your way beneath the river bridge and see who is hiding from the patrols there.', 'SCENE_HUSHBRIAR_BRIDGE_SHADOWS', {
+                    buttonText: 'Follow the Bridge Shadows'
+                })
+            );
         }
         return scene;
     }
@@ -2227,7 +2243,27 @@ function buildEarlyHushbriarRuntimeScene(sceneId, baseScene) {
             );
         } else if (morningAfterSeen) {
             scene.text = `${scene.text} Nobody in the inn talks about sunrise anymore. They talk about shattered doors, burned men, and the mage who tore through both soldiers and guild blades hunting a name the room still refuses to say aloud.`;
+        } else if (!lateHushbriarPressure) {
+            scene.text = `${scene.text} Tonight the room is full of wood elves pretending not to watch one another. Mention the druids and half the benches go stiff. Mention Durnhelm and somebody spits that dwarves never unearth anything without the rest of the realms paying for it later. Mention Whisperwood and the whole room starts listening harder than it speaks.`;
+            scene.choices = scene.choices.filter((choice) => choice.nextScene !== 'SCENE_FIONNLAGH_HUB');
+            const refugeeChoice = scene.choices.find((choice) => choice.buttonText === 'Listen to the Refugees (Insight)');
+            if (refugeeChoice) {
+                refugeeChoice.text = 'Listen for the grievances nobody dares say near a patrol fire. (Insight)';
+                refugeeChoice.buttonText = 'Listen to the Room (Insight)';
+                refugeeChoice.successText = "Between the muttered prayers and half-swallowed arguments, a rough shape emerges: the forest druids hate the occupation almost as much as the townsfolk do, Durnhelm's relic has every trader expecting fresh war, and nobody says Whisperwood's name without checking whether the person beside them still breathes clean.";
+                refugeeChoice.failText = "The room closes the moment you try to sort it. You get fragments only: forest resentment, dwarven relic gossip, and the kind of hush that falls whenever somebody almost says Whisperwood aloud.";
+            }
         }
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_FIONNLAGH_HUB' && !lateHushbriarPressure) {
+        scene.text = "The stool where Fionnlagh will later haunt the room sits empty tonight. The innkeeper notices your glance and shakes her head before you ask. 'If you're looking for one frightened wood elf with more dread than drink in him,' she says, 'he isn't making himself public yet.'";
+        scene.choices = [
+            createChoice('Leave the empty stool and return to the inn proper.', 'SCENE_BRIARWOOD_INN', {
+                buttonText: 'Back to the Inn'
+            })
+        ];
         return scene;
     }
 
@@ -2246,6 +2282,9 @@ export function getRuntimeScene(sceneId) {
         scene = buildEarlyHushbriarRuntimeScene(sceneId, baseScene);
     } else {
         scene = cloneScene(sceneId);
+    }
+    if (sceneId === 'SCENE_ELARA_HIDEAWAY' && gameState.flags.hushbriar_guild_hostile && !gameState.flags.hushbriar_guild_trusted) {
+        scene.text = `You do not arrive here by invitation. Behind you, the bridge still carries the echo of splintered timber, ward-flare, and Neala swearing your name into something worse. ${scene.text}`;
     }
     return applyPartySceneVariation(sceneId, scene);
 }
@@ -2359,6 +2398,15 @@ function applySceneEffect(effect, source = 'scene') {
         return;
     }
 
+    if (effect.type === 'discoverLocation' && effect.locationId) {
+        const wasKnown = isLocationDiscovered(effect.locationId);
+        discoverLocation(effect.locationId);
+        if (!wasKnown && logText) {
+            logMessage(logText, 'gain');
+        }
+        return;
+    }
+
     if (effect.type === 'threat') {
         adjustThreat(effect.amount || 0, effect.reason || source);
         if (logText) {
@@ -2423,17 +2471,52 @@ function applyEffectList(effects, source = 'scene') {
     effects.forEach((effect) => applySceneEffect(effect, source));
 }
 
-function isLocationUnlocked(locationId) {
-    const requirement = getLocationStoryRequirement(locationId);
-    return !requirement || meetsStoryRequirement(gameState.story, requirement);
+function isLocationKnown(locationId) {
+    return isLocationDiscovered(locationId);
+}
+
+function isHiddenLocation(locationId) {
+    return locations[locationId]?.travelKind === 'hidden';
+}
+
+function isSandboxTravelUnlocked() {
+    gameState.story = ensureStoryState(gameState.story);
+    return meetsStoryRequirement(gameState.story, {
+        id: 'sporefall_investigation',
+        oneOf: [STORY_EVENT_STATUS.ACTIVE, STORY_EVENT_STATUS.COMPLETED]
+    });
+}
+
+function getLocationTravelBlockReason(locationId) {
+    const location = locations[locationId];
+    if (!location) {
+        return 'That route is not available right now.';
+    }
+    if (isHiddenLocation(locationId)) {
+        return 'That place must be found in-scene; it is not a direct map destination.';
+    }
+    if (!isLocationKnown(locationId)) {
+        return 'You do not know a reliable way there yet.';
+    }
+    if (!isSandboxTravelUnlocked() && !OPENING_FUNNEL_ALLOWED_LOCATIONS.has(locationId)) {
+        return 'The opening crisis still drives you east before broader travel opens.';
+    }
+    if (!getHubSceneForLocation(locationId)) {
+        return 'That place is known, but its travel surface is not authored yet.';
+    }
+    return null;
+}
+
+export function isLocationTraversable(locationId) {
+    return getLocationTravelBlockReason(locationId) === null;
+}
+
+function isLocationShownOnMap(locationId) {
+    return !isHiddenLocation(locationId) && isLocationKnown(locationId);
 }
 
 function getLocationLockMessage(locationId) {
-    const hint = getLocationUnlockHint(locationId);
-    if (!hint) {
-        return 'That route is not available yet.';
-    }
-    return `That route is not available yet. ${hint}`;
+    return getLocationTravelBlockReason(locationId) || 'That route is not available yet.';
 }
 
 export function showCharacterCreation() {
@@ -4011,7 +4094,7 @@ function toggleMap() {
     list.innerHTML = '';
     pinList.innerHTML = '';
     const currentLocationId = scenes[gameState.currentSceneId]?.location || 'travel';
-    const discoveredLocationIds = Object.keys(locations).filter((key) => isLocationDiscovered(key));
+    const discoveredLocationIds = Object.keys(locations).filter((key) => isLocationShownOnMap(key));
 
     if (summary) {
         const currentLabel = locations[currentLocationId]?.name || 'the road';
@@ -4019,7 +4102,7 @@ function toggleMap() {
     }
 
     for (const [key, loc] of Object.entries(locations)) {
-        if (isLocationDiscovered(key)) {
+        if (isLocationShownOnMap(key)) {
             const div = document.createElement('div');
             div.className = 'map-location-row';
 
@@ -4033,7 +4116,7 @@ function toggleMap() {
             let stateLabel = 'Open route';
             let stateClass = 'status-open';
 
-            if (!isLocationUnlocked(key)) {
+            if (!isLocationTraversable(key)) {
                 btn.disabled = true;
                 btn.innerText = 'Unavailable';
                 stateLabel = 'Locked for now';
@@ -4051,7 +4134,7 @@ function toggleMap() {
                 <strong>${loc.name}</strong>
                 <div class="map-status-line">
                     <span class="status-chip ${stateClass}">${stateLabel}</span>
-                    ${!isLocationUnlocked(key) ? `<span>${getLocationUnlockHint(key) || 'Unavailable right now.'}</span>` : '<span>Travel is currently available from here.</span>'}
+                    ${!isLocationTraversable(key) ? `<span>${getLocationLockMessage(key)}</span>` : '<span>Travel is currently available from here.</span>'}
                 </div>
                 <small>${loc.description}</small>
             `;
@@ -4140,7 +4223,13 @@ function buildTravelEventText(event) {
 function travelTo(locationId) {
     document.getElementById('map-modal').classList.add('hidden');
 
-    if (!isLocationUnlocked(locationId)) {
+    if (!isLocationTraversable(locationId)) {
+        logMessage(getLocationLockMessage(locationId), 'system');
+        return;
+    }
+
+    const destinationSceneId = getHubSceneForLocation(locationId);
+    if (!destinationSceneId) {
         logMessage(getLocationLockMessage(locationId), 'system');
         return;
     }
@@ -4152,7 +4241,7 @@ function travelTo(locationId) {
     if (availableEvents.length > 0 && rollDie(100) <= getTravelEventChance(locationId)) {
         const event = availableEvents[Math.floor(Math.random() * availableEvents.length)];
         const eventSceneId = "SCENE_TRAVEL_EVENT_" + Date.now();
-        const destSceneId = getHubSceneForLocation(locationId);
+        const destSceneId = destinationSceneId;
         const eventText = buildTravelEventText(event);
 
         if (event.type === 'combat') {
@@ -4214,7 +4303,7 @@ function travelTo(locationId) {
         }
     }
 
-    goToScene(getHubSceneForLocation(locationId));
+    goToScene(destinationSceneId);
 }
 
 export function getHubSceneForLocation(locationId) {
@@ -4224,20 +4313,7 @@ export function getHubSceneForLocation(locationId) {
     if (locationId === 'silverthorn' && gameState.flags['aodhan_dead']) {
         return 'SCENE_SILVERTHORN_QUARANTINE';
     }
-    if (locationId === 'hushbriar') {
-        return 'SCENE_HUSHBRIAR_TOWN';
-    }
-    if (locationId === 'thieves_hideout') {
-        return 'SCENE_HUSHBRIAR_TOWN';
-    }
-    if (locationId === 'silverthorn') return 'SCENE_HUB_SILVERTHORN';
-    if (locationId === 'whisperwood') return 'SCENE_ARRIVAL_WHISPERWOOD';
-    if (locationId === 'shadowmire') return 'SCENE_TRAVEL_SHADOWMIRE';
-    if (locationId === 'durnhelm') return 'SCENE_DURNHELM_GATES';
-    if (locationId === 'lament_hill') return 'SCENE_LAMENT_HILL_APPROACH';
-    if (locationId === 'solasmor') return 'SCENE_HUSHBRIAR_TOWN';
-    if (locationId === 'soul_mill') return 'SCENE_HUSHBRIAR_TOWN';
-    return 'SCENE_BRIEFING';
+    return locations[locationId]?.hubSceneId || null;
 }
 
 function toggleCodex(tab = 'people') {

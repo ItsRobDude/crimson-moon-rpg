@@ -14,6 +14,7 @@ Use the Soul Mill as a late consequence route for sacrifice, processing, and rel
 ## Guardrails
 
 - Must stay unreachable through normal travel until processing and Elara consequences are draft-aligned
+- Must not be named before the Alderic-betrayal / processing-reveal window
 - Must not become the assumed destination for Stone-hunt curiosity before the canonical Hushbriar confrontation
 - Must not change Alderic's or Elara's identity, goals, or route role
 - Must keep the Stone's divinity cost and the setting's grim bodily stakes intact
@@ -22,4 +23,4 @@ Use the Soul Mill as a late consequence route for sacrifice, processing, and rel
 
 - Define the exact late-Hushbriar branch that can lead here without bypassing Moonwell
 - Replace the current smoke-column teaser with a real multi-scene route
-- Add tests proving the Soul Mill remains locked until its documented entry beat is implemented
+- Add tests proving the Soul Mill remains unnamed and non-travelable until its documented entry beat is implemented

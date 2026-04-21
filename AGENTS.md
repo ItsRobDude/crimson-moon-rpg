@@ -11,6 +11,8 @@ The goal is to help you:
 - avoid narrative, pacing, and systems drift
 - preserve the project's current direction as a sandbox visual novel with RPG elements
 
+If you need a fast orientation pass before using the deeper canon/runtime/tone docs, read `notes/contributor_quickstart.md` first.
+
 ## Project Identity
 
 `Prophecies: Crimson Moon` is not a generic RPG hub crawler.
@@ -93,6 +95,7 @@ When adding or editing story content:
 
 Before changing major story flow, timing, or city content, check:
 
+- `notes/contributor_quickstart.md`
 - `dnd-original-campaign-draft`
 - `notes/story_timeline_model.md`
 - `notes/campaign_route_status.md`
@@ -154,7 +157,8 @@ Rules:
 
 - `canonical` routes are the draft-backed mission spine and must remain the default playable path.
 - `alternate_aligned` routes may exist only if they do not conflict with draft order, named locations, NPC identity, or timeline logic.
-- `dormant` and `retired` routes must not be normal hub destinations, map defaults, or casual "while you're here" expansions.
+- `dormant` and `retired` routes govern event payloads, branch authority, and restoration safety, not the bare existence of a known world place on the map.
+- known `world` locations may remain traversable if they have a canon-safe ambient hub, but hidden sublocations and unfinished event beats must stay gated until their entry logic is authored.
 - if a route is incomplete or not canon-aligned, document it as `dormant` or `retired` before shipping more content into it.
 
 Any new side quest or alternate route must:
