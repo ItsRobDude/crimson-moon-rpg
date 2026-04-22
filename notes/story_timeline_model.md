@@ -24,12 +24,30 @@ Use this note together with:
 - `notes/campaign_route_status.md`
 - `notes/route_packets/`
 
+## Current Play Contract
+
+The current target feel for the playable slice is:
+
+* `Silverthorn` is a pressure funnel, not a leisurely city sandbox.
+* The player may technically linger in `Silverthorn`, but the authored mood should keep saying "prepare and go east" rather than "clear every stop."
+* `Alderic`'s briefing gives the practical mission cleanly: disappearances around `Whisperwood`, fear around the ritual fallout, and `Aodhan` as the person of interest.
+* Early `Silverthorn` knowledge must stay at the rumor layer: missing travelers, civic anxiety, and dwarf-relic talk. It must not frontload `Ciara`, the deeper `Alderic` bargain, or late-route truth.
+* Once the party leaves `Silverthorn`, return attempts should be narratively punished, shamed, and redirected rather than reopened as a comfort loop.
+* After `Silverthorn`, the game may widen hard: broad travel, wrong order, getting lost, and imperfect route choices are allowed as long as event timing and scene memory keep story truth coherent.
+* The quest log is primarily a memory aid, not an in-world strategist and not a "next best move" tool.
+* The map may show where travel is currently possible, but hidden sublocations still need in-scene discovery and the surface must not turn the game into a route picker.
+* The `Forbidden Archives` stay hidden until `Aine` reveals them through trust or the player finds `Aodhan`'s compass.
+* Random encounter support should widen the world through a mix of combat, corruption, aftermath, and party interaction beats rather than combat padding alone.
+* UI and authored prose should preserve despair, gravity, and mystery. Do not make the game sound like a helper app or a clean adventure planner.
+
 ## Canonical Route
 
 ### Act I - Briefing and Departure
 * Alderic briefs the party in Silverthorn.
-* The player can inspect him, ask follow-up questions, and prepare before leaving.
+* The player can inspect him, ask follow-up questions, and prepare before leaving, but the city slice should keep tightening pressure toward departure.
 * The mission thread becomes active once the party departs Silverthorn.
+* The player may spend extra time in Silverthorn, but the authored tone should increasingly frame delay as costly, fearful, or avoidant rather than completionist.
+* Return to Silverthorn after departure should resolve as humiliation, watch hostility, quarantine pressure, or hard redirection back to the road instead of a reusable safe-town loop.
 
 ### Act II - Sporefall Revelations
 * The road through Shadowmire should tighten into a specific sequence:
@@ -42,6 +60,7 @@ Use this note together with:
   west toward the Cathedral of Bone, east toward Aodhan's home, and north toward the viable-but-costly skip route.
 * Cathedral / manor / north-route investigation should point toward Aodhan and the Stone of Oblivion without softlocking players who push north first.
 * Finishing a strong Sporefall clue should open the Durnhelm lead, not jump directly into Hushbriar.
+* Once the player is out in the world, broader exploration order is allowed. The runtime should preserve consequence and mystery through event gating, remembered choices, and late-truth protection rather than by forcing a narrow route picker.
 
 ### Act III - Shattered Routes
 * The next canonical push is north toward Durnhelm.
@@ -53,6 +72,7 @@ Use this note together with:
 * Aine opens two draft-safe late leads: Hushbriar and the Forbidden Archives.
 * The Forbidden Archives are a truth branch, not the only path forward.
 * The archives confirm the divinity requirement and may sharpen the Alderic/Ciara truth, but they do not replace Hushbriar's role.
+* The Forbidden Archives should remain hidden until that trust/discovery window opens; they are not a normal early map destination.
 
 ### Act V - Hushbriar Endgame
 * Hushbriar becomes the late occupied-town route: gates, inn, Fionnlagh, screams, Moonwell, and Aodhan's set piece.
@@ -96,6 +116,8 @@ Use story events as the main gate, not the map:
 * Retired or dormant late-route branches must not become the normal default event payload or auto-promoted destination.
 * Combat should resolve local stakes, while the timeline system decides when global stakes move forward.
 * Status effects, injuries, blessings, curses, and other modifiers should eventually be able to influence dialogue and skill scenes, not just combat.
+* Mystery beats should be protected through discovery logic: `Ciara`'s deeper hand, `Alderic`'s allegiance, and other hidden-truth reveals should come from earned scenes, hidden items, or specific witnesses rather than broad early exposition.
+* Quest/state surfaces may summarize what the player already knows, but they should not prescribe an optimal route through the mystery.
 
 ## Combat Direction
 

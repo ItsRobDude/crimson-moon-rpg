@@ -11,8 +11,8 @@ export const quests = {
                 recentUpdate: "Silverthorn has finally named Aodhan and Liam in the same breath. Alderic is waiting with the writ and whatever truth the court is willing to spend.",
                 pressure: "Nothing is chasing your heels yet, but the whole eastern road is about to become your only honest next step.",
                 suggestions: [
-                    "Begin a new day in his chamber and hear what Silverthorn is willing to admit.",
-                    "Use the briefing to learn what the eastern road is asking of you."
+                    "Alderic is waiting in his chamber with the writ and whatever truth Silverthorn is willing to admit.",
+                    "The eastern road, Aodhan, and Liam are already the names tightening around this charge."
                 ]
             },
             1: {
@@ -21,9 +21,9 @@ export const quests = {
                 recentUpdate: "Alderic has set the charge and marked you for the road. You still have a little city left to spend before you commit to Shadowmire.",
                 pressure: "Silverthorn will let you wander, but every stop is still time spent before the eastern road takes control of the story.",
                 suggestions: [
-                    "The Rusty Blade is a strong first stop if you want rumors and the city's mood.",
+                    "The Rusty Blade carries the city's loudest rumors and the clearest measure of its fear.",
                     "Temple Road offers blessing, counsel, and steadier nerves before departure.",
-                    "The market quarter is the cleanest route to supplies once you know what you are missing."
+                    "The market quarter is where missing supplies can still be bought before the gate closes behind you."
                 ]
             },
             2: {
@@ -32,8 +32,8 @@ export const quests = {
                 recentUpdate: "Silverthorn is behind you now. Shadowmire has started showing the first real signs that the road east is already lost.",
                 pressure: "From here on, interruption is part of the route. Treat every omen, corpse, and survivor as a clue, not wasted time.",
                 suggestions: [
-                    "Keep moving east and judge the road carefully when it starts to feel wrong.",
-                    "Treat each interruption as a clue, not just an obstacle."
+                    "Every interruption on the eastern road may matter more than it first appears.",
+                    "Shadowmire is already warning you that the route to Sporefall has gone wrong in stages, not all at once."
                 ]
             },
             3: {
@@ -42,8 +42,8 @@ export const quests = {
                 recentUpdate: "There is still one frightened human voice left in the borough. If you can steady Eoin, Sporefall's first true leads should finally stop hiding behind the dead.",
                 pressure: "Eoin can point you toward the right quarter, but every route through the borough trades speed, certainty, and what kind of truth you reach first.",
                 suggestions: [
-                    "Follow any human trace that feels too deliberate to belong to the dead streets.",
-                    "If you find the frightened survivor, earn enough trust to hear where the danger points next."
+                    "Any human trace that feels too deliberate for a dead street may belong to the survivor you still need.",
+                    "If Eoin can be steadied, his fear should finally narrow Sporefall's first live leads."
                 ]
             },
             4: {
@@ -52,8 +52,8 @@ export const quests = {
                 recentUpdate: "The borough has finally split into real leads. The cathedral, the overseer's row, and the north side each promise a different angle on Aodhan's path.",
                 pressure: "You are not choosing a safe route. You are choosing which wound in Sporefall to read first and what kind of understanding you are willing to postpone.",
                 suggestions: [
-                    "Choose the route that best matches what Eoin and the borough have already shown you.",
-                    "The cathedral, the overseer's row, and the north side each hide a different angle on the ruin."
+                    "The cathedral, the overseer's row, and the north side are all pointing at Aodhan from different wounds in the borough.",
+                    "Whatever Sporefall has already shown you may matter when deciding which truth you read first."
                 ]
             },
             5: {
@@ -62,8 +62,8 @@ export const quests = {
                 recentUpdate: "Sporefall has finally yielded a real northbound lead. Durnhelm still holds road-witnesses, wreckage, and one wounded forgemaster who may know what Aodhan stole.",
                 pressure: "The borough is behind you, but not settled. If Cathal's warning proves true, every hour you give Aodhan is another hour for relic knowledge to turn uglier.",
                 suggestions: [
-                    "Take the Durnhelm lead while the witness trail is still warm.",
-                    "Read the gate slaughter, the forge quarter, and Cathal's account for the shape of Aodhan's next move."
+                    "The northbound witness trail still runs through Durnhelm's dead, its survivors, and Cathal's account.",
+                    "The forge quarter and the gate slaughter may say as much about Aodhan's next move as any living witness does."
                 ]
             },
             6: {
@@ -72,8 +72,8 @@ export const quests = {
                 recentUpdate: "Cathal has spent the last honest lead he had. The witch on Lament Hill may be the only living witness left who understands the Stone's appetite.",
                 pressure: "This is no scholar's errand. The hill is still holding old violence, fresh grief, and a woman with every reason to hate what Silverthorn sent.",
                 suggestions: [
-                    "Reach the cottage and the graves before the hill decides you do not belong there.",
-                    "Let the hill's grief tell you what Aodhan did before you ask Aine to speak it aloud."
+                    "The cottage, the graves, and Aine's anger are all part of the same truth waiting on the hill.",
+                    "Lament Hill may say what Aodhan did long before Aine decides whether you deserve the words."
                 ]
             },
             7: {
@@ -82,8 +82,8 @@ export const quests = {
                 recentUpdate: "Aine has offered a cruel fork: race straight to Hushbriar or steal a narrower truth from the Archives before the coast takes the cost.",
                 pressure: "The Archives are optional, but the time you spend there is still time Aodhan spends closing on the demigod.",
                 suggestions: [
-                    "Take the Archives only if you need the Stone's truth badly enough to pay in time and certainty.",
-                    "Leave as soon as you have what Hushbriar truly needs."
+                    "The Archives promise sharper truth about the Stone, but they also cost time the coast may not have.",
+                    "Whatever is taken from that place should be only what the Hushbriar hunt cannot do without."
                 ]
             },
             8: {
@@ -92,8 +92,8 @@ export const quests = {
                 recentUpdate: "The coast has narrowed the hunt to one place: Hushbriar, where soldiers, refugees, and frightened locals are all bracing for someone else's disaster.",
                 pressure: "The town is not a resting point. If you miss the right people, or the right hour, the road to Moonwell will change shape without asking you.",
                 suggestions: [
-                    "Use the inn and Fionnlagh to read what Hushbriar fears but will not say in the street.",
-                    "Stay ready for occupation pressure to turn into open night-horror without much warning."
+                    "The inn, Fionnlagh, and the street panic each hold a different read on what Hushbriar fears.",
+                    "Occupation pressure here feels close to becoming something worse at night."
                 ]
             },
             9: {
@@ -102,8 +102,8 @@ export const quests = {
                 recentUpdate: "Moonwell did not end the hunt. It shattered the town and left one urgent thread behind it: find Elara before panic, soldiers, or guild fear spends her first.",
                 pressure: "Hushbriar is in open panic now. The clue trail is live, hostile, and short on mercy; if you move badly, the next truth may come with knives first.",
                 suggestions: [
-                    "Chase the nearest aftermath clue instead of trying to settle the whole town.",
-                    "Read the dock, the ledger, and the guild's fear for where Elara is really being kept."
+                    "The nearest aftermath clue is more trustworthy than trying to calm the whole town at once.",
+                    "The dock, the ledger, and the guild's fear all point toward where Elara is really being hidden."
                 ]
             },
             10: {
@@ -112,8 +112,8 @@ export const quests = {
                 recentUpdate: "Elara's fate is no longer the only horror in the room. Silverthorn's answer for Hushbriar is organized disappearance, and the Soul Mill is now part of the road ahead.",
                 pressure: "This is a cliff, not a conclusion. What you know now is enough to move the whole war into uglier territory.",
                 suggestions: [
-                    "Carry the processing truth into whatever comes next.",
-                    "Treat the Soul Mill as knowledge earned, not yet a route you can safely follow."
+                    "The processing truth now follows whatever choice comes next.",
+                    "The Soul Mill is knowledge earned, not yet a route the road is ready to give you."
                 ]
             }
         },

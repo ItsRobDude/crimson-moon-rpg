@@ -45,6 +45,13 @@ test('hidden sublocations stay off the map even if discovered in state', () => {
   expect(getHubSceneForLocation('thieves_hideout')).toBeNull();
 });
 
+test('returning toward Silverthorn after departure resolves to the quarantine rejection scene instead of the city hub', () => {
+  syncStoryStateForScene(gameState.story, 'SCENE_HUB_SILVERTHORN');
+  syncStoryStateForScene(gameState.story, 'SCENE_TRAVEL_SHADOWMIRE');
+
+  expect(getHubSceneForLocation('silverthorn')).toBe('SCENE_SILVERTHORN_QUARANTINE');
+});
+
 test('known late world places without authored ambient hubs remain non-traversable in the first pass', () => {
   advanceToSporefallSandbox();
   discoverLocation('soul_mill');

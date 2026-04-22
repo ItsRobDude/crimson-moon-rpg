@@ -55,10 +55,10 @@ test.describe('Opening Guidance', () => {
 
     await page.click('#btn-menu');
     await page.click('#btn-menu-quests');
-    await expect(page.locator('#quest-summary')).toContainText('Active Thread');
-    await expect(page.locator('#quest-list')).toContainText('Current Thread');
-    await expect(page.locator('#quest-list')).toContainText('Best-Known Leads');
-    await expect(page.locator('#quest-list')).toContainText('Branch Pressure');
-    await expect(page.locator('#quest-list')).toContainText('The Rusty Blade is a strong first stop');
+    await expect(page.locator('#quest-summary')).toContainText('Thread Pressing On You');
+    await expect(page.locator('#quest-list')).toContainText('Remembered Thread');
+    await expect(page.locator('#quest-list')).toContainText('What You Have To Go On');
+    await expect(page.locator('#quest-list')).toContainText('Pressure');
+    await expect(page.locator('#quest-list')).toContainText("The Rusty Blade carries the city's loudest rumors");
   });
 });

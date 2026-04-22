@@ -31,6 +31,23 @@ export const travelEvents = [
         ]
     },
     {
+        id: 'shadowmire_rot_bloom',
+        destinations: ['shadowmire'],
+        text: 'A whole stand of ferns has collapsed into a wet ring of black growth beside the track, as if something breathed on the roadside and every green thing there gave up at once. The smell underneath it is not swamp rot but opened flesh left out in rain.',
+        type: 'discovery',
+        effects: [
+            { type: 'threat', amount: 5, logText: 'The road feels narrower after passing the blighted ring.' }
+        ]
+    },
+    {
+        id: 'shadowmire_ditch_wolves',
+        destinations: ['shadowmire'],
+        minThreat: 4,
+        text: 'Low movement paces you from the ditch line until two hunger-thin wolves finally break cover, bold enough to test whether the road is already done teaching you fear.',
+        type: 'combat',
+        enemyId: 'wolf'
+    },
+    {
         id: 'whisperwood_refugee_trace',
         destinations: ['whisperwood'],
         partyOnly: true,
@@ -47,6 +64,36 @@ export const travelEvents = [
         text: 'Something fungus-swollen tears free of a hedgerow at the edge of the borough, moving with the blind speed of hunger that has forgotten pain.',
         type: 'combat',
         enemyId: 'fungal_beast'
+    },
+    {
+        id: 'whisperwood_sickroom_threshold',
+        destinations: ['whisperwood'],
+        text: 'At the lip of Sporefall you pass a house someone tried to turn into a sickroom. Cots have been dragged out beneath the eaves, bowls of ash sit under each bed, and the door is tied shut from the outside as if mercy ran out before duty did.',
+        type: 'skillCheck',
+        skill: 'medicine',
+        dc: 12,
+        successText: 'You read the little rites and the stained cloth for what they are: desperate attempts to slow a fever nobody understood. The care in it hurts, but it also sharpens the shape of how fast the borough broke.',
+        failText: 'You linger too long trying to sort mercy from panic and leave with the stink of the place still caught in your throat.',
+        onSuccess: {
+            effects: [
+                { type: 'threat', amount: -5, logText: 'The sickroom traces give you a clearer read on how Sporefall fell apart.' }
+            ]
+        },
+        onFail: {
+            effects: [
+                { type: 'threat', amount: 5, logText: 'The sickroom threshold leaves the road heavier on your nerves.' }
+            ]
+        }
+    },
+    {
+        id: 'whisperwood_lark_birdsign',
+        destinations: ['whisperwood'],
+        requiresCompanion: 'lark',
+        text: 'Lark stops without warning beneath a line of gutted nest-boxes nailed to a parish fence. He says the birds left before the people did, then kneels to show you where claw-scatter, feather-ash, and spore dust turned the warning into something almost readable.',
+        type: 'discovery',
+        effects: [
+            { type: 'threat', amount: -5, logText: 'Lark reads enough of the ruined birdsign to keep the party from walking blind into the borough.' }
+        ]
     },
     {
         id: 'archives_black_road_dead',
@@ -97,6 +144,26 @@ export const travelEvents = [
         type: 'discovery',
         effects: [
             { type: 'addGold', amount: 6, logText: 'You recover a few coins that melted together in the ash and can still be broken apart.' }
+        ]
+    },
+    {
+        id: 'hushbriar_quayside_dead',
+        destinations: ['hushbriar'],
+        minThreat: 7,
+        text: 'Near the coast road you find two dockhands tied to a milestone with militia cord and left for the dark, both of them dead of beatings rather than plague. Someone wanted the next travelers to understand what questions cost here.',
+        type: 'discovery',
+        effects: [
+            { type: 'threat', amount: 5, logText: 'The coast makes its warning plain before Hushbriar is even in sight.' }
+        ]
+    },
+    {
+        id: 'hushbriar_kieran_mercy',
+        destinations: ['hushbriar'],
+        requiresCompanion: 'kieran_brogan',
+        text: 'Kieran drops to one knee beside a roadside corpse wrapped in sailcloth and says the sort of prayer Ilmater gets when the law has already finished being ashamed of itself. When he rises, he only mutters that someone needs to remember these people as mourned before the town learns to count them as necessary.',
+        type: 'discovery',
+        effects: [
+            { type: 'threat', amount: -5, logText: 'Kieran\'s roadside prayer steadies the party against the coast\'s cruelty.' }
         ]
     },
 ];

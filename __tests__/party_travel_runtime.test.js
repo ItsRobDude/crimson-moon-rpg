@@ -96,12 +96,21 @@ test('runtime scenes react to traveling as a group while Eoin remains a revisita
 test('travel event pool filters by route and party state without reviving the old Elara branch events', () => {
   let pool = getTravelEventPool('whisperwood');
   expect(pool.some((event) => event.id === 'whisperwood_refugee_trace')).toBe(false);
+  expect(pool.some((event) => event.id === 'whisperwood_lark_birdsign')).toBe(false);
 
   addCompanion('lark');
   pool = getTravelEventPool('whisperwood');
   expect(pool.some((event) => event.id === 'whisperwood_refugee_trace')).toBe(true);
+  expect(pool.some((event) => event.id === 'whisperwood_lark_birdsign')).toBe(true);
   expect(pool.every((event) => event.destinations.includes('whisperwood'))).toBe(true);
   expect(getTravelEventPool('thieves_hideout').some((event) => event.id === 'elara_route_guild_marks')).toBe(false);
+
+  let hushbriarPool = getTravelEventPool('hushbriar');
+  expect(hushbriarPool.some((event) => event.id === 'hushbriar_kieran_mercy')).toBe(false);
+
+  addCompanion('kieran_brogan');
+  hushbriarPool = getTravelEventPool('hushbriar');
+  expect(hushbriarPool.some((event) => event.id === 'hushbriar_kieran_mercy')).toBe(true);
 });
 
 test('companion-aid hooks exist on existing routes without making companions mandatory', () => {

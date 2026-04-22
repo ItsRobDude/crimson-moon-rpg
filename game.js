@@ -13,7 +13,7 @@ import { npcs } from './data/npcs.js';
 import { companions } from './data/companions.js';
 import { factions } from './data/factions.js';
 import { gameState, getActorCastableSpells, getInventoryEntries, getItemCount, getItemEquipFailure, getInventoryUseCost, getPreparedSpellLimit, initializeNewGame, updateQuestStage, addGold, spendGold, gainXp, equipItem, useConsumable, applyStatusEffect, hasStatusEffect, tickStatusEffects, discoverLocation, isLocationDiscovered, addItem, addCompanion, removeCompanion, changeRelationship, changeReputation, getRelationship, getReputation, adjustThreat, clearTransientThreat, recordAmbientEvent, addMapPin, removeMapPin, getNpcStatus, setNpcStatus, processNarrativeTrigger, unequipItem, syncPartyLevels, saveGame, loadGame as loadGameData, removeItem, advanceTime, getTimelineLabel, getTimeSlotLabel, getSceneMemory, setSceneMemory, performShortRest as gsPerformShortRest, performLongRest as gsPerformLongRest, syncCharacterState, getStoredSaveState, SAVE_STORAGE_KEY, syncStoryLocationDiscovery, applyPendingLevelUp, getPendingLevelUpPreview } from './data/gameState.js';
-import { CANONICAL_START_SCENE, STORY_EVENT_STATUS, ensureStoryState, meetsStoryRequirement, storyActs, storyEvents, syncStoryStateForScene } from './data/storyTimeline.js';
+import { CANONICAL_START_SCENE, STORY_EVENT_STATUS, ensureStoryState, getStoryEventStatus, meetsStoryRequirement, storyActs, storyEvents, syncStoryStateForScene } from './data/storyTimeline.js';
 import { addEffectToActor, getActorTraitDefinitions, getBonusSkillChoiceCount, getBonusToolChoiceCount, getBonusToolChoiceOptions, getDerivedActorState, getRaceTraitDefinitions, removeEffectFromActor } from './data/mechanics.js';
 import { featDefinitions } from './data/feats.js';
 import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod, generateScaledStats, getPlayerAC } from './rules.js';
@@ -1056,7 +1056,61 @@ export function buildSilverthornRuntimeScene(sceneId, baseScene) {
     const hasKieran = actorHasCompanion('kieran_brogan');
     const partyReady = hasLark && hasKieran;
     const watchHostile = !!gameState.flags.silverthorn_watch_hostile;
+    const departedSilverthorn = hasLeftSilverthorn();
     const silverthornHardCloseExceptions = ['SCENE_SILVERTHORN_GATES', 'SCENE_SILVERTHORN_GATE_CAPTAIN', 'SCENE_SILVERTHORN_WATCH_CRACKDOWN'];
+
+    if (sceneId === 'SCENE_SILVERTHORN_QUARANTINE' && shouldUseSilverthornReturnScene()) {
+        const baseReturnText = watchHostile
+            ? "Silverthorn sees you long before you reach the walls again. The same watch you angered at the eastern gate recognizes the shape of you through the rain, and the outer barricades tighten into a lesson instead of a refuge. One guard spits into the mud and says, 'Fail your mission already? I'm not surprised. Keep your sickness, your bad luck, and your excuses outside our walls.'"
+            : "By the time Silverthorn's walls rise through the weather again, the city has already judged what a return from Whisperwood means. Barricades choke the outer road, burn pits stain the air, and the watch meets you with spears lowered before courtesy can even pretend to live here. No one on the wall looks surprised to see you turn back. They only look tired of what the eastern road keeps sending home.";
+        const kieranBeat = hasKieran
+            ? " Kieran bares his teeth at that and answers before you can. 'Mercy, that was quick. You lot rehearse cowardice at the gate or does it come natural once a prince starts locking doors?'"
+            : '';
+        scene.text = `${baseReturnText}${kieranBeat} Whatever Silverthorn was before, it is not a sanctuary waiting to be reopened by nerve alone.`;
+        scene.choices = [
+            createChoice('Demand to be heard through the barricade.', 'SCENE_SILVERTHORN_QUARANTINE', {
+                buttonText: 'Demand an Audience',
+                type: 'skillCheck',
+                skill: 'persuasion',
+                dc: watchHostile ? 15 : 14,
+                successText: watchHostile
+                    ? "For one ugly second a younger guard almost hesitates, but the captain behind him hardens first. 'You had your writ when it mattered. You don't spend it twice.' No one lifts the bar."
+                    : "A pair of guards glance toward the inner yard as if some higher mercy might still walk out and overrule them. None does. A sergeant tells you the prince no longer receives souls coming in off the ruined road.",
+                failText: watchHostile
+                    ? "The nearest spear haft cracks against the barricade hard enough to end the thought. Whatever patience these men once had for you was spent at the gate the first time."
+                    : "The watch hears you out only long enough to prove the answer was always no. Fear has done what rank and courtesy could not: it has taught them not to open the city for returning failures.",
+                nextSceneSuccess: 'SCENE_SILVERTHORN_QUARANTINE',
+                nextSceneFail: 'SCENE_SILVERTHORN_QUARANTINE'
+            }),
+            createChoice('Listen to what the watch is willing to say aloud.', 'SCENE_SILVERTHORN_QUARANTINE', {
+                buttonText: 'Read the Watch',
+                type: 'skillCheck',
+                skill: 'insight',
+                dc: 12,
+                successText: watchHostile
+                    ? "The insults are rehearsed, but the fear beneath them is fresh. Even the men mocking you keep glancing east, as if they expect the road itself to answer back."
+                    : "Past the quarantine orders and practiced contempt, you hear the real strain: burned gear, fever carts, and a city trying to pretend every traveler turned away can still be called prudence instead of surrender.",
+                failText: "The watch keeps its language short and ugly. Whatever softer truth lives under the orders is staying behind the wall with the lanterns.",
+                nextSceneSuccess: 'SCENE_SILVERTHORN_QUARANTINE',
+                nextSceneFail: 'SCENE_SILVERTHORN_QUARANTINE'
+            }),
+            createChoice('Turn back to the road and work with what you still know.', null, {
+                buttonText: 'Turn Back',
+                action: 'openMap'
+            })
+        ];
+        return scene;
+    }
+
+    if (departedSilverthorn && sceneId !== 'SCENE_SILVERTHORN_QUARANTINE') {
+        scene.text = "Any road that still points toward Silverthorn now dies outside the walls. The city has drawn its fear into barricades, spear-points, and the flat authority of people who have already decided you do not come back inside just because the road hurt you. If you want Silverthorn at all, you get the watch, the smoke, and the refusal.";
+        scene.choices = [
+            createChoice('Stand off with the outer watch and hear the answer properly.', 'SCENE_SILVERTHORN_QUARANTINE', {
+                buttonText: 'Face the Watch'
+            })
+        ];
+        return scene;
+    }
 
     if (watchHostile && !silverthornHardCloseExceptions.includes(sceneId)) {
         scene.text = "The watch has already made its judgment. Silverthorn is no longer a place you get to pace through for comfort, trade, or counsel. Every route that still leads you inside the walls ends with hard faces, shortened tempers, and a plain expectation that you keep moving east before someone decides to make an example of you.";
@@ -2487,6 +2541,34 @@ function isSandboxTravelUnlocked() {
     });
 }
 
+function hasLeftSilverthorn() {
+    gameState.story = ensureStoryState(gameState.story);
+    const status = getStoryEventStatus(gameState.story, 'silverthorn_departure');
+    return status === STORY_EVENT_STATUS.ACTIVE || status === STORY_EVENT_STATUS.COMPLETED;
+}
+
+function shouldUseSilverthornReturnScene() {
+    return hasLeftSilverthorn() || !!gameState.flags.silverthorn_watch_hostile || !!gameState.flags.aodhan_dead;
+}
+
+function getSilverthornReturnSceneId() {
+    return shouldUseSilverthornReturnScene() ? 'SCENE_SILVERTHORN_QUARANTINE' : 'SCENE_HUB_SILVERTHORN';
+}
+
+function getSilverthornFallbackRoute(currentSceneId = gameState.currentSceneId) {
+    if (gameState.flags.silverthorn_watch_hostile && !hasLeftSilverthorn() && currentSceneId !== 'SCENE_SILVERTHORN_QUARANTINE') {
+        return {
+            sceneId: 'SCENE_SILVERTHORN_GATES',
+            label: 'Report to the Eastern Gate'
+        };
+    }
+
+    return {
+        sceneId: getSilverthornReturnSceneId(),
+        label: shouldUseSilverthornReturnScene() ? 'Face the Silverthorn Watch' : 'Return to City Center'
+    };
+}
+
 function getLocationTravelBlockReason(locationId) {
     const location = locations[locationId];
     if (!location) {
@@ -2571,7 +2653,7 @@ export function showCharacterCreation() {
         ccUiState.selectedPreset = null;
         updateCCPreview();
     };
-    updateCCPreview();
+    applyCharacterQuickStart('steady_fighter');
     document.getElementById('char-creation-modal').classList.remove('hidden');
 }
 
@@ -2931,7 +3013,7 @@ function updateCharacterCreationGuidance(raceKey, classKey, backgroundKey, final
     if (summaryEl) {
         summaryEl.innerText = pickState.totalRemaining > 0
             ? `${pickState.totalRemaining} pick${pickState.totalRemaining === 1 ? '' : 's'} still open before you begin.`
-            : 'Your sheet is ready. Nothing important will be chosen for you if you begin now.';
+            : `${CC_QUICK_STARTS[ccUiState.selectedPreset]?.label || 'This build'} is ready for the road. You can begin now or keep shaping it.`;
     }
 
     if (autofillEl) {
@@ -3762,13 +3844,10 @@ function renderChoices(choices = null) {
 
     if (pageChoices.length === 0) {
         const currentScene = scenes[gameState.currentSceneId];
-        const fallbackScene = currentScene?.location === 'silverthorn'
-            ? (gameState.flags.silverthorn_watch_hostile ? 'SCENE_SILVERTHORN_GATES' : 'SCENE_HUB_SILVERTHORN')
-            : CANONICAL_START_SCENE;
+        const silverthornFallback = currentScene?.location === 'silverthorn' ? getSilverthornFallbackRoute(gameState.currentSceneId) : null;
+        const fallbackScene = silverthornFallback?.sceneId || CANONICAL_START_SCENE;
         const fallback = createChoiceButton({
-            text: currentScene?.location === 'silverthorn'
-                ? (gameState.flags.silverthorn_watch_hostile ? 'Report to the Eastern Gate' : 'Return to City Center')
-                : 'Continue'
+            text: silverthornFallback?.label || 'Continue'
         });
         fallback.onclick = () => goToScene(fallbackScene);
         choiceContainer.appendChild(fallback);
@@ -4186,6 +4265,10 @@ export function getTravelEventPool(locationId) {
         if (event.maxThreat !== undefined && gameState.threat.level > event.maxThreat) return false;
         if (event.partyOnly && partySize === 0) return false;
         if (event.soloOnly && partySize > 0) return false;
+        if (event.requiresCompanion) {
+            const companionIds = Array.isArray(event.requiresCompanion) ? event.requiresCompanion : [event.requiresCompanion];
+            if (!companionIds.every((companionId) => actorHasCompanion(companionId))) return false;
+        }
         if (event.requiresFlag) {
             const flags = Array.isArray(event.requiresFlag) ? event.requiresFlag : [event.requiresFlag];
             if (!flags.every((flagId) => gameState.flags[flagId])) return false;
@@ -4211,6 +4294,9 @@ function buildTravelEventText(event) {
     if (partyActors.length === 0) return event.text;
 
     const partyNames = formatNameList(partyActors.map((actor) => actor.name));
+    if (event.requiresCompanion) {
+        return event.text;
+    }
     if (actorHasCompanion('neala') && event.destinations?.includes('hushbriar')) {
         return `${event.text} Neala keeps cutting her eyes toward the margins of the road, reading the places where a guild scout or a hunter would choose to wait.`;
     }
@@ -4307,11 +4393,8 @@ function travelTo(locationId) {
 }
 
 export function getHubSceneForLocation(locationId) {
-    if (locationId === 'silverthorn' && gameState.flags.silverthorn_watch_hostile) {
-        return 'SCENE_SILVERTHORN_GATES';
-    }
-    if (locationId === 'silverthorn' && gameState.flags['aodhan_dead']) {
-        return 'SCENE_SILVERTHORN_QUARANTINE';
+    if (locationId === 'silverthorn') {
+        return getSilverthornReturnSceneId();
     }
     return locations[locationId]?.hubSceneId || null;
 }
@@ -5520,7 +5603,7 @@ function toggleQuestLog() {
             const [, primaryQuest] = activeQuests[0];
             const primaryStage = getQuestStageData(primaryQuest.stages[primaryQuest.currentStage]);
             summary.innerHTML = `
-                <strong>Active Thread:</strong> ${primaryStage.thread || primaryQuest.title}
+                <strong>Thread Pressing On You:</strong> ${primaryStage.thread || primaryQuest.title}
                 <br>
                 <span>${primaryStage.recentUpdate || primaryStage.text || primaryQuest.description || ''}</span>
             `;
@@ -5536,14 +5619,14 @@ function toggleQuestLog() {
             div.className = 'quest-entry';
             div.innerHTML = `
                 <h4>${qData.title}</h4>
-                ${stage.thread ? `<p class="quest-thread"><strong>Current Thread:</strong> ${stage.thread}</p>` : ''}
+                ${stage.thread ? `<p class="quest-thread"><strong>Remembered Thread:</strong> ${stage.thread}</p>` : ''}
                 <p>${stage.text}</p>
-                ${stage.recentUpdate ? `<p class="quest-recent"><strong>Recent Update:</strong> ${stage.recentUpdate}</p>` : ''}
+                ${stage.recentUpdate ? `<p class="quest-recent"><strong>Last Clear Sign:</strong> ${stage.recentUpdate}</p>` : ''}
             `;
             if (stage.leads.length > 0) {
                 const suggestions = document.createElement('div');
                 suggestions.className = 'quest-suggestions';
-                suggestions.innerHTML = `<strong>Best-Known Leads:</strong>`;
+                suggestions.innerHTML = `<strong>What You Have To Go On:</strong>`;
                 const listEl = document.createElement('ul');
                 stage.leads.forEach((entry) => {
                     const item = document.createElement('li');
@@ -5556,7 +5639,7 @@ function toggleQuestLog() {
             if (stage.pressure) {
                 const pressure = document.createElement('p');
                 pressure.className = 'quest-pressure';
-                pressure.innerHTML = `<strong>Branch Pressure:</strong> ${stage.pressure}`;
+                pressure.innerHTML = `<strong>Pressure:</strong> ${stage.pressure}`;
                 div.appendChild(pressure);
             }
             if (qData.completed) {

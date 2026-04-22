@@ -539,7 +539,7 @@ export const scenes = {
             },
             {
                 text: "Turn back and follow the other leads",
-                buttonText: "Back to Silverthorn",
+                buttonText: "Turn Back",
                 action: "openMap"
             }
         ]
@@ -1959,7 +1959,7 @@ export const scenes = {
         text: "Shadowmire closes around the road in damp green silence. The forest still lives here, but only just, and every mile east feels like a wager against how much longer that will remain true.",
         choices: [
             { text: "Keep to the eastern road", nextScene: "SCENE_TRAVEL_SHADOWMIRE" },
-            { text: "Fall back toward Silverthorn while you still can", nextScene: "SCENE_HUB_SILVERTHORN" }
+            { text: "Test whether Silverthorn will even take you back", nextScene: "SCENE_SILVERTHORN_QUARANTINE" }
         ]
     },
     "SCENE_HUB_DURNHELM": {

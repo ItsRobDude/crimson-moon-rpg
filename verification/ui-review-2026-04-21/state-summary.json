@@ -1,0 +1,488 @@
+[
+  {
+    "name": "01-start-menu",
+    "narrative": "Welcome to Prophecies: Crimson Moon.",
+    "choices": [],
+    "hudButtons": [
+      {
+        "text": "Map",
+        "hidden": true
+      },
+      {
+        "text": "Inventory",
+        "hidden": true
+      },
+      {
+        "text": "Quests",
+        "hidden": true
+      },
+      {
+        "text": "Codex",
+        "hidden": true
+      },
+      {
+        "text": "Menu",
+        "hidden": false
+      }
+    ]
+  },
+  {
+    "name": "02-options-from-start",
+    "narrative": "Welcome to Prophecies: Crimson Moon.",
+    "choices": [],
+    "hudButtons": [
+      {
+        "text": "Map",
+        "hidden": true
+      },
+      {
+        "text": "Inventory",
+        "hidden": true
+      },
+      {
+        "text": "Quests",
+        "hidden": true
+      },
+      {
+        "text": "Codex",
+        "hidden": true
+      },
+      {
+        "text": "Menu",
+        "hidden": false
+      }
+    ]
+  },
+  {
+    "name": "03-character-creation-default",
+    "narrative": "Welcome to Prophecies: Crimson Moon.",
+    "choices": [],
+    "hudButtons": [
+      {
+        "text": "Map",
+        "hidden": true
+      },
+      {
+        "text": "Inventory",
+        "hidden": true
+      },
+      {
+        "text": "Quests",
+        "hidden": true
+      },
+      {
+        "text": "Codex",
+        "hidden": true
+      },
+      {
+        "text": "Menu",
+        "hidden": false
+      }
+    ]
+  },
+  {
+    "name": "04-character-creation-fighter",
+    "narrative": "Welcome to Prophecies: Crimson Moon.",
+    "choices": [],
+    "hudButtons": [
+      {
+        "text": "Map",
+        "hidden": true
+      },
+      {
+        "text": "Inventory",
+        "hidden": true
+      },
+      {
+        "text": "Quests",
+        "hidden": true
+      },
+      {
+        "text": "Codex",
+        "hidden": true
+      },
+      {
+        "text": "Menu",
+        "hidden": false
+      }
+    ]
+  },
+  {
+    "name": "05-opening-briefing",
+    "narrative": "The chamber is dim and severe, lit by a single brazier and the red glow of wax seals melting over opened dispatches. Prince Alderic stands over a map table crowded with routes, blockades, and a red ring drawn hard around Whisperwood. He does not offer a seat.",
+    "choices": [
+      "Continue"
+    ],
+    "hudButtons": [
+      {
+        "text": "Map",
+        "hidden": true
+      },
+      {
+        "text": "Inventory",
+        "hidden": true
+      },
+      {
+        "text": "Quests",
+        "hidden": true
+      },
+      {
+        "text": "Codex",
+        "hidden": true
+      },
+      {
+        "text": "Menu",
+        "hidden": false
+      }
+    ]
+  },
+  {
+    "name": "06-menu-opening",
+    "narrative": "The chamber is dim and severe, lit by a single brazier and the red glow of wax seals melting over opened dispatches. Prince Alderic stands over a map table crowded with routes, blockades, and a red ring drawn hard around Whisperwood. He does not offer a seat.",
+    "choices": [
+      "Continue"
+    ],
+    "hudButtons": [
+      {
+        "text": "Map",
+        "hidden": true
+      },
+      {
+        "text": "Inventory",
+        "hidden": true
+      },
+      {
+        "text": "Quests",
+        "hidden": true
+      },
+      {
+        "text": "Codex",
+        "hidden": true
+      },
+      {
+        "text": "Menu",
+        "hidden": false
+      }
+    ]
+  },
+  {
+    "name": "07-field-notes",
+    "narrative": "The chamber is dim and severe, lit by a single brazier and the red glow of wax seals melting over opened dispatches. Prince Alderic stands over a map table crowded with routes, blockades, and a red ring drawn hard around Whisperwood. He does not offer a seat.",
+    "choices": [
+      "Continue"
+    ],
+    "hudButtons": [
+      {
+        "text": "Map",
+        "hidden": true
+      },
+      {
+        "text": "Inventory",
+        "hidden": true
+      },
+      {
+        "text": "Quests",
+        "hidden": true
+      },
+      {
+        "text": "Codex",
+        "hidden": true
+      },
+      {
+        "text": "Menu",
+        "hidden": false
+      }
+    ]
+  },
+  {
+    "name": "08-options-in-game",
+    "narrative": "The chamber is dim and severe, lit by a single brazier and the red glow of wax seals melting over opened dispatches. Prince Alderic stands over a map table crowded with routes, blockades, and a red ring drawn hard around Whisperwood. He does not offer a seat.",
+    "choices": [
+      "Continue"
+    ],
+    "hudButtons": [
+      {
+        "text": "Map",
+        "hidden": true
+      },
+      {
+        "text": "Inventory",
+        "hidden": true
+      },
+      {
+        "text": "Quests",
+        "hidden": true
+      },
+      {
+        "text": "Codex",
+        "hidden": true
+      },
+      {
+        "text": "Menu",
+        "hidden": false
+      }
+    ],
+    "optionsStatus": "Options updated."
+  },
+  {
+    "name": "09-alderic-briefing",
+    "narrative": "Alderic lays two fingers on the map as if pinning the borough in place. 'Travelers speak of black spores choking the eastern road. Those who went after Liam vanished in turn. One name keeps surfacing through the sickness and the fear: Aodhan O Duibh. Find Liam if there is anything left to find.",
+    "choices": [
+      "Continue"
+    ],
+    "hudButtons": [
+      {
+        "text": "Map",
+        "hidden": true
+      },
+      {
+        "text": "Inventory",
+        "hidden": true
+      },
+      {
+        "text": "Quests",
+        "hidden": true
+      },
+      {
+        "text": "Codex",
+        "hidden": true
+      },
+      {
+        "text": "Menu",
+        "hidden": false
+      }
+    ]
+  },
+  {
+    "name": "10-post-acceptance",
+    "narrative": "Alderic slides a sealed writ across the table without breaking eye contact. 'Show that to any gate sergeant or quartermaster who thinks fear outranks duty. If Liam lives, you bring him home. If he does not, you bring me the truth of him. Do not bring me rumors. Bring me answers.'",
+    "choices": [
+      "Continue"
+    ],
+    "hudButtons": [
+      {
+        "text": "Map",
+        "hidden": true
+      },
+      {
+        "text": "Inventory",
+        "hidden": true
+      },
+      {
+        "text": "Quests",
+        "hidden": true
+      },
+      {
+        "text": "Codex",
+        "hidden": true
+      },
+      {
+        "text": "Menu",
+        "hidden": false
+      }
+    ]
+  },
+  {
+    "name": "11-silverthorn-hub",
+    "narrative": "You step out of Alderic's chamber and into the living heart of Silverthorn. Messengers cut through the crowd, temple bells carry over the rooftops, and every street seems to offer another lead, errand, or place to prepare before taking the eastern road. It is Day 1 - Midday.",
+    "choices": [
+      "Continue"
+    ],
+    "hudButtons": [
+      {
+        "text": "Map",
+        "hidden": true
+      },
+      {
+        "text": "Inventory",
+        "hidden": true
+      },
+      {
+        "text": "Quests",
+        "hidden": true
+      },
+      {
+        "text": "Codex",
+        "hidden": true
+      },
+      {
+        "text": "Menu",
+        "hidden": false
+      }
+    ]
+  },
+  {
+    "name": "12-quest-log",
+    "narrative": "You step out of Alderic's chamber and into the living heart of Silverthorn. Messengers cut through the crowd, temple bells carry over the rooftops, and every street seems to offer another lead, errand, or place to prepare before taking the eastern road. It is Day 1 - Midday.",
+    "choices": [
+      "Continue"
+    ],
+    "hudButtons": [
+      {
+        "text": "Map",
+        "hidden": true
+      },
+      {
+        "text": "Inventory",
+        "hidden": true
+      },
+      {
+        "text": "Quests",
+        "hidden": true
+      },
+      {
+        "text": "Codex",
+        "hidden": true
+      },
+      {
+        "text": "Menu",
+        "hidden": false
+      }
+    ]
+  },
+  {
+    "name": "13-map-modal",
+    "narrative": "You step out of Alderic's chamber and into the living heart of Silverthorn. Messengers cut through the crowd, temple bells carry over the rooftops, and every street seems to offer another lead, errand, or place to prepare before taking the eastern road. It is Day 1 - Midday.",
+    "choices": [
+      "Continue"
+    ],
+    "hudButtons": [
+      {
+        "text": "Map",
+        "hidden": true
+      },
+      {
+        "text": "Inventory",
+        "hidden": true
+      },
+      {
+        "text": "Quests",
+        "hidden": true
+      },
+      {
+        "text": "Codex",
+        "hidden": true
+      },
+      {
+        "text": "Menu",
+        "hidden": false
+      }
+    ]
+  },
+  {
+    "name": "14-codex-modal",
+    "narrative": "You step out of Alderic's chamber and into the living heart of Silverthorn. Messengers cut through the crowd, temple bells carry over the rooftops, and every street seems to offer another lead, errand, or place to prepare before taking the eastern road. It is Day 1 - Midday.",
+    "choices": [
+      "Continue"
+    ],
+    "hudButtons": [
+      {
+        "text": "Map",
+        "hidden": true
+      },
+      {
+        "text": "Inventory",
+        "hidden": true
+      },
+      {
+        "text": "Quests",
+        "hidden": true
+      },
+      {
+        "text": "Codex",
+        "hidden": true
+      },
+      {
+        "text": "Menu",
+        "hidden": false
+      }
+    ]
+  },
+  {
+    "name": "15-inventory-modal",
+    "narrative": "You step out of Alderic's chamber and into the living heart of Silverthorn. Messengers cut through the crowd, temple bells carry over the rooftops, and every street seems to offer another lead, errand, or place to prepare before taking the eastern road. It is Day 1 - Midday.",
+    "choices": [
+      "Continue"
+    ],
+    "hudButtons": [
+      {
+        "text": "Map",
+        "hidden": true
+      },
+      {
+        "text": "Inventory",
+        "hidden": true
+      },
+      {
+        "text": "Quests",
+        "hidden": true
+      },
+      {
+        "text": "Codex",
+        "hidden": true
+      },
+      {
+        "text": "Menu",
+        "hidden": false
+      }
+    ]
+  },
+  {
+    "name": "16-battle-ui",
+    "narrative": "You step out of Alderic's chamber and into the living heart of Silverthorn. Messengers cut through the crowd, temple bells carry over the rooftops, and every street seems to offer another lead, errand, or place to prepare before taking the eastern road. It is Day 1 - Midday.",
+    "choices": [
+      "Continue"
+    ],
+    "hudButtons": [
+      {
+        "text": "Map",
+        "hidden": true
+      },
+      {
+        "text": "Inventory",
+        "hidden": true
+      },
+      {
+        "text": "Quests",
+        "hidden": true
+      },
+      {
+        "text": "Codex",
+        "hidden": true
+      },
+      {
+        "text": "Menu",
+        "hidden": false
+      }
+    ]
+  },
+  {
+    "name": "17-battle-class-features",
+    "narrative": "You step out of Alderic's chamber and into the living heart of Silverthorn. Messengers cut through the crowd, temple bells carry over the rooftops, and every street seems to offer another lead, errand, or place to prepare before taking the eastern road. It is Day 1 - Midday.",
+    "choices": [
+      "Continue"
+    ],
+    "hudButtons": [
+      {
+        "text": "Map",
+        "hidden": true
+      },
+      {
+        "text": "Inventory",
+        "hidden": true
+      },
+      {
+        "text": "Quests",
+        "hidden": true
+      },
+      {
+        "text": "Codex",
+        "hidden": true
+      },
+      {
+        "text": "Menu",
+        "hidden": false
+      }
+    ]
+  }
+]

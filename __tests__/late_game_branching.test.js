@@ -98,9 +98,9 @@ test('hidden or under-authored late routes do not resolve as direct map hubs', (
   expect(getHubSceneForLocation('solasmor')).toBeNull();
 });
 
-test('Silverthorn hub resolution hard-closes to the eastern gate after the watch turns hostile', () => {
+test('Silverthorn travel resolution hard-closes to the quarantine rejection scene once the watch or the road has turned against you', () => {
   gameState.flags.silverthorn_watch_hostile = true;
-  expect(getHubSceneForLocation('silverthorn')).toBe('SCENE_SILVERTHORN_GATES');
+  expect(getHubSceneForLocation('silverthorn')).toBe('SCENE_SILVERTHORN_QUARANTINE');
 });
 
 test('canonical late-route surfaces stay authored while deleted holdfast and teaser scenes stay out of the live scene map', () => {

@@ -2,6 +2,7 @@ import { addCompanion, addItem, advanceTime, applyPendingLevelUp, changeRelation
 import { scenes } from '../data/scenes.js';
 import { addEffectToActor } from '../data/mechanics.js';
 import { companions } from '../data/companions.js';
+import { syncStoryStateForScene } from '../data/storyTimeline.js';
 import { buildSilverthornRuntimeScene, buildSporefallRuntimeScene } from '../game.js';
 
 beforeEach(() => {
@@ -691,6 +692,50 @@ test('hostile Silverthorn state hard-closes later city-center surfaces back towa
   expect(hubScene.choices).toEqual([
     expect.objectContaining({ nextScene: 'SCENE_SILVERTHORN_GATES', buttonText: 'Under Watch' })
   ]);
+});
+
+test('post-departure Silverthorn return scene shames the player and keeps the city closed', () => {
+  initializeNewGame(
+    'Bran',
+    'human',
+    'fighter',
+    'soldier',
+    { STR: 15, DEX: 12, CON: 14, INT: 10, WIS: 10, CHA: 8 },
+    ['athletics', 'survival'],
+    []
+  );
+
+  syncStoryStateForScene(gameState.story, 'SCENE_HUB_SILVERTHORN');
+  syncStoryStateForScene(gameState.story, 'SCENE_TRAVEL_SHADOWMIRE');
+
+  const quarantineScene = buildSilverthornRuntimeScene('SCENE_SILVERTHORN_QUARANTINE', scenes.SCENE_SILVERTHORN_QUARANTINE);
+  expect(quarantineScene.text).toMatch(/the city has already judged/i);
+  expect(quarantineScene.choices).toEqual(expect.arrayContaining([
+    expect.objectContaining({ buttonText: 'Demand an Audience' }),
+    expect.objectContaining({ buttonText: 'Read the Watch' }),
+    expect.objectContaining({ buttonText: 'Turn Back', action: 'openMap' })
+  ]));
+});
+
+test('post-departure Silverthorn rejection turns harsher with hostile watch and lets Kieran answer back', () => {
+  initializeNewGame(
+    'Bran',
+    'human',
+    'fighter',
+    'soldier',
+    { STR: 15, DEX: 12, CON: 14, INT: 10, WIS: 10, CHA: 8 },
+    ['athletics', 'survival'],
+    []
+  );
+
+  addCompanion('kieran_brogan');
+  gameState.flags.silverthorn_watch_hostile = true;
+  syncStoryStateForScene(gameState.story, 'SCENE_HUB_SILVERTHORN');
+  syncStoryStateForScene(gameState.story, 'SCENE_TRAVEL_SHADOWMIRE');
+
+  const quarantineScene = buildSilverthornRuntimeScene('SCENE_SILVERTHORN_QUARANTINE', scenes.SCENE_SILVERTHORN_QUARANTINE);
+  expect(quarantineScene.text).toMatch(/Fail your mission already\?/i);
+  expect(quarantineScene.text).toMatch(/Kieran bares his teeth/i);
 });
 
 test('negative Eoin trust removes the north-guidance shortcut while keeping him shelter-bound', () => {
