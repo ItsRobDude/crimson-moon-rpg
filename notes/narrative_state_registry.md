@@ -53,6 +53,7 @@ If you add a new story-critical key, update both this note and the JS registry i
 | `moonwell_seen` | `SCENE_MOONWELL` | `hushbriar_demigod_thread` | Moonwell catastrophe witnessed directly. | spoiler_sensitive | story_progression |
 | `moonwell_missed` | `SCENE_HUSHBRIAR_MORNING_SETUP` | `hushbriar_demigod_thread` | Player missed the night Moonwell encounter and hit the morning-after setup instead. | spoiler_sensitive | one_time_outcome |
 | `moonwell_morning_setup_seen` | `SCENE_HUSHBRIAR_MORNING_SETUP` | `hushbriar_demigod_thread` | Morning-after Hushbriar commotion and three-way conflict setup seen. | spoiler_sensitive | story_progression |
+| `aodhan_dead` | `SCENE_AODHAN_DEFEAT` | `hushbriar_demigod_thread` | Aodhan died at Moonwell and later scenes may treat his threat as ended. | spoiler_sensitive | one_time_outcome |
 | `archives_thalion_audience_closed` | `SCENE_ARCHIVES_AUDIENCE` | `archives_truth` | First decisive Thalion audience exhausted. | spoiler_sensitive | one_time_outcome |
 | `archives_alderic_truth_learned` | `SCENE_ARCHIVES_ALDERIC_TRUTH` | `archives_truth` | Deeper Alderic truth extracted without frontloading later lore. | spoiler_sensitive | optional_clue |
 | `archives_alderic_truth_missed` | `SCENE_ARCHIVES_ALDERIC_REBUFF` | `archives_truth` | Deeper Alderic truth permanently missed. | spoiler_sensitive | one_time_outcome |

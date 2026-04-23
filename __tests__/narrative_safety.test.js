@@ -115,7 +115,8 @@ test('late-route registry ownership matches the draft-first Hushbriar split', ()
     'moonwell_night_available',
     'moonwell_seen',
     'moonwell_missed',
-    'moonwell_morning_setup_seen'
+    'moonwell_morning_setup_seen',
+    'aodhan_dead'
   ].forEach((flagId) => {
     expect(narrativeStateRegistry.flags[flagId].thread).toBe('hushbriar_demigod_thread');
   });

@@ -287,6 +287,14 @@ export const narrativeStateRegistry = {
             revealSensitivity: 'spoiler_sensitive',
             semantics: 'story_progression'
         },
+        aodhan_dead: {
+            owner: 'SCENE_AODHAN_DEFEAT',
+            thread: 'hushbriar_demigod_thread',
+            meaning: 'Aodhan died at Moonwell, so later scenes may acknowledge his death instead of treating him as an active threat.',
+            allowedValues: [true],
+            revealSensitivity: 'spoiler_sensitive',
+            semantics: 'one_time_outcome'
+        },
         archives_thalion_audience_closed: {
             owner: 'SCENE_ARCHIVES_AUDIENCE',
             thread: 'archives_truth',
