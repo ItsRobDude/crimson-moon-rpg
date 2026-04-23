@@ -91,6 +91,24 @@ test('Silverthorn rumor surfaces carry relic tension and the vanished-borough pa
   expect(gateCaptain.text).not.toContain('spores darken');
 });
 
+test('contracts notices no longer strand the player and instead push toward rumor follow-up or the eastern gate', () => {
+  setTimeline(1, 'afternoon');
+
+  const firstPass = getRuntimeScene('SCENE_SILVERTHORN_NOTICE_CONTRACTS');
+  expect(firstPass.text).toContain('The Rusty Blade');
+  expect(firstPass.choices).toEqual(expect.arrayContaining([
+    expect.objectContaining({ nextScene: 'SCENE_RUSTY_BLADE_RUMORS', buttonText: 'Follow the Rumor' }),
+    expect.objectContaining({ nextScene: 'SCENE_SILVERTHORN_GATES', buttonText: 'Head for the Gates' })
+  ]));
+
+  getRuntimeScene('SCENE_RUSTY_BLADE_RUMORS');
+
+  const revisit = getRuntimeScene('SCENE_SILVERTHORN_NOTICE_CONTRACTS');
+  expect(revisit.text).not.toContain('The talk keeps spilling toward The Rusty Blade.');
+  expect(revisit.choices.some((choice) => choice.nextScene === 'SCENE_RUSTY_BLADE_RUMORS')).toBe(false);
+  expect(revisit.choices.some((choice) => choice.nextScene === 'SCENE_SILVERTHORN_GATES')).toBe(true);
+});
+
 test('opening briefing restores Liam, Aodhan, and the cold mark without spilling later truth', () => {
   const briefing = scenes.SCENE_BRIEFING;
   const charge = scenes.SCENE_BRIEFING_2;

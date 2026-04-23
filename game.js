@@ -1410,10 +1410,31 @@ export function buildSilverthornRuntimeScene(sceneId, baseScene) {
     }
 
     if (sceneId === 'SCENE_SILVERTHORN_NOTICE_CONTRACTS') {
+        const heardRumors = !!getSceneMemory('silverthorn_rumors_heard');
         scene.text = "Escort work and rat bounties still cling to the older layers of the board, but the fresh postings tell a harsher story. Curfew fines. Closed-route compensation. Special wagons requisitioned under council seal. One clipped notice offers good silver for verified intelligence from Durnhelm, then disappears beneath wax before anyone can linger over it. You come away with the sense that Silverthorn is already bracing for something larger than one vanished borough.";
         if (hasKieran) {
             scene.text = `${scene.text} Kieran skims the fines first, of course. He says the city has the good grace to print its cruelty in straight lines even when the council would rather call it necessity.`;
         }
+        if (!heardRumors) {
+            scene.text = `${scene.text} Two teamsters nearby are already carrying that Durnhelm notice into a low argument about relic-war, missing caravans, and which fear is killing trade faster. The talk keeps spilling toward The Rusty Blade.`;
+        }
+        scene.choices = [
+            ...(!heardRumors ? [createChoice('Follow the Durnhelm talk into The Rusty Blade.', 'SCENE_RUSTY_BLADE_RUMORS', {
+                buttonText: 'Follow the Rumor',
+                timeAdvance: 1,
+                timeReason: 'You follow the board\'s lead into the inn and listen for the rest of the story.',
+                inSilverthorn: true
+            })] : []),
+            createChoice(
+                heardRumors
+                    ? 'Take the board\'s warning as enough and make for the eastern gate.'
+                    : 'Carry the board\'s warning straight to the eastern gate.',
+                'SCENE_SILVERTHORN_GATES',
+                { buttonText: 'Head for the Gates' }
+            ),
+            createChoice('Return to the notice board', 'SCENE_SILVERTHORN_NOTICE_BOARD', { buttonText: 'Back to the Board' }),
+            createChoice('Return to the city center', 'SCENE_HUB_SILVERTHORN', { buttonText: 'Back to City Center' })
+        ];
         return scene;
     }
 
