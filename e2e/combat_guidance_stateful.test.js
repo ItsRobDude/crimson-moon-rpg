@@ -57,10 +57,20 @@ test.describe('Adaptive Combat Guidance', () => {
 
     await expect(page.locator('#battle-guidance-text')).toContainText('already on you');
     await expect(page.locator('#party-container')).toContainText('Engaged');
+    await expect(page.locator('#battle-field-status')).toContainText('Cover and distance live');
+    await expect(page.locator('#battle-system-note')).toContainText('Elevation is not modeled');
+    expect(await page.locator('#battle-field-grid .battlefield-token').count()).toBeGreaterThan(1);
+    await expect(page.locator('#enemies-container')).toContainText('Adjacent');
 
     await page.evaluate(() => window.__setPlayerCombatState('open'));
     await expect(page.locator('#battle-guidance-text')).toContainText('No enemy is in melee reach');
     await expect(page.locator('#party-container')).toContainText('Exposed');
+    await expect(page.locator('#enemies-container')).toContainText('Needs move');
+
+    await page.getByRole('button', { name: /attack/i }).click();
+    await expect(page.locator('#battle-actions-container')).toContainText(/\d+ ft/);
+    await expect(page.locator('#battle-actions-container')).toContainText('Needs move');
+    await page.getByRole('button', { name: /back/i }).click();
 
     await page.evaluate(() => window.__setPlayerCombatState('spent'));
     await expect(page.locator('#battle-guidance-text')).toContainText('action is spent');

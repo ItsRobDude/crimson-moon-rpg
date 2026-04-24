@@ -1263,11 +1263,122 @@ button:hover {
     border-radius: 6px;
 }
 
-#battle-scene-text-overlay {
-    position: relative;
+.battle-field-status {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: -4px 0 12px;
+}
+
+.battle-field-status span,
+.battle-system-note {
+    border: 1px solid rgba(201, 164, 69, 0.24);
+    background: rgba(20, 20, 20, 0.72);
+    color: #d8d0b8;
+    border-radius: 999px;
+    padding: 3px 8px;
+    font-size: 0.74rem;
+    line-height: 1.35;
+}
+
+.battle-system-note {
+    display: inline-block;
+    margin-top: 10px;
+    border-radius: 6px;
+    color: #cbc190;
+}
+
+.battlefield-grid-map {
+    position: absolute;
+    inset: 18px;
     z-index: 1;
+    display: grid;
+    gap: 3px;
+    padding: 8px;
+    border: 1px solid rgba(201, 164, 69, 0.28);
+    border-radius: 8px;
+    background: rgba(6, 7, 7, 0.52);
+    box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.42);
+}
+
+.battlefield-tile {
+    min-width: 0;
+    min-height: 0;
+    border: 1px solid rgba(216, 208, 184, 0.14);
+    border-radius: 4px;
+    background: rgba(28, 30, 28, 0.62);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    overflow: hidden;
+}
+
+.battlefield-tile.tile-difficult {
+    background: repeating-linear-gradient(
+        135deg,
+        rgba(91, 71, 39, 0.62),
+        rgba(91, 71, 39, 0.62) 5px,
+        rgba(43, 42, 34, 0.62) 5px,
+        rgba(43, 42, 34, 0.62) 10px
+    );
+}
+
+.battlefield-tile.tile-cover-half,
+.battlefield-tile.tile-cover-three_quarters,
+.battlefield-tile.tile-blocked {
+    border-color: rgba(122, 163, 116, 0.5);
+    background: rgba(41, 64, 38, 0.72);
+}
+
+.battlefield-tile.tile-blocked {
+    border-color: rgba(160, 164, 178, 0.46);
+    background: rgba(52, 56, 68, 0.78);
+}
+
+.battlefield-tile.tile-effect {
+    box-shadow: inset 0 0 0 2px rgba(214, 123, 96, 0.38);
+}
+
+.battlefield-token {
+    min-width: 24px;
+    height: 24px;
+    padding: 0 5px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #111;
+    background: #d9cb9b;
+}
+
+.battlefield-token.token-ally {
+    background: #c6dfb5;
+}
+
+.battlefield-token.token-enemy {
+    background: #f0b29a;
+}
+
+.battlefield-token.token-active {
+    box-shadow: 0 0 0 2px var(--accent-color), 0 0 12px rgba(201, 164, 69, 0.42);
+}
+
+#battle-scene-text-overlay {
+    position: absolute;
+    left: 18px;
+    right: 18px;
+    bottom: 18px;
+    z-index: 2;
     text-align: center;
     color: white;
+    max-width: none;
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.58);
 }
 #battle-scene-main-text {
     font-size: 1.1em;
@@ -1331,9 +1442,12 @@ button:hover {
     font-weight: bold;
     cursor: pointer;
     transition: background-color 0.2s;
-    height: 40px;
+    min-height: 40px;
     background-color: #494222;
     color: white;
+    line-height: 1.2;
+    white-space: normal;
+    text-align: center;
 }
 
 .battle-action-button:hover {
@@ -2094,6 +2208,29 @@ body.presentation-mode #viewport {
     color: #bed7a6;
 }
 
+.tag-adjacent,
+.tag-within-reach,
+.tag-within-range {
+    border-color: rgba(122, 163, 116, 0.35);
+    background: rgba(55, 89, 47, 0.2);
+    color: #bed7a6;
+}
+
+.tag-needs-move,
+.tag-too-far,
+.tag-line-blocked {
+    border-color: rgba(214, 123, 96, 0.35);
+    background: rgba(140, 59, 43, 0.22);
+    color: #f0b29a;
+}
+
+.tag-half-cover,
+.tag-three-quarter-cover {
+    border-color: rgba(122, 163, 116, 0.35);
+    background: rgba(55, 89, 47, 0.2);
+    color: #bed7a6;
+}
+
 .tag-exposed {
     border-color: rgba(182, 156, 90, 0.35);
     background: rgba(99, 79, 33, 0.22);
@@ -2112,6 +2249,26 @@ body.presentation-mode #viewport {
 }
 
 @media (max-width: 768px) {
+    #battle-screen {
+        padding: 10px;
+    }
+
+    #battle-scene-image {
+        min-height: 300px;
+    }
+
+    .battlefield-grid-map {
+        inset: 10px;
+        gap: 2px;
+        padding: 6px;
+    }
+
+    .battlefield-token {
+        min-width: 20px;
+        height: 20px;
+        font-size: 0.62rem;
+    }
+
     .cc-quick-starts {
         grid-template-columns: 1fr;
     }

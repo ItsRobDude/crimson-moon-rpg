@@ -18,7 +18,7 @@ import { addEffectToActor, getActorTraitDefinitions, getBonusSkillChoiceCount, g
 import { featDefinitions } from './data/feats.js';
 import { rollDiceExpression, rollSkillCheck, rollSavingThrow, rollDie, rollAttack, rollInitiative, getAbilityMod, generateScaledStats, getPlayerAC } from './rules.js';
 import { getMovementPreview, getSpellTargetingPreview, initCombatSystem, startCombat, performAttack, performCastSpell, performAbility, performCombatManeuver, performDefend, performEscape, performFlee, performEndTurn, performActionSurge, performCunningAction, performMove, performStand, uiHooks } from './combat.js';
-import { getCoverBetween, getToken, isAdjacent } from './battlegrid.js';
+import { getCoverBetween, getRangeDistance, getToken, getTileEffects, getTileKey, isAdjacent } from './battlegrid.js';
 import { clearTrackedTimeout, scheduleTrackedTimeout } from './timers.js';
 
 const DEFAULT_PORTRAIT_PATH = 'portraits/npc_male_placeholder_portrait.png';
@@ -4222,10 +4222,6 @@ function getEquipmentComparisonMeta(item, characterId = 'player', equipFailure =
     return meta;
 }
 
-function getEquipmentComparisonText(item, characterId = 'player') {
-    return getEquipmentComparisonMeta(item, characterId).text;
-}
-
 function renderShop(shopId) {
     const shopDef = shops[shopId];
     if (!shopDef) return;
@@ -4664,6 +4660,78 @@ function getCombatActorById(actorId) {
     return gameState.combat.enemies.find((enemy) => enemy.uniqueId === actorId) || null;
 }
 
+function getActorShortLabel(actorId, actor = getCombatActorById(actorId)) {
+    if (actorId === 'player') return 'You';
+    return actor?.name || actorId || 'Unknown';
+}
+
+function getCombatAttackProfileForUi(actorId) {
+    const actor = getCombatActorById(actorId);
+    if (!actor) return { name: 'Attack', rangeFeet: null, reachFeet: 5, isRanged: false };
+
+    if (actor.attackProfile) {
+        return {
+            name: actor.attackProfile.name || 'Attack',
+            rangeFeet: actor.attackProfile.rangeFeet || null,
+            reachFeet: actor.attackProfile.reachFeet || 5,
+            isRanged: !!actor.attackProfile.rangeFeet
+        };
+    }
+
+    const weapon = actor.equipped?.weapon ? items[actor.equipped.weapon] : null;
+    if (!weapon) return { name: 'Unarmed Strike', rangeFeet: null, reachFeet: 5, isRanged: false };
+    const rangeFeet = weapon.rangeFeet || weapon.thrownRangeFeet || null;
+    return {
+        name: weapon.name,
+        rangeFeet,
+        reachFeet: weapon.reachFeet || 5,
+        isRanged: !!rangeFeet || weapon.properties?.includes('ranged')
+    };
+}
+
+function getCoverLabel(cover = 'none') {
+    if (cover === 'full') return 'Line blocked';
+    if (cover === 'three_quarters') return 'Three-quarter cover';
+    if (cover === 'half') return 'Half cover';
+    return '';
+}
+
+function getCombatTargetFacts(attackerId, targetId) {
+    const grid = gameState.combat?.grid;
+    const attackerToken = grid ? getToken(grid, attackerId) : null;
+    const targetToken = grid ? getToken(grid, targetId) : null;
+    const profile = getCombatAttackProfileForUi(attackerId);
+    if (!grid || !attackerToken || !targetToken) {
+        return { labels: [], distanceFeet: null, cover: 'none', inReach: false, inRange: false };
+    }
+
+    const distanceTiles = getRangeDistance(attackerToken, targetToken);
+    const distanceFeet = distanceTiles * grid.tileSize;
+    const reachTiles = Math.max(1, Math.floor((profile.reachFeet || 5) / grid.tileSize));
+    const rangeTiles = profile.rangeFeet ? Math.max(1, Math.floor(profile.rangeFeet / grid.tileSize)) : null;
+    const inReach = distanceTiles <= reachTiles;
+    const inRange = rangeTiles !== null ? distanceTiles <= rangeTiles : inReach;
+    const cover = getCoverBetween(grid, attackerId, targetId);
+    const labels = [`${distanceFeet} ft`];
+
+    if (distanceTiles <= 1) {
+        labels.push('Adjacent');
+    } else if (inReach && !profile.isRanged) {
+        labels.push('Within reach');
+    } else if (profile.isRanged && inRange) {
+        labels.push('Within range');
+    } else if (profile.isRanged) {
+        labels.push('Too far');
+    } else {
+        labels.push('Needs move');
+    }
+
+    const coverLabel = getCoverLabel(cover);
+    if (coverLabel) labels.push(coverLabel);
+
+    return { labels, distanceFeet, cover, inReach, inRange, profile };
+}
+
 function getCombatTacticalState(actorId, actor = getCombatActorById(actorId)) {
     const grid = gameState.combat.grid;
     const actorToken = grid ? getToken(grid, actorId) : null;
@@ -4717,6 +4785,81 @@ function renderCombatTagHtml(labels) {
         const cssLabel = label.toLowerCase();
         return `<span class="tactical-tag tag-${cssLabel}">${label}</span>`;
     }).join('');
+}
+
+function renderCombatFactTags(labels = []) {
+    return labels
+        .filter(Boolean)
+        .map((label) => {
+            const cssLabel = String(label).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+            return `<span class="tactical-tag tag-${cssLabel}">${label}</span>`;
+        })
+        .join('');
+}
+
+function getEnemyUiLabels(enemy, activeActorId) {
+    const facts = getCombatTargetFacts(activeActorId, enemy.uniqueId);
+    const tacticalState = getCombatTacticalState(enemy.uniqueId, enemy);
+    return [...facts.labels, ...tacticalState.labels];
+}
+
+function updateBattleFieldStatus(activeCharacterId = 'player') {
+    const status = document.getElementById('battle-field-status');
+    if (!status || !gameState.combat?.active) return;
+    const currentTurnId = gameState.combat.turnOrder?.[gameState.combat.turnIndex] || activeCharacterId;
+    const currentActor = getCombatActorById(currentTurnId);
+    const grid = gameState.combat.grid;
+    const tileText = grid ? `${grid.width}x${grid.height}, ${grid.tileSize} ft tiles` : 'grid unavailable';
+    status.innerHTML = `
+        <span>Round ${gameState.combat.round || 1}</span>
+        <span>Turn: ${getActorShortLabel(currentTurnId, currentActor)}</span>
+        <span>${tileText}</span>
+        <span>Cover and distance live</span>
+    `;
+}
+
+function renderBattleFieldGrid(activeCharacterId = 'player') {
+    const container = document.getElementById('battle-field-grid');
+    const grid = gameState.combat?.grid;
+    if (!container || !grid) return;
+
+    const currentTurnId = gameState.combat.turnOrder?.[gameState.combat.turnIndex] || activeCharacterId;
+    container.innerHTML = '';
+    container.style.gridTemplateColumns = `repeat(${grid.width}, minmax(0, 1fr))`;
+    container.style.gridTemplateRows = `repeat(${grid.height}, minmax(0, 1fr))`;
+
+    for (let y = 0; y < grid.height; y += 1) {
+        for (let x = 0; x < grid.width; x += 1) {
+            const key = getTileKey(x, y);
+            const terrain = grid.terrain?.[key] || {};
+            const tileEffects = getTileEffects(grid, x, y);
+            const occupants = Object.entries(grid.occupied || {}).filter(([, token]) => token.x === x && token.y === y && token.hp > 0);
+            const tile = document.createElement('div');
+            tile.className = [
+                'battlefield-tile',
+                terrain.difficult ? 'tile-difficult' : '',
+                terrain.cover ? `tile-cover-${terrain.cover}` : '',
+                terrain.blocksLineOfSight ? 'tile-blocked' : '',
+                tileEffects.length ? 'tile-effect' : ''
+            ].filter(Boolean).join(' ');
+            tile.setAttribute('aria-label', `Tile ${x},${y}`);
+
+            occupants.forEach(([tokenId, token]) => {
+                const actor = getCombatActorById(tokenId);
+                const chip = document.createElement('span');
+                chip.className = [
+                    'battlefield-token',
+                    token.team === 'enemies' ? 'token-enemy' : 'token-ally',
+                    tokenId === currentTurnId ? 'token-active' : ''
+                ].filter(Boolean).join(' ');
+                chip.textContent = tokenId === 'player' ? 'You' : (actor?.name || tokenId).slice(0, 1);
+                chip.title = `${getActorShortLabel(tokenId, actor)} at ${x},${y}`;
+                tile.appendChild(chip);
+            });
+
+            container.appendChild(tile);
+        }
+    }
 }
 
 function getCombatGuidanceText(activeCharacterId, subMenu = null) {
@@ -4785,8 +4928,11 @@ function updateCombatUI(activeCharacterId = 'player') {
         const enemyHpPct = Math.max(0, (enemy.hp / enemy.maxHp) * 100);
         const enemyToken = gameState.combat.grid?.occupied?.[enemy.uniqueId];
         const positionLabel = enemyToken ? `Pos ${enemyToken.x},${enemyToken.y}` : '';
-        const tacticalState = getCombatTacticalState(enemy.uniqueId, enemy);
         const detailBits = [positionLabel, enemy.intent || ''].filter(Boolean);
+        const referenceActorId = activeCharacterId === 'player' || gameState.party.includes(activeCharacterId)
+            ? activeCharacterId
+            : 'player';
+        const enemyLabels = getEnemyUiLabels(enemy, referenceActorId);
 
         enemyCard.innerHTML = `
             <div class="enemy-portrait" style='background-image: url("${enemy.portrait}");'></div>
@@ -4796,7 +4942,7 @@ function updateCombatUI(activeCharacterId = 'player') {
                     <div class="enemy-bar-fill" style="width: ${enemyHpPct}%;"></div>
                 </div>
                 <div class="enemy-status">${detailBits.join(' · ')}</div>
-                <div class="enemy-status enemy-tags">${renderCombatTagHtml(tacticalState.labels)}</div>
+                <div class="enemy-status enemy-tags">${renderCombatFactTags(enemyLabels)}</div>
             </div>
         `;
         enemiesContainer.appendChild(enemyCard);
@@ -4840,6 +4986,8 @@ function updateCombatUI(activeCharacterId = 'player') {
     }
 
     updateBattleTutorialNudge(activeCharacterId);
+    updateBattleFieldStatus(activeCharacterId);
+    renderBattleFieldGrid(activeCharacterId);
 
     const currentSceneBackground = scenes[gameState.currentSceneId]?.background || 'landscapes/courtyard_battleground.png';
     document.getElementById('battle-scene-image').style.backgroundImage = `url('${currentSceneBackground}')`;
@@ -5129,10 +5277,11 @@ function renderPlayerActions(container, subMenu = null, actingId = 'player') {
         grid.appendChild(createActionButton('Confirm Move', 'check_circle', () => performMove(subMenu.destination, actingId), 'primary', !option));
         grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, 'move', actingId), 'flee'));
     } else if (subMenu === 'attack') {
-        setBattleActionPreview('Choose a creature to attack. Positions are shown by tile coordinates.');
+        setBattleActionPreview('Choose a creature to attack. Target labels show distance, reach, and cover from your current tile.');
         gameState.combat.enemies.forEach(enemy => {
             if (enemy.hp <= 0) return;
-            grid.appendChild(createActionButton(enemy.name, 'swords', () => performAttack(enemy.uniqueId, actingId), 'primary'));
+            const facts = getCombatTargetFacts(actingId, enemy.uniqueId);
+            grid.appendChild(createActionButton(`${enemy.name} · ${facts.labels.join(' · ')}`, 'swords', () => performAttack(enemy.uniqueId, actingId), 'primary'));
         });
         grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, null, actingId), 'flee'));
     } else if (subMenu === 'spells') {
@@ -5194,7 +5343,8 @@ function renderPlayerActions(container, subMenu = null, actingId = 'player') {
             setBattleActionPreview(`Choose a target for ${spell.name}.`);
             gameState.combat.enemies.forEach(enemy => {
                 if (enemy.hp <= 0) return;
-                grid.appendChild(createActionButton(enemy.name, 'auto_stories', () => performCastSpell(subMenu.spellId, enemy.uniqueId, actingId), 'primary'));
+                const facts = getCombatTargetFacts(actingId, enemy.uniqueId);
+                grid.appendChild(createActionButton(`${enemy.name} · ${facts.labels.join(' · ')}`, 'auto_stories', () => performCastSpell(subMenu.spellId, enemy.uniqueId, actingId), 'primary'));
             });
         }
         grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, 'spells', actingId), 'flee'));
@@ -5203,7 +5353,8 @@ function renderPlayerActions(container, subMenu = null, actingId = 'player') {
         setBattleActionPreview(`Choose who to ${maneuverName.toLowerCase()}. The contest uses your Athletics against the target's Athletics or Acrobatics.`);
         gameState.combat.enemies.forEach(enemy => {
             if (enemy.hp <= 0) return;
-            grid.appendChild(createActionButton(enemy.name, 'sports_mma', () => performCombatManeuver(subMenu.maneuver, enemy.uniqueId, actingId), 'primary', !hasAction));
+            const facts = getCombatTargetFacts(actingId, enemy.uniqueId);
+            grid.appendChild(createActionButton(`${enemy.name} · ${facts.labels.join(' · ')}`, 'sports_mma', () => performCombatManeuver(subMenu.maneuver, enemy.uniqueId, actingId), 'primary', !hasAction));
         });
         grid.appendChild(createActionButton('Back', 'arrow_back', () => renderPlayerActions(container, 'abilities', actingId), 'flee'));
     } else if (subMenu === 'abilities') {
