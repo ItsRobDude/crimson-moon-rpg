@@ -114,11 +114,14 @@ test.describe('UI Surface Cleanup', () => {
     await expect(page.locator('#shop-items-container')).toContainText('Club');
     await expect(page.locator('#shop-items-container')).toContainText('Weapon');
     expect(await page.locator('#shop-items-container button:disabled').count()).toBeGreaterThan(0);
+    await expect(page.locator('#shop-panel')).not.toContainText(/recommended|worth buying|good upgrade|best/i);
 
     let clubRow = page.locator('#shop-items-container .shop-entry', { hasText: 'Club' });
+    await expect(clubRow.locator('.comparison-chip', { hasText: 'Lower damage' })).toBeVisible();
     await clubRow.getByRole('button', { name: /buy for 1g/i }).click();
     clubRow = page.locator('#shop-items-container .shop-entry', { hasText: 'Club' });
     await expect(clubRow).toContainText('Owned x1');
+    await expect(clubRow.locator('.comparison-chip', { hasText: 'Lower damage' })).toBeVisible();
     await expect(page.locator('#shop-gold-display')).toContainText('Party Gold: 9');
 
     await page.evaluate(async () => {
@@ -140,7 +143,9 @@ test.describe('UI Surface Cleanup', () => {
       .filter({ has: page.locator('strong', { hasText: /^Shield$/ }) })
       .first();
     await shieldEntry.click();
+    await expect(page.locator('#inventory-detail .comparison-chip', { hasText: 'Equipped' })).toBeVisible();
     await expect(page.locator('#inventory-detail')).toContainText('Equip or unequip it from this window');
+    await expect(page.locator('#inventory-modal')).not.toContainText(/recommended|worth buying|good upgrade|best/i);
     await shieldEntry.locator('button').first().click();
     await expect(page.locator('#inventory-equipment-panel')).toContainText('Shield');
 

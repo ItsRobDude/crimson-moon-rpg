@@ -4134,22 +4134,55 @@ function getShopPrice(item, shopId) {
     return price;
 }
 
-function getEquipmentComparisonText(item, characterId = 'player') {
+function getDamageAverage(damageText = '') {
+    const match = String(damageText).trim().match(/^(\d*)d(\d+)([+-]\d+)?$/i);
+    if (!match) return null;
+    const diceCount = Number(match[1] || 1);
+    const dieSize = Number(match[2]);
+    const flatBonus = Number(match[3] || 0);
+    return (diceCount * (dieSize + 1)) / 2 + flatBonus;
+}
+
+function buildComparisonChip(label, tone = 'neutral') {
+    return { label, tone };
+}
+
+function renderComparisonChips(chips = []) {
+    if (!chips.length) return '';
+    return `
+        <div class="comparison-chip-row">
+            ${chips.map((chip) => `<span class="comparison-chip comparison-chip-${chip.tone || 'neutral'}">${chip.label}</span>`).join('')}
+        </div>
+    `;
+}
+
+function getEquipmentComparisonMeta(item, characterId = 'player', equipFailure = null) {
     const character = getCharacterById(characterId);
-    if (!character || !item) return '';
+    const meta = { text: '', chips: [] };
+    if (!character || !item) return meta;
 
     const slot = item.equipmentSlot || (item.type === 'shield' ? 'shield' : null);
-    if (!slot) return '';
+    if (!slot) return meta;
+
+    if (equipFailure === 'proficiency') {
+        meta.chips.push(buildComparisonChip('Not trained', 'blocked'));
+    } else if (equipFailure === 'reqStr') {
+        meta.chips.push(buildComparisonChip(`Needs STR ${item.reqStr}`, 'blocked'));
+    }
 
     const currentItemId = character.equipped?.[slot];
     if (!currentItemId) {
-        return `Would fill your ${slot} slot.`;
+        meta.text = `Would fill your ${slot} slot.`;
+        meta.chips.push(buildComparisonChip('Empty slot', 'neutral'));
+        return meta;
     }
 
     const currentItem = items[currentItemId];
-    if (!currentItem) return '';
+    if (!currentItem) return meta;
     if (currentItemId === item.id) {
-        return `Already equipped in your ${slot} slot.`;
+        meta.text = `Already equipped in your ${slot} slot.`;
+        meta.chips.push(buildComparisonChip('Equipped', 'neutral'));
+        return meta;
     }
 
     if (item.type === 'armor') {
@@ -4157,24 +4190,40 @@ function getEquipmentComparisonText(item, characterId = 'player') {
         const currentAc = currentItem.acBase || 0;
         const delta = candidateAc - currentAc;
         const deltaText = delta > 0 ? `Higher base AC by ${delta}.` : delta < 0 ? `Lower base AC by ${Math.abs(delta)}.` : 'Similar base AC.';
-        return `Would replace ${currentItem.name}. ${deltaText}`;
+        meta.text = `Would replace ${currentItem.name}. ${deltaText}`;
+        meta.chips.push(buildComparisonChip(delta > 0 ? 'Higher AC' : delta < 0 ? 'Lower AC' : 'Same AC', delta > 0 ? 'higher' : delta < 0 ? 'lower' : 'neutral'));
+        return meta;
     }
 
     if (item.type === 'shield') {
         const candidateBonus = item.acBonus || 0;
         const currentBonus = currentItem.acBonus || 0;
         const delta = candidateBonus - currentBonus;
-        const deltaText = delta > 0 ? `Stronger shield bonus by ${delta}.` : delta < 0 ? `Lower shield bonus by ${Math.abs(delta)}.` : 'Similar shield bonus.';
-        return `Would replace ${currentItem.name}. ${deltaText}`;
+        const deltaText = delta > 0 ? `Higher shield bonus by ${delta}.` : delta < 0 ? `Lower shield bonus by ${Math.abs(delta)}.` : 'Similar shield bonus.';
+        meta.text = `Would replace ${currentItem.name}. ${deltaText}`;
+        meta.chips.push(buildComparisonChip(delta > 0 ? 'Higher shield bonus' : delta < 0 ? 'Lower shield bonus' : 'Same shield bonus', delta > 0 ? 'higher' : delta < 0 ? 'lower' : 'neutral'));
+        return meta;
     }
 
     if (item.type === 'weapon') {
         const currentDamage = currentItem.damage ? `${currentItem.damage} ${currentItem.damageType}` : currentItem.name;
         const candidateDamage = item.damage ? `${item.damage} ${item.damageType}` : item.name;
-        return `Would replace ${currentItem.name}. Current ${currentDamage}; candidate ${candidateDamage}.`;
+        const currentAverage = getDamageAverage(currentItem.damage);
+        const candidateAverage = getDamageAverage(item.damage);
+        meta.text = `Would replace ${currentItem.name}. Current ${currentDamage}; candidate ${candidateDamage}.`;
+        if (currentAverage !== null && candidateAverage !== null) {
+            const delta = candidateAverage - currentAverage;
+            meta.chips.push(buildComparisonChip(delta > 0 ? 'Higher damage' : delta < 0 ? 'Lower damage' : 'Same damage', delta > 0 ? 'higher' : delta < 0 ? 'lower' : 'neutral'));
+        }
+        return meta;
     }
 
-    return `Would replace ${currentItem.name}.`;
+    meta.text = `Would replace ${currentItem.name}.`;
+    return meta;
+}
+
+function getEquipmentComparisonText(item, characterId = 'player') {
+    return getEquipmentComparisonMeta(item, characterId).text;
 }
 
 function renderShop(shopId) {
@@ -4209,8 +4258,9 @@ function renderShop(shopId) {
         const price = getShopPrice(item, shopId);
         const ownedCount = getItemCount(itemId, 'player');
         const canAfford = gameState.player.gold >= price;
-        const comparisonText = getEquipmentComparisonText(item, 'player');
         const equipFailure = ['weapon', 'armor', 'shield'].includes(item.type) ? getItemEquipFailure(itemId, 'player') : null;
+        const comparisonMeta = getEquipmentComparisonMeta(item, 'player', equipFailure);
+        const comparisonText = comparisonMeta.text;
         const frictionText = equipFailure === 'proficiency'
             ? 'You are not proficient with this.'
             : equipFailure === 'reqStr'
@@ -4234,6 +4284,7 @@ function renderShop(shopId) {
             </div>
             <div class="inventory-meta">${getItemRulesText(item)}</div>
             <div class="inventory-desc">${item.description || 'No description available.'}</div>
+            ${renderComparisonChips(comparisonMeta.chips)}
             ${comparisonText ? `<div class="inventory-note">${comparisonText}</div>` : ''}
             ${frictionText ? `<div class="inventory-warning">${frictionText}</div>` : ''}
         `;
@@ -5478,7 +5529,8 @@ function toggleInventory(forceOpen = null, characterId = 'player') {
                 : equipFailure === 'reqStr'
                     ? `Needs STR ${item.reqStr}.`
                     : '';
-            const comparisonText = getEquipmentComparisonText(item, characterId);
+            const comparisonMeta = getEquipmentComparisonMeta(item, characterId, equipFailure);
+            const comparisonText = comparisonMeta.text;
             const actionHint = getInventoryActionHint(item, characterId);
             detailPanel.innerHTML = `
                 <h3>${item.name}${quantity && quantity > 1 ? ` x${quantity}` : ''}</h3>
@@ -5488,6 +5540,7 @@ function toggleInventory(forceOpen = null, characterId = 'player') {
                 </div>
                 <div class="inventory-meta">${getItemRulesText(item)}</div>
                 <p>${item.description || 'No description available.'}</p>
+                ${characterId === 'player' ? renderComparisonChips(comparisonMeta.chips) : ''}
                 ${comparisonText ? `<p class="inventory-note">${comparisonText}</p>` : ''}
                 <p class="inventory-note">${actionHint}</p>
                 ${failureText ? `<p class="inventory-warning">${failureText}</p>` : ''}
@@ -5561,6 +5614,9 @@ function toggleInventory(forceOpen = null, characterId = 'player') {
                 : equipFailure === 'reqStr'
                     ? `Needs STR ${item.reqStr}`
                     : '';
+            const comparisonMeta = targetId === 'player'
+                ? getEquipmentComparisonMeta(item, targetId, equipFailure)
+                : { chips: [] };
 
             entry.onclick = () => renderDetail(itemId, quantity);
 
@@ -5577,6 +5633,7 @@ function toggleInventory(forceOpen = null, characterId = 'player') {
                 </div>
                 <div class="inventory-meta">${getItemRulesText(item)}</div>
                 <div class="inventory-desc">${item.description || ''}</div>
+                ${targetId === 'player' ? renderComparisonChips(comparisonMeta.chips) : ''}
                 ${failureText ? `<div class="inventory-warning">${failureText}</div>` : ''}
             `;
 
