@@ -168,26 +168,67 @@
     <!-- Character Creation Modal -->
     <div id="char-creation-modal" class="modal hidden">
         <div class="modal-content">
-            <h2>Create Your Character</h2>
+            <div class="cc-header">
+                <span class="cc-kicker">Choose Your Road</span>
+                <h2>Create Your Character</h2>
+                <p class="modal-subtitle">Pick the kind of survivor you want to send into Alderic's charge. The finer sheet work can wait unless you want it.</p>
+            </div>
             <div id="cc-quick-starts" class="cc-quick-starts">
-                <button type="button" class="cc-quick-start" data-preset="steady_fighter">Road-Worn Fighter</button>
-                <button type="button" class="cc-quick-start" data-preset="cautious_cleric">Watchful Cleric</button>
-                <button type="button" class="cc-quick-start" data-preset="clever_rogue">Streetwise Rogue</button>
-                <button type="button" class="cc-quick-start" data-preset="dangerous_wizard">Spellbound Wizard</button>
+                <button type="button" class="cc-quick-start" data-preset="steady_fighter">
+                    <span class="cc-card-title">Road-Worn Fighter</span>
+                    <span class="cc-card-role">Front-line steel</span>
+                    <span class="cc-card-tags">Survivability high · Complexity low</span>
+                    <span class="cc-card-hook">You know how to stay standing when fear and mud take the road.</span>
+                </button>
+                <button type="button" class="cc-quick-start" data-preset="cautious_cleric">
+                    <span class="cc-card-title">Watchful Cleric</span>
+                    <span class="cc-card-role">Armor, prayer, recovery</span>
+                    <span class="cc-card-tags">Survivability high · Complexity medium</span>
+                    <span class="cc-card-hook">You carry rites for the living and enough steel for the ones who will not listen.</span>
+                </button>
+                <button type="button" class="cc-quick-start" data-preset="clever_rogue">
+                    <span class="cc-card-title">Streetwise Rogue</span>
+                    <span class="cc-card-role">Skills, stealth, angles</span>
+                    <span class="cc-card-tags">Survivability medium · Complexity medium</span>
+                    <span class="cc-card-hook">You learned to read rooms before rooms learned to kill people.</span>
+                </button>
+                <button type="button" class="cc-quick-start" data-preset="dangerous_wizard">
+                    <span class="cc-card-title">Spellbound Wizard</span>
+                    <span class="cc-card-role">Spell reach, fragile body</span>
+                    <span class="cc-card-tags">Survivability low · Complexity high</span>
+                    <span class="cc-card-hook">You bring answers written in ash, provided nobody reaches you first.</span>
+                </button>
             </div>
             <div id="cc-guidance-panel" class="cc-guidance-panel">
+                <p id="cc-selected-road" class="cc-selected-road"></p>
                 <p id="cc-guidance-text"></p>
                 <p id="cc-selection-summary" class="cc-selection-summary"></p>
                 <p id="cc-autofill-note" class="cc-autofill-note"></p>
             </div>
 
+            <div class="cc-ready-row">
+                <div class="form-group cc-name-group">
+                    <label for="cc-name">Name</label>
+                    <input type="text" id="cc-name" value="Traveler">
+                </div>
+                <button id="btn-start-game">Begin Journey</button>
+            </div>
+
             <div class="cc-grid">
-                <!-- Left Column: Choices -->
-                <div class="cc-form-column">
-                    <div class="form-group">
-                    <label for="cc-name">Name:</label>
-                        <input type="text" id="cc-name" value="Traveler">
+                <div class="cc-preview-column">
+                    <div class="preview-panel">
+                        <h3>What This Road Means</h3>
+                        <p id="cc-build-summary" class="cc-build-summary"></p>
+                        <div id="cc-preview-content">
+                            <!-- Dynamic preview goes here -->
+                        </div>
                     </div>
+                </div>
+
+                <div class="cc-form-column">
+                    <button type="button" id="cc-advanced-toggle" class="cc-advanced-toggle" aria-expanded="false" aria-controls="cc-advanced-panel">Customize the sheet</button>
+                    <div id="cc-advanced-panel" class="cc-advanced-panel hidden">
+                        <p class="cc-advanced-note">These details are here when you want them. If you leave them alone, the game will settle a playable build before the road begins.</p>
                     <div class="form-group">
                         <label>Race:</label>
                         <select id="cc-race"></select>
@@ -263,21 +304,9 @@
                             <!-- Injected by JS -->
                         </div>
                     </div>
-                </div>
-
-                <!-- Right Column: Preview -->
-                <div class="cc-preview-column">
-                    <div class="preview-panel">
-                        <h3>Character Preview</h3>
-                        <p id="cc-build-summary" class="cc-build-summary"></p>
-                        <div id="cc-preview-content">
-                            <!-- Dynamic Stats go here -->
-                        </div>
                     </div>
                 </div>
             </div>
-
-            <button id="btn-start-game">Begin Journey</button>
         </div>
     </div>
 

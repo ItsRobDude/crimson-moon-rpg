@@ -25,8 +25,11 @@ test.describe('Character Creation UI', () => {
     await page.click('#btn-start-new');
     await expect(page.locator('#cc-guidance-panel')).toBeVisible();
     await expect(page.getByRole('button', { name: /road-worn fighter/i })).toHaveClass(/active/);
+    await expect(page.getByRole('button', { name: /road-worn fighter/i })).toContainText('Survivability high');
     await expect(page.locator('#cc-selection-summary')).toContainText('ready for the road');
     await expect(page.locator('#cc-build-summary')).not.toBeEmpty();
+    await expect(page.locator('#cc-advanced-panel')).toBeHidden();
+    await expect(page.locator('#cc-preview-content')).toContainText('Best first-road use');
 
     // Fill in the character name
     await page.fill('#cc-name', characterName);

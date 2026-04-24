@@ -310,6 +310,9 @@ export function initUI() {
     document.querySelectorAll('#cc-quick-starts .cc-quick-start').forEach((button) => {
         button.onclick = () => applyCharacterQuickStart(button.dataset.preset);
     });
+    document.getElementById('cc-advanced-toggle').onclick = () => {
+        setCharacterCreationAdvancedOpen(!ccUiState.advancedOpen);
+    };
 }
 
 // ... (Character Creation Logic remains same) ...
@@ -326,6 +329,7 @@ let ccState = {
 };
 let ccUiState = {
     selectedPreset: null,
+    advancedOpen: false,
     expandedSections: new Set()
 };
 
@@ -350,6 +354,8 @@ let narrativeUiState = {
 const CC_QUICK_STARTS = {
     steady_fighter: {
         label: 'Road-Worn Fighter',
+        role: 'Front-line steel',
+        bestUse: 'Hold the front, take the first ugly hit, and keep the party moving when the road turns mean.',
         raceId: 'human',
         classId: 'fighter',
         backgroundId: 'soldier',
@@ -357,6 +363,8 @@ const CC_QUICK_STARTS = {
     },
     cautious_cleric: {
         label: 'Watchful Cleric',
+        role: 'Armor, prayer, recovery',
+        bestUse: 'Keep people alive, read fear before it spreads, and make bad luck less final.',
         raceId: 'human',
         classId: 'cleric',
         backgroundId: 'acolyte',
@@ -364,6 +372,8 @@ const CC_QUICK_STARTS = {
     },
     clever_rogue: {
         label: 'Streetwise Rogue',
+        role: 'Skills, stealth, angles',
+        bestUse: 'Notice what others miss, slip through pressure, and punish openings before they close.',
         raceId: 'elf',
         classId: 'rogue',
         backgroundId: 'criminal',
@@ -371,6 +381,8 @@ const CC_QUICK_STARTS = {
     },
     dangerous_wizard: {
         label: 'Spellbound Wizard',
+        role: 'Spell reach, fragile body',
+        bestUse: "Control danger from the edge, solve strange problems, and stay out of anyone's hands.",
         raceId: 'elf',
         classId: 'wizard',
         backgroundId: 'sage',
@@ -843,6 +855,7 @@ function resetCharacterCreationState() {
     };
     ccUiState = {
         selectedPreset: null,
+        advancedOpen: false,
         expandedSections: new Set()
     };
 }
@@ -2622,6 +2635,19 @@ function getLocationLockMessage(locationId) {
     return getLocationTravelBlockReason(locationId) || 'That route is not available yet.';
 }
 
+function setCharacterCreationAdvancedOpen(open) {
+    ccUiState.advancedOpen = !!open;
+    const panel = document.getElementById('cc-advanced-panel');
+    const toggle = document.getElementById('cc-advanced-toggle');
+    if (panel) {
+        panel.classList.toggle('hidden', !ccUiState.advancedOpen);
+    }
+    if (toggle) {
+        toggle.setAttribute('aria-expanded', String(ccUiState.advancedOpen));
+        toggle.textContent = ccUiState.advancedOpen ? 'Hide sheet details' : 'Customize the sheet';
+    }
+}
+
 export function showCharacterCreation() {
     document.getElementById('start-menu').classList.add('hidden');
     setPresentationMode(true);
@@ -2674,6 +2700,7 @@ export function showCharacterCreation() {
         ccUiState.selectedPreset = null;
         updateCCPreview();
     };
+    setCharacterCreationAdvancedOpen(false);
     applyCharacterQuickStart('steady_fighter');
     document.getElementById('char-creation-modal').classList.remove('hidden');
 }
@@ -2859,7 +2886,9 @@ function applyCharacterQuickStart(presetId) {
     ccUiState.selectedPreset = presetId;
     syncCharacterCreationAbilityInputs();
     document.querySelectorAll('#cc-quick-starts .cc-quick-start').forEach((button) => {
-        button.classList.toggle('active', button.dataset.preset === presetId);
+        const isActive = button.dataset.preset === presetId;
+        button.classList.toggle('active', isActive);
+        button.setAttribute('aria-pressed', String(isActive));
     });
     updateCCPreview();
 }
@@ -3001,9 +3030,40 @@ function getCharacterCreationBuildSummary(raceKey, classKey, backgroundKey, fina
     return `${races[raceKey].name} ${cls.name} from the ${background.name}. ${classSummary} Your best early edge leans on ${highestStat}.`;
 }
 
+function getCharacterCreationDerivedStats(classKey, background, finalStats) {
+    const cls = classes[classKey];
+    const dexMod = getAbilityMod(finalStats.DEX);
+    const hp = cls.hitDie + getAbilityMod(finalStats.CON);
+    let ac = 10 + dexMod;
+    if (classKey === 'fighter') {
+        ac = 16 + 2 + (ccState.chosenFightingStyle === 'defense' ? 1 : 0);
+    } else if (classKey === 'cleric') {
+        ac = 12 + Math.min(2, dexMod) + 2;
+    } else if (classKey === 'rogue') {
+        ac = 11 + dexMod;
+    }
+
+    const allSkills = [...new Set([...(background.skillProficiencies || []), ...ccState.chosenSkills, ...ccState.chosenBonusSkills])];
+    const trainedStrengths = allSkills.slice(0, 4).map(formatChoiceLabel);
+    const selectedLevelledSpells = classKey === 'wizard' ? ccState.chosenSpellbook : ccState.chosenPreparedSpells;
+    const spellNames = [...ccState.chosenCantrips, ...selectedLevelledSpells]
+        .slice(0, 4)
+        .map((spellId) => spells[spellId]?.name || spellId);
+    const highestStat = Object.entries(finalStats).sort((a, b) => b[1] - a[1])[0]?.[0] || 'STR';
+
+    return {
+        hp,
+        ac,
+        highestStat,
+        trainedStrengths,
+        spellNames
+    };
+}
+
 function updateCharacterCreationGuidance(raceKey, classKey, backgroundKey, finalStats) {
     const cls = classes[classKey];
     const guidanceEl = document.getElementById('cc-guidance-text');
+    const selectedRoadEl = document.getElementById('cc-selected-road');
     const summaryEl = document.getElementById('cc-selection-summary');
     const autofillEl = document.getElementById('cc-autofill-note');
     const buildSummaryEl = document.getElementById('cc-build-summary');
@@ -3024,6 +3084,12 @@ function updateCharacterCreationGuidance(raceKey, classKey, backgroundKey, final
         wizard: 'Survivability: low. Complexity: high. Style: spell reach and careful positioning.'
     };
 
+    if (selectedRoadEl) {
+        const preset = CC_QUICK_STARTS[ccUiState.selectedPreset];
+        selectedRoadEl.innerText = preset
+            ? `${preset.label} selected: ${preset.role}.`
+            : `${races[raceKey].name} ${cls.name} selected.`;
+    }
     if (guidanceEl) {
         guidanceEl.innerText = classGuidance[classKey] || defaultGuidance;
     }
@@ -3033,7 +3099,7 @@ function updateCharacterCreationGuidance(raceKey, classKey, backgroundKey, final
 
     if (summaryEl) {
         summaryEl.innerText = pickState.totalRemaining > 0
-            ? `${pickState.totalRemaining} pick${pickState.totalRemaining === 1 ? '' : 's'} still open before you begin.`
+            ? `${pickState.totalRemaining} detail${pickState.totalRemaining === 1 ? '' : 's'} can still be chosen, or we can settle them for you.`
             : `${CC_QUICK_STARTS[ccUiState.selectedPreset]?.label || 'This build'} is ready for the road. You can begin now or keep shaping it.`;
     }
 
@@ -3043,14 +3109,14 @@ function updateCharacterCreationGuidance(raceKey, classKey, backgroundKey, final
                 .map((section) => {
                     const preview = section.preview.slice(0, section.remaining);
                     if (!preview.length) {
-                        return `${section.remaining} ${section.label}${section.remaining === 1 ? '' : 's'} will be filled in if you would rather begin now.`;
+                        return `We can settle ${section.remaining} ${section.label}${section.remaining === 1 ? '' : 's'} if you would rather begin now.`;
                     }
-                    return `${section.label.charAt(0).toUpperCase() + section.label.slice(1)}${section.remaining === 1 ? '' : 's'} can default to ${formatSelectionList(preview, section.formatter)} if you want the short road into the game.`;
+                    return `We can settle ${section.label}${section.remaining === 1 ? '' : 's'} as ${formatSelectionList(preview, section.formatter)} if you want the short road into the game.`;
                 })
                 .join(' ');
             autofillEl.innerText = previewText;
         } else {
-            autofillEl.innerText = 'Nothing important is waiting on a fallback. You can begin as-is or keep shaping the build.';
+            autofillEl.innerText = 'No sheet work is blocking the story. Begin now, or open customization if you want to touch every choice.';
         }
     }
 
@@ -3106,7 +3172,9 @@ function updateCCPreview() {
         }
     }
     document.querySelectorAll('#cc-quick-starts .cc-quick-start').forEach((button) => {
-        button.classList.toggle('active', button.dataset.preset === ccUiState.selectedPreset);
+        const isActive = button.dataset.preset === ccUiState.selectedPreset;
+        button.classList.toggle('active', isActive);
+        button.setAttribute('aria-pressed', String(isActive));
     });
     updateCharacterCreationGuidance(raceKey, classKey, backgroundKey, finalStats);
     renderSkillChoices(cls, background);
@@ -3117,77 +3185,58 @@ function updateCCPreview() {
     renderCantripChoices(classKey, finalStats);
     renderSpellChoices(classKey, finalStats);
     const preview = document.getElementById('cc-preview-content');
+    const preset = CC_QUICK_STARTS[ccUiState.selectedPreset];
+    const derived = getCharacterCreationDerivedStats(classKey, background, finalStats);
+    const trainedStrengths = derived.trainedStrengths.length > 0
+        ? derived.trainedStrengths.join(', ')
+        : 'Your background and class training will be settled before the road.';
+    const spellLine = derived.spellNames.length > 0
+        ? derived.spellNames.join(', ')
+        : 'No spells to manage at the opening.';
     preview.innerHTML = '';
-    Object.entries(finalStats).forEach(([stat, val]) => {
-        const mod = getAbilityMod(val);
-        const div = document.createElement('div');
-        div.className = 'preview-stat';
-        div.innerHTML = `<span>${stat}</span> <span>${val} (${mod >= 0 ? '+' : ''}${mod})</span>`;
-        preview.appendChild(div);
-    });
-    const hp = cls.hitDie + getAbilityMod(finalStats.CON);
-    let ac = 10 + getAbilityMod(finalStats.DEX);
-    if (classKey === 'fighter') ac = 16;
-    if (classKey === 'rogue') ac = 11 + getAbilityMod(finalStats.DEX);
-    preview.innerHTML += `<div class="preview-stat highlight"><span>HP</span> <span>${hp}</span></div>`;
-    preview.innerHTML += `<div class="preview-stat"><span>AC</span> <span>${ac}</span></div>`;
-    preview.innerHTML += `<div class="preview-stat highlight"><span>Background</span> <span>${background.name}</span></div>`;
-    if (ccState.chosenSkills.length > 0) {
-        preview.innerHTML += `<div class="preview-stat highlight"><span>Class Skills</span></div>`;
-        ccState.chosenSkills.forEach((s) => {
-             preview.innerHTML += `<div class="preview-stat" style="padding-left:10px; font-size:0.8em;">${formatChoiceLabel(s)}</div>`;
-        });
-    }
+    preview.innerHTML += `
+        <div class="cc-outcome-grid">
+            <div class="cc-outcome-stat"><span>Starting HP</span><strong>${derived.hp}</strong></div>
+            <div class="cc-outcome-stat"><span>Starting AC</span><strong>${derived.ac}</strong></div>
+            <div class="cc-outcome-stat"><span>Main Edge</span><strong>${derived.highestStat}</strong></div>
+        </div>
+        <div class="cc-road-use">
+            <span>Best first-road use</span>
+            <p>${preset?.bestUse || `Lean on ${derived.highestStat}, ${background.name.toLowerCase()} habits, and the ${cls.name.toLowerCase()} tools this build starts with.`}</p>
+        </div>
+        <div class="cc-preview-detail">
+            <span>Trained strengths</span>
+            <p>${trainedStrengths}</p>
+        </div>
+        <div class="cc-preview-detail">
+            <span>Spell or support load</span>
+            <p>${spellLine}</p>
+        </div>
+    `;
     const allSkillProficiencies = [...new Set([...(background.skillProficiencies || []), ...ccState.chosenSkills, ...ccState.chosenBonusSkills])];
-    if (allSkillProficiencies.length > 0) {
-        preview.innerHTML += `<div class="preview-stat highlight"><span>Skill Proficiencies</span></div>`;
-        allSkillProficiencies.forEach((skill) => {
-            preview.innerHTML += `<div class="preview-stat" style="padding-left:10px; font-size:0.8em;">${formatChoiceLabel(skill)}</div>`;
-        });
-    }
     const allToolProficiencies = [...new Set([...(background.toolProficiencies || []), ...ccState.chosenBonusTools])];
-    if (allToolProficiencies.length > 0) {
-        preview.innerHTML += `<div class="preview-stat highlight"><span>Tools on Your Sheet</span></div>`;
-        allToolProficiencies.forEach((tool) => {
-            preview.innerHTML += `<div class="preview-stat" style="padding-left:10px; font-size:0.8em;">${formatChoiceLabel(tool)}</div>`;
-        });
-    }
-    if ((background.languages || []).length > 0) {
-        preview.innerHTML += `<div class="preview-stat highlight"><span>Languages on Your Sheet</span></div>`;
-        background.languages.forEach((language) => {
-            preview.innerHTML += `<div class="preview-stat" style="padding-left:10px; font-size:0.8em;">${formatChoiceLabel(language)}</div>`;
-        });
-    }
     const traitDefinitions = getRaceTraitDefinitions(raceKey);
-    if (traitDefinitions.length > 0) {
-        preview.innerHTML += `<div class="preview-stat highlight"><span>Traits</span></div>`;
-        traitDefinitions.forEach((trait) => {
-            preview.innerHTML += `<div class="preview-stat" style="padding-left:10px; font-size:0.8em;">${trait.name}</div>`;
-        });
-    }
-    if (ccState.chosenFightingStyle) {
-        preview.innerHTML += `<div class="preview-stat highlight"><span>Fighting Style</span> <span>${formatChoiceLabel(ccState.chosenFightingStyle)}</span></div>`;
-    }
-    if (ccState.chosenExpertise.length > 0) {
-        preview.innerHTML += `<div class="preview-stat highlight"><span>Expertise</span></div>`;
-        ccState.chosenExpertise.forEach((skill) => {
-            preview.innerHTML += `<div class="preview-stat" style="padding-left:10px; font-size:0.8em;">${formatChoiceLabel(skill)}</div>`;
-        });
-    }
-    if (ccState.chosenCantrips.length > 0) {
-        preview.innerHTML += `<div class="preview-stat highlight"><span>Cantrips</span></div>`;
-        ccState.chosenCantrips.forEach((spellId) => {
-            preview.innerHTML += `<div class="preview-stat" style="padding-left:10px; font-size:0.8em;">${spells[spellId]?.name || spellId}</div>`;
-        });
-    }
+    const detailLines = [
+        `Background: ${background.name}`,
+        `Skills: ${allSkillProficiencies.map(formatChoiceLabel).join(', ')}`,
+        allToolProficiencies.length > 0 ? `Tools: ${allToolProficiencies.map(formatChoiceLabel).join(', ')}` : null,
+        (background.languages || []).length > 0 ? `Languages: ${background.languages.map(formatChoiceLabel).join(', ')}` : null,
+        traitDefinitions.length > 0 ? `Traits: ${traitDefinitions.map((trait) => trait.name).join(', ')}` : null,
+        ccState.chosenFightingStyle ? `Fighting style: ${formatChoiceLabel(ccState.chosenFightingStyle)}` : null,
+        ccState.chosenExpertise.length > 0 ? `Expertise: ${ccState.chosenExpertise.map(formatChoiceLabel).join(', ')}` : null
+    ].filter(Boolean);
     const selectedLevelledSpells = classKey === 'wizard' ? ccState.chosenSpellbook : ccState.chosenPreparedSpells;
-    if (selectedLevelledSpells.length > 0) {
-        const spellLabel = classKey === 'wizard' ? 'Spellbook' : 'Prepared Spells';
-        preview.innerHTML += `<div class="preview-stat highlight"><span>${spellLabel}</span></div>`;
-        selectedLevelledSpells.forEach((spellId) => {
-            preview.innerHTML += `<div class="preview-stat" style="padding-left:10px; font-size:0.8em;">${spells[spellId]?.name || spellId}</div>`;
-        });
+    if (selectedLevelledSpells.length > 0 || ccState.chosenCantrips.length > 0) {
+        const spellLabel = classKey === 'wizard' ? 'Spellbook' : 'Prepared spells';
+        detailLines.push(`Cantrips: ${ccState.chosenCantrips.map((spellId) => spells[spellId]?.name || spellId).join(', ')}`);
+        detailLines.push(`${spellLabel}: ${selectedLevelledSpells.map((spellId) => spells[spellId]?.name || spellId).join(', ')}`);
     }
+    preview.innerHTML += `
+        <details class="cc-sheet-details">
+            <summary>Sheet details</summary>
+            <ul>${detailLines.map((line) => `<li>${line}</li>`).join('')}</ul>
+        </details>
+    `;
 }
 
 function renderSkillChoices(cls, background) {
