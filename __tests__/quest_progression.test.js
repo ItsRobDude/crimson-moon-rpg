@@ -27,6 +27,19 @@ test('investigate_whisperwood now defines canonical quest guidance through the p
   expect(quests.investigate_whisperwood.stages[10].text).toContain('processing');
 });
 
+test('quest stages expose sparse remembered leads instead of route checklists', () => {
+  const stages = Object.values(quests.investigate_whisperwood.stages);
+
+  stages.forEach((stage) => {
+    expect(stage.leads).toBeDefined();
+    expect(stage.leads).toHaveLength(1);
+  });
+
+  expect(quests.investigate_whisperwood.stages[1].leads[0]).toContain('rumor, prayer, supplies');
+  expect(quests.investigate_whisperwood.stages[1].leads[0]).not.toContain('Rusty Blade');
+  expect(quests.investigate_whisperwood.stages[10].leads[0]).toContain('not a clean route');
+});
+
 test('canonical mid and late route scenes now own the active whisperwood quest stages', () => {
   expect(scenes.SCENE_DURNHELM_GATES.onEnter.questUpdate).toEqual({ id: 'investigate_whisperwood', stage: 5 });
   expect(scenes.SCENE_LAMENT_HILL_APPROACH.onEnter.questUpdate).toEqual({ id: 'investigate_whisperwood', stage: 6 });

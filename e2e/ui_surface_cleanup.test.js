@@ -63,11 +63,12 @@ test.describe('UI Surface Cleanup', () => {
     await page.click('#btn-menu');
     await page.click('#btn-menu-quests');
     await expect(page.locator('#quest-modal')).toBeVisible();
-    await expect(page.locator('#quest-summary')).toContainText('Thread Pressing On You');
-    await expect(page.locator('#quest-list')).toContainText('Remembered Thread');
-    await expect(page.locator('#quest-list')).toContainText('What You Have To Go On');
-    await expect(page.locator('#quest-list')).toContainText('Pressure');
-    await expect(page.locator('#quest-list')).toContainText('Temple Road offers blessing');
+    await expect(page.locator('#quest-summary')).toContainText('Current Thread');
+    await expect(page.locator('#quest-list')).toContainText('Thread');
+    await expect(page.locator('#quest-list')).toContainText('Known Lead');
+    await expect(page.locator('#quest-list')).toContainText('Unease');
+    await expect(page.locator('#quest-list')).toContainText('Silverthorn still has rumor, prayer, supplies');
+    await expect(page.locator('#quest-list')).not.toContainText('What You Have To Go On');
     await page.keyboard.press('Escape');
     await expect(page.locator('#quest-modal')).toBeHidden();
 
@@ -75,7 +76,9 @@ test.describe('UI Surface Cleanup', () => {
     await page.click('#btn-menu-map');
     await expect(page.locator('#map-modal')).toBeVisible();
     await expect(page.locator('#map-summary')).toContainText('currently stand in Silverthorn');
+    await expect(page.locator('#map-summary')).toContainText('not directions');
     await expect(page.locator('#map-locations')).toContainText('You are here');
+    await expect(page.locator('#map-locations')).not.toContainText('Soul Mill');
     await page.fill('#pin-note', 'Watch the eastern gate at dusk');
     await page.click('#btn-add-pin');
     await expect(page.locator('#pin-list')).toContainText('Watch the eastern gate at dusk');
@@ -107,6 +110,7 @@ test.describe('UI Surface Cleanup', () => {
     await expect(page.locator('#shop-panel')).toBeVisible();
     await expect(page.locator('#shop-subtitle')).toContainText('not buying second-hand gear back');
     await expect(page.locator('#shop-status')).toContainText('compare against your current loadout');
+    await expect(page.locator('#shop-status')).toContainText('items on offer');
     await expect(page.locator('#shop-items-container')).toContainText('Club');
     await expect(page.locator('#shop-items-container')).toContainText('Weapon');
     expect(await page.locator('#shop-items-container button:disabled').count()).toBeGreaterThan(0);

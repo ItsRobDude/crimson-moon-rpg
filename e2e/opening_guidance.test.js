@@ -55,10 +55,11 @@ test.describe('Opening Guidance', () => {
 
     await page.click('#btn-menu');
     await page.click('#btn-menu-quests');
-    await expect(page.locator('#quest-summary')).toContainText('Thread Pressing On You');
-    await expect(page.locator('#quest-list')).toContainText('Remembered Thread');
-    await expect(page.locator('#quest-list')).toContainText('What You Have To Go On');
-    await expect(page.locator('#quest-list')).toContainText('Pressure');
-    await expect(page.locator('#quest-list')).toContainText("The Rusty Blade carries the city's loudest rumors");
+    await expect(page.locator('#quest-summary')).toContainText('Current Thread');
+    await expect(page.locator('#quest-list')).toContainText('Thread');
+    await expect(page.locator('#quest-list')).toContainText('Known Lead');
+    await expect(page.locator('#quest-list')).toContainText('Unease');
+    await expect(page.locator('#quest-list')).toContainText('Silverthorn still has rumor, prayer, supplies');
+    await expect(page.locator('#quest-list')).not.toContainText('What You Have To Go On');
   });
 });

@@ -109,6 +109,23 @@ test('contracts notices no longer strand the player and instead push toward rumo
   expect(revisit.choices.some((choice) => choice.nextScene === 'SCENE_SILVERTHORN_GATES')).toBe(true);
 });
 
+test('prep support surfaces keep bounded wandering but offer a direct gate bridge', () => {
+  setTimeline(1, 'midday');
+
+  const store = getRuntimeScene('SCENE_SILVERTHORN_GENERAL_STORE');
+  const smith = getRuntimeScene('SCENE_SILVERTHORN_BLACKSMITH');
+  const inn = getRuntimeScene('SCENE_RUSTY_BLADE_INN');
+  const temple = getRuntimeScene('SCENE_SILVERTHORN_TEMPLE');
+  const prayer = getRuntimeScene('SCENE_SILVERTHORN_TEMPLE_PRAYER');
+  const board = getRuntimeScene('SCENE_SILVERTHORN_NOTICE_BOARD');
+  const whisperwood = getRuntimeScene('SCENE_SILVERTHORN_NOTICE_WHISPERWOOD');
+
+  [store, smith, inn, temple, prayer, board, whisperwood].forEach((scene) => {
+    expect(scene.choices.some((choice) => choice.nextScene === 'SCENE_SILVERTHORN_GATES')).toBe(true);
+    expect(scene.choices.some((choice) => choice.nextScene === 'SCENE_HUB_SILVERTHORN' || choice.nextScene === 'SCENE_SILVERTHORN_MARKET' || choice.nextScene === 'SCENE_SILVERTHORN_TEMPLE')).toBe(true);
+  });
+});
+
 test('opening briefing restores Liam, Aodhan, and the cold mark without spilling later truth', () => {
   const briefing = scenes.SCENE_BRIEFING;
   const charge = scenes.SCENE_BRIEFING_2;

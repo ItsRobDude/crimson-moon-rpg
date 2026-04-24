@@ -1243,6 +1243,7 @@ export function buildSilverthornRuntimeScene(sceneId, baseScene) {
             scene.choices = [
                 createChoice('Return to the market quarter', 'SCENE_SILVERTHORN_MARKET', { buttonText: 'Back to Market' }),
                 createChoice('Go to The Rusty Blade instead', 'SCENE_RUSTY_BLADE_INN', { buttonText: 'Step Inside the Rusty Blade' }),
+                createChoice('Cross toward the eastern gate with what you have', 'SCENE_SILVERTHORN_GATES', { buttonText: 'Eastern Gate' }),
                 createChoice('Return to the city center', 'SCENE_HUB_SILVERTHORN', { buttonText: 'Back to City Center' })
             ];
             return scene;
@@ -1254,6 +1255,7 @@ export function buildSilverthornRuntimeScene(sceneId, baseScene) {
         }
         scene.choices = [
             createChoice('Step back into the market quarter', 'SCENE_SILVERTHORN_MARKET', { buttonText: 'Back to Market' }),
+            createChoice('Carry your purchases toward the eastern gate', 'SCENE_SILVERTHORN_GATES', { buttonText: 'Eastern Gate' }),
             createChoice('Return to the city center', 'SCENE_HUB_SILVERTHORN', { buttonText: 'Back to City Center' })
         ];
         return scene;
@@ -1268,6 +1270,7 @@ export function buildSilverthornRuntimeScene(sceneId, baseScene) {
             scene.shopId = undefined;
             scene.choices = [
                 createChoice('Return to the market quarter', 'SCENE_SILVERTHORN_MARKET', { buttonText: 'Back to Market' }),
+                createChoice('Head for the gate before the watch locks the hour down', 'SCENE_SILVERTHORN_GATES', { buttonText: 'Eastern Gate' }),
                 createChoice('Return to the city center', 'SCENE_HUB_SILVERTHORN', { buttonText: 'Back to City Center' })
             ];
             return scene;
@@ -1279,6 +1282,7 @@ export function buildSilverthornRuntimeScene(sceneId, baseScene) {
         }
         scene.choices = [
             createChoice('Return to the market quarter', 'SCENE_SILVERTHORN_MARKET', { buttonText: 'Back to Market' }),
+            createChoice('Take the fitted gear toward the eastern gate', 'SCENE_SILVERTHORN_GATES', { buttonText: 'Eastern Gate' }),
             createChoice('Head back to the city center', 'SCENE_HUB_SILVERTHORN', { buttonText: 'Back to City Center' })
         ];
         return scene;
@@ -1292,6 +1296,7 @@ export function buildSilverthornRuntimeScene(sceneId, baseScene) {
         scene.choices = [
             createChoice('Take a room and rest', null, { action: 'longRest', buttonText: 'Take a Room' }),
             createChoice('Listen for what the room fears to say aloud', 'SCENE_RUSTY_BLADE_RUMORS', { timeAdvance: 1, timeReason: 'You linger over rumors and stray conversations.', inSilverthorn: true, buttonText: 'Hear the Rumors' }),
+            createChoice('Leave the common room for the eastern gate', 'SCENE_SILVERTHORN_GATES', { buttonText: 'Eastern Gate' }),
             createChoice('Return to the market quarter', 'SCENE_SILVERTHORN_MARKET', { buttonText: 'Back to Market' })
         ];
         return scene;
@@ -1322,6 +1327,7 @@ export function buildSilverthornRuntimeScene(sceneId, baseScene) {
             scene.text = "The main temple doors are barred for the night, though a side shrine remains open for private prayer. Candlelight leaks through the stonework, and the silence suggests the healers have been driven from comfort into triage.";
             scene.choices = [
                 createChoice('Offer a quiet prayer at the side shrine', 'SCENE_SILVERTHORN_TEMPLE_PRAYER', { timeAdvance: 1, timeReason: 'You spend a quiet hour in reflection.', inSilverthorn: true, buttonText: 'Offer a Prayer' }),
+                createChoice('Leave the shrine road for the eastern gate', 'SCENE_SILVERTHORN_GATES', { buttonText: 'Eastern Gate' }),
                 createChoice('Return to the city center', 'SCENE_HUB_SILVERTHORN', { buttonText: 'Back to City Center' })
             ];
             return scene;
@@ -1331,6 +1337,7 @@ export function buildSilverthornRuntimeScene(sceneId, baseScene) {
         scene.choices = [
             createChoice('Ask the healers what waits on the road', 'SCENE_SILVERTHORN_TEMPLE_COUNSEL', { timeAdvance: 1, timeReason: 'You stay to hear the temple counsel.', inSilverthorn: true, buttonText: 'Speak with the Healers' }),
             createChoice('Kneel before you depart', 'SCENE_SILVERTHORN_TEMPLE_PRAYER', { timeAdvance: 1, timeReason: 'You spend a quiet hour in reflection.', inSilverthorn: true, buttonText: 'Offer a Prayer' }),
+            createChoice('Carry the temple quiet toward the eastern gate', 'SCENE_SILVERTHORN_GATES', { buttonText: 'Eastern Gate' }),
             createChoice('Return to the city center', 'SCENE_HUB_SILVERTHORN', { buttonText: 'Back to City Center' })
         ];
         return scene;
@@ -1391,12 +1398,18 @@ export function buildSilverthornRuntimeScene(sceneId, baseScene) {
 
         scene.choices.push(
             createChoice('Remain in the temple a while longer', 'SCENE_SILVERTHORN_TEMPLE'),
+            createChoice('Take the warding counsel toward the eastern gate', 'SCENE_SILVERTHORN_GATES', { buttonText: 'Eastern Gate' }),
             createChoice('Return to City Center', 'SCENE_HUB_SILVERTHORN')
         );
         return scene;
     }
 
     if (sceneId === 'SCENE_SILVERTHORN_TEMPLE_PRAYER') {
+        scene.choices = [
+            createChoice('Step back into the temple hall', 'SCENE_SILVERTHORN_TEMPLE', { buttonText: 'Back to the Temple' }),
+            createChoice('Stand and make for the eastern gate', 'SCENE_SILVERTHORN_GATES', { buttonText: 'Eastern Gate' }),
+            createChoice('Return to City Center', 'SCENE_HUB_SILVERTHORN', { buttonText: 'Back to City Center' })
+        ];
         return scene;
     }
 
@@ -1408,6 +1421,7 @@ export function buildSilverthornRuntimeScene(sceneId, baseScene) {
         scene.choices = [
             createChoice('Read the Whisperwood postings', 'SCENE_SILVERTHORN_NOTICE_WHISPERWOOD'),
             createChoice('Read the contracts and warrants', 'SCENE_SILVERTHORN_NOTICE_CONTRACTS'),
+            createChoice('Leave the board for the eastern gate', 'SCENE_SILVERTHORN_GATES', { buttonText: 'Eastern Gate' }),
             createChoice('Return to the city center', 'SCENE_HUB_SILVERTHORN')
         ];
         return scene;
@@ -1419,6 +1433,11 @@ export function buildSilverthornRuntimeScene(sceneId, baseScene) {
         if (hasLark) {
             scene.text = `${scene.text} Lark reads the board in a silence so long it stops feeling passive. When he finally speaks, it is only to say that forests do not make this many people vanish without someone first teaching them how to suffer.`;
         }
+        scene.choices = [
+            createChoice('Keep reading the board', 'SCENE_SILVERTHORN_NOTICE_BOARD', { buttonText: 'Back to the Board' }),
+            createChoice('Fold the warning into your route and go to the eastern gate', 'SCENE_SILVERTHORN_GATES', { buttonText: 'Eastern Gate' }),
+            createChoice('Return to the city center', 'SCENE_HUB_SILVERTHORN', { buttonText: 'Back to City Center' })
+        ];
         return scene;
     }
 
@@ -4165,11 +4184,14 @@ function renderShop(shopId) {
     goldDisplay.innerText = `Party Gold: ${gameState.player.gold}`;
     if (title) title.innerText = shopDef.name || 'Shop';
     if (subtitle) {
-        subtitle.innerText = `${shopDef.name || 'This supplier'} is selling stock today. It is not buying second-hand gear back from you in this build.`;
+        subtitle.innerText = `${shopDef.name || 'This supplier'} is selling road stock today. It is not buying second-hand gear back from you in this build.`;
     }
     if (status) {
         const stockCount = getShopInventory(shopDef).length;
-        status.innerText = `${stockCount} items are on offer. Weapons and armor compare against your current loadout when relevant.`;
+        const categoryLabels = [...new Set(getShopInventory(shopDef)
+            .map((itemId) => ITEM_CATEGORY_LABELS[items[itemId]?.type] || null)
+            .filter(Boolean))];
+        status.innerText = `${stockCount} items on offer: ${categoryLabels.join(', ')}. Weapons and armor compare against your current loadout when relevant.`;
     }
 
     getShopInventory(shopDef).forEach(itemId => {
@@ -4247,7 +4269,7 @@ function toggleMap() {
 
     if (summary) {
         const currentLabel = locations[currentLocationId]?.name || 'the road';
-        summary.innerText = `You currently stand in ${currentLabel}. ${discoveredLocationIds.length} known destinations are marked on this map.`;
+        summary.innerText = `You currently stand in ${currentLabel}. ${discoveredLocationIds.length} known destinations are marked; route pins are your notes, not directions.`;
     }
 
     for (const [key, loc] of Object.entries(locations)) {
@@ -4283,7 +4305,7 @@ function toggleMap() {
                 <strong>${loc.name}</strong>
                 <div class="map-status-line">
                     <span class="status-chip ${stateClass}">${stateLabel}</span>
-                    ${!isLocationTraversable(key) ? `<span>${getLocationLockMessage(key)}</span>` : '<span>Travel is currently available from here.</span>'}
+                    ${!isLocationTraversable(key) ? `<span>${getLocationLockMessage(key)}</span>` : '<span>Reachable from the current road state.</span>'}
                 </div>
                 <small>${loc.description}</small>
             `;
@@ -4312,7 +4334,7 @@ function toggleMap() {
         pinList.appendChild(row);
     });
     if (!pinList.children.length) {
-        pinList.innerHTML = '<p class="empty-state">No route pins yet. Mark the current location when you want to remember a hazard, a lead, or a safe turn.</p>';
+        pinList.innerHTML = '<p class="empty-state">No route pins yet. Mark the current place when you want to remember a hazard, rumor, or turn.</p>';
     }
 
     addBtn.onclick = () => {
@@ -5433,7 +5455,7 @@ function toggleInventory(forceOpen = null, characterId = 'player') {
         const allEntries = getInventoryEntries(targetId);
         const equippedCount = Object.values(character.equipped || {}).filter(Boolean).length;
         if (summaryPanel) {
-            summaryPanel.innerText = `Viewing ${character.name}'s kit. ${allEntries.length} carried item entries. ${equippedCount} gear slot${equippedCount === 1 ? '' : 's'} filled. Party gold: ${gameState.player.gold}.`;
+            summaryPanel.innerText = `Viewing ${character.name}'s kit. ${equippedCount} gear slot${equippedCount === 1 ? '' : 's'} filled, ${allEntries.length} carried item entries, party gold ${gameState.player.gold}. Use this to check what is ready before the road.`;
         }
 
         const renderDetail = (itemId, quantity = null) => {
@@ -5673,12 +5695,12 @@ function toggleQuestLog() {
             const [, primaryQuest] = activeQuests[0];
             const primaryStage = getQuestStageData(primaryQuest.stages[primaryQuest.currentStage]);
             summary.innerHTML = `
-                <strong>Thread Pressing On You:</strong> ${primaryStage.thread || primaryQuest.title}
+                <strong>Current Thread:</strong> ${primaryStage.thread || primaryQuest.title}
                 <br>
                 <span>${primaryStage.recentUpdate || primaryStage.text || primaryQuest.description || ''}</span>
             `;
         } else {
-            summary.innerHTML = 'No active threads are pressing on you right now. When the road knots up again, this log will tell you what you actually know.';
+            summary.innerHTML = 'No active thread needs remembering right now. When the road knots up again, this log will keep the last honest piece of it.';
         }
     }
 
@@ -5689,27 +5711,20 @@ function toggleQuestLog() {
             div.className = 'quest-entry';
             div.innerHTML = `
                 <h4>${qData.title}</h4>
-                ${stage.thread ? `<p class="quest-thread"><strong>Remembered Thread:</strong> ${stage.thread}</p>` : ''}
+                ${stage.thread ? `<p class="quest-thread"><strong>Thread:</strong> ${stage.thread}</p>` : ''}
                 <p>${stage.text}</p>
                 ${stage.recentUpdate ? `<p class="quest-recent"><strong>Last Clear Sign:</strong> ${stage.recentUpdate}</p>` : ''}
             `;
             if (stage.leads.length > 0) {
                 const suggestions = document.createElement('div');
                 suggestions.className = 'quest-suggestions';
-                suggestions.innerHTML = `<strong>What You Have To Go On:</strong>`;
-                const listEl = document.createElement('ul');
-                stage.leads.forEach((entry) => {
-                    const item = document.createElement('li');
-                    item.innerText = entry;
-                    listEl.appendChild(item);
-                });
-                suggestions.appendChild(listEl);
+                suggestions.innerHTML = `<strong>Known Lead:</strong> <span>${stage.leads[0]}</span>`;
                 div.appendChild(suggestions);
             }
             if (stage.pressure) {
                 const pressure = document.createElement('p');
                 pressure.className = 'quest-pressure';
-                pressure.innerHTML = `<strong>Pressure:</strong> ${stage.pressure}`;
+                pressure.innerHTML = `<strong>Unease:</strong> ${stage.pressure}`;
                 div.appendChild(pressure);
             }
             if (qData.completed) {
@@ -5722,7 +5737,7 @@ function toggleQuestLog() {
         }
     }
 
-    if (list.innerHTML === '') list.innerHTML = '<p class="empty-state">No active quests are pressing on you right now.</p>';
+    if (list.innerHTML === '') list.innerHTML = '<p class="empty-state">No active quest needs remembering right now.</p>';
 }
 
 function toggleMenu() {
