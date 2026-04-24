@@ -166,6 +166,10 @@ export const storySceneTriggers = {
         advance: { travel: 1 },
         actId: 'act_2_sporefall_revelations'
     },
+    SCENE_SHADOWMIRE_QUIET_MILE: {
+        activate: ['silverthorn_departure'],
+        actId: 'act_2_sporefall_revelations'
+    },
     SCENE_SPOREFALL_WAKE: {
         activate: ['sporefall_arrival'],
         actId: 'act_2_sporefall_revelations'
@@ -334,6 +338,17 @@ export const sceneSafetyPolicies = {
         ifReachedTooEarly: 'Players who have not left Silverthorn should be redirected back into the canonical departure flow.',
         ifPartiallyInformed: 'Keep the route healthy at first, then let dread rise through haze and omens before blackout.',
         onRevisit: 'Treat this as a committed transition rather than a repeatable free-roam branch.',
+        neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
+    },
+    SCENE_SHADOWMIRE_QUIET_MILE: {
+        thread: 'shadowmire_blackout',
+        prerequisites: {
+            storyEvents: ['silverthorn_departure']
+        },
+        fallbackMode: SCENE_FALLBACK_MODES.REDIRECT,
+        ifReachedTooEarly: 'Players who have not left Silverthorn should be redirected back into the canonical departure flow.',
+        ifPartiallyInformed: 'Start with ordinary road quiet and missing signs of life before haze, plague, or blackout imagery takes over.',
+        onRevisit: 'Treat this as part of the committed road transition rather than a repeatable patrol scene.',
         neverReveal: ['ciara', 'underdark', 'portal', 'liam', 'stasis']
     },
     SCENE_SPOREFALL_WAKE: {

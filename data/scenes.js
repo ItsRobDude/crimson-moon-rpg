@@ -911,14 +911,27 @@ export const scenes = {
         id: "SCENE_TRAVEL_SHADOWMIRE",
         location: "shadowmire",
         background: "landscapes/foggy_forest.png",
-        text: "You leave Silverthorn behind and follow the eastern road beneath the living canopy of Shadowmire Forest. Pine and damp earth fill the air, but the quiet never settles cleanly. Even before the road begins to climb, the birdsong comes thin and scattered, as though the forest has already started holding its breath around you.",
+        text: "Silverthorn falls behind in pieces: first the gate noise, then the last shouted inspection, then the dull comfort of walls. The eastern road settles into damp earth, cart ruts, and clean pine shadow. For a while Shadowmire is almost gentle. The trees breathe over the road, water ticks from leaf to leaf, and the quiet feels like distance rather than danger.",
         onEnter: {
             questUpdate: { id: "investigate_whisperwood", stage: 2 }
         },
         choices: [
             {
-                text: "Keep to the road and press deeper into Shadowmire",
+                text: "Keep the eastern road under the living canopy",
                 buttonText: "Take the Eastern Road",
+                nextScene: "SCENE_SHADOWMIRE_QUIET_MILE"
+            }
+        ]
+    },
+    "SCENE_SHADOWMIRE_QUIET_MILE": {
+        id: "SCENE_SHADOWMIRE_QUIET_MILE",
+        location: "shadowmire",
+        background: "landscapes/foggy_forest.png",
+        text: "The first miles ask almost nothing of you. A fox track cuts the mud and vanishes under fern. Old wagon marks hold rainwater in narrow silver lines. Then the road begins offering absences instead of signs: no fresh cart bells, no woodcutters calling across the slope, no birds answering from the lower branches. Nothing attacks. Nothing speaks. The forest simply stops spending sound.",
+        choices: [
+            {
+                text: "Follow the quiet mile markers farther east",
+                buttonText: "Follow the Mile Markers",
                 nextScene: "SCENE_SHADOWMIRE_HAZE"
             }
         ]

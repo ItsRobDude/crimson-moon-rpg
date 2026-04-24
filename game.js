@@ -673,10 +673,10 @@ function dismissBattleTutorialNudge() {
 function getQuestUpdateStatusMessage(questId, stage) {
     if (questId === 'investigate_whisperwood') {
         if (stage === 1) {
-            return 'Alderic has set your charge. Gather rumor, blessing, or supplies in Silverthorn before you commit to the eastern gate.';
+            return 'Alderic has set your charge. Gather rumor, blessing, or supplies in Silverthorn before the eastern gate takes you onto the road.';
         }
         if (stage === 2) {
-            return 'The city falls behind you now. Keep the eastern road and survive what Shadowmire puts in your path.';
+            return 'The city falls behind you now. Keep the eastern road and read what Shadowmire leaves quiet.';
         }
         if (stage === 3) {
             return 'The first true clues lie ahead. Find Eoin and learn what part of Sporefall still speaks with a human voice.';
@@ -1025,6 +1025,14 @@ function applyPartySceneVariation(sceneId, scene) {
             ? "Kieran starts one dry remark about cursed roads and bad employers; Lark lets it die after a glance toward the trees, and even Kieran takes the correction."
             : `${partyNames} keep a tighter marching distance than comfort allows, because the forest is easier to trust than the open road only until something in it starts listening back.`;
         scene.text = `${scene.text} ${roadBeat}`;
+        return scene;
+    }
+
+    if (sceneId === 'SCENE_SHADOWMIRE_QUIET_MILE') {
+        const quietBeat = hasLark && hasKieran
+            ? "Lark slows first, not from fear but recognition; Kieran notices the silence a few steps later and, for once, leaves it unnamed."
+            : `${partyNames} begin measuring the quiet by what it withholds rather than what it threatens.`;
+        scene.text = `${scene.text} ${quietBeat}`;
         return scene;
     }
 

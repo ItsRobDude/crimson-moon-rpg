@@ -44,9 +44,12 @@ test('Silverthorn runtime scenes keep fear socially grounded instead of flatteni
 });
 
 test('Shadowmire and Sporefall retain concrete bodily horror across runtime variants', () => {
+  const quietMile = scenes.SCENE_SHADOWMIRE_QUIET_MILE;
   const birds = scenes.SCENE_SHADOWMIRE_DYING_BIRDS;
   const firstArrival = getRuntimeScene('SCENE_ARRIVAL_WHISPERWOOD');
 
+  expect(quietMile.text).toContain('no fresh cart bells');
+  expect(quietMile.text).toContain('The forest simply stops spending sound');
   expect(birds.text).toContain('sweet and rotten at once');
   expect(birds.text).toContain('your eyes begin to sting');
   expect(firstArrival.text).toContain('dragged fingertips');

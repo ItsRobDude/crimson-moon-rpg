@@ -21,8 +21,8 @@ export const quests = {
             1: {
                 text: "Prepare in Silverthorn before you take the eastern gate. The Rusty Blade, the temple road, and the market quarter are the surest places to gather what you need.",
                 thread: "Silverthorn Preparations",
-                recentUpdate: "Alderic has set the charge and marked you for the road. You still have a little city left to spend before you commit to Shadowmire.",
-                pressure: "Silverthorn will let you wander, but every stop is still time spent before the eastern road takes control of the story.",
+                recentUpdate: "Alderic has set the charge and marked you for the road. You still have a little city left to spend before Shadowmire takes over the day.",
+                pressure: "Silverthorn will let you wander, but every stop is still time spent before the eastern road starts answering for itself.",
                 leads: [
                     "Silverthorn still has rumor, prayer, supplies, and gate counsel to spend before the eastern road takes over."
                 ],
@@ -33,12 +33,12 @@ export const quests = {
                 ]
             },
             2: {
-                text: "Survive the road and reach Sporefall, the ruins of Whisperwood Borough.",
+                text: "Follow the eastern road through Shadowmire toward Whisperwood Borough.",
                 thread: "The Eastern Road",
-                recentUpdate: "Silverthorn is behind you now. Shadowmire has started showing the first real signs that the road east is already lost.",
-                pressure: "From here on, interruption is part of the route. Treat every omen, corpse, and survivor as a clue, not wasted time.",
+                recentUpdate: "Silverthorn is behind you now. Shadowmire begins quietly, almost kindly, but the road has already started withholding ordinary signs of life.",
+                pressure: "From here on, absence may matter as much as interruption. Treat quiet, omen, corpse, and survivor as part of the same road.",
                 leads: [
-                    "The road itself has started leaving evidence; not every interruption is noise."
+                    "The first thing wrong with Shadowmire is not violence. It is how carefully the ordinary sounds fall away."
                 ],
                 suggestions: [
                     "Every interruption on the eastern road may matter more than it first appears.",

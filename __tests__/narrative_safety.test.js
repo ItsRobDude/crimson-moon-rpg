@@ -63,6 +63,7 @@ test('critical Act I safety coverage exists for the fragile early-route scenes',
     'SCENE_SILVERTHORN_NOTICE_WHISPERWOOD',
     'SCENE_SILVERTHORN_GATE_CAPTAIN',
     'SCENE_TRAVEL_SHADOWMIRE',
+    'SCENE_SHADOWMIRE_QUIET_MILE',
     'SCENE_SPOREFALL_WAKE',
     'SCENE_ARRIVAL_WHISPERWOOD',
     'SCENE_MEET_EOIN',
@@ -140,6 +141,8 @@ test('early-route runtime scenes stay free of hidden ritual spoiler terms across
   expectNoForbiddenSpoilers(getRuntimeScene('SCENE_RUSTY_BLADE_RUMORS'));
   expectNoForbiddenSpoilers(getRuntimeScene('SCENE_SILVERTHORN_NOTICE_WHISPERWOOD'));
   expectNoForbiddenSpoilers(getRuntimeScene('SCENE_SILVERTHORN_GATE_CAPTAIN'));
+  expectNoForbiddenSpoilers(getRuntimeScene('SCENE_TRAVEL_SHADOWMIRE'));
+  expectNoForbiddenSpoilers(getRuntimeScene('SCENE_SHADOWMIRE_QUIET_MILE'));
 
   freshState(() => {
     gameState.flags.sporefall_eoin_met = true;

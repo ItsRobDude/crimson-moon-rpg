@@ -70,13 +70,26 @@ test('post-eoin sporefall hub exposes directional cathedral, house, and north ro
 });
 
 test('shadowmire collapse now routes into blackout and Sporefall instead of the old immediate ruins path', () => {
-  expect(scenes.SCENE_TRAVEL_SHADOWMIRE.choices[0].nextScene).toBe('SCENE_SHADOWMIRE_HAZE');
+  expect(scenes.SCENE_TRAVEL_SHADOWMIRE.choices[0].nextScene).toBe('SCENE_SHADOWMIRE_QUIET_MILE');
+  expect(scenes.SCENE_SHADOWMIRE_QUIET_MILE.choices[0].nextScene).toBe('SCENE_SHADOWMIRE_HAZE');
   expect(scenes.SCENE_SHADOWMIRE_HAZE.choices[0].nextScene).toBe('SCENE_SHADOWMIRE_DYING_BIRDS');
   expect(scenes.SCENE_SHADOWMIRE_HAZE.choices[1].nextScene).toBe('SCENE_SHADOWMIRE_DYING_BIRDS');
   expect(scenes.SCENE_SHADOWMIRE_DYING_BIRDS.choices[0].nextScene).toBe('SCENE_SHADOWMIRE_ROADSIDE_CORPSE');
   expect(scenes.SCENE_SHADOWMIRE_ROADSIDE_CORPSE.choices[0].nextSceneSuccess).toBe('SCENE_SPOREFALL_WAKE');
   expect(scenes.SCENE_SHADOWMIRE_ROADSIDE_CORPSE.choices[1].nextScene).toBe('SCENE_SPOREFALL_WAKE');
   expect(scenes.SCENE_SPOREFALL_WAKE.choices[0].nextSceneSuccess).toBe('SCENE_ARRIVAL_WHISPERWOOD');
+});
+
+test('shadowmire on-ramp starts with calm absence before the plague signs arrive', () => {
+  const departure = getRuntimeScene('SCENE_TRAVEL_SHADOWMIRE');
+  const quietMile = getRuntimeScene('SCENE_SHADOWMIRE_QUIET_MILE');
+  const haze = getRuntimeScene('SCENE_SHADOWMIRE_HAZE');
+
+  expect(departure.text).toContain('almost gentle');
+  expect(departure.text).toContain('quiet feels like distance rather than danger');
+  expect(quietMile.text).toContain('absences instead of signs');
+  expect(quietMile.text).toContain('Nothing attacks');
+  expect(haze.text).toContain('dust begins gathering');
 });
 
 test('revisiting Sporefall arrival after meeting Eoin returns to the hub instead of replaying first-contact flow', () => {
