@@ -41,7 +41,8 @@ export const SCENE_STATE_SCHEMA = {
         'story_progression',
         'optional_clue',
         'revisit_memory',
-        'one_time_outcome'
+        'one_time_outcome',
+        'route_lock'
     ]
 };
 
@@ -87,10 +88,26 @@ export const narrativeStateRegistry = {
             revealSensitivity: 'public',
             semantics: 'story_progression'
         },
+        aodhan_dead: {
+            owner: 'SCENE_AODHAN_DEFEAT',
+            thread: 'aodhan_thread',
+            meaning: 'Aodhan has been killed, his NPC status should stay dead, and later branches should not treat him as still carrying the Stone.',
+            allowedValues: [true],
+            revealSensitivity: 'spoiler_sensitive',
+            semantics: 'story_progression'
+        },
         sporefall_eoin_glimpsed: {
             owner: 'SCENE_ARRIVAL_WHISPERWOOD',
             thread: 'eoin_thread',
             meaning: 'The player sensed Eoin nearby but has not fully met him yet.',
+            allowedValues: [true],
+            revealSensitivity: 'public',
+            semantics: 'story_progression'
+        },
+        sporefall_eoin_delayed: {
+            owner: 'SCENE_ARRIVAL_WHISPERWOOD',
+            thread: 'eoin_thread',
+            meaning: 'The player failed the first survivor search and Eoin discovery was pushed into the street-search beat.',
             allowedValues: [true],
             revealSensitivity: 'public',
             semantics: 'story_progression'
@@ -213,6 +230,14 @@ export const narrativeStateRegistry = {
             meaning: 'The player found Eoin’s mother under the bridge; later dialogue may confirm the loss.',
             allowedValues: [true],
             revealSensitivity: 'spoiler_sensitive',
+            semantics: 'optional_clue'
+        },
+        sporefall_bridge_marker_read: {
+            owner: 'SCENE_SPOREFALL_NORTH_APPROACH',
+            thread: 'north_bridge',
+            meaning: 'The player read the older bridge marker and understood the civic history beneath Sporefall corruption.',
+            allowedValues: [true],
+            revealSensitivity: 'rumor_only',
             semantics: 'optional_clue'
         },
         sporefall_north_route_open: {

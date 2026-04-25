@@ -18,6 +18,8 @@ If you add a new story-critical key, update both this note and the JS registry i
   Changes revisit text or one-time intro framing.
 - `one_time_outcome`
   Prevents a reward, clue, or ritualized benefit from being claimed repeatedly.
+- `route_lock`
+  Closes or redirects a branch because of a meaningful player action.
 
 ## Flags
 
@@ -28,7 +30,9 @@ If you add a new story-critical key, update both this note and the JS registry i
 | `silverthorn_watch_hostile` | `SCENE_SILVERTHORN_WATCH_CRACKDOWN` | `silverthorn_prep` | Gate watch turned hostile and forced the player onto the eastern road. | public | route_lock |
 | `silverthorn_lark_recruited` | `SCENE_LARK_RECRUIT` | `silverthorn_prep` | Lark has already joined the road party. | public | story_progression |
 | `silverthorn_kieran_recruited` | `SCENE_KIERAN_RECRUIT` | `silverthorn_prep` | Kieran has already joined the road party. | public | story_progression |
+| `aodhan_dead` | `SCENE_AODHAN_DEFEAT` | `aodhan_thread` | Aodhan has been killed and later branches should not treat him as still carrying the Stone. | spoiler_sensitive | story_progression |
 | `sporefall_eoin_glimpsed` | `SCENE_ARRIVAL_WHISPERWOOD` | `eoin_thread` | Eoin sensed nearby before full meeting. | public | story_progression |
+| `sporefall_eoin_delayed` | `SCENE_ARRIVAL_WHISPERWOOD` | `eoin_thread` | First survivor search failed and Eoin discovery moved into the street-search beat. | public | story_progression |
 | `sporefall_eoin_met` | `SCENE_MEET_EOIN` | `eoin_thread` | First direct Eoin encounter happened. | public | story_progression |
 | `sporefall_eoin_talked` | `SCENE_EOIN_TALK` | `eoin_thread` | Eoin's first major conversation is complete. | public | story_progression |
 | `sporefall_eoin_key_info_heard` | `SCENE_EOIN_TALK` | `eoin_thread` | Eoin's first major directional clue was heard. | public | story_progression |
@@ -44,6 +48,7 @@ If you add a new story-critical key, update both this note and the JS registry i
 | `sporefall_compass_found` | `SCENE_SPOREFALL_OVERSEER_STUDY` | `aodhan_thread` | Compass clue already claimed. | spoiler_sensitive | one_time_outcome |
 | `sporefall_bridge_seen` | `SCENE_SPOREFALL_NORTH_BRIDGE` | `north_bridge` | Bridge shelter investigated. | rumor_only | optional_clue |
 | `sporefall_bridge_body_seen` | `SCENE_SPOREFALL_NORTH_BRIDGE` | `north_bridge` | Eoin's mother found under the bridge. | spoiler_sensitive | optional_clue |
+| `sporefall_bridge_marker_read` | `SCENE_SPOREFALL_NORTH_APPROACH` | `north_bridge` | Older bridge marker was read and its civic history understood beneath the corruption. | rumor_only | optional_clue |
 | `sporefall_north_route_open` | `SCENE_SPOREFALL_NORTH_ROUTE_DISCOVERED` | `north_skip_route` | Northern skip route opened. | public | story_progression |
 | `sporefall_dreadcap_triggered` | `SCENE_HUB_SPOREFALL` | `north_skip_route` | Sporefall lingered long enough to trigger the Dreadcap escalation. | public | story_progression |
 | `sporefall_dreadcap_defeated` | `SCENE_DREADCAP_AFTERMATH` | `north_skip_route` | Dreadcap escalation already resolved. | public | one_time_outcome |
@@ -85,3 +90,4 @@ If you add a new story-critical key, update both this note and the JS registry i
 - Do not use `sceneMemory` for major route advancement when a flag is more explicit.
 - Do not use a public-sounding clue key to carry hidden-truth meaning.
 - If a key changes what the player can know, its sensitivity must be documented.
+- UI-only `sceneMemory` keys may stay outside this registry only if they do not affect story availability, rewards, lore, or route state.
