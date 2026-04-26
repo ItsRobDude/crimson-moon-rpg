@@ -36,9 +36,8 @@ test.describe('Canonical VN Surface', () => {
     await advanceSceneUntilChoice(page, /step inside the rusty blade/i);
 
     await expect(page.getByRole('button', { name: 'Step Inside the Rusty Blade' })).toBeVisible();
-    await expect(page.locator('#choice-container .choice-button')).toHaveCount(3);
+    await expect(page.locator('#choice-container .choice-button')).toHaveCount(6);
     await expect(page.getByRole('button', { name: 'Temple of Dawn' })).toBeVisible();
-    await page.getByRole('button', { name: /^more$/i }).click();
     await expect(page.getByRole('button', { name: 'Market District' })).toBeVisible();
 
     await page.evaluate(() => window.goToScene('SCENE_HUB_DURNHELM'));
@@ -70,7 +69,6 @@ test.describe('Canonical VN Surface', () => {
 
     await page.evaluate(() => window.goToScene('SCENE_HUSHBRIAR_TOWN'));
     await advanceSceneUntilChoice(page, /visit the moonwell/i);
-    await page.getByRole('button', { name: /^more$/i }).click();
     await expect(page.getByRole('button', { name: 'Visit the Moonwell' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Follow the Bridge Shadows' })).toBeVisible();
 

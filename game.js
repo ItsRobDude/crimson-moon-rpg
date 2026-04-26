@@ -485,7 +485,9 @@ function getNarrativeTextLimit() {
 }
 
 function getChoicePageSize() {
-    return window.innerWidth <= 768 ? 2 : 3;
+    if (window.innerWidth <= 480) return 3;
+    if (window.innerWidth <= 768) return 4;
+    return 6;
 }
 
 function splitParagraphIntoPages(paragraph, maxChars) {
@@ -1627,7 +1629,7 @@ export function buildSilverthornRuntimeScene(sceneId, baseScene) {
         scene.text = "Lark stands just off the traffic line with his hood down and his bow already waxed against damp. The look he gives the eastern road is not ordinary caution but old argument carried too far to be put down. He tells you, flatly, that the Viridian clans began splitting when the disruptions in the wild stopped behaving like weather and started feeling chosen, and Sporefall was the final cut. Alderic's summons is the first road east he has trusted since.";
         scene.choices = [
             createChoice('"Take your place on my flank. If the forest is calling men to answer, it can answer us together."', 'SCENE_SILVERTHORN_GATES', {
-                buttonText: 'Bring Lark',
+                buttonText: 'Call Lark to Your Flank',
                 effects: [
                     { type: 'flag', flagId: 'silverthorn_lark_recruited', value: true },
                     { type: 'addCompanion', companionId: 'lark', logText: 'Lark joins the road-party with the hard relief of a man who finally has a direction worth distrusting.' }
@@ -1649,7 +1651,7 @@ export function buildSilverthornRuntimeScene(sceneId, baseScene) {
         scene.text = "Kieran Brogan has one boot on a customs crate and one hand on a loaf the watch clearly meant to confiscate from somebody poorer than themselves. He is in the middle of explaining, with devotional politeness sharpened into a blade, why Saint Ilmater would likely break the clerk's fingers before blessing this ledger. He clocks your writ, drops back to the cobbles, and gives you a grin too sharp to trust and too tired to dismiss.";
         scene.choices = [
             createChoice('"If you want to spite the right people, come east with me. Save your mercy for folk who still deserve it."', 'SCENE_SILVERTHORN_GATES', {
-                buttonText: 'Bring Kieran',
+                buttonText: 'Call Kieran to the Road',
                 effects: [
                     { type: 'flag', flagId: 'silverthorn_kieran_recruited', value: true },
                     { type: 'addCompanion', companionId: 'kieran_brogan', logText: 'Kieran Brogan falls in with the party, pious enough to mean it and crooked enough to put mercy where the law refuses.' }

@@ -856,7 +856,7 @@ export const scenes = {
         background: "landscapes/silverthorn_market_avenue.png",
         text: "Lark waits with his bow already waxed and strung, watching the eastern gate like the next wagon might carry news that proves his clan did not break apart for nothing. The Viridian forest has not let him look at a treeline innocently since Whisperwood began to go wrong.",
         choices: [
-            { text: "Ask Lark to take his place in the road-party.", buttonText: "Bring Lark", nextScene: "SCENE_SILVERTHORN_GATES" },
+            { text: "Ask Lark to take his place in the road-party.", buttonText: "Call Lark to Your Flank", nextScene: "SCENE_SILVERTHORN_GATES" },
             { text: "Leave him with the gate traffic for the moment.", buttonText: "Back to the Gate Plaza", nextScene: "SCENE_SILVERTHORN_GATES" }
         ]
     },
@@ -866,7 +866,7 @@ export const scenes = {
         background: "landscapes/silverthorn_market_avenue.png",
         text: "A broad-shouldered dwarf in patched leather is giving a customs clerk the kind of answer that sounds obedient right until it empties the wrong man's ledger. He has one hand on a loaf the watch meant to call contraband and the other lifted in a half-prayer that sounds suspiciously like an insult.",
         choices: [
-            { text: "Take Kieran Brogan as the third blade on the road.", buttonText: "Bring Kieran", nextScene: "SCENE_SILVERTHORN_GATES" },
+            { text: "Take Kieran Brogan as the third blade on the road.", buttonText: "Call Kieran to the Road", nextScene: "SCENE_SILVERTHORN_GATES" },
             { text: "Leave him to pick a better fight.", buttonText: "Back to the Gate Plaza", nextScene: "SCENE_SILVERTHORN_GATES" }
         ]
     },

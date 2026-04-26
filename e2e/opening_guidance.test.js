@@ -39,19 +39,17 @@ test.describe('Opening Guidance', () => {
     await expect(page.locator('#objective-helper')).toHaveCount(0);
     await expect(page.locator('#choice-page-label')).toHaveCount(0);
     await expect(page.locator('.choice-pill')).toHaveCount(0);
-    await expect(page.locator('#choice-container .choice-button')).toHaveCount(3);
+    await expect(page.locator('#choice-container .choice-button')).toHaveCount(6);
     await expect(page.getByRole('button', { name: 'Step Inside the Rusty Blade' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Temple of Dawn' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Eastern Gate' })).toBeVisible();
-    await expect(page.locator('#choice-container')).not.toContainText('A strong first read');
-    await expect(page.locator('#choice-pagination')).toContainText('More');
-    const narrativeOverflow = await page.locator('#narrative-section').evaluate((node) => window.getComputedStyle(node).overflowY);
-    expect(['hidden', 'clip']).toContain(narrativeOverflow);
-
-    await page.getByRole('button', { name: /^more$/i }).click();
     await expect(page.getByRole('button', { name: "Alderic's Chamber" })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Market District' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Notice Board' })).toBeVisible();
+    await expect(page.locator('#choice-container')).not.toContainText('A strong first read');
+    await expect(page.locator('#choice-pagination')).not.toContainText('More');
+    const narrativeOverflow = await page.locator('#narrative-section').evaluate((node) => window.getComputedStyle(node).overflowY);
+    expect(['hidden', 'clip']).toContain(narrativeOverflow);
 
     await page.click('#btn-menu');
     await page.click('#btn-menu-quests');
