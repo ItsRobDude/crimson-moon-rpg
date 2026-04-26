@@ -21,6 +21,10 @@ test.describe('Character Creation Quick Starts', () => {
     await expect(page.locator('#cc-race')).toHaveValue('human');
     await expect(page.locator('#cc-background')).toHaveValue('soldier');
     await expect(page.locator('#cc-class-summary')).toContainText('Survivability: high');
+    await expect(page.locator('#cc-build-summary')).toContainText('Your best early edge is Strength.');
+    await expect(page.locator('#cc-build-summary')).toContainText('press Begin Journey');
+    await expect(page.locator('#cc-preview-content')).toContainText('Main Edge');
+    await expect(page.locator('#cc-preview-content')).toContainText('Strength');
     await expect(page.locator('#cc-abilities-container select[data-stat="STR"]')).toHaveValue('15');
     await expect(page.locator('#cc-abilities-container select[data-stat="INT"]')).toHaveValue('8');
     await expect(page.locator('#cc-advanced-panel')).toBeHidden();

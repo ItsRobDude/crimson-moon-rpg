@@ -2789,6 +2789,18 @@ function formatChoiceLabel(value) {
         .join(' ');
 }
 
+function formatAbilityLabel(stat) {
+    const abilityLabels = {
+        STR: 'Strength',
+        DEX: 'Dexterity',
+        CON: 'Constitution',
+        INT: 'Intelligence',
+        WIS: 'Wisdom',
+        CHA: 'Charisma'
+    };
+    return abilityLabels[stat] || stat;
+}
+
 function fillMissingSelections(current, available, count) {
     const next = [...current];
     available.forEach((entry) => {
@@ -3056,7 +3068,7 @@ function getCharacterCreationBuildSummary(raceKey, classKey, backgroundKey, fina
         wizard: 'Fragile arcane specialist. Tremendous spell reach, but the least forgiving if you misread the field.'
     };
     const classSummary = summaryByClass[classKey] || cls.description;
-    return `${races[raceKey].name} ${cls.name} from the ${background.name}. ${classSummary} Your best early edge leans on ${highestStat}.`;
+    return `${races[raceKey].name} ${cls.name} with the ${background.name} background. ${classSummary} Your best early edge is ${formatAbilityLabel(highestStat)}. If this road feels right, press Begin Journey. Otherwise, open sheet customization.`;
 }
 
 function getCharacterCreationDerivedStats(classKey, background, finalStats) {
@@ -3227,11 +3239,11 @@ function updateCCPreview() {
         <div class="cc-outcome-grid">
             <div class="cc-outcome-stat"><span>Starting HP</span><strong>${derived.hp}</strong></div>
             <div class="cc-outcome-stat"><span>Starting AC</span><strong>${derived.ac}</strong></div>
-            <div class="cc-outcome-stat"><span>Main Edge</span><strong>${derived.highestStat}</strong></div>
+            <div class="cc-outcome-stat"><span>Main Edge</span><strong>${formatAbilityLabel(derived.highestStat)}</strong></div>
         </div>
         <div class="cc-road-use">
             <span>Best first-road use</span>
-            <p>${preset?.bestUse || `Lean on ${derived.highestStat}, ${background.name.toLowerCase()} habits, and the ${cls.name.toLowerCase()} tools this build starts with.`}</p>
+            <p>${preset?.bestUse || `Lean on ${formatAbilityLabel(derived.highestStat).toLowerCase()}, ${background.name.toLowerCase()} habits, and the ${cls.name.toLowerCase()} tools this build starts with.`}</p>
         </div>
         <div class="cc-preview-detail">
             <span>Trained strengths</span>
