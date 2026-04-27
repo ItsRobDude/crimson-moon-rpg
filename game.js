@@ -1501,7 +1501,10 @@ export function buildSilverthornRuntimeScene(sceneId, baseScene) {
         const partyBeat = partyReady
             ? ` Lark and Kieran Brogan wait near the roadward wagons with the tense stillness of people who have already decided to leave and are only waiting on you to stop circling it.`
             : ` The prince's road-party is not fully assembled yet. ${!hasLark && !hasKieran ? 'Lark waits somewhere near the gate traffic, and the dwarf Alderic vouched for has not reported to your side yet.' : !hasLark ? 'Lark still has not taken his place beside you.' : 'Kieran Brogan still has to be pulled away from whatever small act of defiance is keeping him busy.'}`;
-        scene.text = `${baseScene.text} ${gateMood}${partyBeat}`;
+        const kieranCustomsPressure = hasKieran
+            ? " Across the plaza, the customs clerk Kieran humiliated points him out to a sergeant. No one moves to bar Alderic's writ, but the watch has marked your party now: one prince's order, one rescued loaf, and one more reason to hurry you east before trouble finds a louder shape."
+            : '';
+        scene.text = `${baseScene.text} ${gateMood}${partyBeat}${kieranCustomsPressure}`;
         scene.choices = [
             createChoice('Take counsel from the gate captain', 'SCENE_SILVERTHORN_GATE_CAPTAIN', { timeAdvance: 1, timeReason: 'You spend time getting the latest road intelligence.', inSilverthorn: true }),
             ...(hasLark ? [createChoice('Ask Lark what the road smells like to him.', 'SCENE_SILVERTHORN_LARK_CHECKIN', { buttonText: 'Ask Lark' })] : []),
@@ -1538,11 +1541,14 @@ export function buildSilverthornRuntimeScene(sceneId, baseScene) {
         const warnedAlready = !!getSceneMemory('silverthorn_gate_captain_seen');
         const hasRouteBriefing = !!gameState.flags.silverthorn_gate_route_briefed;
         setSceneMemory('silverthorn_gate_captain_seen', true);
+        const kieranCustomsWarning = hasKieran
+            ? " His eyes cut once toward Kieran and the customs clerk still complaining behind him. 'And keep your mercy from starting a second fight in my gate square.'"
+            : '';
         scene.text = warnedAlready
             ? hasRouteBriefing
-                ? "The captain recognizes you at once and taps the same route marks you already copied into memory. 'Then keep them straight in your head,' he says. 'The council can argue over relics and borders after we stop losing patrols. Out there, one bad landmark costs more than pride.'"
-                : "The captain recognizes you at once. 'Same road, same warning: keep your faces covered if the air turns foul, trust your footing more than your sight, and if the forest goes too quiet, do not mistake that for mercy. And if anyone on the road starts asking what Durnhelm found, keep walking.'"
-            : "The captain studies you for a beat longer than courtesy allows, then opens the route ledger with two scarred fingers. 'We lose scouts to the east and patience to the north,' he says. 'Whisperwood stopped answering the road, Durnhelm has half the realm whispering about relic-war, and every fool with a horse thinks fear can be outrun if he leaves before dusk. It cannot. So listen closely.'";
+                ? `The captain recognizes you at once and taps the same route marks you already copied into memory. 'Then keep them straight in your head,' he says. 'The council can argue over relics and borders after we stop losing patrols. Out there, one bad landmark costs more than pride.'${kieranCustomsWarning}`
+                : `The captain recognizes you at once. 'Same road, same warning: keep your faces covered if the air turns foul, trust your footing more than your sight, and if the forest goes too quiet, do not mistake that for mercy. And if anyone on the road starts asking what Durnhelm found, keep walking.'${kieranCustomsWarning}`
+            : `The captain studies you for a beat longer than courtesy allows, then opens the route ledger with two scarred fingers. 'We lose scouts to the east and patience to the north,' he says. 'Whisperwood stopped answering the road, Durnhelm has half the realm whispering about relic-war, and every fool with a horse thinks fear can be outrun if he leaves before dusk. It cannot. So listen closely.'${kieranCustomsWarning}`;
         scene.choices = [];
 
         if (!hasRouteBriefing) {
